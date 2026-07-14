@@ -1,10 +1,9 @@
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { decodeImage, cropResize } from "@/lib/idv/pipeline/image";
+import { decodeImage } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
-import { detectFaces } from "@/lib/idv/pipeline/yunet";
-import { embedFace, SFACE_INPUT_SIZE } from "@/lib/idv/pipeline/sface";
+import { embedFoundFace, findFaceUpright } from "@/lib/idv/pipeline/face-embed";
 import { passiveLivenessScore } from "@/lib/idv/pipeline/antispoof";
 import type {
   AnalyzeSelfieRequest,
@@ -70,14 +69,22 @@ export async function POST(req: Request) {
       const { data, error } = await admin.storage.from(BUCKET).download(path);
       if (error || !data) throw new Error(`téléchargement : ${path}`);
       const raw = await decodeImage(Buffer.from(await data.arrayBuffer()), 960);
-      const faces = await detectFaces(yunet, raw, { scoreThreshold: 0.6 });
-      const best = faces[0] ?? null;
-      if (!best) {
+      // Détection en cascade (image telle quelle, contraste redressé, agrandie)
+      // MAIS repères toujours ramenés dans les pixels d'origine : les défis de
+      // présence se jugent sur cette géométrie.
+      const found = await findFaceUpright(yunet, raw);
+      if (!found) {
         frames.push({ face: null, embedding: null, passiveLiveness: null });
         continue;
       }
-      const crop = await cropResize(raw, best, SFACE_INPUT_SIZE);
-      const embedding = await embedFace(sface, crop);
+      const best = found.face;
+      // Embedding sur visage RECALÉ (+ moyenne miroir) : c'est ce qui rend la
+      // comparaison insensible à l'inclinaison du selfie.
+      const embedding = await embedFoundFace(sface, {
+        image: raw,
+        face: best,
+        pass: found.pass,
+      });
       let passiveLiveness: number | null = null;
       if (minifasnet) {
         passiveLiveness = await passiveLivenessScore(

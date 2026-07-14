@@ -66,3 +66,53 @@ export async function cropResize(
     .toBuffer({ resolveWithObject: true });
   return { data, width: info.width, height: info.height };
 }
+
+/**
+ * VARIANTE « détection » : redresse le contraste et éclaircit les basses
+ * lumières. Une photo prise le soir, dans une voiture, ou avec un capteur bon
+ * marché sort sous-exposée et plate — YuNet y rate des visages qu'il trouve
+ * sans peine une fois l'image normalisée. On ne s'en sert QUE pour détecter :
+ * l'embedding, lui, se calcule toujours sur les pixels d'origine (une image
+ * « retouchée » déplacerait le visage dans l'espace du modèle).
+ */
+export async function enhanceForDetection(raw: RawImage): Promise<RawImage> {
+  const { data, info } = await sharp(raw.data, {
+    raw: { width: raw.width, height: raw.height, channels: 3 },
+  })
+    .normalise() // étire l'histogramme (contraste)
+    .gamma(1.2) // relève les ombres sans cramer les hautes lumières
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return { data, width: info.width, height: info.height };
+}
+
+/** Agrandissement (Lanczos) — un portrait de passeport fait parfois 90 px de
+ *  côté sur la photo reçue : sous ~40 px, YuNet ne voit plus rien. */
+export async function upscale(raw: RawImage, factor = 2): Promise<RawImage> {
+  const { data, info } = await sharp(raw.data, {
+    raw: { width: raw.width, height: raw.height, channels: 3 },
+  })
+    .resize({
+      width: Math.round(raw.width * factor),
+      height: Math.round(raw.height * factor),
+      kernel: "lanczos3",
+    })
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return { data, width: info.width, height: info.height };
+}
+
+/** Rotation par quart de tour — certaines caméras (et certains utilisateurs)
+ *  envoient le document couché, sans EXIF pour le dire. */
+export async function rotateRaw(
+  raw: RawImage,
+  angle: 90 | 180 | 270
+): Promise<RawImage> {
+  const { data, info } = await sharp(raw.data, {
+    raw: { width: raw.width, height: raw.height, channels: 3 },
+  })
+    .rotate(angle)
+    .raw()
+    .toBuffer({ resolveWithObject: true });
+  return { data, width: info.width, height: info.height };
+}

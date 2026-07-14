@@ -36,6 +36,13 @@ import {
   embeddingCosine,
 } from "../lib/idv/liveness.ts";
 import { normalizeFaceScore } from "../lib/idv/face-match.ts";
+import {
+  alignFace,
+  estimateSimilarity,
+  mirrorImage,
+  ALIGN_SIZE,
+  SFACE_TEMPLATE,
+} from "../lib/idv/pipeline/align.ts";
 import { decideIdv } from "../lib/idv/decision.ts";
 import sharp from "sharp";
 
@@ -427,16 +434,107 @@ ok(
 // ── 9) FACE MATCH : calibration réelle + décision automatique (étape 7) ────
 // Rejoue les mesures qui ont FIXÉ les ancres de normalisation : toute dérive
 // du modèle ou du pré-traitement fait échouer ce test.
+// ── 8 bis) ALIGNEMENT 5 POINTS (le cœur de la précision) ───────────────────
+{
+  // Une similitude connue doit se retrouver exactement.
+  const src = [
+    [0, 0],
+    [10, 0],
+    [0, 10],
+  ];
+  const dst = src.map(([x, y]) => [2 * x + 5, 2 * y + 7]); // ×2, +(5,7)
+  const t = estimateSimilarity(src, dst);
+  ok(
+    "alignement : similitude retrouvée (échelle 2, translation (5,7))",
+    Math.abs(t.a - 2) < 1e-6 &&
+      Math.abs(t.b) < 1e-6 &&
+      Math.abs(t.tx - 5) < 1e-6 &&
+      Math.abs(t.ty - 7) < 1e-6,
+    `a=${t.a.toFixed(3)} b=${t.b.toFixed(3)} t=(${t.tx.toFixed(2)}, ${t.ty.toFixed(2)})`
+  );
+
+  // Un visage DÉJÀ au gabarit doit sortir inchangé (transformation identité).
+  const flat = {
+    data: new Uint8Array(ALIGN_SIZE * ALIGN_SIZE * 3).fill(128),
+    width: ALIGN_SIZE,
+    height: ALIGN_SIZE,
+  };
+  const aligned = alignFace(flat, SFACE_TEMPLATE);
+  ok(
+    "alignement : sortie 112×112 RGB",
+    aligned.width === ALIGN_SIZE &&
+      aligned.height === ALIGN_SIZE &&
+      aligned.data.length === ALIGN_SIZE * ALIGN_SIZE * 3
+  );
+  const mir = mirrorImage(aligned);
+  ok("miroir : dimensions conservées", mir.width === aligned.width);
+}
+
 if (sample) {
+  // Chemin de PRODUCTION : recalage 5 points + moyenne de l'image et du miroir.
+  const embedAligned = async (img, face) => {
+    const crop = alignFace(img, face.landmarks, ALIGN_SIZE);
+    const [a, b] = await Promise.all([
+      embedFace(sface.session, crop),
+      embedFace(sface.session, mirrorImage(crop)),
+    ]);
+    const m = new Float32Array(a.length);
+    let n = 0;
+    for (let i = 0; i < a.length; i++) {
+      m[i] = a[i] + b[i];
+      n += m[i] ** 2;
+    }
+    n = Math.sqrt(n);
+    for (let i = 0; i < m.length; i++) m[i] /= n;
+    return m;
+  };
+  const biggest = (fs) =>
+    fs.reduce((b, f) => (!b || f.w * f.h > b.w * b.h ? f : b), null);
+
   const embedBuf = async (buf) => {
     const img = await decodeImage(buf, 1280);
-    const faces = await detectFaces(yunet.session, img, {
-      scoreThreshold: 0.6,
-    });
-    if (!faces[0]) return null;
-    const crop = await cropResize(img, faces[0], SFACE_INPUT_SIZE);
-    return embedFace(sface.session, crop);
+    const face = biggest(
+      await detectFaces(yunet.session, img, { scoreThreshold: 0.6 })
+    );
+    if (!face) return null;
+    return embedAligned(img, face);
   };
+
+  // Le recalage doit BATTRE le recadrage brut sur un selfie incliné — c'est
+  // exactement le cas où l'ancien pipeline se trompait (cos 0.556 → 0.930).
+  {
+    const refBuf = await sharp(sample).jpeg({ quality: 92 }).toBuffer();
+    const tiltBuf = await sharp(sample)
+      .rotate(12, { background: "#000" })
+      .jpeg({ quality: 85 })
+      .toBuffer();
+    const rawEmbed = async (buf) => {
+      const img = await decodeImage(buf, 1280);
+      const face = biggest(
+        await detectFaces(yunet.session, img, { scoreThreshold: 0.6 })
+      );
+      if (!face) return null;
+      return embedFace(
+        sface.session,
+        await cropResize(img, face, SFACE_INPUT_SIZE)
+      );
+    };
+    const [rRef, rTilt, aRef, aTilt] = await Promise.all([
+      rawEmbed(refBuf),
+      rawEmbed(tiltBuf),
+      embedBuf(refBuf),
+      embedBuf(tiltBuf),
+    ]);
+    if (rRef && rTilt && aRef && aTilt) {
+      const cosRaw = cosineSimilarity(rRef, rTilt);
+      const cosAligned = cosineSimilarity(aRef, aTilt);
+      ok(
+        "alignement : selfie incliné 12° — le recalage bat le recadrage brut",
+        cosAligned > cosRaw + 0.2,
+        `brut ${cosRaw.toFixed(3)} → recalé ${cosAligned.toFixed(3)}`
+      );
+    }
+  }
 
   // Portrait « carte d'identité » : petit, imprimé, recompressé + selfie.
   const idPortrait = await sharp(sample)
@@ -454,7 +552,7 @@ if (sample) {
   const cosSame = cosineSimilarity(eDoc, eSelfie);
   const scoreSame = normalizeFaceScore(cosSame);
   ok(
-    "face match : MÊME personne (portrait carte dégradé ↔ selfie) → score élevé",
+    "face match : MÊME personne (portrait carte dégradé ↔ selfie) → APPROBATION auto",
     scoreSame >= 0.6,
     `cos ${cosSame.toFixed(3)} → score ${scoreSame}`
   );
@@ -481,9 +579,16 @@ if (sample) {
     const cosDiff = cosineSimilarity(eOther, eSelfie);
     const scoreDiff = normalizeFaceScore(cosDiff);
     ok(
-      "face match : personne DIFFÉRENTE → score sous le seuil de refus",
+      "face match : personne DIFFÉRENTE → REFUS auto (sous le seuil)",
       scoreDiff < 0.35,
       `cos ${cosDiff.toFixed(3)} → score ${scoreDiff}`
+    );
+    // La marge (même personne − imposteur) est ce qui sépare vraiment les deux
+    // populations : c'est elle qu'on protège des régressions.
+    ok(
+      "face match : marge de séparation ≥ 0.35 (alignement)",
+      cosSame - cosDiff >= 0.35,
+      `marge ${(cosSame - cosDiff).toFixed(3)}`
     );
 
     // Décision automatique de bout en bout, seuils par défaut du mode.

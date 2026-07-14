@@ -23,6 +23,7 @@ import { IdvSelfieCapture } from "./idv-selfie-capture";
 import { IdvStatusPanel } from "./idv-status-panel";
 import { IdvStepper } from "./idv-stepper";
 import { IdvScanOverlay } from "./idv-scan-overlay";
+import { compressCapture, DOC_TARGET, SELFIE_TARGET } from "@/lib/idv/compress";
 import { IdvScope } from "./idv-theme";
 import { IdvActionIntro } from "./idv-action-intro";
 import { IllusSelfie } from "./idv-illustrations";
@@ -68,6 +69,22 @@ function sideLabel(doc: IdvDocumentType | undefined, side: Side): string {
   return side === "front" ? "Recto" : "Verso";
 }
 
+/**
+ * Reprise sur PANNE DE TRANSPORT. Un `fetch` qui rejette (réseau coupé, cellule
+ * changée, écran verrouillé) n'a jamais atteint le serveur : on peut réessayer
+ * sans risque de compter deux tentatives. Une erreur RENVOYÉE par le serveur,
+ * elle, n'est pas rejouée — elle est vraie.
+ */
+async function withNetworkRetry<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (e) {
+    if (!(e instanceof TypeError)) throw e; // erreur applicative : on la garde
+    await new Promise((r) => setTimeout(r, 1200));
+    return call();
+  }
+}
+
 export function IdvFlow({
   profile,
   docTypes,
@@ -85,8 +102,14 @@ export function IdvFlow({
   verification: IdvVerificationView | null;
 }) {
   const router = useRouter();
+  // Une coupure réseau au mauvais moment (changement de cellule, écran
+  // verrouillé) ne doit pas coûter un dossier : on réessaie UNE fois, et
+  // uniquement sur une panne de transport (la requête n'est jamais partie).
+  // Jamais plus : une deuxième tentative « en aveugle » risquerait de compter
+  // deux essais côté serveur.
   const [state, dispatch, pending] = useActionState(
-    submitIdvDocument,
+    (prev: IdvSubmitState, fd: FormData) =>
+      withNetworkRetry(() => submitIdvDocument(prev, fd)),
     initialState
   );
 
@@ -112,7 +135,8 @@ export function IdvFlow({
 
   // ── Selfie (étape 6) : session de défis émise par le serveur ──────────────
   const [selfieState, selfieDispatch, selfiePending] = useActionState(
-    submitIdvSelfie,
+    (prev: IdvSubmitState, fd: FormData) =>
+      withNetworkRetry(() => submitIdvSelfie(prev, fd)),
     initialState
   );
   const [session, setSession] = useState<SelfieSession | null>(null);
@@ -156,23 +180,32 @@ export function IdvFlow({
 
   const submit = () => {
     if (!doc || !captures.front) return;
-    const fd = new FormData();
-    fd.set("profile", profile);
-    fd.set("document_type", doc.key);
-    fd.set("mode", modeKey);
-    fd.set(
-      "doc_front",
-      new File([captures.front], "front.jpg", { type: "image/jpeg" })
-    );
-    if (doc.sides === 2 && captures.back) {
-      fd.set(
-        "doc_back",
-        new File([captures.back], "back.jpg", { type: "image/jpeg" })
-      );
-    }
     setErrorDismissed(false);
     setAnalyzing("document");
-    startTransition(() => dispatch(fd));
+    // Les captures sont ramenées sous un budget d'octets AVANT l'envoi : sur un
+    // réseau lent, un envoi de 3 Mo n'est pas « lent », il échoue.
+    void (async () => {
+      const front = await compressCapture(captures.front!, DOC_TARGET);
+      const back =
+        doc.sides === 2 && captures.back
+          ? await compressCapture(captures.back, DOC_TARGET)
+          : null;
+      const fd = new FormData();
+      fd.set("profile", profile);
+      fd.set("document_type", doc.key);
+      fd.set("mode", modeKey);
+      fd.set(
+        "doc_front",
+        new File([front], "front.jpg", { type: "image/jpeg" })
+      );
+      if (back) {
+        fd.set(
+          "doc_back",
+          new File([back], "back.jpg", { type: "image/jpeg" })
+        );
+      }
+      startTransition(() => dispatch(fd));
+    })();
   };
 
   // ── Selfie : le serveur tire les défis et signe la session ────────────────
@@ -190,21 +223,26 @@ export function IdvFlow({
   };
 
   const sendSelfie = (frames: Blob[], s: SelfieSession) => {
-    const fd = new FormData();
-    fd.set("profile", profile);
-    fd.set("challenges", s.challenges.join(","));
-    fd.set("token", s.token);
-    fd.set("expires_at", String(s.expiresAt));
-    frames.forEach((blob, i) =>
-      fd.set(
-        `frame_${i}`,
-        new File([blob], `frame-${i}.jpg`, { type: "image/jpeg" })
-      )
-    );
     setStep("status");
     setSession(null);
     setAnalyzing("selfie");
-    startTransition(() => selfieDispatch(fd));
+    void (async () => {
+      const light = await Promise.all(
+        frames.map((f) => compressCapture(f, SELFIE_TARGET))
+      );
+      const fd = new FormData();
+      fd.set("profile", profile);
+      fd.set("challenges", s.challenges.join(","));
+      fd.set("token", s.token);
+      fd.set("expires_at", String(s.expiresAt));
+      light.forEach((blob, i) =>
+        fd.set(
+          `frame_${i}`,
+          new File([blob], `frame-${i}.jpg`, { type: "image/jpeg" })
+        )
+      );
+      startTransition(() => selfieDispatch(fd));
+    })();
   };
 
   const currentStatus = statusOverride ?? verification?.status ?? "draft";

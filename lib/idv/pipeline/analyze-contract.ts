@@ -78,6 +78,10 @@ export type FaceMatchRequest = {
   docPath: string;
   /** Frame selfie de référence (défi « center »). */
   selfiePath: string;
+  /** Autres frames du selfie (défis). Comparer TOUTES les vues et garder la
+   *  meilleure évite de condamner quelqu'un pour une frame floue : la personne
+   *  bouge, une prise est nette, c'est celle-là qui fait foi. */
+  framePaths?: string[];
 };
 
 export type FaceMatchResponse =
@@ -89,5 +93,11 @@ export type FaceMatchResponse =
       cosine: number;
       docFaceFound: boolean;
       selfieFaceFound: boolean;
+      /** Nombre de vues du selfie réellement comparées (≥ 1). */
+      framesCompared?: number;
+      /** Passe de détection qui a trouvé le portrait (audit : « rot90 »,
+       *  « upscale2 »… disent ce que la caméra de l'utilisateur a donné). */
+      docPass?: string;
+      selfiePass?: string;
     }
   | { ok: false; error: string };

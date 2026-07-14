@@ -984,6 +984,7 @@ export async function submitIdvSelfie(
       modeChecks,
       livenessScore: score,
       selfiePath: paths[0],
+      framePaths: paths,
     });
   }
 
@@ -1092,6 +1093,9 @@ async function finalizeIdvDecision(input: {
   modeChecks: Record<string, boolean>;
   livenessScore: number;
   selfiePath: string;
+  /** Toutes les vues capturées (défis compris) : la comparaison retient la
+   *  MEILLEURE. Une frame floue ne doit pas condamner quelqu'un. */
+  framePaths?: string[];
 }): Promise<IdvSubmitState> {
   const {
     summary,
@@ -1104,6 +1108,7 @@ async function finalizeIdvDecision(input: {
     modeChecks,
     livenessScore,
     selfiePath,
+    framePaths,
   } = input;
 
   /** Résumé enrichi du face match (résultat seul, jamais le score). */
@@ -1143,7 +1148,7 @@ async function finalizeIdvDecision(input: {
   if (!docPath) return toReview("missing_document_capture", { attempt });
 
   // ── Face match : portrait du document ↔ selfie ────────────────────────────
-  const match = await callFaceMatch({ docPath, selfiePath });
+  const match = await callFaceMatch({ docPath, selfiePath, framePaths });
   if (!match) {
     await table<PlainInsert>("idv_checks").insert({
       verification_id: verifId,
