@@ -337,7 +337,7 @@ export function PartnerMenuRow({
     </>
   );
   const cls =
-    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold last:border-b-0";
+    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-start text-[13.5px] font-semibold last:border-b-0";
   if (href) {
     return (
       <Link href={href} className={cls} onClick={onClick}>
@@ -456,14 +456,18 @@ export function PartnerHeroCard({
  * d'erreur affichable, ou null si la déconnexion part.
  */
 export function PartnerLogoutRow({
-  label = "Se déconnecter",
-  pendingLabel = "Déconnexion en cours…",
+  label,
+  pendingLabel,
   onLogout,
 }: {
   label?: string;
   pendingLabel?: string;
   onLogout: () => Promise<string | null>;
 }) {
+  const isAr = useLocale() === "ar";
+  const shownLabel = label ?? (isAr ? "تسجيل الخروج" : "Se déconnecter");
+  const shownPending =
+    pendingLabel ?? (isAr ? "جارٍ تسجيل الخروج…" : "Déconnexion en cours…");
   const [pending, setPending] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   return (
@@ -483,11 +487,15 @@ export function PartnerLogoutRow({
               }
             })
             .catch(() => {
-              setErr("Échec de la déconnexion. Réessayez.");
+              setErr(
+                isAr
+                  ? "فشل تسجيل الخروج. أعد المحاولة."
+                  : "Échec de la déconnexion. Réessayez."
+              );
               setPending(false);
             });
         }}
-        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-left text-[13.5px] font-semibold disabled:opacity-70"
+        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-start text-[13.5px] font-semibold disabled:opacity-70"
         style={{ color: BRAND_RED }}
       >
         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
@@ -500,7 +508,7 @@ export function PartnerLogoutRow({
             <LogOut className="size-4" style={{ color: BRAND_RED }} />
           )}
         </span>
-        {pending ? pendingLabel : label}
+        {pending ? shownPending : shownLabel}
       </button>
       {err && (
         <div className="mt-2">

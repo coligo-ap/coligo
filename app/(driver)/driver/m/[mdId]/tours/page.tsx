@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
@@ -29,6 +30,8 @@ export default async function DriverToursPage({
     .eq("driver_id", driver.id)
     .maybeSingle();
   if (!link) notFound();
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const merchant = Array.isArray(link.merchants)
     ? link.merchants[0]
     : link.merchants;
@@ -52,7 +55,7 @@ export default async function DriverToursPage({
       <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
         <PartnerBackHeader
           href="/driver"
-          title="Tournées"
+          title={tr("Tournées", "الجولات")}
           subtitle={merchant?.name}
         />
         <div className="space-y-4">
@@ -61,11 +64,21 @@ export default async function DriverToursPage({
             style={{ background: "rgba(245,158,11,.12)", color: "#c2790a" }}
           >
             {link.status === "pending"
-              ? `Ton accès chez ${merchant?.name} est en attente de validation.`
-              : `Ton accès chez ${merchant?.name} a été retiré.`}
+              ? isAr
+                ? `وصولك لدى ${merchant?.name} في انتظار المصادقة.`
+                : `Ton accès chez ${merchant?.name} est en attente de validation.`
+              : isAr
+                ? `سُحب وصولك لدى ${merchant?.name}.`
+                : `Ton accès chez ${merchant?.name} a été retiré.`}
             {ongoing
-              ? " Tu peux quand même terminer la tournée déjà commencée."
-              : " Tu ne peux pas démarrer de nouvelle tournée pour l'instant."}
+              ? tr(
+                  " Tu peux quand même terminer la tournée déjà commencée.",
+                  " يمكنك مع ذلك إنهاء الجولة التي بدأتها."
+                )
+              : tr(
+                  " Tu ne peux pas démarrer de nouvelle tournée pour l'instant.",
+                  " لا يمكنك بدء جولة جديدة حاليًا."
+                )}
           </div>
           {ongoing && (
             <Link
@@ -76,7 +89,7 @@ export default async function DriverToursPage({
                 boxShadow: "0 14px 28px -12px rgba(108,43,217,.6)",
               }}
             >
-              Terminer ma tournée en cours
+              {tr("Terminer ma tournée en cours", "إنهاء جولتي الجارية")}
             </Link>
           )}
         </div>
@@ -119,7 +132,7 @@ export default async function DriverToursPage({
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <PartnerBackHeader
         href={`/driver/m/${mdId}`}
-        title="Tournées"
+        title={tr("Tournées", "الجولات")}
         subtitle={merchant?.name}
       />
       <TourSlotsList

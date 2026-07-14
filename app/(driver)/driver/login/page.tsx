@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { DriverLoginForm } from "@/components/driver/login-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
@@ -23,28 +24,48 @@ export default async function DriverLoginPage() {
       .maybeSingle();
     if (driver) redirect("/driver");
   }
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <AuthScreen
       navVariant="driver"
-      installLabel="Installer l'application Livreur"
+      installLabel={tr("Installer l'application Livreur", "ثبّت تطبيق الموصّل")}
       hero={{
-        title: (
+        title: isAr ? (
+          <>
+            وصّل واربح، <br />
+            على وتيرتك.
+          </>
+        ) : (
           <>
             Livrez et gagnez, <br />à votre rythme.
           </>
         ),
-        subtitle: "L'application des livreurs partenaires de Coligo.",
-        features: [
-          "Recevez des courses près de vous",
-          "Suivez vos gains en temps réel",
-          "Choisissez votre zone de travail",
-          "Des versements rapides et transparents",
-        ],
+        subtitle: tr(
+          "L'application des livreurs partenaires de Coligo.",
+          "تطبيق الموصّلين الشركاء لكوليڨو."
+        ),
+        features: isAr
+          ? [
+              "استقبل طلبات توصيل قريبة منك",
+              "تابع أرباحك في الوقت الفعلي",
+              "اختر منطقة عملك",
+              "دفعات سريعة وشفافة",
+            ]
+          : [
+              "Recevez des courses près de vous",
+              "Suivez vos gains en temps réel",
+              "Choisissez votre zone de travail",
+              "Des versements rapides et transparents",
+            ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Connexion · espace livreur"
-      cardSubtitle="Vos livraisons et vos gains."
+      cardTitle={tr(
+        "Connexion · espace livreur",
+        "تسجيل الدخول · فضاء الموصّل"
+      )}
+      cardSubtitle={tr("Vos livraisons et vos gains.", "توصيلاتك وأرباحك.")}
       modeTabs={
         <AuthModeTabs
           mode="login"

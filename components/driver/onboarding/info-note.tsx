@@ -8,26 +8,29 @@
 // =============================================================================
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { Info, X } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
 
 export function InfoNote({
   title,
   children,
-  label = "En savoir plus",
+  label,
 }: {
   title: string;
   children: React.ReactNode;
   label?: string;
 }) {
   const [open, setOpen] = useState(false);
+  const isAr = useLocale() === "ar";
+  const shownLabel = label ?? (isAr ? "اعرف المزيد" : "En savoir plus");
 
   return (
     <>
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={label}
+        aria-label={shownLabel}
         className="inline-flex size-6 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--surface)] align-middle text-[var(--muted)] transition-colors hover:text-[var(--ink)]"
       >
         <Info className="size-3.5" />
@@ -40,7 +43,7 @@ export function InfoNote({
             onClick={() => setOpen(false)}
           >
             <div
-              className="w-full max-w-md rounded-t-[22px] bg-[var(--surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-left sm:rounded-[22px] sm:pb-5"
+              className="w-full max-w-md rounded-t-[22px] bg-[var(--surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-start sm:rounded-[22px] sm:pb-5"
               style={{ animation: "driver-rise .28s ease-out both" }}
               onClick={(e) => e.stopPropagation()}
             >
@@ -51,7 +54,7 @@ export function InfoNote({
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  aria-label="Fermer"
+                  aria-label={isAr ? "إغلاق" : "Fermer"}
                   className="grid size-8 shrink-0 place-items-center rounded-full border border-[var(--line)]"
                 >
                   <X className="size-4" />

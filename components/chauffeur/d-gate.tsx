@@ -1,5 +1,6 @@
 "use client";
 
+import { useLocale } from "next-intl";
 import {
   Ban,
   Clock,
@@ -26,6 +27,8 @@ import { chauffeurLogout } from "@/app/(chauffeur)/actions";
  * « l'équipe Coligo ».
  */
 export function DWait() {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
     <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
@@ -37,32 +40,50 @@ export function DWait() {
           <Clock className="size-7" style={{ color: VIOLET }} />
         </span>
         <h1 className="drive-sora text-[21px] font-extrabold">
-          Dossier envoyé ✓
+          {tr("Dossier envoyé ✓", "تم إرسال الملف ✓")}
         </h1>
         <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
-          L&apos;<b>équipe Coligo</b> vérifie vos documents. Vous ne pourrez
-          accéder à votre compte chauffeur qu&apos;après validation (24–48 h).
-          Vous serez notifié.
+          {isAr ? (
+            <>
+              <b>فريق كوليڨو</b> يتحقق من وثائقك. لن تتمكن من الوصول إلى حساب
+              السائق إلا بعد المصادقة (24–48 ساعة). سيتم إشعارك.
+            </>
+          ) : (
+            <>
+              L&apos;<b>équipe Coligo</b> vérifie vos documents. Vous ne pourrez
+              accéder à votre compte chauffeur qu&apos;après validation (24–48
+              h). Vous serez notifié.
+            </>
+          )}
         </p>
       </div>
 
       <div className="mx-auto mt-5 max-w-[320px]">
-        <Step state="ok" title="Dossier envoyé" sub="À l'instant" />
+        <Step
+          state="ok"
+          title={tr("Dossier envoyé", "تم إرسال الملف")}
+          sub={tr("À l'instant", "الآن")}
+        />
         <Step
           state="cur"
-          title="Vérification par l'équipe Coligo"
-          sub="Documents · selfie · véhicule"
+          title={tr("Vérification par l'équipe Coligo", "تحقّق من فريق كوليڨو")}
+          sub={tr("Documents · selfie · véhicule", "الوثائق · سيلفي · المركبة")}
         />
         <Step
           state="todo"
           n={3}
-          title="Compte activé"
-          sub="Vous pourrez vous connecter et recevoir des courses"
+          title={tr("Compte activé", "تفعيل الحساب")}
+          sub={tr(
+            "Vous pourrez vous connecter et recevoir des courses",
+            "ستتمكن من تسجيل الدخول واستقبال المشاوير"
+          )}
           last
         />
       </div>
 
-      <GhostBtn onClick={() => void chauffeurLogout()}>Se déconnecter</GhostBtn>
+      <GhostBtn onClick={() => void chauffeurLogout()}>
+        {tr("Se déconnecter", "تسجيل الخروج")}
+      </GhostBtn>
     </div>
   );
 }
@@ -115,26 +136,40 @@ function Step({
 
 /** Compte gelé (s-dfrozen) — motifs possibles + contact support. */
 export function DFrozen({ reason }: { reason: string | null }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const motifs = [
     {
       icon: <CreditCard className="size-4.5" style={{ color: RED }} />,
-      title: "Impayé envers la plateforme",
-      sub: "Commissions ou abonnement non reversés à l'échéance",
+      title: tr("Impayé envers la plateforme", "مستحقات غير مدفوعة للمنصة"),
+      sub: tr(
+        "Commissions ou abonnement non reversés à l'échéance",
+        "عمولات أو اشتراك لم يُدفع في الأجل"
+      ),
     },
     {
       icon: <X className="size-4.5" style={{ color: RED }} />,
-      title: "Annulations répétées",
-      sub: "Taux d'annulation au-dessus du seuil autorisé",
+      title: tr("Annulations répétées", "إلغاءات متكرّرة"),
+      sub: tr(
+        "Taux d'annulation au-dessus du seuil autorisé",
+        "نسبة إلغاء فوق الحد المسموح"
+      ),
     },
     {
       icon: <AlertTriangle className="size-4.5" style={{ color: RED }} />,
-      title: "Comportement signalé",
-      sub: "Non-respect des clients ou des conditions de la plateforme",
+      title: tr("Comportement signalé", "سلوك مُبلَّغ عنه"),
+      sub: tr(
+        "Non-respect des clients ou des conditions de la plateforme",
+        "عدم احترام الزبائن أو شروط المنصة"
+      ),
     },
     {
       icon: <Star className="size-4.5" style={{ color: RED }} />,
-      title: "Note trop basse",
-      sub: "Note moyenne durablement sous le seuil minimal",
+      title: tr("Note trop basse", "تقييم منخفض جدًا"),
+      sub: tr(
+        "Note moyenne durablement sous le seuil minimal",
+        "متوسط تقييم دون الحد الأدنى لمدة طويلة"
+      ),
     },
   ];
   return (
@@ -151,16 +186,20 @@ export function DFrozen({ reason }: { reason: string | null }) {
           className="drive-sora text-[21px] font-extrabold"
           style={{ color: RED }}
         >
-          Compte gelé
+          {tr("Compte gelé", "حساب مجمَّد")}
         </h1>
         <p className="mx-auto mt-1 mb-3 max-w-[300px] text-[13px] text-[var(--d-muted)]">
-          Votre compte chauffeur a été suspendu par Coligo.{" "}
+          {tr(
+            "Votre compte chauffeur a été suspendu par Coligo.",
+            "تم تعليق حساب السائق الخاص بك من طرف كوليڨو."
+          )}{" "}
           {reason ? (
             <>
-              Motif : <b className="text-[var(--d-ink)]">{reason}</b>
+              {tr("Motif :", "السبب:")}{" "}
+              <b className="text-[var(--d-ink)]">{reason}</b>
             </>
           ) : (
-            "Motifs possibles :"
+            tr("Motifs possibles :", "الأسباب المحتملة:")
           )}
         </p>
       </div>
@@ -181,15 +220,19 @@ export function DFrozen({ reason }: { reason: string | null }) {
       <PrimaryBtn
         onClick={() => window.open("mailto:support@coligo.app", "_self")}
       >
-        Contacter le support Coligo
+        {tr("Contacter le support Coligo", "التواصل مع دعم كوليڨو")}
       </PrimaryBtn>
-      <GhostBtn onClick={() => void chauffeurLogout()}>Se déconnecter</GhostBtn>
+      <GhostBtn onClick={() => void chauffeurLogout()}>
+        {tr("Se déconnecter", "تسجيل الخروج")}
+      </GhostBtn>
     </div>
   );
 }
 
 /** Compte bloqué (suspension dure). */
 export function DBlocked() {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
     <div className="drive-jakarta drive-page fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-[var(--d-surface)] px-5">
@@ -204,14 +247,16 @@ export function DBlocked() {
           className="drive-sora text-[21px] font-extrabold"
           style={{ color: RED }}
         >
-          Compte suspendu
+          {tr("Compte suspendu", "حساب موقوف")}
         </h1>
         <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
-          Votre compte a été suspendu définitivement. Contactez le support
-          Coligo pour plus d&apos;informations.
+          {tr(
+            "Votre compte a été suspendu définitivement. Contactez le support Coligo pour plus d'informations.",
+            "تم إيقاف حسابك نهائيًا. تواصل مع دعم كوليڨو لمزيد من المعلومات."
+          )}
         </p>
         <GhostBtn onClick={() => void chauffeurLogout()}>
-          Se déconnecter
+          {tr("Se déconnecter", "تسجيل الخروج")}
         </GhostBtn>
       </div>
     </div>

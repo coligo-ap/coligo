@@ -12,13 +12,14 @@
 // =============================================================================
 
 import { Check } from "lucide-react";
+import { useLocale } from "next-intl";
 
 export type IdvStepKey = "document" | "selfie" | "decision";
 
-const STEPS: { key: IdvStepKey; label: string }[] = [
-  { key: "document", label: "Document" },
-  { key: "selfie", label: "Selfie" },
-  { key: "decision", label: "Vérification" },
+const STEPS: { key: IdvStepKey; label: string; labelAr: string }[] = [
+  { key: "document", label: "Document", labelAr: "الوثيقة" },
+  { key: "selfie", label: "Selfie", labelAr: "سيلفي" },
+  { key: "decision", label: "Vérification", labelAr: "التحقّق" },
 ];
 
 export function IdvStepperStyles() {
@@ -34,6 +35,7 @@ export function IdvStepperStyles() {
         transform-origin: left center;
         animation: idv-bar-grow .5s cubic-bezier(.22,1,.36,1);
       }
+      [dir="rtl"] .idv-bar-fill { transform-origin: right center; }
       @media (prefers-reduced-motion: reduce) {
         .idv-step-sub, .idv-bar-fill { animation: none; }
       }
@@ -55,6 +57,7 @@ export function IdvStepper({
   progress?: number;
   onDark?: boolean;
 }) {
+  const isAr = useLocale() === "ar";
   const index = STEPS.findIndex((s) => s.key === current);
   const ink = onDark ? "#fff" : "var(--idv-ink)";
   const muted = onDark ? "rgba(255,255,255,.65)" : "var(--idv-muted)";
@@ -107,7 +110,7 @@ export function IdvStepper({
                     aria-hidden
                   />
                 )}
-                {step.label}
+                {isAr ? step.labelAr : step.label}
               </span>
             </div>
           );

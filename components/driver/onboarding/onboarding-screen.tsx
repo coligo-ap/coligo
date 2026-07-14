@@ -1,3 +1,4 @@
+import { useLocale } from "next-intl";
 import { BRAND_VIOLET, SORA } from "@/components/shared/partner-ui";
 import { DriverLogoutLink } from "@/components/driver/onboarding/driver-logout-link";
 
@@ -33,6 +34,7 @@ export function OnboardingScreen({
   /** Bulle d'information (mentions légales, précisions) — affichée à la demande. */
   info?: React.ReactNode;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <div className="min-h-[100dvh] bg-[var(--d-page)] text-[var(--d-ink)]">
       <main
@@ -51,7 +53,9 @@ export function OnboardingScreen({
           </span>
           {step != null && stepCount != null && (
             <p className="text-[11px] font-bold tracking-[2px] text-[var(--muted)] uppercase">
-              Étape {step} sur {stepCount}
+              {isAr
+                ? `الخطوة ${step} من ${stepCount}`
+                : `Étape ${step} sur ${stepCount}`}
             </p>
           )}
           <h1

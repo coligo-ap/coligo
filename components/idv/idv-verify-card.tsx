@@ -17,6 +17,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Loader2, UserCheck } from "lucide-react";
 import type { IdvChoiceState } from "@/lib/idv/ui-state";
 import { requestIdvManualReview } from "@/app/idv/actions";
@@ -33,6 +34,8 @@ export function IdvVerifyCard({
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   if (!idv.available) return null;
 
@@ -41,7 +44,7 @@ export function IdvVerifyCard({
     startTransition(async () => {
       const res = await requestIdvManualReview(profile);
       if (!res.ok) {
-        setError(res.error ?? "Demande impossible.");
+        setError(res.error ?? tr("Demande impossible.", "تعذّر إرسال الطلب."));
         return;
       }
       router.refresh();
@@ -76,7 +79,10 @@ export function IdvVerifyCard({
             ) : (
               <UserCheck className="size-4" />
             )}
-            Faire examiner par l&apos;équipe · 24 à 72 h
+            {tr(
+              "Faire examiner par l'équipe · 24 à 72 h",
+              "طلب فحص من الفريق · 24 إلى 72 ساعة"
+            )}
           </button>
           {error && (
             <p

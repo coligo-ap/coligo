@@ -25,6 +25,9 @@ export function isValidDzPhone(raw: string | null | undefined): boolean {
 /** Message d'erreur standard (réutilisable côté formulaires/actions). */
 export const DZ_PHONE_ERROR =
   "Numéro de téléphone algérien invalide. Format attendu : 0X XX XX XX XX (mobile 05/06/07).";
+/** Variante arabe du même message (portails bilingues). */
+export const DZ_PHONE_ERROR_AR =
+  "رقم هاتف جزائري غير صالح. الصيغة المطلوبة: 0X XX XX XX XX (جوّال 05/06/07).";
 
 // ---------------------------------------------------------------------------
 // Indicatifs pays (sélecteur du champ téléphone) — l'ALGÉRIE est par défaut.
@@ -142,8 +145,10 @@ export function formatNational(dial: string, national: string): string {
 }
 
 /** Message d'erreur adapté au pays choisi, affiché SOUS le champ. */
-export function phoneErrorFor(dial: string): string {
-  return dial === "+213"
-    ? DZ_PHONE_ERROR
+export function phoneErrorFor(dial: string, locale?: string): string {
+  const isAr = locale === "ar";
+  if (dial === "+213") return isAr ? DZ_PHONE_ERROR_AR : DZ_PHONE_ERROR;
+  return isAr
+    ? "رقم غير صالح بالنسبة لرمز البلد المحدد."
     : "Numéro invalide pour l'indicatif sélectionné.";
 }

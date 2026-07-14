@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
@@ -46,6 +47,8 @@ export default async function DriverAbonnementPage() {
   await requireActiveDriver();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   // Historique des souscriptions Pass (RLS owner_read + filtre explicite —
   // jamais compter sur la seule RLS). Cast non typé : table absente des types.
@@ -73,7 +76,9 @@ export default async function DriverAbonnementPage() {
     }[]
   ).map((s) => ({
     id: s.id,
-    title: `Pass Prioritaire${s.is_first_month ? " · 1er mois" : ""} · ${grp(s.amount_da)} DA`,
+    title: isAr
+      ? `البطاقة ذات الأولوية${s.is_first_month ? " · الشهر الأول" : ""} · ${grp(s.amount_da)} دج`
+      : `Pass Prioritaire${s.is_first_month ? " · 1er mois" : ""} · ${grp(s.amount_da)} DA`,
     sub: `${
       s.period_start && s.period_end
         ? `${fmtDate(s.period_start)} → ${fmtDate(s.period_end)}`
@@ -84,14 +89,17 @@ export default async function DriverAbonnementPage() {
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
-      <PartnerBackHeader href="/driver/parametres" title="Abonnement & Pass" />
+      <PartnerBackHeader
+        href="/driver/parametres"
+        title={tr("Abonnement & Pass", "الاشتراك والبطاقة")}
+      />
 
       <div className="space-y-3">
         <SubsTabs
           tabs={[
             {
               id: "pass",
-              label: "Pass",
+              label: tr("Pass", "البطاقة"),
               // Souscription / statut / renouvellement (carte partagée —
               // avantages, prix et paiement portés par la carte elle-même).
               content: (
@@ -102,14 +110,17 @@ export default async function DriverAbonnementPage() {
             },
             {
               id: "historique",
-              label: "Historique",
+              label: tr("Historique", "السجل"),
               badge: history.length,
               content: (
                 <div className="mt-3">
                   <SubsHistory
                     rows={history}
                     defaultOpen
-                    emptyText="Aucune opération pour l'instant."
+                    emptyText={tr(
+                      "Aucune opération pour l'instant.",
+                      "لا عمليات حتى الآن."
+                    )}
                   />
                 </div>
               ),

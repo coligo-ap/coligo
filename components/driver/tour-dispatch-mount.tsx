@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { CalendarDays, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { onVisibleResumeSafe } from "@/lib/net/probe";
@@ -28,6 +29,8 @@ type TourAlert = { mdId: string; merchantName: string; count: number };
 
 export function TourDispatchMount() {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   // null = instantané pas encore pris (on n'alerte pas au tout premier tick).
   const snapshot = useRef<Map<string, number> | null>(null);
   const [alert, setAlert] = useState<TourAlert | null>(null);
@@ -116,27 +119,29 @@ export function TourDispatchMount() {
             router.push(`/driver/m/${alert.mdId}/tours`);
             setAlert(null);
           }}
-          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+          className="flex min-w-0 flex-1 items-center gap-3 text-start"
         >
           <span className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-[var(--violet-soft)] text-[var(--violet)]">
             <CalendarDays className="size-5" />
           </span>
           <span className="min-w-0 flex-1">
             <span className="mb-1 inline-block rounded-full bg-[var(--violet)] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-white uppercase">
-              📅 Tournée
+              📅 {tr("Tournée", "جولة")}
             </span>
             <span className="block truncate text-sm font-bold text-[var(--ink)]">
-              Nouvelle tournée · {alert.merchantName}
+              {tr("Nouvelle tournée", "جولة جديدة")} · {alert.merchantName}
             </span>
             <span className="block text-xs font-medium text-[var(--muted)]">
-              {alert.count} commande{alert.count > 1 ? "s" : ""} en tournée ·
-              appuyez pour voir
+              {alert.count}{" "}
+              {isAr
+                ? "طلبية في الجولة · اضغط للعرض"
+                : `commande${alert.count > 1 ? "s" : ""} en tournée · appuyez pour voir`}
             </span>
           </span>
         </button>
         <button
           type="button"
-          aria-label="Fermer"
+          aria-label={tr("Fermer", "إغلاق")}
           onClick={() => setAlert(null)}
           className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--muted)] transition-colors hover:bg-[var(--soft)]"
         >

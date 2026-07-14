@@ -1,4 +1,5 @@
 import { Check } from "lucide-react";
+import { useLocale } from "next-intl";
 import { BRAND_GO, BRAND_VIOLET, SORA } from "@/components/shared/partner-ui";
 
 export type StepperItem = {
@@ -25,6 +26,7 @@ export function StepperHeader({
   current: number;
   onGo: (index: number) => void;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex items-baseline justify-between">
@@ -32,7 +34,7 @@ export function StepperHeader({
           className="text-[13px] font-bold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
-          Étape {current + 1}/{steps.length}
+          {isAr ? "الخطوة" : "Étape"} {current + 1}/{steps.length}
         </b>
         <span className="text-[12.5px] font-semibold text-[var(--muted)]">
           {steps[current]?.title}
@@ -51,7 +53,11 @@ export function StepperHeader({
                 onClick={() => reachable && onGo(i)}
                 disabled={!reachable}
                 aria-current={i === current ? "step" : undefined}
-                aria-label={`Étape ${i + 1} : ${s.title}`}
+                aria-label={
+                  isAr
+                    ? `الخطوة ${i + 1}: ${s.title}`
+                    : `Étape ${i + 1} : ${s.title}`
+                }
                 className="grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums transition disabled:cursor-not-allowed"
                 style={
                   state === "done"

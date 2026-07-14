@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import {
   useActiveCourse,
@@ -61,6 +62,7 @@ export function DriverCancelWatch() {
   const course = useActiveCourse();
   const orderId = course?.orderId ?? null;
   const router = useRouter();
+  const isAr = useLocale() === "ar";
   const [closure, setClosure] = useState<Closure | null>(null);
   // Reprise au premier plan (timers/socket morts en arrière-plan) → re-fetch
   // immédiat + ré-abonnement du canal Realtime (nonce dans les deps de l'effet).
@@ -154,44 +156,61 @@ export function DriverCancelWatch() {
     router.refresh();
   };
 
+  const suffix = closure.merchantName ? ` (${closure.merchantName})` : "";
   const COPY: Record<
     Closure["kind"],
     { title: string; body: React.ReactNode; tone: "danger" | "success" }
   > = {
     cancelled: {
-      title: "Commande annulée",
+      title: isAr ? "أُلغيت الطلبية" : "Commande annulée",
       tone: "danger",
-      body: (
+      body: isAr ? (
+        <>
+          الطلبية {ref}
+          {suffix} <strong>أُلغيت</strong>. توقّف من فضلك — لا تواصل التنقل نحو
+          الزبون. تواصل مع الدعم إذا احتجت مزيدًا من التفاصيل.
+        </>
+      ) : (
         <>
           La commande {ref}
-          {closure.merchantName ? ` (${closure.merchantName})` : ""} a été{" "}
-          <strong>annulée</strong>. Merci de t&apos;arrêter — ne te déplace plus
-          vers le client. Contacte le support si besoin de plus de détails.
+          {suffix} a été <strong>annulée</strong>. Merci de t&apos;arrêter — ne
+          te déplace plus vers le client. Contacte le support si besoin de plus
+          de détails.
         </>
       ),
     },
     completed: {
-      title: "Livraison clôturée ✓",
+      title: isAr ? "أُغلقت التوصيلة ✓" : "Livraison clôturée ✓",
       tone: "success",
-      body: (
+      body: isAr ? (
+        <>
+          الطلبية {ref}
+          {suffix} <strong>صادقت عليها المنصة</strong>: انتهت التوصيلة وأُضيفت
+          أرباحك (مرئية في الأرباح / كشفك القادم). يمكنك استئناف التوصيلات.
+        </>
+      ) : (
         <>
           La commande {ref}
-          {closure.merchantName ? ` (${closure.merchantName})` : ""} a été{" "}
-          <strong>validée par la plateforme</strong> : la course est terminée et
-          tes gains sont crédités (visibles dans Gains / ton prochain relevé).
-          Tu peux reprendre les courses.
+          {suffix} a été <strong>validée par la plateforme</strong> : la course
+          est terminée et tes gains sont crédités (visibles dans Gains / ton
+          prochain relevé). Tu peux reprendre les courses.
         </>
       ),
     },
     withdrawn: {
-      title: "Course retirée",
+      title: isAr ? "سُحبت التوصيلة" : "Course retirée",
       tone: "danger",
-      body: (
+      body: isAr ? (
+        <>
+          الطلبية {ref}
+          {suffix} <strong>سحبتها منك المنصة</strong>. لا تواصل هذه التوصيلة —
+          تواصل مع الدعم إذا لزم الأمر.
+        </>
+      ) : (
         <>
           La commande {ref}
-          {closure.merchantName ? ` (${closure.merchantName})` : ""} t&apos;a
-          été <strong>retirée par la plateforme</strong>. Ne poursuis pas cette
-          livraison — contacte le support si besoin.
+          {suffix} t&apos;a été <strong>retirée par la plateforme</strong>. Ne
+          poursuis pas cette livraison — contacte le support si besoin.
         </>
       ),
     },
@@ -259,7 +278,7 @@ export function DriverCancelWatch() {
           className="mt-4 w-full rounded-[12px] py-3 text-[15px] font-bold text-white"
           style={{ background: "#101828" }}
         >
-          J&apos;ai compris
+          {isAr ? "فهمت" : "J'ai compris"}
         </button>
       </div>
     </div>

@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils";
 // Drapeaux des langues — SVG INLINE (jamais d'emoji : rendu incohérent selon
 // l'OS/WebView, cf. règle « pas d'emojis en dur »). Un drapeau = une langue :
 //   fr → France · ar → ALGÉRIE (choix produit : l'arabe de Coligo, c'est
-//   l'Algérie, pas un drapeau générique).
+//   l'Algérie, pas un drapeau générique) · en → Royaume-Uni.
 // Ratio 3:2 (viewBox 24×16), coins arrondis + liseré discret pour rester net
 // sur fond blanc comme sur fond violet. Décoratif → aria-hidden.
 // =============================================================================
@@ -54,6 +54,27 @@ function FlagDz({ className }: { className?: string }) {
   );
 }
 
+function FlagGb({ className }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 24 16"
+      aria-hidden="true"
+      className={cn(
+        "rounded-[3px] shadow-[inset_0_0_0_1px_rgba(0,0,0,0.08)]",
+        className
+      )}
+    >
+      <rect width="24" height="16" fill="#012169" />
+      {/* Diagonales blanches puis rouges (Union Jack simplifié, lisible en 20 px). */}
+      <path d="M0,0 L24,16 M24,0 L0,16" stroke="#FFFFFF" strokeWidth="3.2" />
+      <path d="M0,0 L24,16 M24,0 L0,16" stroke="#C8102E" strokeWidth="1.6" />
+      {/* Croix blanche + croix rouge. */}
+      <path d="M12,0 V16 M0,8 H24" stroke="#FFFFFF" strokeWidth="5" />
+      <path d="M12,0 V16 M0,8 H24" stroke="#C8102E" strokeWidth="2.8" />
+    </svg>
+  );
+}
+
 /**
  * Drapeau de la langue donnée. `className` pilote la taille (défaut compact
  * `w-5` ≈ 20×13). Purement décoratif : toujours accompagné du libellé texte.
@@ -65,9 +86,7 @@ export function LocaleFlag({
   locale: Locale;
   className?: string;
 }) {
-  return locale === "ar" ? (
-    <FlagDz className={className} />
-  ) : (
-    <FlagFr className={className} />
-  );
+  if (locale === "ar") return <FlagDz className={className} />;
+  if (locale === "en") return <FlagGb className={className} />;
+  return <FlagFr className={className} />;
 }

@@ -49,8 +49,8 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
     });
   };
 
-  // Code court pour le déclencheur (compact) : FR / ع.
-  const shortLabel: Record<Locale, string> = { fr: "FR", ar: "ع" };
+  // Code court pour le déclencheur (compact) : FR / ع / EN.
+  const shortLabel: Record<Locale, string> = { fr: "FR", ar: "ع", en: "EN" };
 
   return (
     <div ref={ref} className="relative inline-block shrink-0">

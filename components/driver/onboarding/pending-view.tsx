@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Clock, LifeBuoy, ShieldQuestion } from "lucide-react";
 import { BRAND_VIOLET, SORA } from "@/components/shared/partner-ui";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
@@ -24,6 +25,8 @@ export function DriverPendingView({
   submittedAt: string | null;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [showAnimation, setShowAnimation] = useState(justSubmitted);
 
   // Retire `?envoye=1` sans re-render serveur : rafraîchir la page ne doit pas
@@ -41,11 +44,11 @@ export function DriverPendingView({
   }, [resync]);
 
   const submittedLabel = submittedAt
-    ? new Date(submittedAt).toLocaleDateString("fr-FR", {
+    ? new Date(submittedAt).toLocaleDateString(isAr ? "ar-DZ" : "fr-FR", {
         day: "2-digit",
         month: "long",
       })
-    : "À l'instant";
+    : tr("À l'instant", "الآن");
 
   return (
     <>
@@ -57,28 +60,39 @@ export function DriverPendingView({
         <StepsTracker
           steps={[
             {
-              title: "Compte créé",
-              sub: "Vos identifiants sont actifs",
+              title: tr("Compte créé", "تم إنشاء الحساب"),
+              sub: tr("Vos identifiants sont actifs", "بيانات دخولك نشطة"),
               state: "done",
             },
             {
-              title: "Documents transmis",
-              sub: `Envoyés le ${submittedLabel}`,
+              title: tr("Documents transmis", "أُرسلت الوثائق"),
+              sub: isAr
+                ? `أُرسلت في ${submittedLabel}`
+                : `Envoyés le ${submittedLabel}`,
               state: "done",
             },
             {
-              title: "Vérification en cours",
-              sub: "Identité, véhicule et documents",
+              title: tr("Vérification en cours", "التحقّق قيد الإنجاز"),
+              sub: tr(
+                "Identité, véhicule et documents",
+                "الهوية والمركبة والوثائق"
+              ),
               state: "current",
             },
             {
-              title: "Validation par l'équipe Coligo",
-              sub: "Décision sous 24 à 48 heures ouvrées",
+              title: tr("Validation par l'équipe Coligo", "مصادقة فريق كوليڨو"),
+              sub: tr(
+                "Décision sous 24 à 48 heures ouvrées",
+                "قرار خلال 24 إلى 48 ساعة عمل"
+              ),
               state: "todo",
             },
             {
-              title: "Compte activé",
-              sub: "Vous pourrez livrer et générer des revenus",
+              title: tr("Compte activé", "تفعيل الحساب"),
+              sub: tr(
+                "Vous pourrez livrer et générer des revenus",
+                "ستتمكن من التوصيل وتحقيق مداخيل"
+              ),
               state: "todo",
             },
           ]}
@@ -88,18 +102,27 @@ export function DriverPendingView({
       <div className="mt-3 space-y-2">
         <InfoRow
           icon={<Clock className="size-4" />}
-          title="Vous n'avez rien à faire"
-          text="Gardez les notifications activées : vous serez prévenu dès que votre compte sera vérifié."
+          title={tr("Vous n'avez rien à faire", "لا شيء عليك فعله")}
+          text={tr(
+            "Gardez les notifications activées : vous serez prévenu dès que votre compte sera vérifié.",
+            "أبقِ الإشعارات مفعّلة: سيتم إعلامك فور التحقق من حسابك."
+          )}
         />
         <InfoRow
           icon={<ShieldQuestion className="size-4" />}
-          title="Pourquoi cette attente ?"
-          text="Chaque dossier est examiné manuellement par l'équipe Coligo. C'est ce qui garantit la sécurité des clients, des commerçants et des livreurs."
+          title={tr("Pourquoi cette attente ?", "لماذا هذا الانتظار؟")}
+          text={tr(
+            "Chaque dossier est examiné manuellement par l'équipe Coligo. C'est ce qui garantit la sécurité des clients, des commerçants et des livreurs.",
+            "يفحص فريق كوليڨو كل ملف يدويًا. هذا ما يضمن أمان الزبائن والتجار والموصّلين."
+          )}
         />
         <InfoRow
           icon={<LifeBuoy className="size-4" />}
-          title="Une question ?"
-          text="Écrivez à support@coligo.app en indiquant votre numéro de téléphone."
+          title={tr("Une question ?", "لديك سؤال؟")}
+          text={tr(
+            "Écrivez à support@coligo.app en indiquant votre numéro de téléphone.",
+            "راسل support@coligo.app مع ذكر رقم هاتفك."
+          )}
         />
       </div>
     </>

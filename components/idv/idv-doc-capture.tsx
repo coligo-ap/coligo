@@ -17,6 +17,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   Camera,
   Check,
@@ -43,6 +44,15 @@ const GUIDANCE_FR: Record<Guidance, string> = {
   blurry: "Rapprochez et stabilisez",
   moving: "Ne bougez plus…",
   steady: "Parfait, ne bougez plus",
+};
+
+const GUIDANCE_AR: Record<Guidance, string> = {
+  starting: "جارٍ تشغيل الكاميرا…",
+  too_dark: "أضف مزيدًا من الإضاءة",
+  glare: "تجنّب الانعكاسات",
+  blurry: "اقترب وثبّت الهاتف",
+  moving: "لا تتحرّك…",
+  steady: "ممتاز، لا تتحرّك",
 };
 
 /** Analyses consécutives « toutes vertes » avant le déclenchement auto. */
@@ -101,6 +111,9 @@ export function IdvDocCapture({
   onCapture: (blob: Blob) => void;
   onClose: () => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const guidanceLabels = isAr ? GUIDANCE_AR : GUIDANCE_FR;
   const videoRef = useRef<HTMLVideoElement>(null);
   const frameRef = useRef<HTMLDivElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -453,7 +466,7 @@ export function IdvDocCapture({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fermer"
+              aria-label={tr("Fermer", "إغلاق")}
               className="rounded-full bg-white/15 p-2 text-white backdrop-blur"
             >
               <X className="size-5" />
@@ -480,19 +493,19 @@ export function IdvDocCapture({
                 : "bg-black/60 text-white"
             }`}
           >
-            {ready ? GUIDANCE_FR[guidance] : GUIDANCE_FR.starting}
+            {ready ? guidanceLabels[guidance] : guidanceLabels.starting}
           </span>
 
           <div className="flex w-full items-center justify-center gap-8 px-8">
             {/* Repli fichier — toujours disponible. */}
             <label
               className="flex cursor-pointer flex-col items-center gap-1 text-[11px] text-white/80"
-              aria-label="Choisir une photo"
+              aria-label={tr("Choisir une photo", "اختيار صورة")}
             >
               <span className="rounded-full bg-white/15 p-3 backdrop-blur">
                 <ImageIcon className="size-5 text-white" />
               </span>
-              Photo
+              {tr("Photo", "صورة")}
               <input
                 type="file"
                 accept="image/*"
@@ -509,7 +522,7 @@ export function IdvDocCapture({
               type="button"
               onClick={takePhoto}
               disabled={!ready}
-              aria-label="Prendre la photo"
+              aria-label={tr("Prendre la photo", "التقاط الصورة")}
               className="relative rounded-full transition-transform active:scale-95 disabled:opacity-40"
             >
               <svg
@@ -550,7 +563,7 @@ export function IdvDocCapture({
               <button
                 type="button"
                 onClick={toggleTorch}
-                aria-label="Torche"
+                aria-label={tr("Torche", "المصباح")}
                 className={`flex flex-col items-center gap-1 text-[11px] ${
                   torchOn ? "text-amber-300" : "text-white/80"
                 }`}
@@ -562,7 +575,7 @@ export function IdvDocCapture({
                 >
                   <Zap className="size-5" />
                 </span>
-                Torche
+                {tr("Torche", "المصباح")}
               </button>
             ) : (
               <span className="w-[52px]" />
@@ -575,11 +588,13 @@ export function IdvDocCapture({
           <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/85 px-8 text-center">
             <Camera className="size-10 text-white/70" />
             <p className="text-sm text-white">
-              Caméra indisponible. Autorisez l&apos;accès dans les réglages, ou
-              envoyez une photo.
+              {tr(
+                "Caméra indisponible. Autorisez l'accès dans les réglages, ou envoyez une photo.",
+                "الكاميرا غير متاحة. اسمح بالوصول في الإعدادات، أو أرسل صورة."
+              )}
             </p>
             <label className="cursor-pointer rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black">
-              Prendre / choisir une photo
+              {tr("Prendre / choisir une photo", "التقاط / اختيار صورة")}
               <input
                 type="file"
                 accept="image/*"
@@ -593,7 +608,7 @@ export function IdvDocCapture({
               onClick={onClose}
               className="text-sm text-white/70 underline"
             >
-              Annuler
+              {tr("Annuler", "إلغاء")}
             </button>
           </div>
         )}

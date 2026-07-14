@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
@@ -13,12 +14,17 @@ import {
   getCurrentDriver,
   phoneToEmail,
 } from "@/lib/auth/driver";
-import { DZ_PHONE_ERROR } from "@/lib/dz/phone";
+import { DZ_PHONE_ERROR, DZ_PHONE_ERROR_AR } from "@/lib/dz/phone";
 import {
   getDriverGate,
   NOT_ACTIVE_ERROR,
   type DriverGate,
 } from "@/lib/auth/driver-gate";
+
+/** Erreurs des parcours d'auth, dans la langue du cookie NEXT_LOCALE. */
+async function authTr(fr: string, ar: string): Promise<string> {
+  return (await getLocale()) === "ar" ? ar : fr;
+}
 import {
   kycReport,
   type KycMethod,
@@ -105,7 +111,8 @@ export async function driverSignup(
   // « +213 603044620 » désignent donc bien le même compte.
   const phone = canonicalPhone(parsed.data.phone);
   const authEmail = phoneToEmail(parsed.data.phone);
-  if (!phone || !authEmail) return { error: DZ_PHONE_ERROR };
+  if (!phone || !authEmail)
+    return { error: await authTr(DZ_PHONE_ERROR, DZ_PHONE_ERROR_AR) };
   const fullName = `${parsed.data.first_name} ${parsed.data.last_name}`;
 
   const { data: signup, error } = await supabase.auth.signUp({
@@ -114,9 +121,17 @@ export async function driverSignup(
   });
   if (error || !signup.user) {
     if (error?.message.includes("registered")) {
-      return { error: "Ce numéro est déjà enregistré." };
+      return {
+        error: await authTr(
+          "Ce numéro est déjà enregistré.",
+          "هذا الرقم مسجّل بالفعل."
+        ),
+      };
     }
-    return { error: error?.message ?? "Échec inscription." };
+    return {
+      error:
+        error?.message ?? (await authTr("Échec inscription.", "فشل التسجيل.")),
+    };
   }
 
   // Crée la ligne driver via service_role (RLS bloquerait sinon — auth est
@@ -154,14 +169,18 @@ export async function driverLogin(
   }
 
   const supabase = await createClient();
+  const badCreds = await authTr(
+    "Téléphone ou mot de passe incorrect.",
+    "رقم الهاتف أو كلمة المرور غير صحيحة."
+  );
   const email = phoneToEmail(parsed.data.phone);
-  if (!email) return { error: "Téléphone ou mot de passe incorrect." };
+  if (!email) return { error: badCreds };
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
   });
   if (error) {
-    return { error: "Téléphone ou mot de passe incorrect." };
+    return { error: badCreds };
   }
   const next = readSafeNext(formData.get("next"));
   redirect(next ?? "/driver");

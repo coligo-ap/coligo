@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import {
   Crown,
   Zap,
@@ -43,6 +44,8 @@ type State = {
 const fmtDA = (n: number) => n.toLocaleString("fr-FR").replace(/ | /g, " ");
 
 export function PriorityCard() {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [state, setState] = useState<State | null>(null);
   const [busy, setBusy] = useState<null | "wallet" | "card">(null);
   const [msg, setMsg] = useState<string | null>(null);
@@ -85,8 +88,14 @@ export function PriorityCard() {
     if (error || !res?.ok) {
       setMsg(
         res?.error === "insufficient_wallet"
-          ? "Solde insuffisant — payez par carte ou rechargez."
-          : "Échec de la souscription. Réessayez."
+          ? tr(
+              "Solde insuffisant — payez par carte ou rechargez.",
+              "رصيد غير كافٍ — ادفع بالبطاقة أو أعد التعبئة."
+            )
+          : tr(
+              "Échec de la souscription. Réessayez.",
+              "فشل الاشتراك. أعد المحاولة."
+            )
       );
       await load();
       return;
@@ -101,11 +110,14 @@ export function PriorityCard() {
     const res = await subscribePriorityCard(returnPath);
     setBusy(null);
     if (!res.ok || !res.url) {
-      setMsg(res.error ?? "Paiement carte indisponible.");
+      setMsg(
+        res.error ??
+          tr("Paiement carte indisponible.", "الدفع بالبطاقة غير متاح.")
+      );
       return;
     }
     window.open(res.url, "_blank");
-    setMsg("Confirmation bancaire en cours…");
+    setMsg(tr("Confirmation bancaire en cours…", "التأكيد البنكي جارٍ…"));
     setPolling(true);
     let tries = 0;
     pollRef.current = setInterval(async () => {
@@ -157,10 +169,12 @@ export function PriorityCard() {
     <div className="border-border overflow-hidden rounded-2xl border bg-white">
       <div className="flex items-center gap-2 bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-4 py-3 text-white">
         <Crown className="size-5" />
-        <span className="font-extrabold">Abonnement Prioritaire</span>
+        <span className="font-extrabold">
+          {tr("Abonnement Prioritaire", "اشتراك الأولوية")}
+        </span>
         {active && (
-          <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
-            Actif
+          <span className="ms-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+            {tr("Actif", "نشط")}
           </span>
         )}
       </div>
@@ -170,13 +184,29 @@ export function PriorityCard() {
           <li className="flex items-start gap-2">
             <Zap className="text-primary-600 mt-0.5 size-4 shrink-0" />
             <span>
-              <b>Proposé en premier</b> sur les courses proches.
+              {isAr ? (
+                <>
+                  <b>تُعرض أولًا</b> على التوصيلات القريبة.
+                </>
+              ) : (
+                <>
+                  <b>Proposé en premier</b> sur les courses proches.
+                </>
+              )}
             </span>
           </li>
           <li className="flex items-start gap-2">
             <BadgeCheck className="text-primary-600 mt-0.5 size-4 shrink-0" />
             <span>
-              <b>Badge Prioritaire</b> visible par le client.
+              {isAr ? (
+                <>
+                  <b>شارة الأولوية</b> مرئية للزبون.
+                </>
+              ) : (
+                <>
+                  <b>Badge Prioritaire</b> visible par le client.
+                </>
+              )}
             </span>
           </li>
         </ul>
@@ -184,10 +214,12 @@ export function PriorityCard() {
         {active ? (
           <div>
             <p className="text-muted text-sm">
-              Actif jusqu&apos;au{" "}
+              {tr("Actif jusqu'au", "نشط حتى")}{" "}
               <b className="text-foreground">
                 {state.period_end
-                  ? new Date(state.period_end).toLocaleDateString("fr-DZ")
+                  ? new Date(state.period_end).toLocaleDateString(
+                      isAr ? "ar-DZ" : "fr-DZ"
+                    )
                   : "—"}
               </b>
               .
@@ -198,18 +230,22 @@ export function PriorityCard() {
               disabled={busy != null}
               className="text-danger-600 mt-2 text-sm font-semibold hover:underline disabled:opacity-50"
             >
-              Résilier
+              {tr("Résilier", "إلغاء الاشتراك")}
             </button>
           </div>
         ) : (
           <div className="space-y-2.5">
             {/* Prix (promo 1er mois si éligible). */}
             <p className="text-sm">
-              <b className="text-lg">{fmtDA(amount)} DA</b>{" "}
+              <b className="text-lg">
+                {fmtDA(amount)} {tr("DA", "دج")}
+              </b>{" "}
               <span className="text-muted">
                 {state.eligible_first_month
-                  ? `le 1er mois, puis ${fmtDA(state.monthly_da ?? 0)} DA/mois`
-                  : "/ mois"}
+                  ? isAr
+                    ? `الشهر الأول، ثم ${fmtDA(state.monthly_da ?? 0)} دج/شهر`
+                    : `le 1er mois, puis ${fmtDA(state.monthly_da ?? 0)} DA/mois`
+                  : tr("/ mois", "/ شهر")}
               </span>
             </p>
 
@@ -217,17 +253,21 @@ export function PriorityCard() {
             <div className="bg-surface-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
               <Wallet className="text-primary-600 size-4 shrink-0" />
               <span className="text-muted">
-                Solde Coligo Pay :{" "}
-                <b className="text-foreground">{fmtDA(balance)} DA</b>
+                {tr("Solde Coligo Pay :", "رصيد كوليڨو باي:")}{" "}
+                <b className="text-foreground">
+                  {fmtDA(balance)} {tr("DA", "دج")}
+                </b>
               </span>
               <span
-                className={`ml-auto rounded-full px-2 py-0.5 font-bold ${
+                className={`ms-auto rounded-full px-2 py-0.5 font-bold ${
                   covers
                     ? "bg-success-50 text-success-700"
                     : "bg-warning-50 text-warning-700"
                 }`}
               >
-                {covers ? "couvre l’abonnement" : "insuffisant"}
+                {covers
+                  ? tr("couvre l’abonnement", "يغطي الاشتراك")
+                  : tr("insuffisant", "غير كافٍ")}
               </span>
             </div>
 
@@ -246,7 +286,10 @@ export function PriorityCard() {
                   ) : (
                     <Wallet className="size-4" />
                   )}
-                  Payer avec Coligo Pay · instantané
+                  {tr(
+                    "Payer avec Coligo Pay · instantané",
+                    "الدفع بكوليڨو باي · فوري"
+                  )}
                 </button>
                 <button
                   type="button"
@@ -259,7 +302,7 @@ export function PriorityCard() {
                   ) : (
                     <CreditCard className="size-4" />
                   )}
-                  Payer par carte
+                  {tr("Payer par carte", "الدفع بالبطاقة")}
                 </button>
               </>
             ) : (
@@ -275,7 +318,7 @@ export function PriorityCard() {
                   ) : (
                     <CreditCard className="size-4" />
                   )}
-                  Payer par carte · immédiat
+                  {tr("Payer par carte · immédiat", "الدفع بالبطاقة · فوري")}
                 </button>
                 <Link
                   href={rechargeHref}
@@ -283,7 +326,7 @@ export function PriorityCard() {
                   className="border-primary-600 text-primary-700 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-bold"
                 >
                   <Wallet className="size-4" />
-                  Recharger Coligo Pay
+                  {tr("Recharger Coligo Pay", "تعبئة كوليڨو باي")}
                 </Link>
               </>
             )}
@@ -306,7 +349,7 @@ export function PriorityCard() {
             className="text-muted hover:text-primary-700 flex w-full items-center justify-center gap-1.5 text-xs font-semibold"
           >
             <LifeBuoy className="size-3.5" />
-            Contacter le support
+            {tr("Contacter le support", "التواصل مع الدعم")}
           </button>
         )}
       </div>

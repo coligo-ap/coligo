@@ -21,6 +21,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   BadgeCheck,
   Clock,
@@ -46,6 +47,8 @@ export type { IdvChoiceState, IdvGate, IdvMethod } from "@/lib/idv/ui-state";
 /* ───────────────────────────── Bloc d'état ───────────────────────────── */
 
 export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [icon, title, hint] = idv.rejected
     ? [
         <ShieldAlert
@@ -53,8 +56,11 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
           className="size-5 shrink-0"
           style={{ color: "var(--idv-bad)" }}
         />,
-        "Vérification refusée",
-        "Réessayez, ou faites examiner vos pièces par l'équipe Coligo.",
+        tr("Vérification refusée", "رُفض التحقّق"),
+        tr(
+          "Réessayez, ou faites examiner vos pièces par l'équipe Coligo.",
+          "أعد المحاولة، أو اطلب فحص وثائقك من فريق كوليڨو."
+        ),
       ]
     : idv.verified
       ? [
@@ -63,8 +69,8 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
             className="size-5 shrink-0"
             style={{ color: "var(--idv-ok)" }}
           />,
-          "Identité vérifiée",
-          "Aucune pièce à envoyer.",
+          tr("Identité vérifiée", "تم التحقّق من الهوية"),
+          tr("Aucune pièce à envoyer.", "لا وثائق مطلوبة."),
         ]
       : idv.inProgress
         ? [
@@ -73,8 +79,11 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
               className="size-5 shrink-0"
               style={{ color: "var(--idv-warn)" }}
             />,
-            "Vérification en cours",
-            "Vous serez notifié dès qu'elle sera confirmée.",
+            tr("Vérification en cours", "التحقّق قيد الإنجاز"),
+            tr(
+              "Vous serez notifié dès qu'elle sera confirmée.",
+              "سيتم إشعارك فور تأكيده."
+            ),
           ]
         : [
             <Zap
@@ -82,10 +91,13 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
               className="size-5 shrink-0"
               style={{ color: "var(--idv-accent)" }}
             />,
-            "Scan + selfie · 2 min",
+            tr("Scan + selfie · 2 min", "مسح + سيلفي · دقيقتان"),
             idv.forced
-              ? "Vérification exigée par l'équipe Coligo."
-              : "Résultat en quelques secondes.",
+              ? tr(
+                  "Vérification exigée par l'équipe Coligo.",
+                  "تحقّق مطلوب من فريق كوليڨو."
+                )
+              : tr("Résultat en quelques secondes.", "النتيجة في بضع ثوانٍ."),
           ];
 
   return (
@@ -127,6 +139,8 @@ export function IdvVerifyStep({
 }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   // Vérification non publiée → l'écran d'avant, tel quel.
   if (!idv.available) return <>{children}</>;
@@ -145,7 +159,7 @@ export function IdvVerifyStep({
     startTransition(async () => {
       const res = await saveMethod(m);
       if (!res.ok) {
-        setError(res.error ?? "Choix impossible.");
+        setError(res.error ?? tr("Choix impossible.", "تعذّر حفظ الاختيار."));
         onMethod(idv.method ?? "manual");
       }
     });
@@ -168,7 +182,7 @@ export function IdvVerifyStep({
         type="button"
         onClick={() => choose(value)}
         disabled={pending}
-        className="flex w-full items-center gap-2.5 rounded-[16px] border p-3.5 text-left transition-colors disabled:opacity-60"
+        className="flex w-full items-center gap-2.5 rounded-[16px] border p-3.5 text-start transition-colors disabled:opacity-60"
         style={{
           borderColor: active ? "var(--idv-accent)" : "var(--idv-line)",
           background: active ? "var(--idv-soft)" : "var(--idv-card)",
@@ -206,7 +220,10 @@ export function IdvVerifyStep({
         <IdvStatusBlock idv={idv} />
       ) : (
         <p className="text-[13px]" style={{ color: "var(--idv-muted)" }}>
-          Comment souhaitez-vous prouver votre identité ?
+          {tr(
+            "Comment souhaitez-vous prouver votre identité ?",
+            "كيف تودّ إثبات هويتك؟"
+          )}
         </p>
       )}
 
@@ -218,8 +235,8 @@ export function IdvVerifyStep({
             style={{ color: "var(--idv-accent)" }}
           />
         }
-        title="Vérification instantanée"
-        delay="Scan + selfie · 2 min"
+        title={tr("Vérification instantanée", "تحقّق فوري")}
+        delay={tr("Scan + selfie · 2 min", "مسح + سيلفي · دقيقتان")}
       />
       <Card
         value="manual"
@@ -229,8 +246,11 @@ export function IdvVerifyStep({
             style={{ color: "var(--idv-muted)" }}
           />
         }
-        title="Vérification manuelle"
-        delay="Examen par l'équipe Coligo · 24 à 72 h"
+        title={tr("Vérification manuelle", "تحقّق يدوي")}
+        delay={tr(
+          "Examen par l'équipe Coligo · 24 à 72 h",
+          "فحص من فريق كوليڨو · 24 إلى 72 ساعة"
+        )}
       />
 
       {error && (
@@ -275,6 +295,8 @@ export function IdvPrimaryButton({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const gate = idvGate(idv, method);
 
   if (gate.action === null) return <>{children}</>;
@@ -298,7 +320,7 @@ export function IdvPrimaryButton({
           ) : (
             <RefreshCw className="size-4" />
           )}
-          Actualiser
+          {tr("Actualiser", "تحديث")}
         </button>
       </IdvScope>
     );
@@ -317,7 +339,9 @@ export function IdvPrimaryButton({
         ) : (
           <ScanFace className="size-4" />
         )}
-        {idv.rejected ? "Réessayer la vérification" : "Vérifier mon identité"}
+        {idv.rejected
+          ? tr("Réessayer la vérification", "إعادة محاولة التحقّق")
+          : tr("Vérifier mon identité", "التحقّق من هويتي")}
       </button>
     </IdvScope>
   );

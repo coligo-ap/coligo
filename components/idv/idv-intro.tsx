@@ -9,6 +9,7 @@
 // =============================================================================
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { BookUser, Car, IdCard, Lock } from "lucide-react";
 import { IdvActionIntro } from "./idv-action-intro";
 import { IllusDocScan } from "./idv-illustrations";
@@ -40,19 +41,26 @@ export function IdvIntro({
       ? defaultMode
       : (modes[0]?.key ?? "")
   );
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <IdvActionIntro
       illustration={<IllusDocScan size={112} />}
-      eyebrow="Étape 1 sur 3"
-      title="Scannez votre pièce"
-      hint="Le cadrage est guidé et la photo se prend toute seule."
-      cta="Commencer"
+      eyebrow={tr("Étape 1 sur 3", "الخطوة 1 من 3")}
+      title={tr("Scannez votre pièce", "امسح وثيقتك")}
+      hint={tr(
+        "Le cadrage est guidé et la photo se prend toute seule.",
+        "التأطير موجَّه والصورة تُلتقط تلقائيًا."
+      )}
+      cta={tr("Commencer", "ابدأ")}
       onStart={() => docKey && onStart(docKey, modeKey)}
     >
       <div className="space-y-4">
         <div className="space-y-2">
-          <p className="text-sm font-semibold">Votre document</p>
+          <p className="text-sm font-semibold">
+            {tr("Votre document", "وثيقتك")}
+          </p>
           {docTypes.map((doc) => {
             const Icon = DOC_ICONS[doc.key] ?? IdCard;
             const active = docKey === doc.key;
@@ -61,7 +69,7 @@ export function IdvIntro({
                 key={doc.key}
                 type="button"
                 onClick={() => setDocKey(doc.key)}
-                className="flex w-full items-center gap-3 rounded-[14px] border p-3 text-left transition-colors"
+                className="flex w-full items-center gap-3 rounded-[14px] border p-3 text-start transition-colors"
                 style={{
                   background: active ? "var(--idv-tint)" : "var(--idv-card)",
                   borderColor: active ? "var(--idv-accent)" : "var(--idv-line)",
@@ -77,7 +85,7 @@ export function IdvIntro({
                   }}
                 />
                 <span className="flex-1 text-sm font-medium">
-                  {doc.label_fr}
+                  {(isAr && doc.label_ar) || doc.label_fr}
                 </span>
                 <span
                   className="size-4 rounded-full border-2"
@@ -95,7 +103,9 @@ export function IdvIntro({
 
         {canChooseMode && modes.length > 1 && (
           <div className="space-y-2">
-            <p className="text-sm font-semibold">Niveau de vérification</p>
+            <p className="text-sm font-semibold">
+              {tr("Niveau de vérification", "مستوى التحقّق")}
+            </p>
             <div className="grid grid-cols-2 gap-2">
               {modes.map((m) => {
                 const active = modeKey === m.key;
@@ -104,7 +114,7 @@ export function IdvIntro({
                     key={m.key}
                     type="button"
                     onClick={() => setModeKey(m.key)}
-                    className="rounded-[14px] border p-3 text-left"
+                    className="rounded-[14px] border p-3 text-start"
                     style={{
                       background: active
                         ? "var(--idv-tint)"
@@ -114,7 +124,9 @@ export function IdvIntro({
                         : "var(--idv-line)",
                     }}
                   >
-                    <p className="text-sm font-semibold">{m.label_fr}</p>
+                    <p className="text-sm font-semibold">
+                      {(isAr && m.label_ar) || m.label_fr}
+                    </p>
                   </button>
                 );
               })}
@@ -127,7 +139,10 @@ export function IdvIntro({
           style={{ color: "var(--idv-muted)" }}
         >
           <Lock className="size-3.5" />
-          Données chiffrées, visibles uniquement par l&apos;équipe Coligo
+          {tr(
+            "Données chiffrées, visibles uniquement par l'équipe Coligo",
+            "بيانات مشفّرة، لا يطّلع عليها إلا فريق كوليڨو"
+          )}
         </p>
       </div>
     </IdvActionIntro>

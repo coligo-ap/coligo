@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { getLocale } from "next-intl/server";
 import { DriverSubmitCodeForm } from "@/components/driver/submit-code-form";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
@@ -20,16 +21,24 @@ export default async function DriverSubmitCodePage({
 }) {
   const gate = await requireActiveDriver();
   const { code } = await searchParams;
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <DriverShell driverFirstName={gate.firstName}>
       <PartnerBackHeader
         href="/driver"
-        title="Rejoindre un commerçant"
+        title={tr("Rejoindre un commerçant", "الانضمام إلى تاجر")}
         subtitle={
           code
-            ? "Vérifie le code pré-rempli et valide pour envoyer ta demande."
-            : "Saisis le code de référence que le commerçant t'a partagé."
+            ? tr(
+                "Vérifie le code pré-rempli et valide pour envoyer ta demande.",
+                "تحقّق من الرمز المعبّأ مسبقًا وأكّد لإرسال طلبك."
+              )
+            : tr(
+                "Saisis le code de référence que le commerçant t'a partagé.",
+                "أدخل رمز المرجع الذي شاركه معك التاجر."
+              )
         }
       />
       <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-4">

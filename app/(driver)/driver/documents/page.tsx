@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
+import { getLocale } from "next-intl/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -21,13 +22,16 @@ export default async function DriverDocumentsPage() {
   await requireActiveDriver();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
+  const isAr = (await getLocale()) === "ar";
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <PartnerBackHeader
         href="/driver/parametres"
-        title="Mes documents"
-        subtitle="Véhicule · pièces · versement"
+        title={isAr ? "وثائقي" : "Mes documents"}
+        subtitle={
+          isAr ? "المركبة · الوثائق · الدفعات" : "Véhicule · pièces · versement"
+        }
       />
       <Suspense
         fallback={

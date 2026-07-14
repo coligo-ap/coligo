@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { toast } from "@/components/ui/toast";
 
@@ -19,6 +20,7 @@ import { toast } from "@/components/ui/toast";
  */
 export function DriverDashboardLive() {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
   const lastToastRef = useRef(0);
 
   useEffect(() => {
@@ -32,8 +34,12 @@ export function DriverDashboardLive() {
         lastToastRef.current = now;
         toast.success(
           mode === "tour"
-            ? "Nouvelle commande en tournée 📅"
-            : "Nouvelle course Express disponible ⚡"
+            ? isAr
+              ? "طلبية جديدة في جولة 📅"
+              : "Nouvelle commande en tournée 📅"
+            : isAr
+              ? "توصيلة إكسبرس جديدة متاحة ⚡"
+              : "Nouvelle course Express disponible ⚡"
         );
       }
     };
@@ -85,7 +91,7 @@ export function DriverDashboardLive() {
       clearInterval(interval);
       void supabase.removeChannel(channel);
     };
-  }, [router]);
+  }, [router, isAr]);
 
   return null;
 }

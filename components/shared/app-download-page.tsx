@@ -1,5 +1,6 @@
 import Image from "next/image";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import type { LucideIcon } from "lucide-react";
 import { ArrowLeft, ShieldCheck } from "lucide-react";
 import { ApkDownloadButton } from "@/components/merchant/apk-download-button";
@@ -10,22 +11,31 @@ const STEPS = [
   {
     n: 1,
     title: "Télécharger le fichier",
+    titleAr: "تحميل الملف",
     text: "Touchez le bouton ci-dessus. Le fichier .apk se télécharge sur votre appareil.",
+    textAr: "المس الزر أعلاه. سيُحمَّل ملف ‎.apk على جهازك.",
   },
   {
     n: 2,
     title: "Autoriser l’installation",
+    titleAr: "السماح بالتثبيت",
     text: "Android peut demander d’autoriser « les sources inconnues » ou « cette source » — acceptez pour ce téléchargement.",
+    textAr:
+      "قد يطلب أندرويد السماح بـ«المصادر المجهولة» أو «هذا المصدر» — اقبل لهذا التحميل.",
   },
   {
     n: 3,
     title: "Ouvrir le fichier téléchargé",
+    titleAr: "فتح الملف المحمَّل",
     text: "Dans la notification de téléchargement ou le dossier « Téléchargements », touchez le fichier .apk.",
+    textAr: "من إشعار التحميل أو مجلد «التنزيلات»، المس ملف ‎.apk.",
   },
   {
     n: 4,
     title: "Installer puis ouvrir",
+    titleAr: "التثبيت ثم الفتح",
     text: "Touchez « Installer », puis « Ouvrir ». Connectez-vous avec vos identifiants habituels.",
+    textAr: "المس «تثبيت» ثم «فتح». سجّل الدخول ببياناتك المعتادة.",
   },
 ];
 
@@ -58,6 +68,8 @@ export function AppDownloadPage({
   /** Lien de retour (espaces sans coque, ex. livreur/chauffeur). */
   backHref?: string;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <div className="mx-auto max-w-[820px] p-4 lg:p-6 lg:px-8">
       {backHref && (
@@ -65,8 +77,8 @@ export function AppDownloadPage({
           href={backHref}
           className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
         >
-          <ArrowLeft className="size-4" />
-          Retour
+          <ArrowLeft className="size-4 rtl:rotate-180" />
+          {tr("Retour", "رجوع")}
         </Link>
       )}
       {/* Hero */}
@@ -87,7 +99,7 @@ export function AppDownloadPage({
           </span>
           <div className="min-w-0">
             <p className="text-xs font-semibold tracking-wider text-white/70 uppercase">
-              Application Android
+              {tr("Application Android", "تطبيق أندرويد")}
             </p>
             <h1 className="mt-1 text-2xl font-bold tracking-tight lg:text-3xl">
               {appName}
@@ -107,8 +119,11 @@ export function AppDownloadPage({
           fileName={fileName}
         />
         <p className="text-muted mt-2 text-center text-xs">
-          Fichier .apk officiel Coligo · Android uniquement
-          {version ? ` · version ${version}` : ""}
+          {tr(
+            "Fichier .apk officiel Coligo · Android uniquement",
+            "ملف ‎.apk رسمي من كوليڨو · أندرويد فقط"
+          )}
+          {version ? ` · ${tr("version", "الإصدار")} ${version}` : ""}
           {url && (
             <>
               {" · "}
@@ -116,7 +131,7 @@ export function AppDownloadPage({
                 href={apkHref}
                 className="text-primary-600 underline underline-offset-2"
               >
-                Le téléchargement ne démarre pas ?
+                {tr("Le téléchargement ne démarre pas ?", "التحميل لا يبدأ؟")}
               </a>
             </>
           )}
@@ -126,7 +141,7 @@ export function AppDownloadPage({
       {/* Avantages */}
       <section className="mt-8">
         <h2 className="text-foreground text-lg font-semibold">
-          Pourquoi installer l’application ?
+          {tr("Pourquoi installer l’application ?", "لماذا تثبيت التطبيق؟")}
         </h2>
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           {benefits.map((b) => {
@@ -154,7 +169,7 @@ export function AppDownloadPage({
       {/* Étapes */}
       <section className="mt-8">
         <h2 className="text-foreground text-lg font-semibold">
-          Comment l’installer ?
+          {tr("Comment l’installer ?", "كيف يُثبَّت؟")}
         </h2>
         <ol className="border-border divide-border mt-3 divide-y overflow-hidden rounded-[16px] border bg-white">
           {STEPS.map((s) => (
@@ -164,10 +179,10 @@ export function AppDownloadPage({
               </span>
               <div className="min-w-0">
                 <h3 className="text-foreground text-sm font-semibold">
-                  {s.title}
+                  {isAr ? s.titleAr : s.title}
                 </h3>
                 <p className="text-muted mt-0.5 text-sm leading-relaxed">
-                  {s.text}
+                  {isAr ? s.textAr : s.text}
                 </p>
               </div>
             </li>
@@ -179,9 +194,10 @@ export function AppDownloadPage({
       <div className="border-border bg-surface-2 mt-6 flex items-start gap-3 rounded-[14px] border p-4">
         <ShieldCheck className="text-primary-600 size-5 shrink-0" />
         <p className="text-muted text-xs leading-relaxed">
-          L’avertissement Android « source inconnue » est normal pour une
-          application distribuée hors du Play Store. Le fichier provient
-          uniquement de Coligo.
+          {tr(
+            "L’avertissement Android « source inconnue » est normal pour une application distribuée hors du Play Store. Le fichier provient uniquement de Coligo.",
+            "تحذير أندرويد «مصدر مجهول» أمر طبيعي لتطبيق يوزَّع خارج متجر Play. الملف يأتي من كوليڨو حصريًا."
+          )}
         </p>
       </div>
     </div>

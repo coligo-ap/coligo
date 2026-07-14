@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useLocale } from "next-intl";
 import { LogOut } from "lucide-react";
 import { driverLogout } from "@/app/(driver)/actions";
 import { PartnerInlineError } from "@/components/shared/partner-ui";
@@ -9,6 +10,7 @@ import { PartnerInlineError } from "@/components/shared/partner-ui";
 export function DriverLogoutLink() {
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const isAr = useLocale() === "ar";
   return (
     <>
       <PartnerInlineError>{error}</PartnerInlineError>
@@ -24,7 +26,7 @@ export function DriverLogoutLink() {
         className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[var(--muted)] disabled:opacity-50"
       >
         <LogOut className="size-3.5" />
-        Se déconnecter
+        {isAr ? "تسجيل الخروج" : "Se déconnecter"}
       </button>
     </>
   );

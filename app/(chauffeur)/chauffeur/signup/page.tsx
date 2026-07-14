@@ -1,3 +1,4 @@
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { ChauffeurSignupForm } from "@/components/chauffeur/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
@@ -19,29 +20,52 @@ export default async function ChauffeurSignupPage() {
   const connectedPhone = user?.email?.endsWith("@chauffeurs.coligo.local")
     ? user.email.split("@")[0]
     : null;
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <AuthScreen
       navVariant="chauffeur"
-      installLabel="Installer l'application Chauffeur"
+      installLabel={tr(
+        "Installer l'application Chauffeur",
+        "ثبّت تطبيق السائق"
+      )}
       hero={{
-        title: (
+        title: isAr ? (
+          <>
+            كن سائقًا مع <br />
+            كوليڨو درايف.
+          </>
+        ) : (
           <>
             Devenez chauffeur <br />
             Coligo Drive.
           </>
         ),
-        subtitle: "Transportez des passagers avec Coligo Drive.",
-        features: [
-          "Inscription rapide en quelques étapes",
-          "Choisissez la gamme de votre véhicule",
-          "Recevez des courses près de vous",
-          "Suivez vos revenus en temps réel",
-        ],
+        subtitle: tr(
+          "Transportez des passagers avec Coligo Drive.",
+          "انقل الركاب مع كوليڨو درايف."
+        ),
+        features: isAr
+          ? [
+              "تسجيل سريع في خطوات قليلة",
+              "اختر فئة مركبتك",
+              "استقبل مشاوير قريبة منك",
+              "تابع مداخيلك في الوقت الفعلي",
+            ]
+          : [
+              "Inscription rapide en quelques étapes",
+              "Choisissez la gamme de votre véhicule",
+              "Recevez des courses près de vous",
+              "Suivez vos revenus en temps réel",
+            ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Créer mon compte"
-      cardSubtitle="Vos informations, puis vos documents."
+      cardTitle={tr("Créer mon compte", "إنشاء حسابي")}
+      cardSubtitle={tr(
+        "Vos informations, puis vos documents.",
+        "معلوماتك، ثم وثائقك."
+      )}
       modeTabs={
         <AuthModeTabs
           mode="signup"

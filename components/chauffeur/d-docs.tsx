@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   Camera,
   ChevronLeft,
@@ -36,37 +37,49 @@ import {
 const DOCS: {
   kind: DocKind;
   title: string;
+  titleAr: string;
   sub: string;
+  subAr: string;
   required: boolean;
 }[] = [
   {
     kind: "permis_recto",
     title: "Permis de conduire (recto)",
+    titleAr: "رخصة السياقة (الوجه الأمامي)",
     sub: "Photo nette du recto",
+    subAr: "صورة واضحة للوجه الأمامي",
     required: true,
   },
   {
     kind: "permis_verso",
     title: "Permis de conduire (verso)",
+    titleAr: "رخصة السياقة (الوجه الخلفي)",
     sub: "Photo nette du verso",
+    subAr: "صورة واضحة للوجه الخلفي",
     required: true,
   },
   {
     kind: "carte_grise",
     title: "Carte grise",
+    titleAr: "البطاقة الرمادية",
     sub: "Du véhicule déclaré",
+    subAr: "للمركبة المصرَّح بها",
     required: true,
   },
   {
     kind: "plaque",
     title: "Immatriculation",
+    titleAr: "لوحة الترقيم",
     sub: "Photo de la plaque du véhicule",
+    subAr: "صورة لوحة المركبة",
     required: true,
   },
   {
     kind: "assurance",
     title: "Assurance",
+    titleAr: "التأمين",
     sub: "Si disponible",
+    subAr: "إن وُجد",
     required: false,
   },
 ];
@@ -119,6 +132,8 @@ export function DDocs({
   idv: ChauffeurIdvState;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [method, setMethod] = useState<IdvMethod | null>(
     idv.forced ? "instant" : idv.method
   );
@@ -148,7 +163,7 @@ export function DDocs({
     fd.set("file", file);
     const res = await uploadChauffeurDoc(fd);
     if (res.ok) await refresh();
-    else setError(res.error ?? "Envoi impossible");
+    else setError(res.error ?? tr("Envoi impossible", "تعذّر الإرسال"));
     setBusy(null);
   };
 
@@ -160,7 +175,7 @@ export function DDocs({
     setError(null);
     const res = await deleteChauffeurDoc(kind);
     if (res.ok) await refresh();
-    else setError(res.error ?? "Suppression impossible");
+    else setError(res.error ?? tr("Suppression impossible", "تعذّر الحذف"));
     setBusy(null);
   };
 
@@ -170,7 +185,7 @@ export function DDocs({
     const res = await submitChauffeurDossier();
     setSubmitting(false);
     if (!res.ok) {
-      setError(res.error ?? "Dossier incomplet");
+      setError(res.error ?? tr("Dossier incomplet", "ملف غير مكتمل"));
       return;
     }
     router.replace("/chauffeur");
@@ -184,7 +199,8 @@ export function DDocs({
   const selfieSection = (
     <div className="text-center">
       <p className="text-[13.5px] font-bold">
-        Photo de votre visage · en direct <span style={{ color: RED }}>*</span>
+        {tr("Photo de votre visage · en direct", "صورة وجهك · مباشرة")}{" "}
+        <span style={{ color: RED }}>*</span>
       </p>
       <div
         className="mx-auto my-2.5 grid size-32 place-items-center overflow-hidden rounded-full border-[3px]"
@@ -204,7 +220,7 @@ export function DDocs({
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={selfie.view_url}
-            alt="Votre visage"
+            alt={tr("Votre visage", "وجهك")}
             className="h-full w-full object-cover"
           />
         ) : (
@@ -218,13 +234,15 @@ export function DDocs({
           onClick={() => setCameraOpen(true)}
           className="drive-sora h-[46px] flex-1 rounded-[17px] bg-[var(--d-soft)] text-sm font-bold"
         >
-          {selfie ? "Reprendre la photo" : "Ouvrir la caméra · capturer"}
+          {selfie
+            ? tr("Reprendre la photo", "إعادة التقاط الصورة")
+            : tr("Ouvrir la caméra · capturer", "فتح الكاميرا · التقاط")}
         </button>
         {selfie && (
           <button
             type="button"
             onClick={() => void remove("selfie")}
-            aria-label="Supprimer le selfie"
+            aria-label={tr("Supprimer le selfie", "حذف السيلفي")}
             className="grid size-[46px] shrink-0 place-items-center rounded-[17px] border-[1.5px] border-[var(--d-line)]"
             style={{ color: RED }}
           >
@@ -233,11 +251,20 @@ export function DDocs({
         )}
       </div>
       <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
-        Visage neutre, sans lunettes ni casquette.{" "}
-        <b>
-          Prise en direct uniquement — aucun import de fichier n&apos;est
-          accepté.
-        </b>
+        {isAr ? (
+          <>
+            وجه محايد، دون نظارات أو قبعة.{" "}
+            <b>التقاط مباشر فقط — لا يُقبل أي استيراد ملف.</b>
+          </>
+        ) : (
+          <>
+            Visage neutre, sans lunettes ni casquette.{" "}
+            <b>
+              Prise en direct uniquement — aucun import de fichier n&apos;est
+              accepté.
+            </b>
+          </>
+        )}
       </p>
     </div>
   );
@@ -248,13 +275,13 @@ export function DDocs({
         <button
           type="button"
           onClick={() => router.back()}
-          aria-label="Retour"
+          aria-label={tr("Retour", "رجوع")}
           className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
-          <ChevronLeft className="size-5" />
+          <ChevronLeft className="size-5 rtl:rotate-180" />
         </button>
         <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
-          Mes documents
+          {tr("Mes documents", "وثائقي")}
         </h1>
       </div>
       {rejectedReason && (
@@ -262,8 +289,9 @@ export function DDocs({
           className="mb-3 rounded-[13px] px-3 py-2.5 text-xs leading-relaxed font-bold"
           style={{ background: "rgba(229,72,77,.1)", color: RED }}
         >
-          Dossier refusé : {rejectedReason} — corrigez puis renvoyez votre
-          dossier.
+          {isAr
+            ? `ملف مرفوض: ${rejectedReason} — صحّح ثم أعد إرسال ملفك.`
+            : `Dossier refusé : ${rejectedReason} — corrigez puis renvoyez votre dossier.`}
         </p>
       )}
       {/* ÉTAPE IDENTITÉ — système partagé. Si la vérification automatique n'est
@@ -278,15 +306,21 @@ export function DDocs({
         {selfieSection}
       </IdvVerifyStep>
 
-      <p className="mt-4 mb-2 text-[13px] font-bold">Documents du véhicule</p>
+      <p className="mt-4 mb-2 text-[13px] font-bold">
+        {tr("Documents du véhicule", "وثائق المركبة")}
+      </p>
       <p className="mb-3 text-[12px] text-[var(--d-muted)]">
-        Photos nettes et lisibles, documents en cours de validité.
+        {tr(
+          "Photos nettes et lisibles, documents en cours de validité.",
+          "صور واضحة ومقروءة، ووثائق سارية الصلاحية."
+        )}
       </p>
 
       {DOCS.map((d) => (
         <DocRow
           key={d.kind}
           doc={d}
+          isAr={isAr}
           info={docs[d.kind] ?? null}
           busy={busy === d.kind}
           onFile={(f) => void upload(d.kind, f)}
@@ -309,7 +343,7 @@ export function DDocs({
         <IdvPrimaryButton idv={idv} method={method} busy={submitting}>
           <PrimaryBtn onClick={() => void submit()} disabled={submitting}>
             {submitting ? <Loader2 className="size-5 animate-spin" /> : null}
-            Envoyer mon dossier
+            {tr("Envoyer mon dossier", "إرسال ملفي")}
           </PrimaryBtn>
         </IdvPrimaryButton>
       </div>
@@ -335,10 +369,13 @@ export function DDocs({
             onClick={(e) => e.stopPropagation()}
           >
             <b className="drive-sora block text-[16px] font-extrabold">
-              Supprimer cette photo ?
+              {tr("Supprimer cette photo ?", "حذف هذه الصورة؟")}
             </b>
             <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
-              Vous devrez la reprendre pour valider votre dossier.
+              {tr(
+                "Vous devrez la reprendre pour valider votre dossier.",
+                "سيتعيّن عليك إعادة التقاطها لإتمام ملفك."
+              )}
             </p>
             <div className="flex gap-2">
               <button
@@ -346,7 +383,7 @@ export function DDocs({
                 onClick={() => setConfirmDelete(null)}
                 className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
               >
-                Annuler
+                {tr("Annuler", "إلغاء")}
               </button>
               <button
                 type="button"
@@ -354,7 +391,7 @@ export function DDocs({
                 className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
                 style={{ background: RED }}
               >
-                Supprimer
+                {tr("Supprimer", "حذف")}
               </button>
             </div>
           </div>
@@ -371,6 +408,7 @@ function StatusChip({
   info: ChauffeurDocInfo;
   center?: boolean;
 }) {
+  const isAr = useLocale() === "ar";
   const style =
     info.status === "approved"
       ? { background: "rgba(22,179,100,.12)", color: GO }
@@ -379,10 +417,14 @@ function StatusChip({
         : { background: "var(--d-accent)", color: VIOLET };
   const label =
     info.status === "approved"
-      ? "✓ Validé"
+      ? isAr
+        ? "✓ مقبول"
+        : "✓ Validé"
       : info.status === "rejected"
-        ? `Refusé${info.review_note ? ` · ${info.review_note}` : ""}`
-        : "En vérification";
+        ? `${isAr ? "مرفوض" : "Refusé"}${info.review_note ? ` · ${info.review_note}` : ""}`
+        : isAr
+          ? "قيد التحقّق"
+          : "En vérification";
   return (
     <span
       className={`${center ? "mx-auto" : ""}inline-block max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-extrabold`}
@@ -395,17 +437,27 @@ function StatusChip({
 
 function DocRow({
   doc,
+  isAr,
   info,
   busy,
   onFile,
   onDelete,
 }: {
-  doc: { kind: DocKind; title: string; sub: string; required: boolean };
+  doc: {
+    kind: DocKind;
+    title: string;
+    titleAr: string;
+    sub: string;
+    subAr: string;
+    required: boolean;
+  };
+  isAr: boolean;
   info: ChauffeurDocInfo | null;
   busy: boolean;
   onFile: (f: File) => void;
   onDelete: () => void;
 }) {
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const inputRef = useRef<HTMLInputElement | null>(null);
   return (
     <div
@@ -427,7 +479,11 @@ function DocRow({
               ? window.open(info.view_url, "_blank")
               : inputRef.current?.click()
           }
-          aria-label={info ? "Voir la photo" : "Ajouter la photo"}
+          aria-label={
+            info
+              ? tr("Voir la photo", "عرض الصورة")
+              : tr("Ajouter la photo", "إضافة الصورة")
+          }
           className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-[11px] bg-[var(--d-soft)]"
         >
           {busy ? (
@@ -439,7 +495,7 @@ function DocRow({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={info.view_url}
-              alt={doc.title}
+              alt={isAr ? doc.titleAr : doc.title}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -447,8 +503,12 @@ function DocRow({
           )}
         </button>
         <span className="min-w-0 flex-1">
-          <b className="block text-[13.5px]">{doc.title}</b>
-          <small className="text-[11px] text-[var(--d-muted)]">{doc.sub}</small>
+          <b className="block text-[13.5px]">
+            {isAr ? doc.titleAr : doc.title}
+          </b>
+          <small className="text-[11px] text-[var(--d-muted)]">
+            {isAr ? doc.subAr : doc.sub}
+          </small>
         </span>
         {info ? (
           <StatusChip info={info} />
@@ -461,7 +521,9 @@ function DocRow({
                 : { background: "var(--d-soft)", color: "var(--d-muted)" }
             }
           >
-            {doc.required ? "Obligatoire" : "Optionnel"}
+            {doc.required
+              ? tr("Obligatoire", "إلزامي")
+              : tr("Optionnel", "اختياري")}
           </span>
         )}
       </div>
@@ -474,7 +536,8 @@ function DocRow({
             disabled={busy}
             primary
           >
-            <Camera className="size-3.5" /> Ajouter la photo
+            <Camera className="size-3.5" />{" "}
+            {tr("Ajouter la photo", "إضافة الصورة")}
           </ActionBtn>
         ) : (
           <>
@@ -484,16 +547,16 @@ function DocRow({
               }
               disabled={busy || !info.view_url}
             >
-              <Eye className="size-3.5" /> Voir
+              <Eye className="size-3.5" /> {tr("Voir", "عرض")}
             </ActionBtn>
             <ActionBtn
               onClick={() => inputRef.current?.click()}
               disabled={busy}
             >
-              <RefreshCw className="size-3.5" /> Remplacer
+              <RefreshCw className="size-3.5" /> {tr("Remplacer", "استبدال")}
             </ActionBtn>
             <ActionBtn onClick={onDelete} disabled={busy} danger>
-              <Trash2 className="size-3.5" /> Supprimer
+              <Trash2 className="size-3.5" /> {tr("Supprimer", "حذف")}
             </ActionBtn>
           </>
         )}
@@ -565,6 +628,7 @@ function SelfieCamera({
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const isAr = useLocale() === "ar";
   const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
@@ -586,7 +650,9 @@ function SelfieCamera({
         }
       } catch {
         setErr(
-          "Caméra inaccessible — autorisez l'accès à la caméra pour le selfie."
+          isAr
+            ? "تعذّر الوصول إلى الكاميرا — اسمح بالوصول لالتقاط السيلفي."
+            : "Caméra inaccessible — autorisez l'accès à la caméra pour le selfie."
         );
       }
     })();
@@ -655,12 +721,12 @@ function SelfieCamera({
           onClick={onClose}
           className="text-sm font-bold text-white/80"
         >
-          Annuler
+          {isAr ? "إلغاء" : "Annuler"}
         </button>
         <button
           type="button"
           onClick={capture}
-          aria-label="Capturer"
+          aria-label={isAr ? "التقاط" : "Capturer"}
           className="grid size-[68px] place-items-center rounded-full border-4 border-white"
         >
           <span className="size-[52px] rounded-full bg-white" />

@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { getChauffeurGate } from "@/app/(chauffeur)/actions";
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
 import { getMyIdvVerification } from "@/lib/idv/user-data";
@@ -27,13 +28,16 @@ export default async function ChauffeurIdentitePage() {
     getMyIdvVerification("chauffeur"),
   ]);
   const modes = enabledModes.filter((m) => idv.allowedModes.includes(m.key));
+  const isAr = (await getLocale()) === "ar";
 
   return (
     <div className="pt-safe pb-safe mx-auto min-h-[100dvh] max-w-md px-5">
       <PartnerBackHeader
         href="/chauffeur/compte"
-        title="Vérification d'identité"
-        subtitle="Document · selfie · validation"
+        title={isAr ? "التحقّق من الهوية" : "Vérification d'identité"}
+        subtitle={
+          isAr ? "الوثيقة · سيلفي · المصادقة" : "Document · selfie · validation"
+        }
       />
       <IdvFlow
         profile="chauffeur"

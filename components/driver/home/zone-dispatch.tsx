@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
@@ -38,6 +39,9 @@ export function ZoneDispatch({
 }) {
   const coords = useDriverPosition();
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const isArRef = useRef(isAr);
+  isArRef.current = isAr;
   const coordsRef = useRef(coords);
   coordsRef.current = coords;
   // Zone de travail choisie : si définie, le dispatch interroge son CENTRE +
@@ -80,7 +84,11 @@ export function ZoneDispatch({
           // par la préférence « Sons » ; vibration en complément.
           void playNewOrder();
           vibrate([0, 120, 60, 120]);
-          toast.success("Nouvelle course à proximité ⚡");
+          toast.success(
+            isArRef.current
+              ? "توصيلة جديدة بالقرب منك ⚡"
+              : "Nouvelle course à proximité ⚡"
+          );
           // ULTRA RAPIDE : l'attribution vient de réussir → on prévient
           // l'accordéon de recharger DANS LE MÊME TICK (sans attendre le
           // Realtime ni le polling). La carte apparaît instantanément.

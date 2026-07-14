@@ -1,4 +1,5 @@
 import { BellOff } from "lucide-react";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverShell } from "@/components/driver/driver-shell";
@@ -27,19 +28,24 @@ export default async function DriverNotificationsPage() {
     .limit(50);
 
   const items = data ?? [];
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <DriverShell driverFirstName={gate.firstName}>
       <PartnerBackHeader
         href="/driver/parametres"
-        title="Notifications"
-        subtitle="Messages de l'équipe Coligo"
+        title={tr("Notifications", "الإشعارات")}
+        subtitle={tr("Messages de l'équipe Coligo", "رسائل فريق كوليڨو")}
       />
       {items.length === 0 ? (
         <PartnerEmptyState
           icon={<BellOff className="size-5" />}
-          title="Aucune notification"
-          text="Les messages de l'équipe Coligo apparaîtront ici."
+          title={tr("Aucune notification", "لا إشعارات")}
+          text={tr(
+            "Les messages de l'équipe Coligo apparaîtront ici.",
+            "ستظهر رسائل فريق كوليڨو هنا."
+          )}
         />
       ) : (
         <DriverNotificationsList items={items} />

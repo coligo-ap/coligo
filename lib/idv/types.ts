@@ -35,6 +35,27 @@ export const IDV_STATUS_LABELS_FR: Record<IdvStatus, string> = {
   expired: "Expirée",
 };
 
+/** Mêmes libellés, en arabe (parcours livreur/chauffeur bilingues). */
+export const IDV_STATUS_LABELS_AR: Record<IdvStatus, string> = {
+  draft: "بحاجة إلى استكمال",
+  doc_processing: "الوثيقة قيد التحليل",
+  doc_validated: "تم قبول الوثيقة",
+  selfie_processing: "السيلفي قيد التحليل",
+  pending_review: "تحقّق يدوي قيد الإنجاز",
+  approved: "تم التحقّق من الهوية",
+  rejected: "رُفض التحقّق",
+  resubmit_document: "مطلوب وثيقة جديدة",
+  resubmit_selfie: "مطلوب سيلفي جديد",
+  canceled: "أُلغي",
+  expired: "انتهت صلاحيته",
+};
+
+/** Libellé d'état selon la locale (« ar » → arabe, sinon français). */
+export function idvStatusLabel(status: IdvStatus, locale?: string): string {
+  const map = locale === "ar" ? IDV_STATUS_LABELS_AR : IDV_STATUS_LABELS_FR;
+  return map[status] ?? status;
+}
+
 /** Statuts « vivants » : un seul dossier de ce genre par (user, profil). */
 export const IDV_ACTIVE_STATUSES: IdvStatus[] = [
   "draft",
@@ -125,9 +146,12 @@ export const IDV_CHECK_LABELS_FR: Record<
   mrz: "MRZ + sommes de contrôle",
   doc_expiry: "Expiration du document",
   doc_authenticity: "Authenticité renforcée",
+  selfie_quality: "Qualité du selfie (netteté, cadrage)",
   liveness_passive: "Présence réelle (passif)",
   liveness_active: "Présence réelle (défis)",
+  face_ambiguity: "Un seul visage dans le cadre",
   face_match: "Comparaison du visage",
+  face_replay: "Selfie ≠ photo du document",
 };
 
 /** Ligne dossier (accès service_role uniquement — jamais renvoyée brute au

@@ -14,9 +14,14 @@ import {
   RefreshCcw,
   XCircle,
 } from "lucide-react";
-import { IDV_STATUS_LABELS_FR, type IdvStatus } from "@/lib/idv/types";
+import { useLocale } from "next-intl";
+import { idvStatusLabel, type IdvStatus } from "@/lib/idv/types";
 
-const TRACKER_STEPS = ["Document", "Selfie", "Décision"] as const;
+const TRACKER_STEPS = [
+  ["Document", "الوثيقة"],
+  ["Selfie", "سيلفي"],
+  ["Décision", "القرار"],
+] as const;
 
 /** Étape atteinte (0-2) selon le statut. */
 function reachedStep(status: IdvStatus): number {
@@ -51,6 +56,9 @@ export function IdvStatusPanel({
   selfieError?: string | null;
 }) {
   const step = reachedStep(status);
+  const locale = useLocale();
+  const isAr = locale === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   const content: Record<
     string,
@@ -60,8 +68,11 @@ export function IdvStatusPanel({
       icon: (
         <CircleCheck className="size-10" style={{ color: "var(--idv-ok)" }} />
       ),
-      tone: "Document validé",
-      hint: "Étape suivante : un selfie rapide, avec quelques gestes simples.",
+      tone: idvStatusLabel("doc_validated", locale),
+      hint: tr(
+        "Étape suivante : un selfie rapide, avec quelques gestes simples.",
+        "الخطوة التالية: سيلفي سريع مع بعض الحركات البسيطة."
+      ),
     },
     doc_processing: {
       icon: (
@@ -70,8 +81,8 @@ export function IdvStatusPanel({
           style={{ color: "var(--idv-accent)" }}
         />
       ),
-      tone: IDV_STATUS_LABELS_FR.doc_processing,
-      hint: "Quelques secondes…",
+      tone: idvStatusLabel("doc_processing", locale),
+      hint: tr("Quelques secondes…", "بضع ثوانٍ…"),
     },
     selfie_processing: {
       icon: (
@@ -80,45 +91,57 @@ export function IdvStatusPanel({
           style={{ color: "var(--idv-accent)" }}
         />
       ),
-      tone: IDV_STATUS_LABELS_FR.selfie_processing,
-      hint: "Quelques secondes…",
+      tone: idvStatusLabel("selfie_processing", locale),
+      hint: tr("Quelques secondes…", "بضع ثوانٍ…"),
     },
     pending_review: {
       icon: <Clock className="size-10" style={{ color: "var(--idv-warn)" }} />,
-      tone: "Vérification manuelle en cours",
-      hint: "L'équipe Coligo examine votre dossier. Vous serez notifié du résultat.",
+      tone: idvStatusLabel("pending_review", locale),
+      hint: tr(
+        "L'équipe Coligo examine votre dossier. Vous serez notifié du résultat.",
+        "فريق كوليڨو يدرس ملفك. سيتم إشعارك بالنتيجة."
+      ),
     },
     approved: {
       icon: (
         <BadgeCheck className="size-10" style={{ color: "var(--idv-ok)" }} />
       ),
-      tone: "Identité vérifiée",
+      tone: idvStatusLabel("approved", locale),
       hint: null,
     },
     rejected: {
       icon: <XCircle className="size-10" style={{ color: "var(--idv-bad)" }} />,
-      tone: "Vérification refusée",
-      hint: "Contactez le support si vous pensez qu'il s'agit d'une erreur.",
+      tone: idvStatusLabel("rejected", locale),
+      hint: tr(
+        "Contactez le support si vous pensez qu'il s'agit d'une erreur.",
+        "تواصل مع الدعم إذا كنت تعتقد أن الأمر خطأ."
+      ),
     },
     resubmit_document: {
       icon: (
         <RefreshCcw className="size-10" style={{ color: "var(--idv-warn)" }} />
       ),
-      tone: "Nouveau document demandé",
-      hint: "L'équipe Coligo a besoin d'une photo plus lisible de votre pièce.",
+      tone: idvStatusLabel("resubmit_document", locale),
+      hint: tr(
+        "L'équipe Coligo a besoin d'une photo plus lisible de votre pièce.",
+        "فريق كوليڨو بحاجة إلى صورة أوضح لوثيقتك."
+      ),
     },
     resubmit_selfie: {
       icon: (
         <RefreshCcw className="size-10" style={{ color: "var(--idv-warn)" }} />
       ),
-      tone: "Nouveau selfie demandé",
-      hint: "L'équipe Coligo a besoin d'un nouveau selfie de vérification.",
+      tone: idvStatusLabel("resubmit_selfie", locale),
+      hint: tr(
+        "L'équipe Coligo a besoin d'un nouveau selfie de vérification.",
+        "فريق كوليڨو بحاجة إلى سيلفي تحقّق جديد."
+      ),
     },
   };
 
   const c = content[status] ?? {
     icon: <Clock className="size-10" style={{ color: "var(--idv-muted)" }} />,
-    tone: IDV_STATUS_LABELS_FR[status] ?? status,
+    tone: idvStatusLabel(status, locale),
     hint: null,
   };
 
@@ -148,7 +171,7 @@ export function IdvStatusPanel({
             className="mt-1 rounded-full px-5 py-2.5 text-sm font-semibold text-white"
             style={{ background: "var(--idv-accent)" }}
           >
-            Reprendre la photo
+            {tr("Reprendre la photo", "إعادة التقاط الصورة")}
           </button>
         )}
         {(status === "doc_validated" || status === "resubmit_selfie") &&
@@ -173,10 +196,10 @@ export function IdvStatusPanel({
                 style={{ background: "var(--idv-accent)" }}
               >
                 {selfiePending
-                  ? "Préparation…"
+                  ? tr("Préparation…", "جارٍ التحضير…")
                   : status === "resubmit_selfie"
-                    ? "Refaire le selfie"
-                    : "Faire le selfie"}
+                    ? tr("Refaire le selfie", "إعادة السيلفي")
+                    : tr("Faire le selfie", "التقاط السيلفي")}
               </button>
             </>
           )}
@@ -184,12 +207,13 @@ export function IdvStatusPanel({
 
       {/* Tracker des 3 étapes. */}
       <div className="flex items-center px-2">
-        {TRACKER_STEPS.map((label, i) => {
+        {TRACKER_STEPS.map(([labelFr, labelAr], i) => {
+          const label = isAr ? labelAr : labelFr;
           const done = i < step || status === "approved";
           const current = i === step && status !== "approved";
           return (
             <div
-              key={label}
+              key={labelFr}
               className="flex flex-1 items-center last:flex-none"
             >
               <div className="flex flex-col items-center gap-1">

@@ -44,7 +44,7 @@ import {
 import { ChAvatar } from "@/components/customer/drive/ch-avatar";
 import { DriverBadgePill } from "@/components/drive/driver-badge";
 import { getDriverBadge } from "@/lib/drive/driver-badge";
-import { PLAN_LABEL, fmtPct } from "./d-ui";
+import { PLAN_LABEL, PLAN_LABEL_AR, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import {
@@ -72,6 +72,7 @@ import { IdvCalloutClient } from "@/components/idv/idv-callout-client";
 export function DCompte({ gate }: { gate: ChauffeurGate }) {
   const router = useRouter();
   const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [, startLang] = useTransition();
   // Langue : bascule FR ⇄ AR et ENREGISTRE le choix (cookie NEXT_LOCALE, 1 an)
   // via l'action serveur, puis rafraîchit pour appliquer la nouvelle locale + RTL.
@@ -116,7 +117,9 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   };
   const saveHome = async () => {
     if (!homePos) {
-      setHomeErr("Placez le repère sur votre domicile.");
+      setHomeErr(
+        tr("Placez le repère sur votre domicile.", "ضع العلامة على منزلك.")
+      );
       return;
     }
     setHomeSaving(true);
@@ -124,14 +127,14 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
     // Adresse lisible du repère (échec silencieux → libellé générique).
     const text =
       (await reverseGeocode(homePos.lat, homePos.lng).catch(() => null)) ??
-      "Domicile (repère carte)";
+      tr("Domicile (repère carte)", "المنزل (علامة على الخريطة)");
     const res = await setChauffeurHome(text, homePos);
     setHomeSaving(false);
     if (res.ok) {
       setHomeAddr(text);
       setHomeOpen(false);
     } else {
-      setHomeErr(res.error ?? "Enregistrement impossible.");
+      setHomeErr(res.error ?? tr("Enregistrement impossible.", "تعذّر الحفظ."));
     }
   };
 
@@ -143,7 +146,9 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
   };
   const saveCcp = async () => {
     if (!ccpNum.trim()) {
-      setCcpErr("Saisissez votre numéro CCP.");
+      setCcpErr(
+        tr("Saisissez votre numéro CCP.", "أدخل رقم حسابك البريدي CCP.")
+      );
       return;
     }
     setCcpSaving(true);
@@ -151,7 +156,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
     const res = await setChauffeurCcp(ccpNum.trim(), ccpKey.trim());
     setCcpSaving(false);
     if (res?.ok === false) {
-      setCcpErr(res.error ?? "Enregistrement impossible.");
+      setCcpErr(res.error ?? tr("Enregistrement impossible.", "تعذّر الحفظ."));
       return;
     }
     setCcpOpen(false);
@@ -159,17 +164,23 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
 
   // Statut du dossier de documents (remonté en haut).
   const docStatus = gate.rejectedReason
-    ? { label: "Dossier refusé", tone: "rejected" as const }
+    ? { label: tr("Dossier refusé", "ملف مرفوض"), tone: "rejected" as const }
     : !gate.submitted
-      ? { label: "À compléter", tone: "pending" as const }
+      ? {
+          label: tr("À compléter", "بحاجة إلى استكمال"),
+          tone: "pending" as const,
+        }
       : gate.isVerified
-        ? { label: "À jour", tone: "ok" as const }
-        : { label: "En vérification", tone: "pending" as const };
+        ? { label: tr("À jour", "محدَّث"), tone: "ok" as const }
+        : {
+            label: tr("En vérification", "قيد التحقّق"),
+            tone: "pending" as const,
+          };
 
   return (
     <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
       <h1 className="drive-sora mb-3.5 text-[21px] font-extrabold tracking-[-0.5px]">
-        Compte
+        {tr("Compte", "الحساب")}
       </h1>
 
       {/* Vérification d'identité (IDV) : s'efface si non publiée ou déjà faite. */}
@@ -210,7 +221,8 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
               </b>
             )}
             {gate.rating != null && " · "}
-            {gate.ridesCount} courses · depuis {since}
+            {gate.ridesCount} {tr("courses", "مشوارًا")} · {tr("depuis", "منذ")}{" "}
+            {since}
           </span>
         </span>
       </div>
@@ -219,42 +231,42 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       <div className="mb-3 flex flex-wrap gap-1.5">
         {gate.isVerified ? (
           <PartnerStatusChip tone="ok" icon={<BadgeCheck className="size-3" />}>
-            Compte vérifié
+            {tr("Compte vérifié", "حساب موثَّق")}
           </PartnerStatusChip>
         ) : (
           <PartnerStatusChip tone="pending" icon={<Clock className="size-3" />}>
-            Compte en vérification
+            {tr("Compte en vérification", "حساب قيد التحقّق")}
           </PartnerStatusChip>
         )}
         <PartnerStatusChip
           tone={docStatus.tone}
           icon={<FileCheck className="size-3" />}
         >
-          Documents · {docStatus.label}
+          {tr("Documents", "الوثائق")} · {docStatus.label}
         </PartnerStatusChip>
       </div>
 
       {/* ── Catégorie : Véhicule & documents ── */}
-      <PartnerMenuGroup title="Véhicule & documents">
+      <PartnerMenuGroup title={tr("Véhicule & documents", "المركبة والوثائق")}>
         <PartnerMenuRow
           icon={<Car className="size-4" />}
-          label="Véhicule"
+          label={tr("Véhicule", "المركبة")}
           value={
             <>
-              {gate.vehicle ?? "À compléter"} ·{" "}
+              {gate.vehicle ?? tr("À compléter", "بحاجة إلى استكمال")} ·{" "}
               <b style={{ color: VIOLET }}>
                 {gate.gamme === "classic"
                   ? "Classic"
                   : gate.gamme === "confort"
-                    ? "Confort"
-                    : "Moto"}
+                    ? tr("Confort", "كونفور")
+                    : tr("Moto", "دراجة نارية")}
               </b>
             </>
           }
         />
         <PartnerMenuRow
           icon={<FileCheck className="size-4" />}
-          label="Documents"
+          label={tr("Documents", "الوثائق")}
           value={
             <span
               style={{
@@ -269,52 +281,55 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       </PartnerMenuGroup>
 
       {/* ── Catégorie : Finances ── */}
-      <PartnerMenuGroup title="Finances">
+      <PartnerMenuGroup title={tr("Finances", "المالية")}>
         <PartnerMenuRow
           icon={<CreditCard className="size-4" />}
-          label="Abonnement"
-          value={`${PLAN_LABEL[plan]} · ${fin ? fmtPct(fin.planRate) : "…"}`}
+          label={tr("Abonnement", "الاشتراك")}
+          value={`${(isAr ? PLAN_LABEL_AR : PLAN_LABEL)[plan]} · ${fin ? fmtPct(fin.planRate) : "…"}`}
           onClick={() => router.push("/chauffeur/abonnement")}
         />
         <PartnerMenuRow
           icon={<Wallet className="size-4" />}
-          label="Portefeuille & recharge"
-          value="Solde · recharger"
+          label={tr("Portefeuille & recharge", "المحفظة والتعبئة")}
+          value={tr("Solde · recharger", "الرصيد · تعبئة")}
           onClick={() => router.push("/chauffeur/recharger")}
         />
         <PartnerMenuRow
           icon={<CreditCard className="size-4" />}
-          label="Mon CCP (versements)"
-          value="Renseigner / modifier"
+          label={tr("Mon CCP (versements)", "حسابي CCP (الدفعات)")}
+          value={tr("Renseigner / modifier", "إدخال / تعديل")}
           onClick={openCcp}
         />
       </PartnerMenuGroup>
 
       {/* ── Catégorie : Préférences & sécurité ── */}
-      <PartnerMenuGroup title="Préférences & sécurité">
+      <PartnerMenuGroup
+        title={tr("Préférences & sécurité", "التفضيلات والأمان")}
+      >
         <PartnerMenuRow
           icon={<Home className="size-4" />}
-          label="Domicile"
+          label={tr("Domicile", "المنزل")}
           value={
             <span className="inline-flex items-center gap-1">
-              {homeAddr ?? "À renseigner"} <Pencil className="size-3" />
+              {homeAddr ?? tr("À renseigner", "بحاجة إلى إدخال")}{" "}
+              <Pencil className="size-3" />
             </span>
           }
           onClick={openHome}
         />
         <PartnerMenuRow
           icon={<ShieldAlert className="size-4" />}
-          label="Contacts d'urgence"
+          label={tr("Contacts d'urgence", "جهات اتصال الطوارئ")}
           value={
             sosContacts.length > 0
               ? sosContacts.map((x) => x.name).join(", ")
-              : "À renseigner"
+              : tr("À renseigner", "بحاجة إلى إدخال")
           }
           onClick={() => setContactsOpen(true)}
         />
         <PartnerMenuRow
           icon={<Globe className="size-4" />}
-          label="Langue"
+          label={tr("Langue", "اللغة")}
           value={
             <span className="inline-flex items-center gap-1.5">
               <LocaleFlag locale={isAr ? "ar" : "fr"} className="w-5" />
@@ -351,13 +366,16 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         </span>
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">
-            Télécharger l’application Android
+            {tr("Télécharger l’application Android", "تحميل تطبيق أندرويد")}
           </span>
           <span className="block text-xs opacity-70">
-            Notifications fiables et plein écran.
+            {tr(
+              "Notifications fiables et plein écran.",
+              "إشعارات موثوقة وشاشة كاملة."
+            )}
           </span>
         </span>
-        <ChevronRight className="size-5 shrink-0 opacity-50" />
+        <ChevronRight className="size-5 shrink-0 opacity-50 rtl:rotate-180" />
       </Link>
 
       <div className="mt-4">
@@ -378,22 +396,24 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       {/* Modal designé — Domicile (remplace window.prompt) */}
       <FormModal
         open={homeOpen}
-        title="Mon domicile"
+        title={tr("Mon domicile", "منزلي")}
         onClose={() => setHomeOpen(false)}
         onSave={() => void saveHome()}
         saving={homeSaving}
         error={homeErr}
       >
         <p className="mb-2 text-[12px] text-[var(--d-muted)]">
-          Cherchez votre adresse ou déplacez la carte pour placer le repère
-          exactement sur votre domicile. Modifiable 1×/semaine (anti-fraude).
+          {tr(
+            "Cherchez votre adresse ou déplacez la carte pour placer le repère exactement sur votre domicile. Modifiable 1×/semaine (anti-fraude).",
+            "ابحث عن عنوانك أو حرّك الخريطة لوضع العلامة على منزلك بدقة. قابل للتعديل مرة واحدة في الأسبوع (مكافحة الاحتيال)."
+          )}
         </p>
         <MapPositionPicker
           initial={null}
           autoLocate
           searchEnabled
           height={300}
-          gpsLabel="Ma position"
+          gpsLabel={tr("Ma position", "موقعي")}
           onChange={(p) => setHomePos(p)}
         />
       </FormModal>
@@ -401,27 +421,30 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       {/* Modal designé — CCP (remplace window.prompt) */}
       <FormModal
         open={ccpOpen}
-        title="Mon CCP (versements)"
+        title={tr("Mon CCP (versements)", "حسابي CCP (الدفعات)")}
         onClose={() => setCcpOpen(false)}
         onSave={() => void saveCcp()}
         saving={ccpSaving}
         error={ccpErr}
       >
         <p className="mb-2 text-[12px] text-[var(--d-muted)]">
-          Vos versements seront virés sur ce compte CCP.
+          {tr(
+            "Vos versements seront virés sur ce compte CCP.",
+            "ستُحوَّل دفعاتك إلى هذا الحساب البريدي CCP."
+          )}
         </p>
         <input
           value={ccpNum}
           onChange={(e) => setCcpNum(e.target.value)}
           inputMode="numeric"
-          placeholder="Numéro CCP"
+          placeholder={tr("Numéro CCP", "رقم CCP")}
           className="mb-2 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-[14px] outline-none focus:border-[color:var(--d-muted)]"
         />
         <input
           value={ccpKey}
           onChange={(e) => setCcpKey(e.target.value)}
           inputMode="numeric"
-          placeholder="Clé CCP (2 chiffres)"
+          placeholder={tr("Clé CCP (2 chiffres)", "مفتاح CCP (رقمان)")}
           className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-[14px] outline-none focus:border-[color:var(--d-muted)]"
         />
       </FormModal>
@@ -447,6 +470,7 @@ function FormModal({
   error: string | null;
   children: React.ReactNode;
 }) {
+  const isAr = useLocale() === "ar";
   if (!open) return null;
   return (
     <Portal>
@@ -463,7 +487,7 @@ function FormModal({
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fermer"
+              aria-label={isAr ? "إغلاق" : "Fermer"}
               className="grid size-9 place-items-center rounded-full bg-[var(--d-soft)]"
             >
               <X className="size-4" />
@@ -486,7 +510,7 @@ function FormModal({
             style={{ background: VIOLET }}
           >
             {saving ? <Loader2 className="size-5 animate-spin" /> : null}
-            Enregistrer
+            {isAr ? "حفظ" : "Enregistrer"}
           </button>
         </div>
       </div>
@@ -497,6 +521,7 @@ function FormModal({
 /** Bascule clair / sombre (cookie coligo_theme + classe theme-dark) — l'espace
  *  chauffeur consomme `.theme-dark .drive-jakarta`, donc le sombre s'applique. */
 function DarkModeRow() {
+  const isAr = useLocale() === "ar";
   const [dark, setDark] = useState<boolean | null>(null);
   useEffect(() => {
     setDark(document.documentElement.classList.contains("theme-dark"));
@@ -520,7 +545,7 @@ function DarkModeRow() {
           <Sun className="size-4" style={{ color: VIOLET }} />
         )
       }
-      label="Mode sombre"
+      label={isAr ? "الوضع الداكن" : "Mode sombre"}
       onClick={toggle}
       trailing={
         <span
@@ -543,6 +568,7 @@ function DarkModeRow() {
  *  mode sombre : préférence locale instantanée (sound-store chauffeur), la
  *  vibration reste active quoi qu'il arrive (canal séparé). */
 function SoundRow() {
+  const isAr = useLocale() === "ar";
   const on = useChauffeurSound();
   return (
     <PartnerMenuRow
@@ -553,7 +579,7 @@ function SoundRow() {
           <VolumeX className="size-4" style={{ color: VIOLET }} />
         )
       }
-      label="Sons de notification"
+      label={isAr ? "أصوات الإشعارات" : "Sons de notification"}
       onClick={() => toggleChauffeurSound()}
       trailing={
         <span

@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { useQuery } from "@tanstack/react-query";
 import { Wallet } from "lucide-react";
 import { formatDA } from "@/lib/utils";
@@ -39,6 +40,7 @@ export function DriverBalanceAmount({ driverId }: { driverId: string }) {
 
 export function DriverBalancePill({ driverId }: { driverId: string }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
   const { data: bal } = useDriverBalance(driverId);
 
   const negative = bal != null && bal < 0;
@@ -47,7 +49,7 @@ export function DriverBalancePill({ driverId }: { driverId: string }) {
     <button
       type="button"
       onClick={() => router.push("/driver/recharger")}
-      aria-label="Mon solde — recharger"
+      aria-label={isAr ? "رصيدي — تعبئة" : "Mon solde — recharger"}
       className={`flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13px] font-bold shadow-lg ${negative ? "text-[var(--red)]" : "text-[var(--violet)]"}`}
     >
       <Wallet className="size-4" />

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   AlertTriangle,
   Check,
@@ -77,6 +78,8 @@ const fmtkm = (v: number) =>
  */
 export function DCourse() {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const coords = useDriverPosition();
   const [ride, setRide] = useState<ChauffeurActiveRide | null>(null);
   const [booted, setBooted] = useState(false);
@@ -363,8 +366,11 @@ export function DCourse() {
     if (!res.ok) {
       setError(
         res.error === "bad_pin"
-          ? "Code PIN incorrect — demandez les 4 chiffres au client."
-          : (res.error ?? "Action impossible")
+          ? tr(
+              "Code PIN incorrect — demandez les 4 chiffres au client.",
+              "رمز PIN غير صحيح — اطلب الأرقام الأربعة من الزبون."
+            )
+          : (res.error ?? tr("Action impossible", "تعذّر تنفيذ الإجراء"))
       );
       setBusy(false);
       return;
@@ -380,7 +386,7 @@ export function DCourse() {
     setError(null);
     const res = await completeRideAction(ride.id);
     if (!res.ok) {
-      setError(res.error ?? "Impossible de terminer");
+      setError(res.error ?? tr("Impossible de terminer", "تعذّر الإنهاء"));
       setBusy(false);
       return;
     }
@@ -436,17 +442,20 @@ export function DCourse() {
               <X className="size-7" style={{ color: RED }} />
             </span>
             <h1 className="drive-sora text-[21px] font-extrabold">
-              Course annulée
+              {tr("Course annulée", "أُلغي المشوار")}
             </h1>
             <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
-              La course a été remise dans la liste des demandes. Aucun frais.
+              {tr(
+                "La course a été remise dans la liste des demandes. Aucun frais.",
+                "أُعيد المشوار إلى قائمة الطلبات. بدون رسوم."
+              )}
             </p>
           </div>
           <PrimaryBtn
             onClick={() => router.replace("/chauffeur/demandes")}
             className="mt-5"
           >
-            Voir les autres demandes
+            {tr("Voir les autres demandes", "عرض الطلبات الأخرى")}
           </PrimaryBtn>
         </div>
       );
@@ -487,10 +496,13 @@ export function DCourse() {
             <Check className="size-7" style={{ color: GO }} />
           </span>
           <h1 className="drive-sora text-[21px] font-extrabold">
-            {ride.customer_name} a accepté !
+            {isAr
+              ? `${ride.customer_name} قَبِل العرض!`
+              : `${ride.customer_name} a accepté !`}
           </h1>
           <p className="text-[13px] text-[var(--d-muted)]">
-            Course confirmée à <b>{formatDA(ride.agreed_price_da)}</b>
+            {tr("Course confirmée à", "تأكّد المشوار بسعر")}{" "}
+            <b>{formatDA(ride.agreed_price_da)}</b>
           </p>
         </div>
         <div className="mt-4 mb-2.5 flex flex-col gap-1.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-muted)]">
@@ -499,22 +511,25 @@ export function DCourse() {
               className="size-[9px] shrink-0 rounded-full"
               style={{ background: VIOLET }}
             />
-            Vous → client
-            <b className="drive-sora ml-auto text-[var(--d-ink)]">
-              {pkKm != null ? `${fmtkm(pkKm)} · ~${pkMin} min` : "…"}
+            {tr("Vous → client", "أنت ← الزبون")}
+            <b className="drive-sora ms-auto text-[var(--d-ink)]">
+              {pkKm != null
+                ? `${fmtkm(pkKm)} · ~${pkMin} ${tr("min", "د")}`
+                : "…"}
             </b>
           </span>
           <span className="flex items-center gap-2">
             <i className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
-            Course
-            <b className="drive-sora ml-auto text-[var(--d-ink)]">
+            {tr("Course", "المشوار")}
+            <b className="drive-sora ms-auto text-[var(--d-ink)]">
               {fmtkm(ride.distance_km)} · ~
-              {Math.max(4, Math.round(ride.distance_km * 2.2))} min
+              {Math.max(4, Math.round(ride.distance_km * 2.2))} {tr("min", "د")}
             </b>
           </span>
         </div>
         <p className="mb-4 text-xs font-semibold">
-          {pickupAddr ?? "Point de départ du client"} → {ride.dest_text ?? "—"}
+          {pickupAddr ?? tr("Point de départ du client", "نقطة انطلاق الزبون")}{" "}
+          → {ride.dest_text ?? "—"}
         </p>
         <PrimaryBtn
           onClick={async () => {
@@ -522,21 +537,24 @@ export function DCourse() {
             await transition("arriving");
           }}
         >
-          Démarrer · aller au client
+          {tr("Démarrer · aller au client", "انطلق · اذهب إلى الزبون")}
         </PrimaryBtn>
         {/* Ouvre directement l'itinéraire vers le client dans l'app GPS. */}
         {pickup && (
           <button
             type="button"
-            onClick={() => goNav(pickup.lat, pickup.lng, "le client")}
+            onClick={() =>
+              goNav(pickup.lat, pickup.lng, tr("le client", "الزبون"))
+            }
             className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[15px] border-[1.5px] text-[14px] font-bold"
             style={{ borderColor: GO, color: GO }}
           >
-            <Navigation className="size-4" /> Aller au point de départ · GPS
+            <Navigation className="size-4" />{" "}
+            {tr("Aller au point de départ · GPS", "إلى نقطة الانطلاق · GPS")}
           </button>
         )}
         <GhostBtn onClick={() => setCancelCtx("driver_match")}>
-          Annuler la course
+          {tr("Annuler la course", "إلغاء المشوار")}
         </GhostBtn>
         <CancelModal
           open={cancelCtx === "driver_match"}
@@ -564,9 +582,9 @@ export function DCourse() {
   // Itinéraire : vers la destination en course, vers le client avant.
   const onItinerary = () => {
     if (inProgress) {
-      if (dest) goNav(dest.lat, dest.lng, "la destination");
+      if (dest) goNav(dest.lat, dest.lng, tr("la destination", "الوجهة"));
     } else if (pickup) {
-      goNav(pickup.lat, pickup.lng, "le client");
+      goNav(pickup.lat, pickup.lng, tr("le client", "الزبون"));
     }
   };
   const copyShare = async () => {
@@ -622,8 +640,12 @@ export function DCourse() {
         />
         <span className="drive-sora">
           {inProgress
-            ? `Course en cours${rideMin != null ? ` · ${rideMin} min restantes` : ""}`
-            : `Prise en charge · ${ride.customer_name}${pkMin != null ? ` à ${pkMin} min` : ""}`}
+            ? isAr
+              ? `مشوار جارٍ${rideMin != null ? ` · باقٍ ${rideMin} د` : ""}`
+              : `Course en cours${rideMin != null ? ` · ${rideMin} min restantes` : ""}`
+            : isAr
+              ? `التوجّه إلى الزبون · ${ride.customer_name}${pkMin != null ? ` بعد ${pkMin} د` : ""}`
+              : `Prise en charge · ${ride.customer_name}${pkMin != null ? ` à ${pkMin} min` : ""}`}
         </span>
       </div>
 
@@ -635,7 +657,7 @@ export function DCourse() {
             setChatOpen(true);
             setMsgBanner(null);
           }}
-          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
+          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-start shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <span
@@ -645,7 +667,9 @@ export function DCourse() {
             <MessageSquare className="size-4" style={{ color: VIOLET }} />
           </span>
           <span className="min-w-0 flex-1">
-            <b className="block text-[13px]">Nouveau message du client</b>
+            <b className="block text-[13px]">
+              {tr("Nouveau message du client", "رسالة جديدة من الزبون")}
+            </b>
             <span className="block truncate text-[12px] text-[var(--d-muted)]">
               {msgBanner}
             </span>
@@ -654,7 +678,7 @@ export function DCourse() {
             className="shrink-0 text-[11px] font-extrabold"
             style={{ color: VIOLET }}
           >
-            Voir
+            {tr("Voir", "عرض")}
           </span>
         </button>
       )}
@@ -669,8 +693,12 @@ export function DCourse() {
             className="drive-sora flex items-center gap-2 px-3.5 py-2 text-xs font-extrabold text-white"
             style={{ background: VIOLET }}
           >
-            <Zap className="size-3.5" /> Course suivante près de votre dépose
-            <span className="ml-auto">0:{String(nextCd).padStart(2, "0")}</span>
+            <Zap className="size-3.5" />{" "}
+            {tr(
+              "Course suivante près de votre dépose",
+              "مشوار تالٍ قرب نقطة الإنزال"
+            )}
+            <span className="ms-auto">0:{String(nextCd).padStart(2, "0")}</span>
           </div>
           <div className="px-3.5 py-3">
             <div className="flex items-center gap-2.5">
@@ -696,16 +724,18 @@ export function DCourse() {
                   )}
                 </b>
                 <span className="text-[11px] text-[var(--d-muted)]">
-                  À {fmtkm(nextOff.pickup_dist_km)} de votre point de dépose ·
-                  course {fmtkm(nextOff.distance_km)}
+                  {isAr
+                    ? `على بعد ${fmtkm(nextOff.pickup_dist_km)} من نقطة الإنزال · المشوار ${fmtkm(nextOff.distance_km)}`
+                    : `À ${fmtkm(nextOff.pickup_dist_km)} de votre point de dépose · course ${fmtkm(nextOff.distance_km)}`}
                 </span>
               </span>
-              <span className="shrink-0 text-right">
+              <span className="shrink-0 text-end">
                 <b className="drive-sora block text-lg">
-                  {nextOff.proposed_price_da + nextOff.boost_amount_da} DA
+                  {nextOff.proposed_price_da + nextOff.boost_amount_da}{" "}
+                  {tr("DA", "دج")}
                 </b>
                 <span className="text-[10px] text-[var(--d-muted)]">
-                  prix client
+                  {tr("prix client", "سعر الزبون")}
                 </span>
               </span>
             </div>
@@ -722,7 +752,7 @@ export function DCourse() {
                   setNextOff(null);
                 }}
               >
-                Enchaîner
+                {tr("Enchaîner", "متابعة")}
               </button>
               <button
                 type="button"
@@ -732,7 +762,7 @@ export function DCourse() {
                   setNextOff(null);
                 }}
               >
-                Non merci
+                {tr("Non merci", "لا، شكرًا")}
               </button>
             </div>
           </div>
@@ -779,14 +809,15 @@ export function DCourse() {
             style={{ background: "var(--d-accent)", color: VIOLET }}
           >
             <Check className="size-4 shrink-0" />
-            Course suivante : {queued.customer_name} ·{" "}
-            {queued.proposed_price_da + queued.boost_amount_da} DA
+            {tr("Course suivante :", "المشوار التالي:")} {queued.customer_name}{" "}
+            · {queued.proposed_price_da + queued.boost_amount_da}{" "}
+            {tr("DA", "دج")}
             <button
               type="button"
-              className="ml-auto text-[11px] font-semibold text-[var(--d-muted)]"
+              className="ms-auto text-[11px] font-semibold text-[var(--d-muted)]"
               onClick={() => setQueued(null)}
             >
-              Retirer
+              {tr("Retirer", "إزالة")}
             </button>
           </div>
         )}
@@ -818,13 +849,13 @@ export function DCourse() {
                 )}
                 {ride.proxy_name && (
                   <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
-                    Pour un proche
+                    {tr("Pour un proche", "لأحد الأقارب")}
                   </span>
                 )}
               </span>
             </span>
             {/* Prix convenu (collé à l'identité — plus de bloc séparé). */}
-            <span className="shrink-0 text-right">
+            <span className="shrink-0 text-end">
               <span
                 className="drive-sora block text-[18px] leading-none font-extrabold"
                 style={{ color: VIOLET }}
@@ -835,10 +866,12 @@ export function DCourse() {
                 {inProgress
                   ? ride.prepaid
                     ? ride.cash_due_da > 0
-                      ? `Encaisser ${formatDA(ride.cash_due_da)}`
-                      : "Prépayée"
-                    : "À encaisser"
-                  : "Prix convenu"}
+                      ? isAr
+                        ? `حصّل ${formatDA(ride.cash_due_da)}`
+                        : `Encaisser ${formatDA(ride.cash_due_da)}`
+                      : tr("Prépayée", "مدفوعة مسبقًا")
+                    : tr("À encaisser", "للتحصيل")
+                  : tr("Prix convenu", "السعر المتفق عليه")}
               </span>
             </span>
           </div>
@@ -864,14 +897,15 @@ export function DCourse() {
             </span>
             <span className="min-w-0 flex-1 truncate text-[var(--d-ink)]">
               {inProgress
-                ? (ride.dest_text ?? "Destination")
-                : (pickupAddr ?? "Point de départ du client")}
+                ? (ride.dest_text ?? tr("Destination", "الوجهة"))
+                : (pickupAddr ??
+                  tr("Point de départ du client", "نقطة انطلاق الزبون"))}
             </span>
             <span
               className="flex shrink-0 items-center gap-0.5 text-[11px] font-extrabold"
               style={{ color: VIOLET }}
             >
-              <Navigation className="size-3.5" /> Itinéraire
+              <Navigation className="size-3.5" /> {tr("Itinéraire", "المسار")}
             </span>
           </button>
         </div>
@@ -885,14 +919,16 @@ export function DCourse() {
             className="drive-sora flex h-[50px] items-center justify-center gap-2 rounded-[15px] text-[14px] font-bold text-white"
             style={{ background: VIOLET }}
           >
-            <PhoneCall className="size-[18px] shrink-0" /> Appel
+            <PhoneCall className="size-[18px] shrink-0" />{" "}
+            {tr("Appel", "اتصال")}
           </button>
           <button
             type="button"
             onClick={() => setChatOpen(true)}
             className="drive-sora relative flex h-[50px] items-center justify-center gap-2 rounded-[15px] bg-[var(--d-soft)] text-[14px] font-bold"
           >
-            <MessageSquare className="size-[18px] shrink-0" /> Message
+            <MessageSquare className="size-[18px] shrink-0" />{" "}
+            {tr("Message", "رسالة")}
             {unread > 0 && (
               <span
                 className="drive-badge absolute top-1.5 right-2 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
@@ -913,7 +949,8 @@ export function DCourse() {
                 onClick={() => setShareOpen(true)}
                 className="flex h-[40px] flex-1 items-center justify-center gap-1.5 rounded-[13px] border border-[var(--d-line)] text-[12.5px] font-bold text-[var(--d-muted)]"
               >
-                <Share2 className="size-4" /> Partager le suivi
+                <Share2 className="size-4" />{" "}
+                {tr("Partager le suivi", "مشاركة التتبّع")}
               </button>
             )}
             {inProgress && (
@@ -938,19 +975,42 @@ export function DCourse() {
             <span>
               {inProgress ? (
                 ride.cash_due_da > 0 ? (
-                  <>
-                    Course Coligo Pay partielle —{" "}
-                    {formatDA(ride.agreed_price_da - ride.cash_due_da)} en
-                    séquestre (versés sur votre solde à la fin) ·{" "}
-                    <b>encaissez {formatDA(ride.cash_due_da)} en espèces</b>{" "}
-                    auprès du client à l&apos;arrivée.
-                  </>
+                  isAr ? (
+                    <>
+                      مشوار كوليڨو باي جزئي —{" "}
+                      {formatDA(ride.agreed_price_da - ride.cash_due_da)} في
+                      الضمان (تُضاف إلى رصيدك في النهاية) ·{" "}
+                      <b>حصّل {formatDA(ride.cash_due_da)} نقدًا</b> من الزبون
+                      عند الوصول.
+                    </>
+                  ) : (
+                    <>
+                      Course Coligo Pay partielle —{" "}
+                      {formatDA(ride.agreed_price_da - ride.cash_due_da)} en
+                      séquestre (versés sur votre solde à la fin) ·{" "}
+                      <b>encaissez {formatDA(ride.cash_due_da)} en espèces</b>{" "}
+                      auprès du client à l&apos;arrivée.
+                    </>
+                  )
                 ) : (
-                  <>
-                    Course prépayée — montant en séquestre, versé sur votre
-                    solde à la fin de la course. Rien à encaisser.
-                  </>
+                  tr(
+                    "Course prépayée — montant en séquestre, versé sur votre solde à la fin de la course. Rien à encaisser.",
+                    "مشوار مدفوع مسبقًا — المبلغ في الضمان ويُضاف إلى رصيدك في نهاية المشوار. لا شيء للتحصيل."
+                  )
                 )
+              ) : isAr ? (
+                <>
+                  مشوار مدفوع مسبقًا — عند وصولك، اطلب من الزبون{" "}
+                  <b>رمز PIN (4 أرقام)</b>: إدخاله يبدأ المشوار.{" "}
+                  {ride.cash_due_da > 0 ? (
+                    <>
+                      مبلغ إضافي يُحصَّل نقدًا:{" "}
+                      <b>{formatDA(ride.cash_due_da)}</b>.
+                    </>
+                  ) : (
+                    <>لا شيء للتحصيل.</>
+                  )}
+                </>
               ) : (
                 <>
                   Course prépayée — à votre arrivée, demandez le{" "}
@@ -983,7 +1043,7 @@ export function DCourse() {
         {inProgress ? (
           <PrimaryBtn onClick={() => void complete()} disabled={busy}>
             {busy ? <Loader2 className="size-5 animate-spin" /> : null}
-            Terminer la course
+            {tr("Terminer la course", "إنهاء المشوار")}
           </PrimaryBtn>
         ) : ride.status !== "arrived" ? (
           <>
@@ -991,7 +1051,7 @@ export function DCourse() {
               onClick={() => void transition("arrived")}
               disabled={busy}
             >
-              Je suis arrivé · prévenir le client
+              {tr("Je suis arrivé · prévenir le client", "وصلت · إبلاغ الزبون")}
             </PrimaryBtn>
             {/* Démarrage direct (si le client est déjà à bord) — action
                 secondaire discrète, plus de gros boutons empilés. */}
@@ -1002,8 +1062,11 @@ export function DCourse() {
               className="drive-sora mt-2 flex h-[46px] w-full items-center justify-center gap-1.5 rounded-[15px] border-[1.5px] border-[var(--d-line)] text-[13.5px] font-bold disabled:opacity-50"
               style={{ color: VIOLET }}
             >
-              Client déjà à bord · démarrer
-              <ChevronRight className="size-4" />
+              {tr(
+                "Client déjà à bord · démarrer",
+                "الزبون على متن السيارة · انطلق"
+              )}
+              <ChevronRight className="size-4 rtl:rotate-180" />
             </button>
           </>
         ) : (
@@ -1012,13 +1075,19 @@ export function DCourse() {
               className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
               style={{ background: "rgba(22,179,100,.12)", color: GO }}
             >
-              Le client est prévenu que vous êtes arrivé ✓
+              {tr(
+                "Le client est prévenu que vous êtes arrivé ✓",
+                "تم إبلاغ الزبون بوصولك ✓"
+              )}
             </p>
             <PrimaryBtn
               onClick={() => void transition("in_progress")}
               disabled={busy}
             >
-              Client à bord · démarrer la course
+              {tr(
+                "Client à bord · démarrer la course",
+                "الزبون على متن السيارة · بدء المشوار"
+              )}
             </PrimaryBtn>
           </>
         )}
@@ -1026,7 +1095,7 @@ export function DCourse() {
         {/* Annulation : repliée en lien discret (sauf en course). */}
         {!inProgress && (
           <GhostBtn danger onClick={() => setCancelCtx("driver_pickup")}>
-            Annuler · client absent
+            {tr("Annuler · client absent", "إلغاء · الزبون غائب")}
           </GhostBtn>
         )}
       </div>
@@ -1034,11 +1103,24 @@ export function DCourse() {
       {/* Saisie du CODE PIN du client — DÉMARRE la course prépayée (séquestre
           maintenu jusqu'à la fin, mig 0145). */}
       <Sheet open={askCode} onClose={() => setAskCode(false)}>
-        <SheetTitle>Code PIN du client</SheetTitle>
+        <SheetTitle>
+          {tr("Code PIN du client", "رمز PIN الخاص بالزبون")}
+        </SheetTitle>
         <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-          À votre arrivée, demandez au client son <b>code PIN (4 chiffres)</b>.
-          Sa validation démarre la course — le montant reste bloqué en séquestre
-          et vous sera versé à la fin de la course.
+          {isAr ? (
+            <>
+              عند وصولك، اطلب من الزبون <b>رمز PIN (4 أرقام)</b>. تأكيده يبدأ
+              المشوار — يبقى المبلغ محجوزًا في الضمان ويُدفع لك في نهاية
+              المشوار.
+            </>
+          ) : (
+            <>
+              À votre arrivée, demandez au client son{" "}
+              <b>code PIN (4 chiffres)</b>. Sa validation démarre la course — le
+              montant reste bloqué en séquestre et vous sera versé à la fin de
+              la course.
+            </>
+          )}
         </p>
         <input
           value={endCode}
@@ -1058,9 +1140,11 @@ export function DCourse() {
           disabled={endCode.length !== 4 || busy}
           onClick={() => void transition("in_progress", endCode)}
         >
-          Valider le PIN · démarrer la course
+          {tr("Valider le PIN · démarrer la course", "تأكيد PIN · بدء المشوار")}
         </PrimaryBtn>
-        <GhostBtn onClick={() => setAskCode(false)}>Annuler</GhostBtn>
+        <GhostBtn onClick={() => setAskCode(false)}>
+          {tr("Annuler", "إلغاء")}
+        </GhostBtn>
       </Sheet>
 
       <CancelModal
@@ -1116,9 +1200,14 @@ export function DCourse() {
           direct (sinon « Appel » lance Coligo Call directement). Regroupe les
           deux méthodes derrière la seule action « Appel ». */}
       <Sheet open={callMenu} onClose={() => setCallMenu(false)}>
-        <SheetTitle>Appeler {ride.customer_name}</SheetTitle>
+        <SheetTitle>
+          {tr("Appeler", "الاتصال بـ")} {ride.customer_name}
+        </SheetTitle>
         <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-          Coligo Call protège votre numéro et celui du client.
+          {tr(
+            "Coligo Call protège votre numéro et celui du client.",
+            "كوليڨو كول يحمي رقمك ورقم الزبون."
+          )}
         </p>
         <button
           type="button"
@@ -1130,13 +1219,13 @@ export function DCourse() {
           style={{ background: VIOLET }}
         >
           <PhoneCall className="size-5" />
-          <span className="flex-1 text-left">
+          <span className="flex-1 text-start">
             Coligo Call
             <span className="block text-[11px] font-semibold opacity-85">
-              Numéro masqué · recommandé
+              {tr("Numéro masqué · recommandé", "رقم مخفي · موصى به")}
             </span>
           </span>
-          <ChevronRight className="size-4" />
+          <ChevronRight className="size-4 rtl:rotate-180" />
         </button>
         {ride.customer_phone && (
           <a
@@ -1145,26 +1234,33 @@ export function DCourse() {
             className="drive-sora mb-1 flex h-[54px] w-full items-center gap-3 rounded-[14px] border-[1.5px] border-[var(--d-line)] px-4 text-[14px] font-bold"
           >
             <Phone className="size-5" style={{ color: VIOLET }} />
-            <span className="flex-1 text-left">
-              Appeler le numéro direct
-              <span className="block text-[11px] font-semibold text-[var(--d-muted)]">
+            <span className="flex-1 text-start">
+              {tr("Appeler le numéro direct", "الاتصال بالرقم المباشر")}
+              <span
+                dir="ltr"
+                className="block text-[11px] font-semibold text-[var(--d-muted)]"
+              >
                 {ride.customer_phone}
               </span>
             </span>
-            <ChevronRight className="size-4 text-[var(--d-muted)]" />
+            <ChevronRight className="size-4 text-[var(--d-muted)] rtl:rotate-180" />
           </a>
         )}
-        <GhostBtn onClick={() => setCallMenu(false)}>Annuler</GhostBtn>
+        <GhostBtn onClick={() => setCallMenu(false)}>
+          {tr("Annuler", "إلغاء")}
+        </GhostBtn>
       </Sheet>
 
       {/* Partage du suivi — popup AVEC CARTE A → B (façon client) : aperçu du
           trajet + envoi du lien public t/{token} (WhatsApp / SMS / copie). */}
       {shareUrl && (
         <Sheet open={shareOpen} onClose={() => setShareOpen(false)}>
-          <SheetTitle>Partager le suivi</SheetTitle>
+          <SheetTitle>{tr("Partager le suivi", "مشاركة التتبّع")}</SheetTitle>
           <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-            Vos proches suivent la course en direct (position live), sans
-            compte.
+            {tr(
+              "Vos proches suivent la course en direct (position live), sans compte.",
+              "يتابع أقاربك المشوار مباشرة (الموقع الحي)، دون حساب."
+            )}
           </p>
           {/* Aperçu carte du trajet A → B */}
           <DriveMap
@@ -1209,10 +1305,11 @@ export function DCourse() {
             </div>
             <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12px] font-semibold">
               <span className="truncate">
-                {pickupAddr ?? "Point de départ du client"}
+                {pickupAddr ??
+                  tr("Point de départ du client", "نقطة انطلاق الزبون")}
               </span>
               <span className="truncate">
-                {ride.dest_text ?? "Destination"}
+                {ride.dest_text ?? tr("Destination", "الوجهة")}
               </span>
             </div>
           </div>
@@ -1222,7 +1319,12 @@ export function DCourse() {
               type="button"
               onClick={() =>
                 window.open(
-                  `https://wa.me/?text=${encodeURIComponent(`Suivez ma course Coligo en direct : ${shareUrl}`)}`,
+                  `https://wa.me/?text=${encodeURIComponent(
+                    tr(
+                      `Suivez ma course Coligo en direct : ${shareUrl}`,
+                      `تابعوا مشواري على كوليڨو مباشرة: ${shareUrl}`
+                    )
+                  )}`,
                   "_blank"
                 )
               }
@@ -1235,7 +1337,12 @@ export function DCourse() {
               type="button"
               onClick={() =>
                 window.open(
-                  `sms:?body=${encodeURIComponent(`Suivez ma course Coligo en direct : ${shareUrl}`)}`,
+                  `sms:?body=${encodeURIComponent(
+                    tr(
+                      `Suivez ma course Coligo en direct : ${shareUrl}`,
+                      `تابعوا مشواري على كوليڨو مباشرة: ${shareUrl}`
+                    )
+                  )}`,
                   "_self"
                 )
               }
@@ -1259,9 +1366,13 @@ export function DCourse() {
             ) : (
               <Copy className="size-4" />
             )}
-            {linkCopied ? "Lien copié ✓" : "Copier le lien de suivi"}
+            {linkCopied
+              ? tr("Lien copié ✓", "تم نسخ الرابط ✓")
+              : tr("Copier le lien de suivi", "نسخ رابط التتبّع")}
           </button>
-          <GhostBtn onClick={() => setShareOpen(false)}>Fermer</GhostBtn>
+          <GhostBtn onClick={() => setShareOpen(false)}>
+            {tr("Fermer", "إغلاق")}
+          </GhostBtn>
         </Sheet>
       )}
 

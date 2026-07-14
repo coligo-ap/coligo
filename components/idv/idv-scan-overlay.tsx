@@ -12,6 +12,7 @@
 // =============================================================================
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { Check, Loader2, ShieldQuestion, X } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
 import type { IdvCheckSummary } from "@/app/idv/actions";
@@ -19,18 +20,68 @@ import type { IdvCheckSummary } from "@/app/idv/actions";
 export type ScanPhase = "document" | "selfie";
 
 /** Contrôles ANNONCÉS pour chaque phase, dans l'ordre où on les montre. */
-const PHASE_CHECKS: Record<ScanPhase, { key: string; label: string }[]> = {
+const PHASE_CHECKS: Record<
+  ScanPhase,
+  { key: string; label: string; labelAr: string }[]
+> = {
   document: [
-    { key: "doc_quality", label: "Netteté et lumière" },
-    { key: "doc_face", label: "Portrait sur le document" },
-    { key: "mrz", label: "Zone lisible par machine" },
-    { key: "ocr_extract", label: "Lecture des informations" },
-    { key: "doc_expiry", label: "Validité du document" },
+    {
+      key: "doc_quality",
+      label: "Netteté et lumière",
+      labelAr: "الوضوح والإضاءة",
+    },
+    {
+      key: "doc_face",
+      label: "Portrait sur le document",
+      labelAr: "الصورة على الوثيقة",
+    },
+    {
+      key: "mrz",
+      label: "Zone lisible par machine",
+      labelAr: "المنطقة المقروءة آليًا",
+    },
+    {
+      key: "ocr_extract",
+      label: "Lecture des informations",
+      labelAr: "قراءة المعلومات",
+    },
+    {
+      key: "doc_expiry",
+      label: "Validité du document",
+      labelAr: "صلاحية الوثيقة",
+    },
   ],
   selfie: [
-    { key: "liveness_active", label: "Présence réelle" },
-    { key: "liveness_passive", label: "Détection d'écran ou de photo" },
-    { key: "face_match", label: "Comparaison avec le document" },
+    {
+      key: "selfie_quality",
+      label: "Netteté du visage",
+      labelAr: "وضوح الوجه",
+    },
+    {
+      key: "liveness_active",
+      label: "Présence réelle",
+      labelAr: "الحضور الحقيقي",
+    },
+    {
+      key: "liveness_passive",
+      label: "Détection d'écran ou de photo",
+      labelAr: "كشف شاشة أو صورة",
+    },
+    {
+      key: "face_ambiguity",
+      label: "Une seule personne dans le cadre",
+      labelAr: "شخص واحد فقط في الإطار",
+    },
+    {
+      key: "face_match",
+      label: "Comparaison avec le document",
+      labelAr: "المطابقة مع الوثيقة",
+    },
+    {
+      key: "face_replay",
+      label: "Selfie pris en direct",
+      labelAr: "سيلفي ملتقط مباشرة",
+    },
   ],
 };
 
@@ -83,6 +134,8 @@ export function IdvScanOverlay({
   errorMessage?: string | null;
   onDone: () => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const items = PHASE_CHECKS[phase];
   const [revealed, setRevealed] = useState(1);
 
@@ -145,11 +198,11 @@ export function IdvScanOverlay({
         <p className="mb-4 text-center text-base font-bold text-white">
           {results
             ? errorMessage
-              ? "Analyse terminée"
-              : "Analyse réussie"
+              ? tr("Analyse terminée", "انتهى التحليل")
+              : tr("Analyse réussie", "نجح التحليل")
             : phase === "document"
-              ? "Analyse du document…"
-              : "Vérification en cours…"}
+              ? tr("Analyse du document…", "جارٍ تحليل الوثيقة…")
+              : tr("Vérification en cours…", "التحقّق قيد الإنجاز…")}
         </p>
 
         {/* Liste des contrôles. */}
@@ -193,11 +246,11 @@ export function IdvScanOverlay({
                           : "rgba(255,255,255,.92)",
                   }}
                 >
-                  {item.label}
+                  {isAr ? item.labelAr : item.label}
                 </span>
                 {(st === "skipped" || st === "error") && (
-                  <span className="ml-auto text-[10px] text-white/40">
-                    non applicable
+                  <span className="ms-auto text-[10px] text-white/40">
+                    {tr("non applicable", "غير معنيّ")}
                   </span>
                 )}
               </li>

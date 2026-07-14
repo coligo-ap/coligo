@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { ShieldCheck } from "lucide-react";
 import { requireDriverStage } from "@/lib/auth/driver-gate";
 import { getDriverKyc } from "@/app/(driver)/actions";
@@ -22,17 +23,22 @@ export default async function DriverKycPage() {
   await requireDriverStage("kyc");
   const data = await getDriverKyc();
   if (!data) redirect("/driver/login");
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <OnboardingScreen
       icon={<ShieldCheck className="size-6" />}
-      title="Votre dossier livreur"
-      subtitle="Quelques minutes, rien de plus."
+      title={tr("Votre dossier livreur", "ملفك كموصّل")}
+      subtitle={tr("Quelques minutes, rien de plus.", "بضع دقائق، لا أكثر.")}
       info={
-        <InfoNote title="Pourquoi ces informations ?">
-          Elles sont exigées par la loi et protègent les clients comme les
-          livreurs. Elles restent confidentielles et ne sont consultées que par
-          l&apos;équipe Coligo.
+        <InfoNote
+          title={tr("Pourquoi ces informations ?", "لماذا هذه المعلومات؟")}
+        >
+          {tr(
+            "Elles sont exigées par la loi et protègent les clients comme les livreurs. Elles restent confidentielles et ne sont consultées que par l'équipe Coligo.",
+            "يفرضها القانون وهي تحمي الزبائن والموصّلين على حد سواء. تبقى سرّية ولا يطّلع عليها إلا فريق كوليڨو."
+          )}
         </InfoNote>
       }
     >

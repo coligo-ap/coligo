@@ -28,6 +28,15 @@ export const DOC_QUALITY_REASONS_FR: Record<DocQualityReason, string> = {
   low_resolution: "Image trop petite — rapprochez-vous du document",
 };
 
+/** Mêmes raisons, en arabe (parcours IDV bilingue). */
+export const DOC_QUALITY_REASONS_AR: Record<DocQualityReason, string> = {
+  blurry: "صورة ضبابية — ثبّت الهاتف وأعد المحاولة",
+  too_dark: "مظلمة جدًا — أضف مزيدًا من الإضاءة",
+  too_bright: "شديدة السطوع — أبعد مصدر الضوء",
+  glare: "انعكاسات على الوثيقة — أمِلها قليلًا",
+  low_resolution: "الصورة صغيرة جدًا — اقترب من الوثيقة",
+};
+
 export type DocQuality = {
   verdict: "passed" | "failed";
   /** Score global ∈ [0,1] (min des sous-scores). */

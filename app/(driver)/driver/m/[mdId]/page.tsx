@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { CalendarDays, ChevronRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
@@ -37,6 +38,8 @@ export default async function DriverMerchantSpacePage({
     .maybeSingle();
 
   if (!link) notFound();
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const merchant = Array.isArray(link.merchants)
     ? link.merchants[0]
     : link.merchants;
@@ -48,15 +51,19 @@ export default async function DriverMerchantSpacePage({
         <PartnerBackHeader
           href="/driver"
           title={merchant.name}
-          subtitle="Tournées"
+          subtitle={tr("Tournées", "الجولات")}
         />
         <div
           className="rounded-[14px] px-4 py-3 text-sm font-medium"
           style={{ background: "rgba(245,158,11,.12)", color: "#c2790a" }}
         >
           {link.status === "pending"
-            ? `Demande en attente chez ${merchant.name}.`
-            : `Accès retiré chez ${merchant.name}.`}
+            ? isAr
+              ? `طلب في الانتظار لدى ${merchant.name}.`
+              : `Demande en attente chez ${merchant.name}.`
+            : isAr
+              ? `سُحب الوصول لدى ${merchant.name}.`
+              : `Accès retiré chez ${merchant.name}.`}
         </div>
       </DriverShell>
     );
@@ -67,7 +74,7 @@ export default async function DriverMerchantSpacePage({
       <PartnerBackHeader
         href="/driver"
         title={merchant.name}
-        subtitle="Tournées"
+        subtitle={tr("Tournées", "الجولات")}
       />
 
       {merchant.tours_enabled ? (
@@ -82,18 +89,24 @@ export default async function DriverMerchantSpacePage({
             <CalendarDays className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-bold text-[var(--d-ink)]">Tournée</p>
+            <p className="text-sm font-bold text-[var(--d-ink)]">
+              {tr("Tournée", "الجولة")}
+            </p>
             <p className="text-xs font-medium text-[var(--d-muted)]">
-              Choisis un créneau et fais ta tournée.
+              {tr(
+                "Choisis un créneau et fais ta tournée.",
+                "اختر فترة زمنية وقم بجولتك."
+              )}
             </p>
           </div>
           <ChevronRight className="size-[18px] text-[var(--d-muted)] rtl:rotate-180" />
         </Link>
       ) : (
         <p className="text-sm font-medium text-[var(--d-muted)]">
-          Ce commerçant n&apos;a pas activé la Tournée. L&apos;Express, lui,
-          arrive automatiquement quand tu es en ligne — pas besoin de passer par
-          ici.
+          {tr(
+            "Ce commerçant n'a pas activé la Tournée. L'Express, lui, arrive automatiquement quand tu es en ligne — pas besoin de passer par ici.",
+            "هذا التاجر لم يفعّل الجولات. أما إكسبرس فيصلك تلقائيًا عندما تكون متصلًا — لا حاجة للمرور من هنا."
+          )}
         </p>
       )}
     </DriverShell>

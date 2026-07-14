@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Logo } from "@/components/shared/logo";
+import { LanguageSwitcher } from "@/components/i18n/language-switcher";
 
 /**
  * La carte de formulaire des écrans d'authentification, pour TOUS les portails.
@@ -38,13 +39,18 @@ export function AuthCard({
         {/* Mobile : carte bordée. Desktop : elle se fond dans le panneau. */}
         <div className="border-border rounded-[14px] border bg-white p-5 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
           {modeTabs}
-          <div className="mb-3">
-            <h2 className="text-foreground mb-1 text-xl font-bold lg:text-2xl">
-              {title}
-            </h2>
-            <p className="text-muted text-[13px] leading-snug lg:text-sm">
-              {subtitle}
-            </p>
+          {/* Titre + sélecteur de langue (FR ⇄ AR) — présent sur TOUS les
+              portails d'auth : client, livreur, chauffeur, commerçant, Agent. */}
+          <div className="mb-3 flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <h2 className="text-foreground mb-1 text-xl font-bold lg:text-2xl">
+                {title}
+              </h2>
+              <p className="text-muted text-[13px] leading-snug lg:text-sm">
+                {subtitle}
+              </p>
+            </div>
+            <LanguageSwitcher compact />
           </div>
           {children}
         </div>

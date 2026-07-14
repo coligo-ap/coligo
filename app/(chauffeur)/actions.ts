@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -14,7 +15,7 @@ import {
   phoneToChauffeurEmail,
   getCurrentChauffeur,
 } from "@/lib/auth/chauffeur";
-import { DZ_PHONE_ERROR } from "@/lib/dz/phone";
+import { DZ_PHONE_ERROR, DZ_PHONE_ERROR_AR } from "@/lib/dz/phone";
 import { isWilaya } from "@/lib/dz/wilayas";
 import { signSelfiePath } from "@/lib/drive/avatar-server";
 import {
@@ -37,6 +38,11 @@ async function rpcClient() {
 }
 
 const DOCS_BUCKET = "driver-docs";
+
+/** Erreurs des parcours d'auth, dans la langue du cookie NEXT_LOCALE. */
+async function authTr(fr: string, ar: string): Promise<string> {
+  return (await getLocale()) === "ar" ? ar : fr;
+}
 
 // ---------------------------------------------------------------------------
 // AUTH — inscription maquette : nom*, prénom*, tél*, date de naissance*,
@@ -74,7 +80,10 @@ export async function chauffeurSignup(
   // saisir « 0550100004 » ou « +213 550100004 » mène au même compte.
   const phone = canonicalPhone(parsed.data.phone);
   const authEmail = phoneToChauffeurEmail(parsed.data.phone);
-  if (!phone || !authEmail) return { error: DZ_PHONE_ERROR };
+  if (!phone || !authEmail)
+    return {
+      error: await authTr(DZ_PHONE_ERROR, DZ_PHONE_ERROR_AR),
+    };
 
   const { data: signup, error } = await supabase.auth.signUp({
     email: authEmail,
@@ -82,9 +91,17 @@ export async function chauffeurSignup(
   });
   if (error || !signup.user) {
     if (error?.message.includes("registered")) {
-      return { error: "Ce numéro est déjà enregistré." };
+      return {
+        error: await authTr(
+          "Ce numéro est déjà enregistré.",
+          "هذا الرقم مسجّل بالفعل."
+        ),
+      };
     }
-    return { error: error?.message ?? "Échec inscription." };
+    return {
+      error:
+        error?.message ?? (await authTr("Échec inscription.", "فشل التسجيل.")),
+    };
   }
 
   const admin = createAdminClient();
@@ -100,7 +117,12 @@ export async function chauffeurSignup(
   });
   if (chErr) {
     if (chErr.code === "23505") {
-      return { error: "Ce téléphone est déjà utilisé." };
+      return {
+        error: await authTr(
+          "Ce téléphone est déjà utilisé.",
+          "هذا الهاتف مستعمل بالفعل."
+        ),
+      };
     }
     return { error: `Profil chauffeur : ${chErr.message}` };
   }
@@ -125,13 +147,17 @@ export async function chauffeurLogin(
     return { error: parsed.error.issues[0]?.message ?? "Données invalides" };
   }
   const supabase = await createClient();
+  const badCreds = await authTr(
+    "Téléphone ou mot de passe incorrect.",
+    "رقم الهاتف أو كلمة المرور غير صحيحة."
+  );
   const email = phoneToChauffeurEmail(parsed.data.phone);
-  if (!email) return { error: "Téléphone ou mot de passe incorrect." };
+  if (!email) return { error: badCreds };
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
   });
-  if (error) return { error: "Téléphone ou mot de passe incorrect." };
+  if (error) return { error: badCreds };
   redirect("/chauffeur");
 }
 

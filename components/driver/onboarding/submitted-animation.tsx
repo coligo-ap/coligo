@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { Send } from "lucide-react";
 import { BRAND_VIOLET, SORA } from "@/components/shared/partner-ui";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
@@ -15,6 +16,8 @@ import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebra
  * animations.
  */
 export function SubmittedAnimation({ onDone }: { onDone: () => void }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [leaving, setLeaving] = useState(false);
 
   useEffect(() => {
@@ -43,22 +46,36 @@ export function SubmittedAnimation({ onDone }: { onDone: () => void }) {
         style={{ background: "var(--violet-soft)", color: BRAND_VIOLET }}
       >
         <Send className="size-3" />
-        Dossier transmis
+        {tr("Dossier transmis", "أُرسل الملف")}
       </span>
       <h1
         className="text-[21px] leading-tight font-extrabold text-[var(--ink)]"
         style={{ fontFamily: SORA }}
       >
-        Votre demande d&apos;inscription
-        <br />a bien été transmise.
+        {isAr ? (
+          <>
+            طلب تسجيلك
+            <br />
+            تم إرساله بنجاح.
+          </>
+        ) : (
+          <>
+            Votre demande d&apos;inscription
+            <br />a bien été transmise.
+          </>
+        )}
       </h1>
       <p className="mt-2.5 max-w-[320px] text-[13px] leading-relaxed text-[var(--muted)]">
-        L&apos;équipe Coligo procède actuellement à la vérification de votre
-        identité et de vos documents. Vous recevrez une notification dès que
-        votre compte sera validé.
+        {tr(
+          "L'équipe Coligo procède actuellement à la vérification de votre identité et de vos documents. Vous recevrez une notification dès que votre compte sera validé.",
+          "يقوم فريق كوليڨو حاليًا بالتحقق من هويتك ووثائقك. ستصلك رسالة إشعار فور المصادقة على حسابك."
+        )}
       </p>
       <p className="mt-3 text-[12.5px] font-semibold text-[var(--ink)]">
-        Merci pour votre confiance et votre patience.
+        {tr(
+          "Merci pour votre confiance et votre patience.",
+          "شكرًا على ثقتك وصبرك."
+        )}
       </p>
     </div>
   );

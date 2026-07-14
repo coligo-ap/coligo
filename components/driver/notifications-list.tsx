@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { BadgeCheck, Bell, ChevronRight, XCircle } from "lucide-react";
 import {
   BRAND_GO,
@@ -37,6 +38,7 @@ export function DriverNotificationsList({
 }: {
   items: DriverNotification[];
 }) {
+  const isAr = useLocale() === "ar";
   // Ouvrir la liste vaut lecture : on marque tout comme lu (RPC dédiée — le
   // livreur ne peut pas réécrire le contenu d'une notification).
   useEffect(() => {
@@ -76,10 +78,13 @@ export function DriverNotificationsList({
                 {n.body}
               </small>
               <small className="mt-1 block text-[11px] text-[var(--muted)]">
-                {new Date(n.created_at).toLocaleDateString("fr-FR", {
-                  day: "2-digit",
-                  month: "long",
-                })}
+                {new Date(n.created_at).toLocaleDateString(
+                  isAr ? "ar-DZ" : "fr-FR",
+                  {
+                    day: "2-digit",
+                    month: "long",
+                  }
+                )}
               </small>
             </div>
             {n.route && (

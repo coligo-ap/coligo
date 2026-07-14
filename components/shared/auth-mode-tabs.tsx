@@ -1,4 +1,7 @@
+"use client";
+
 import Link from "next/link";
+import { useLocale } from "next-intl";
 
 export type AuthMode = "login" | "signup";
 
@@ -21,16 +24,20 @@ export function AuthModeTabs({
   mode,
   loginHref,
   signupHref,
-  loginLabel = "J'ai déjà un compte",
-  signupLabel = "Je crée mon compte",
+  loginLabel,
+  signupLabel,
 }: {
   mode: AuthMode;
   loginHref: string;
   signupHref: string;
-  /** Traduits par l'appelant (les portails livreur/chauffeur sont bilingues). */
+  /** Optionnels : par défaut, libellés bilingues FR/AR selon la locale. */
   loginLabel?: string;
   signupLabel?: string;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const login = loginLabel ?? tr("J'ai déjà un compte", "لديّ حساب بالفعل");
+  const signup = signupLabel ?? tr("Je crée mon compte", "أنشئ حسابي");
   // `min-h-[44px]` : cible tactile minimale au doigt. Le `py-2` seul donnait
   // 39 px — assez pour l'œil, pas pour le pouce.
   const base =
@@ -40,7 +47,10 @@ export function AuthModeTabs({
 
   return (
     <nav
-      aria-label="Connexion ou création de compte"
+      aria-label={tr(
+        "Connexion ou création de compte",
+        "تسجيل الدخول أو إنشاء حساب"
+      )}
       className="bg-surface-2 border-border mb-3 flex gap-1 rounded-[12px] border p-1"
     >
       <Link
@@ -48,14 +58,14 @@ export function AuthModeTabs({
         aria-current={mode === "login" ? "page" : undefined}
         className={`${base} ${mode === "login" ? active : idle}`}
       >
-        {loginLabel}
+        {login}
       </Link>
       <Link
         href={signupHref}
         aria-current={mode === "signup" ? "page" : undefined}
         className={`${base} ${mode === "signup" ? active : idle}`}
       >
-        {signupLabel}
+        {signup}
       </Link>
     </nav>
   );

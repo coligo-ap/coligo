@@ -1,4 +1,5 @@
 import { redirect, notFound } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
@@ -65,12 +66,13 @@ export default async function DriverTourExecutionPage({
     ];
   });
 
+  const isAr = (await getLocale()) === "ar";
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <PartnerBackHeader
         href={`/driver/m/${mdId}/tours`}
-        title="Tournée en cours"
-        subtitle={`${rows.filter((r) => r.stop_status === "delivered").length}/${rows.length} livrés`}
+        title={isAr ? "جولة جارية" : "Tournée en cours"}
+        subtitle={`${rows.filter((r) => r.stop_status === "delivered").length}/${rows.length} ${isAr ? "سُلِّمت" : "livrés"}`}
       />
       <TourExecution stops={rows} tourId={tourId} />
     </DriverShell>

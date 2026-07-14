@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -104,6 +105,26 @@ const STEP_TITLES = [
   "Véhicule",
   "Validation",
 ];
+const STEP_TITLES_AR = ["المعلومات الشخصية", "التحقّق", "المركبة", "المصادقة"];
+
+/** Libellés arabes des données FR de lib/driver/kyc (module pur, non touché). */
+const DOC_LABELS_AR: Record<string, string> = {
+  cni: "وثيقة الهوية",
+  selfie: "صورة لك (سيلفي)",
+  permis: "رخصة السياقة",
+  carte_grise: "البطاقة الرمادية",
+  assurance: "شهادة التأمين",
+  passeport: "جواز السفر",
+  autre: "وثيقة أخرى",
+};
+const VEHICLE_LABELS_AR: Record<string, string> = {
+  velo: "دراجة هوائية",
+  trottinette: "تروتينات",
+  moto: "دراجة نارية",
+  scooter: "سكوتر",
+  voiture: "سيارة",
+  camionnette: "شاحنة صغيرة",
+};
 
 /**
  * VOLETS : chaque étape se découpe en écrans courts qui TIENNENT SANS
@@ -123,6 +144,8 @@ const PANE_KEYS: readonly (readonly (readonly string[])[])[] = [
 
 export function DriverKycForm({ data }: { data: DriverKycData }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [profile, setProfile] = useState<KycProfile>(data.profile);
   const [docs, setDocs] = useState<KycDocView[]>(data.docs);
   const [submitting, startSubmit] = useTransition();
@@ -190,7 +213,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       return !item || !item.required || item.done;
     });
 
-  const steps = STEP_TITLES.map((title, i) => ({
+  const steps = (isAr ? STEP_TITLES_AR : STEP_TITLES).map((title, i) => ({
     title,
     complete: i === 3 ? report.complete : stepComplete(i),
   }));
@@ -227,8 +250,11 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
     const item = itemOf.get(key);
     if (!item || !item.required || item.done) return null;
     return key === "date_of_birth"
-      ? "Vous devez avoir au moins 18 ans pour livrer."
-      : "Ce champ est obligatoire.";
+      ? tr(
+          "Vous devez avoir au moins 18 ans pour livrer.",
+          "يجب أن يكون عمرك 18 عامًا على الأقل للتوصيل."
+        )
+      : tr("Ce champ est obligatoire.", "هذا الحقل إلزامي.");
   };
 
   const set =
@@ -288,7 +314,12 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       // Vérification proposée mais pas encore tranchée : on ne laisse pas
       // avancer sans réponse — et on le dit LÀ où se trouve l'action.
       if (step === 1 && data.idv.available && !idvMethod) {
-        setError("Choisissez comment prouver votre identité.");
+        setError(
+          tr(
+            "Choisissez comment prouver votre identité.",
+            "اختر كيف تُثبت هويتك."
+          )
+        );
         return;
       }
       // Filet : la porte partagée interdit d'avancer sans identité prouvée.
@@ -345,8 +376,8 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       if (!r.ok) {
         setError(
           r.missing?.length
-            ? `${r.error} Il manque : ${r.missing.join(", ")}.`
-            : (r.error ?? "Envoi impossible.")
+            ? `${r.error} ${tr("Il manque :", "ينقص:")} ${r.missing.join(", ")}.`
+            : (r.error ?? tr("Envoi impossible.", "تعذّر الإرسال."))
         );
         return;
       }
@@ -369,7 +400,9 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       fd.set("file", file);
       const r = await uploadDriverKycDocument(fd);
       if (!r.ok || !r.doc) {
-        setError(r.error ?? "Envoi de la pièce impossible.");
+        setError(
+          r.error ?? tr("Envoi de la pièce impossible.", "تعذّر إرسال الوثيقة.")
+        );
         return;
       }
       setError(null);
@@ -385,7 +418,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
     try {
       const r = await removeDriverKycDocument(docType);
       if (!r.ok) {
-        setError(r.error ?? "Suppression impossible.");
+        setError(r.error ?? tr("Suppression impossible.", "تعذّر الحذف."));
         return;
       }
       setDocs((list) => list.filter((d) => d.docType !== docType));
@@ -408,8 +441,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
   };
 
   const docOf = (t: DriverDocType) => docs.find((d) => d.docType === t) ?? null;
-  const idKindLabel =
-    ID_DOC_KINDS.find((k) => k.value === idKind)?.label ?? "Pièce d'identité";
+  const idKindLabel = isAr
+    ? (DOC_LABELS_AR[idKind] ?? "وثيقة الهوية")
+    : (ID_DOC_KINDS.find((k) => k.value === idKind)?.label ??
+      "Pièce d'identité");
 
   /**
    * LE bouton d'action — il n'y en a qu'UN à l'écran, et son libellé est celui
@@ -436,7 +471,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
         style={primaryStyle}
       >
         {spinnerOr(<ShieldCheck className="size-4" />)}
-        Transmettre mon dossier
+        {tr("Transmettre mon dossier", "إرسال ملفي")}
       </button>
     ) : (
       // À l'étape « Vérification », le bouton d'action APPARTIENT au système
@@ -454,8 +489,8 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
           className={primaryCls}
           style={primaryStyle}
         >
-          {spinnerOr(<ArrowRight className="size-4" />)}
-          Continuer
+          {spinnerOr(<ArrowRight className="size-4 rtl:rotate-180" />)}
+          {tr("Continuer", "متابعة")}
         </button>
       </IdvPrimaryButton>
     );
@@ -473,14 +508,20 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
             style={{ color: BRAND_RED, fontFamily: SORA }}
           >
             <AlertTriangle className="size-4" />
-            Dossier à corriger
+            {tr("Dossier à corriger", "ملف بحاجة إلى تصحيح")}
           </b>
           <p className="mt-1 text-[12.5px] text-[var(--ink)]">
-            L&apos;équipe Coligo n&apos;a pas pu valider votre dossier :{" "}
+            {tr(
+              "L'équipe Coligo n'a pas pu valider votre dossier :",
+              "لم يتمكن فريق كوليڨو من المصادقة على ملفك:"
+            )}{" "}
             <b>{data.rejectionReason}</b>
           </p>
           <p className="mt-1 text-[12px] text-[var(--muted)]">
-            Corrigez les éléments concernés puis transmettez-le à nouveau.
+            {tr(
+              "Corrigez les éléments concernés puis transmettez-le à nouveau.",
+              "صحّح العناصر المعنية ثم أرسله من جديد."
+            )}
           </p>
         </div>
       )}
@@ -493,22 +534,29 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       >
         {step === 0 && pane === 0 && (
           <PaneQuestion
-            title="Comment vous appelez-vous ?"
-            hint="Tel qu'il figure sur votre pièce d'identité."
+            title={tr("Comment vous appelez-vous ?", "ما اسمك؟")}
+            hint={tr(
+              "Tel qu'il figure sur votre pièce d'identité.",
+              "كما هو مكتوب في وثيقة هويتك."
+            )}
           >
-            <Field label="Nom complet" required error={errorFor("full_name")}>
+            <Field
+              label={tr("Nom complet", "الاسم الكامل")}
+              required
+              error={errorFor("full_name")}
+            >
               <input
                 value={profile.full_name ?? ""}
                 onChange={set("full_name")}
                 className={bigInputCls}
                 autoComplete="name"
-                placeholder="Prénom et nom"
+                placeholder={tr("Prénom et nom", "الاسم واللقب")}
               />
             </Field>
             <Field
-              label="Téléphone"
+              label={tr("Téléphone", "الهاتف")}
               locked
-              hint="Votre identifiant de connexion"
+              hint={tr("Votre identifiant de connexion", "معرّف تسجيل دخولك")}
             >
               <input
                 value={profile.phone ?? ""}
@@ -522,11 +570,17 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
         {step === 0 && pane === 1 && (
           <PaneQuestion
-            title="Quelle est votre date de naissance ?"
-            hint="Vous devez avoir au moins 18 ans pour livrer."
+            title={tr(
+              "Quelle est votre date de naissance ?",
+              "ما هو تاريخ ميلادك؟"
+            )}
+            hint={tr(
+              "Vous devez avoir au moins 18 ans pour livrer.",
+              "يجب أن يكون عمرك 18 عامًا على الأقل للتوصيل."
+            )}
           >
             <Field
-              label="Date de naissance"
+              label={tr("Date de naissance", "تاريخ الميلاد")}
               required
               error={errorFor("date_of_birth")}
             >
@@ -542,16 +596,23 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
         {step === 0 && pane === 2 && (
           <PaneQuestion
-            title="Où livrez-vous ?"
-            hint="Votre wilaya détermine les commerçants qui vous seront proposés."
+            title={tr("Où livrez-vous ?", "أين توصّل؟")}
+            hint={tr(
+              "Votre wilaya détermine les commerçants qui vous seront proposés.",
+              "ولايتك تحدّد التجار الذين سيُقترحون عليك."
+            )}
           >
-            <Field label="Wilaya" required error={errorFor("wilaya")}>
+            <Field
+              label={tr("Wilaya", "الولاية")}
+              required
+              error={errorFor("wilaya")}
+            >
               <select
                 value={profile.wilaya ?? ""}
                 onChange={set("wilaya")}
                 className={bigInputCls}
               >
-                <option value="">Choisissez…</option>
+                <option value="">{tr("Choisissez…", "اختر…")}</option>
                 {WILAYAS.map((w, i) => (
                   <option key={w} value={w}>
                     {String(i + 1).padStart(2, "0")} · {w}
@@ -559,14 +620,17 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                 ))}
               </select>
             </Field>
-            <Field label="Adresse e-mail" hint="Facultatif">
+            <Field
+              label={tr("Adresse e-mail", "البريد الإلكتروني")}
+              hint={tr("Facultatif", "اختياري")}
+            >
               <input
                 type="email"
                 value={profile.email ?? ""}
                 onChange={set("email")}
                 className={bigInputCls}
                 autoComplete="email"
-                placeholder="vous@exemple.com"
+                placeholder={tr("vous@exemple.com", "you@example.com")}
               />
             </Field>
           </PaneQuestion>
@@ -584,7 +648,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
           >
             <>
               <>
-                <Field label="Type de pièce d'identité" required>
+                <Field
+                  label={tr("Type de pièce d'identité", "نوع وثيقة الهوية")}
+                  required
+                >
                   <select
                     value={idKind}
                     onChange={(e) =>
@@ -595,7 +662,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                   >
                     {ID_DOC_KINDS.map((k) => (
                       <option key={k.value} value={k.value}>
-                        {k.label}
+                        {isAr ? (DOC_LABELS_AR[k.value] ?? k.label) : k.label}
                       </option>
                     ))}
                   </select>
@@ -603,10 +670,17 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
                 <DocSlot
                   docType={idKind}
-                  label={`Photo — ${idKindLabel.toLowerCase()}`}
+                  label={
+                    isAr
+                      ? `صورة — ${idKindLabel}`
+                      : `Photo — ${idKindLabel.toLowerCase()}`
+                  }
                   doc={docOf(idKind)}
                   required
-                  hint="Lisible, sans reflet, les quatre coins visibles"
+                  hint={tr(
+                    "Lisible, sans reflet, les quatre coins visibles",
+                    "مقروءة، بلا انعكاس، والزوايا الأربع ظاهرة"
+                  )}
                   busy={pendingDocs.includes(idKind)}
                   error={errorFor("doc_id")}
                   onUpload={onUpload}
@@ -616,7 +690,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                   docType="selfie"
                   doc={docOf("selfie")}
                   required
-                  hint="Visage bien visible, sans lunettes de soleil"
+                  hint={tr(
+                    "Visage bien visible, sans lunettes de soleil",
+                    "الوجه ظاهر جيدًا، دون نظارات شمسية"
+                  )}
                   capture
                   busy={pendingDocs.includes("selfie")}
                   error={errorFor("doc_selfie")}
@@ -630,8 +707,11 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
         {step === 2 && pane === 0 && (
           <PaneQuestion
-            title="Avec quoi livrez-vous ?"
-            hint="Les pièces demandées ensuite dépendent de votre véhicule."
+            title={tr("Avec quoi livrez-vous ?", "بماذا توصّل؟")}
+            hint={tr(
+              "Les pièces demandées ensuite dépendent de votre véhicule.",
+              "الوثائق المطلوبة لاحقًا تعتمد على مركبتك."
+            )}
           >
             <div className="grid grid-cols-2 gap-2">
               {VEHICLE_TYPES.map((v) => {
@@ -643,7 +723,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                     onClick={() =>
                       setProfile((p) => ({ ...p, vehicle_type: v.value }))
                     }
-                    className="rounded-[16px] border p-3.5 text-left transition-colors"
+                    className="rounded-[16px] border p-3.5 text-start transition-colors"
                     style={{
                       borderColor: active ? BRAND_VIOLET : "var(--line)",
                       background: active
@@ -654,11 +734,16 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                         : undefined,
                     }}
                   >
-                    <p className="text-[14px] font-bold">{v.label}</p>
+                    <p className="text-[14px] font-bold">
+                      {isAr ? (VEHICLE_LABELS_AR[v.value] ?? v.label) : v.label}
+                    </p>
                     <p className="mt-0.5 text-[11px] text-[var(--muted)]">
                       {v.motorized
-                        ? "Permis, carte grise, assurance"
-                        : "Aucune pièce véhicule"}
+                        ? tr(
+                            "Permis, carte grise, assurance",
+                            "رخصة، بطاقة رمادية، تأمين"
+                          )
+                        : tr("Aucune pièce véhicule", "لا وثائق للمركبة")}
                     </p>
                   </button>
                 );
@@ -666,7 +751,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
             </div>
             {showErrors && errorFor("vehicle_type") && (
               <p className="text-[12px] font-semibold text-red-600">
-                Choisissez votre véhicule.
+                {tr("Choisissez votre véhicule.", "اختر مركبتك.")}
               </p>
             )}
           </PaneQuestion>
@@ -674,12 +759,15 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
         {step === 2 && pane === 1 && (
           <PaneQuestion
-            title="Votre véhicule"
-            hint="Ces informations figurent sur la carte grise."
+            title={tr("Votre véhicule", "مركبتك")}
+            hint={tr(
+              "Ces informations figurent sur la carte grise.",
+              "هذه المعلومات موجودة على البطاقة الرمادية."
+            )}
           >
             <Row>
               <Field
-                label="Marque"
+                label={tr("Marque", "العلامة")}
                 required={motorized}
                 error={errorFor("vehicle_brand")}
               >
@@ -690,7 +778,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                 />
               </Field>
               <Field
-                label="Modèle"
+                label={tr("Modèle", "الطراز")}
                 required={motorized}
                 error={errorFor("vehicle_model")}
               >
@@ -703,7 +791,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
             </Row>
             <Row>
               <Field
-                label="Immatriculation"
+                label={tr("Immatriculation", "لوحة الترقيم")}
                 required={motorized}
                 error={errorFor("vehicle_plate")}
               >
@@ -714,7 +802,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                 />
               </Field>
               <Field
-                label="Couleur"
+                label={tr("Couleur", "اللون")}
                 required={motorized}
                 error={errorFor("vehicle_color")}
               >
@@ -730,14 +818,17 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
         {step === 2 && pane === 2 && (
           <PaneQuestion
-            title="Pièces du véhicule"
-            hint="Photos nettes, documents en cours de validité."
+            title={tr("Pièces du véhicule", "وثائق المركبة")}
+            hint={tr(
+              "Photos nettes, documents en cours de validité.",
+              "صور واضحة، ووثائق سارية الصلاحية."
+            )}
           >
             <DocSlot
               docType="permis"
               doc={docOf("permis")}
               required
-              hint="En cours de validité"
+              hint={tr("En cours de validité", "سارية الصلاحية")}
               busy={pendingDocs.includes("permis")}
               error={errorFor("doc_permis")}
               onUpload={onUpload}
@@ -747,7 +838,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
               docType="carte_grise"
               doc={docOf("carte_grise")}
               required
-              hint="Du véhicule déclaré"
+              hint={tr("Du véhicule déclaré", "للمركبة المصرَّح بها")}
               busy={pendingDocs.includes("carte_grise")}
               error={errorFor("doc_carte_grise")}
               onUpload={onUpload}
@@ -757,7 +848,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
               docType="assurance"
               doc={docOf("assurance")}
               required
-              hint="Attestation en cours de validité"
+              hint={tr(
+                "Attestation en cours de validité",
+                "شهادة سارية الصلاحية"
+              )}
               busy={pendingDocs.includes("assurance")}
               error={errorFor("doc_assurance")}
               onUpload={onUpload}
@@ -790,8 +884,8 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
               disabled={busy}
               className="inline-flex h-[46px] flex-1 items-center justify-center gap-1.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] text-[13.5px] font-bold text-[var(--ink)] disabled:opacity-50"
             >
-              <ArrowLeft className="size-3.5" />
-              Retour
+              <ArrowLeft className="size-3.5 rtl:rotate-180" />
+              {tr("Retour", "رجوع")}
             </button>
           )}
           <button
@@ -801,8 +895,8 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
             className="h-[46px] flex-[2] rounded-[14px] border border-[var(--line)] bg-[var(--surface)] text-[13.5px] font-bold text-[var(--ink)] disabled:opacity-50"
           >
             {saved
-              ? "✓ Brouillon enregistré"
-              : "Enregistrer et reprendre plus tard"}
+              ? tr("✓ Brouillon enregistré", "✓ حُفظت المسودة")
+              : tr("Enregistrer et reprendre plus tard", "احفظ وتابع لاحقًا")}
           </button>
         </div>
       </div>
@@ -856,6 +950,8 @@ function Review({
   report: ReturnType<typeof kycReport>;
   onGo: (index: number) => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const stepOfKey = (key: string) =>
     STEP_KEYS.findIndex((keys) => keys.includes(key));
 
@@ -870,7 +966,7 @@ function Review({
           className="text-[13px] font-bold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
-          Avancement du dossier
+          {tr("Avancement du dossier", "تقدّم الملف")}
         </b>
         <span
           className="text-[20px] font-extrabold tabular-nums"
@@ -895,8 +991,14 @@ function Review({
 
       <p className="text-[12px] text-[var(--muted)]">
         {report.complete
-          ? "Tout y est. Vous pouvez transmettre votre dossier à l'équipe Coligo."
-          : "Touchez un élément manquant pour aller le corriger."}
+          ? tr(
+              "Tout y est. Vous pouvez transmettre votre dossier à l'équipe Coligo.",
+              "كل شيء جاهز. يمكنك إرسال ملفك إلى فريق كوليڨو."
+            )
+          : tr(
+              "Touchez un élément manquant pour aller le corriger.",
+              "المس أي عنصر ناقص للانتقال إلى تصحيحه."
+            )}
       </p>
 
       <ul className="space-y-1.5">
@@ -936,7 +1038,7 @@ function Review({
                     className="text-[11px] font-bold"
                     style={{ color: BRAND_VIOLET }}
                   >
-                    Compléter
+                    {tr("Compléter", "استكمال")}
                   </span>
                 )}
               </button>
@@ -970,6 +1072,7 @@ function Field({
   error?: string | null;
   children: React.ReactNode;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <label className="block">
       <span className="mb-1.5 flex items-baseline gap-1.5">
@@ -981,10 +1084,12 @@ function Field({
             className="text-[11px] font-bold"
             style={{ color: BRAND_VIOLET }}
           >
-            obligatoire
+            {isAr ? "إلزامي" : "obligatoire"}
           </span>
         ) : (
-          <span className="text-[11px] text-[var(--muted)]">facultatif</span>
+          <span className="text-[11px] text-[var(--muted)]">
+            {isAr ? "اختياري" : "facultatif"}
+          </span>
         )}
       </span>
       <span
@@ -1036,6 +1141,8 @@ function DocSlot({
   onUpload: (t: DriverDocType, f: File) => void;
   onRemove: (t: DriverDocType) => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const inputId = `kyc-doc-${docType}`;
   const filled = doc != null;
   return (
@@ -1067,19 +1174,27 @@ function DocSlot({
         </span>
         <div className="min-w-0 flex-1">
           <b className="flex items-baseline gap-1.5 text-[13.5px] font-bold text-[var(--ink)]">
-            {label ?? DOC_LABELS[docType]}
+            {label ??
+              (isAr
+                ? (DOC_LABELS_AR[docType] ?? DOC_LABELS[docType])
+                : DOC_LABELS[docType])}
             <span
               className="text-[10.5px] font-bold"
               style={{ color: required ? BRAND_VIOLET : "var(--muted)" }}
             >
-              {required ? "obligatoire" : "facultatif"}
+              {required
+                ? tr("obligatoire", "إلزامي")
+                : tr("facultatif", "اختياري")}
             </span>
           </b>
           <small className="block text-[11.5px] text-[var(--muted)]">
             {busy
-              ? "Envoi en cours…"
+              ? tr("Envoi en cours…", "جارٍ الإرسال…")
               : filled
-                ? "Reçue — sera vérifiée par l'équipe Coligo"
+                ? tr(
+                    "Reçue — sera vérifiée par l'équipe Coligo",
+                    "استُلمت — سيتحقق منها فريق كوليڨو"
+                  )
                 : hint}
           </small>
         </div>
@@ -1093,7 +1208,7 @@ function DocSlot({
         >
           <span className="inline-flex items-center gap-1.5">
             <Upload className="size-3.5" />
-            {filled ? "Remplacer" : "Ajouter"}
+            {filled ? tr("Remplacer", "استبدال") : tr("Ajouter", "إضافة")}
           </span>
         </label>
         <input
@@ -1120,7 +1235,7 @@ function DocSlot({
             rel="noopener noreferrer"
             className="text-[12px] font-bold text-[var(--muted)] underline"
           >
-            Voir
+            {tr("Voir", "عرض")}
           </a>
         )}
         {filled && (
@@ -1132,7 +1247,7 @@ function DocSlot({
             style={{ color: BRAND_RED }}
           >
             <Trash2 className="size-3.5" />
-            Retirer
+            {tr("Retirer", "إزالة")}
           </button>
         )}
       </div>

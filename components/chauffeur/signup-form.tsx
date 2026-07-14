@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { ArrowRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -38,14 +39,20 @@ export function ChauffeurSignupForm({
 }) {
   const [state, action, pending] = useActionState(chauffeurSignup, initial);
   const [gamme, setGamme] = useState<"classic" | "confort" | "moto">("classic");
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <>
       {connectedPhone && (
         <div className="mb-4 rounded-[10px] border border-amber-200 bg-amber-50 p-3">
           <p className="mb-2 text-sm text-amber-900">
-            Vous êtes déjà connecté en tant que <b>{connectedPhone}</b>. Pour
-            inscrire un autre chauffeur, déconnectez-vous d&apos;abord.
+            {tr("Vous êtes déjà connecté en tant que", "أنت متصل بالفعل باسم")}{" "}
+            <b dir="ltr">{connectedPhone}</b>
+            {tr(
+              ". Pour inscrire un autre chauffeur, déconnectez-vous d'abord.",
+              ". لتسجيل سائق آخر، سجّل الخروج أولًا."
+            )}
           </p>
           <form
             action={async () => {
@@ -59,7 +66,7 @@ export function ChauffeurSignupForm({
               className="w-full"
             >
               <LogOut className="size-4" />
-              Se déconnecter
+              {tr("Se déconnecter", "تسجيل الخروج")}
             </Button>
           </form>
         </div>
@@ -69,7 +76,7 @@ export function ChauffeurSignupForm({
         <div className="grid grid-cols-2 gap-2">
           <div className="space-y-1.5">
             <Label htmlFor="last_name">
-              Nom <span className="text-rose-600">*</span>
+              {tr("Nom", "اللقب")} <span className="text-rose-600">*</span>
             </Label>
             <Input
               id="last_name"
@@ -82,7 +89,7 @@ export function ChauffeurSignupForm({
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="first_name">
-              Prénom <span className="text-rose-600">*</span>
+              {tr("Prénom", "الاسم")} <span className="text-rose-600">*</span>
             </Label>
             <Input
               id="first_name"
@@ -98,12 +105,13 @@ export function ChauffeurSignupForm({
         <PhoneField
           required
           disabled={pending}
-          hint="Ton identifiant de connexion."
+          hint={tr("Ton identifiant de connexion.", "معرّف تسجيل دخولك.")}
         />
 
         <div className="space-y-1.5">
           <Label htmlFor="birth_date">
-            Date de naissance <span className="text-rose-600">*</span>
+            {tr("Date de naissance", "تاريخ الميلاد")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <Input
             id="birth_date"
@@ -116,13 +124,14 @@ export function ChauffeurSignupForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="city">
-            Wilaya / Ville <span className="text-rose-600">*</span>
+            {tr("Wilaya / Ville", "الولاية / المدينة")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <Input
             id="city"
             name="city"
             type="text"
-            placeholder="Alger, Oran…"
+            placeholder={tr("Alger, Oran…", "الجزائر، وهران…")}
             required
             disabled={pending}
           />
@@ -130,7 +139,8 @@ export function ChauffeurSignupForm({
 
         <div className="space-y-1.5">
           <Label htmlFor="password">
-            Mot de passe <span className="text-rose-600">*</span>
+            {tr("Mot de passe", "كلمة المرور")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <Input
             id="password"
@@ -145,7 +155,8 @@ export function ChauffeurSignupForm({
         {/* Gamme du véhicule (boutons segmentés) */}
         <div className="space-y-1.5">
           <Label>
-            Votre véhicule (gamme) <span className="text-rose-600">*</span>
+            {tr("Votre véhicule (gamme)", "مركبتك (الفئة)")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <input type="hidden" name="gamme" value={gamme} />
           <div className="grid grid-cols-3 gap-2">
@@ -161,7 +172,7 @@ export function ChauffeurSignupForm({
                     : "border-border text-foreground hover:bg-surface-2 min-h-[44px] rounded-[10px] border px-2 text-sm"
                 }
               >
-                {label}
+                {k === "moto" ? tr("Moto", "دراجة نارية") : label}
               </button>
             ))}
           </div>
@@ -180,29 +191,32 @@ export function ChauffeurSignupForm({
           disabled={pending || !!connectedPhone}
         >
           {pending ? (
-            "Création…"
+            tr("Création…", "جارٍ الإنشاء…")
           ) : (
             <>
-              Continuer · mes documents
-              <ArrowRight className="size-4" />
+              {tr("Continuer · mes documents", "متابعة · وثائقي")}
+              <ArrowRight className="size-4 rtl:rotate-180" />
             </>
           )}
         </Button>
 
         <p className="text-subtle text-center text-xs">
-          En créant un compte, vous acceptez les{" "}
+          {tr(
+            "En créant un compte, vous acceptez les",
+            "بإنشائك حسابًا، فأنت توافق على"
+          )}{" "}
           <Link
             href="/cgu"
             className="text-primary-700 font-medium hover:underline"
           >
-            Conditions générales
+            {tr("Conditions générales", "الشروط العامة")}
           </Link>{" "}
-          et la{" "}
+          {tr("et la", "و")}{" "}
           <Link
             href="/confidentialite"
             className="text-primary-700 font-medium hover:underline"
           >
-            Politique de confidentialité
+            {tr("Politique de confidentialité", "سياسة الخصوصية")}
           </Link>
           .
         </p>

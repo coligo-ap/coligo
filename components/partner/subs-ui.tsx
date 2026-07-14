@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { ChevronDown } from "lucide-react";
 import {
   BRAND_VIOLET,
@@ -97,16 +98,16 @@ export type SubsHistoryRow = {
 
 const STATUS_META: Record<
   string,
-  { label: string; tone: "ok" | "violet" | "muted" | "ko" }
+  { label: string; labelAr: string; tone: "ok" | "violet" | "muted" | "ko" }
 > = {
-  active: { label: "Actif", tone: "ok" },
-  paid: { label: "Payé", tone: "ok" },
-  approved: { label: "Payé", tone: "ok" },
-  confirmed: { label: "Payé", tone: "ok" },
-  pending: { label: "En attente", tone: "violet" },
-  expired: { label: "Expiré", tone: "muted" },
-  cancelled: { label: "Annulé", tone: "ko" },
-  rejected: { label: "Refusé", tone: "ko" },
+  active: { label: "Actif", labelAr: "نشط", tone: "ok" },
+  paid: { label: "Payé", labelAr: "مدفوع", tone: "ok" },
+  approved: { label: "Payé", labelAr: "مدفوع", tone: "ok" },
+  confirmed: { label: "Payé", labelAr: "مدفوع", tone: "ok" },
+  pending: { label: "En attente", labelAr: "في الانتظار", tone: "violet" },
+  expired: { label: "Expiré", labelAr: "منتهٍ", tone: "muted" },
+  cancelled: { label: "Annulé", labelAr: "ملغى", tone: "ko" },
+  rejected: { label: "Refusé", labelAr: "مرفوض", tone: "ko" },
 };
 
 export function SubsHistory({
@@ -125,6 +126,7 @@ export function SubsHistory({
   // paiement est en attente (l'info importante ne doit pas être cachée).
   const hasPending = rows.some((r) => r.status === "pending");
   const [open, setOpen] = useState(defaultOpen || hasPending);
+  const isAr = useLocale() === "ar";
   if (rows.length === 0) {
     if (!emptyText) return null;
     return (
@@ -136,6 +138,7 @@ export function SubsHistory({
   const last = rows[0];
   const lastMeta = STATUS_META[last.status] ?? {
     label: last.status,
+    labelAr: last.status,
     tone: "muted" as const,
   };
   return (
@@ -144,22 +147,25 @@ export function SubsHistory({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center gap-3 px-3.5 py-3 text-left"
+        className="flex w-full items-center gap-3 px-3.5 py-3 text-start"
       >
         <span className="min-w-0 flex-1">
           <b
             className="block text-[13px] text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
-            Historique des abonnements
+            {isAr ? "سجل الاشتراكات" : "Historique des abonnements"}
           </b>
           <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
-            {rows.length} opération{rows.length > 1 ? "s" : ""}
-            {!open ? ` · dernier : ${last.title}` : ""}
+            {rows.length}{" "}
+            {isAr ? "عملية" : `opération${rows.length > 1 ? "s" : ""}`}
+            {!open ? ` · ${isAr ? "الأخيرة:" : "dernier :"} ${last.title}` : ""}
           </span>
         </span>
         {!open && (
-          <PartnerBadge tone={lastMeta.tone}>{lastMeta.label}</PartnerBadge>
+          <PartnerBadge tone={lastMeta.tone}>
+            {isAr ? lastMeta.labelAr : lastMeta.label}
+          </PartnerBadge>
         )}
         <ChevronDown
           className="size-4 shrink-0 text-[var(--d-muted)] transition-transform"
@@ -170,6 +176,7 @@ export function SubsHistory({
         rows.map((r) => {
           const meta = STATUS_META[r.status] ?? {
             label: r.status,
+            labelAr: r.status,
             tone: "muted" as const,
           };
           return (
@@ -185,7 +192,9 @@ export function SubsHistory({
                   {r.sub}
                 </span>
               </span>
-              <PartnerBadge tone={meta.tone}>{meta.label}</PartnerBadge>
+              <PartnerBadge tone={meta.tone}>
+                {isAr ? meta.labelAr : meta.label}
+              </PartnerBadge>
             </div>
           );
         })}

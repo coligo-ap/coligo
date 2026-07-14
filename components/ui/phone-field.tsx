@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useState } from "react";
+import { useLocale } from "next-intl";
 import { Check } from "lucide-react";
 import { cn } from "@/lib/utils";
 import {
@@ -31,7 +32,7 @@ import {
  */
 export function PhoneField({
   name = "phone",
-  label = "Téléphone",
+  label,
   defaultValue,
   required = false,
   disabled = false,
@@ -71,6 +72,11 @@ export function PhoneField({
    */
   variant?: "boxed" | "bare";
 }) {
+  const locale = useLocale();
+  const isAr = locale === "ar";
+  // `undefined` = libellé par défaut bilingue ; `null` = pas de libellé du tout.
+  const shownLabel =
+    label === undefined ? (isAr ? "الهاتف" : "Téléphone") : label;
   const initial = splitPhone(defaultValue);
   const [dial, setDial] = useState(initial.dial);
   const [national, setNational] = useState(() =>
@@ -83,7 +89,8 @@ export function PhoneField({
   const canonical = composePhone(dial, national);
   const valid = canonical !== null;
   const shownError =
-    error ?? (touched && national && !valid ? phoneErrorFor(dial) : null);
+    error ??
+    (touched && national && !valid ? phoneErrorFor(dial, locale) : null);
 
   function update(nextDial: string, nextNational: string) {
     setDial(nextDial);
@@ -98,7 +105,7 @@ export function PhoneField({
         value={dial}
         onChange={(e) => update(e.target.value, national)}
         disabled={disabled}
-        aria-label="Indicatif pays"
+        aria-label={isAr ? "رمز البلد" : "Indicatif pays"}
         className="text-foreground h-full shrink-0 bg-transparent pr-1 text-sm font-semibold outline-none disabled:cursor-not-allowed"
       >
         {COUNTRY_CODES.map((c) => (
@@ -128,7 +135,9 @@ export function PhoneField({
         required={required}
         aria-invalid={Boolean(shownError)}
         aria-describedby={shownError ? `${fieldId}-error` : undefined}
-        placeholder={dial === "+213" ? "06 12 34 56 78" : "Numéro"}
+        placeholder={
+          dial === "+213" ? "06 12 34 56 78" : isAr ? "الرقم" : "Numéro"
+        }
         // `h-full` : sans lui, l'input ne fait que la hauteur de sa ligne (20 px)
         // dans un conteneur de 48 — on ne peut le viser qu'au pixel près.
         className="text-foreground placeholder:text-subtle h-full w-full bg-transparent text-sm font-semibold outline-none disabled:cursor-not-allowed"
@@ -154,12 +163,12 @@ export function PhoneField({
 
   return (
     <div className={cn("space-y-1.5", className)}>
-      {label && (
+      {shownLabel && (
         <label
           htmlFor={fieldId}
           className="text-foreground text-sm font-medium"
         >
-          {label}
+          {shownLabel}
           {required && <span className="text-danger-600"> *</span>}
         </label>
       )}

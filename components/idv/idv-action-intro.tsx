@@ -9,6 +9,7 @@
 // =============================================================================
 
 import { ArrowRight } from "lucide-react";
+import { useLocale } from "next-intl";
 import { IdvIllusStyles } from "./idv-illustrations";
 
 export function IdvActionIntro({
@@ -34,6 +35,7 @@ export function IdvActionIntro({
   /** Contenu optionnel intercalé (ex. choix du document). */
   children?: React.ReactNode;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <div className="flex min-h-[58vh] flex-col">
       <IdvIllusStyles />
@@ -82,8 +84,8 @@ export function IdvActionIntro({
         className="flex w-full items-center justify-center gap-1.5 rounded-full py-3.5 text-sm font-semibold text-white transition-transform active:scale-[.98] disabled:opacity-60"
         style={{ background: "var(--idv-accent)" }}
       >
-        {pending ? "Préparation…" : cta}
-        {!pending && <ArrowRight className="size-4" />}
+        {pending ? (isAr ? "جارٍ التحضير…" : "Préparation…") : cta}
+        {!pending && <ArrowRight className="size-4 rtl:rotate-180" />}
       </button>
     </div>
   );

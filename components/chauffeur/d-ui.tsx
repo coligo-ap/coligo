@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { BarChart3, Car, ChevronLeft, Home, User } from "lucide-react";
 import { PartnerTabbar, type PartnerTab } from "@/components/shared/partner-ui";
 
@@ -11,17 +12,18 @@ import { PartnerTabbar, type PartnerTab } from "@/components/shared/partner-ui";
  */
 export function DBack({ className }: { className?: string }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
   return (
     <button
       type="button"
       onClick={() => router.back()}
-      aria-label="Retour"
+      aria-label={isAr ? "رجوع" : "Retour"}
       className={
         className ??
         "grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
       }
     >
-      <ChevronLeft className="size-5" />
+      <ChevronLeft className="size-5 rtl:rotate-180" />
     </button>
   );
 }
@@ -77,6 +79,13 @@ export function PlanIcon({ plan }: { plan: "free" | "pro" | "premium" }) {
 
 export const PLAN_LABEL: Record<string, string> = {
   free: "Gratuit",
+  pro: "Pro",
+  premium: "Premium",
+};
+
+/** Mêmes libellés de plan, en arabe (Pro/Premium restent des noms propres). */
+export const PLAN_LABEL_AR: Record<string, string> = {
+  free: "مجاني",
   pro: "Pro",
   premium: "Premium",
 };

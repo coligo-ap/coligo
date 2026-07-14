@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useLocale } from "next-intl";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,12 +21,14 @@ const initial: ChauffeurAuthState = {};
  */
 export function ChauffeurLoginForm() {
   const [state, action, pending] = useActionState(chauffeurLogin, initial);
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <form action={action} className="space-y-3">
       <PhoneField required disabled={pending} />
 
       <div className="space-y-1.5">
-        <Label htmlFor="password">Mot de passe</Label>
+        <Label htmlFor="password">{tr("Mot de passe", "كلمة المرور")}</Label>
         <Input
           id="password"
           name="password"
@@ -44,11 +47,11 @@ export function ChauffeurLoginForm() {
 
       <Button type="submit" size="lg" className="w-full" disabled={pending}>
         {pending ? (
-          "Connexion…"
+          tr("Connexion…", "جارٍ الاتصال…")
         ) : (
           <>
-            Se connecter
-            <ArrowRight className="size-4" />
+            {tr("Se connecter", "تسجيل الدخول")}
+            <ArrowRight className="size-4 rtl:rotate-180" />
           </>
         )}
       </Button>

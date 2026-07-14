@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { ChevronRight, Crown } from "lucide-react";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
 import { parseSettlementPeriod } from "@/lib/driver/settlement-data";
@@ -30,6 +31,11 @@ const PLAN_LABEL: Record<string, string> = {
   pro: "Pro",
   premium: "Premium",
 };
+const PLAN_LABEL_AR: Record<string, string> = {
+  free: "مجاني",
+  pro: "Pro",
+  premium: "Premium",
+};
 const BRAND_VIOLET = "#6C2BD9";
 
 export default async function ChauffeurGainsPage({
@@ -40,6 +46,8 @@ export default async function ChauffeurGainsPage({
   const params = await searchParams;
   const ch = await getCurrentChauffeur();
   if (!ch) redirect("/chauffeur/login");
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   const period = parseSettlementPeriod(params) ?? currentMonthPeriod();
   const [data, firstMonth, fin] = await Promise.all([
@@ -61,11 +69,12 @@ export default async function ChauffeurGainsPage({
   // commission, sans abonnement payant), rien à reverser → « à jour ».
   const due = fin?.dueUnsettled ?? 0;
   const dueParts: string[] = [];
-  if ((fin?.planRate ?? 0) > 0) dueParts.push("commissions sur courses");
-  if ((fin?.monthSubFee ?? 0) > 0) dueParts.push("abonnement");
+  if ((fin?.planRate ?? 0) > 0)
+    dueParts.push(tr("commissions sur courses", "عمولات على المشاوير"));
+  if ((fin?.monthSubFee ?? 0) > 0) dueParts.push(tr("abonnement", "اشتراك"));
   const dueLabel =
     due > 0
-      ? `${dueParts.join(" + ") || "montant dû"} · avant le 5 du mois · CCP / BaridiMob`
+      ? `${dueParts.join(" + ") || tr("montant dû", "مبلغ مستحق")} · ${tr("avant le 5 du mois", "قبل الخامس من الشهر")} · CCP / BaridiMob`
       : null;
 
   return (
@@ -85,7 +94,11 @@ export default async function ChauffeurGainsPage({
           periodPicker={
             <RelevePeriodPicker
               basePath="/chauffeur/gains"
-              currentLabel={`Mois en cours (${currentMonthPeriod().label})`}
+              currentLabel={
+                isAr
+                  ? `الشهر الجاري (${currentMonthPeriod().label})`
+                  : `Mois en cours (${currentMonthPeriod().label})`
+              }
               firstMonth={firstMonth}
               selectedMonth={params.month ?? null}
               customFrom={params.from ?? null}
@@ -103,12 +116,14 @@ export default async function ChauffeurGainsPage({
             </span>
             <span className="min-w-0 flex-1">
               <b className="block text-[13.5px] text-[var(--d-ink)]">
-                Abonnement : {PLAN_LABEL[fin?.plan ?? "free"] ?? "Gratuit"}
+                {tr("Abonnement :", "الاشتراك:")}{" "}
+                {(isAr ? PLAN_LABEL_AR : PLAN_LABEL)[fin?.plan ?? "free"] ??
+                  tr("Gratuit", "مجاني")}
               </b>
               <span className="text-[11px] text-[var(--d-muted)]">
                 {(fin?.planRate ?? 0) <= 0
-                  ? "0 % de commission"
-                  : "Réduire ma commission"}
+                  ? tr("0 % de commission", "عمولة 0 %")
+                  : tr("Réduire ma commission", "خفض عمولتي")}
               </span>
             </span>
             <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)] rtl:rotate-180" />

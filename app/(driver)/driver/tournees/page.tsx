@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { ChevronRight, KeyRound } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
@@ -32,6 +33,8 @@ export default async function DriverToursHubPage() {
   const supabase = await createClient();
   const driver = await getCurrentDriver();
   if (!driver) redirect("/driver/login");
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   // Commerçants ACTIFS (avec compteur de commandes en tournée), RPC déjà trié.
   const { data: countsRaw } = await supabase.rpc("driver_delivery_counts");
@@ -58,22 +61,29 @@ export default async function DriverToursHubPage() {
 
   const pending = links
     .filter((l) => l.status === "pending")
-    .map((l) => ({ id: l.id, name: one(l.merchants)?.name ?? "Commerçant" }));
+    .map((l) => ({
+      id: l.id,
+      name: one(l.merchants)?.name ?? tr("Commerçant", "التاجر"),
+    }));
   const blocked = links
     .filter((l) => l.status === "blocked")
-    .map((l) => ({ id: l.id, name: one(l.merchants)?.name ?? "Commerçant" }));
+    .map((l) => ({
+      id: l.id,
+      name: one(l.merchants)?.name ?? tr("Commerçant", "التاجر"),
+    }));
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <div className="space-y-5">
         <header className="space-y-1.5">
           <h1 className="mq-sora text-[22px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
-            Tournées
+            {tr("Tournées", "الجولات")}
           </h1>
           <p className="text-sm font-medium text-[var(--muted)]">
-            Rejoins un commerçant avec son code, puis démarre ses tournées. (Les
-            courses Express, elles, arrivent toutes seules depuis l&apos;accueil
-            quand tu es en ligne.)
+            {tr(
+              "Rejoins un commerçant avec son code, puis démarre ses tournées. (Les courses Express, elles, arrivent toutes seules depuis l'accueil quand tu es en ligne.)",
+              "انضم إلى تاجر برمزه، ثم ابدأ جولاته. (أما توصيلات إكسبرس فتصلك تلقائيًا من الشاشة الرئيسية عندما تكون متصلًا.)"
+            )}
           </p>
         </header>
 
@@ -87,20 +97,23 @@ export default async function DriverToursHubPage() {
           </span>
           <span className="min-w-0 flex-1">
             <span className="block text-sm font-bold text-[var(--violet-d)]">
-              Rejoindre un commerçant
+              {tr("Rejoindre un commerçant", "الانضمام إلى تاجر")}
             </span>
             <span className="block text-xs font-medium text-[var(--violet)]/80">
-              Saisis le code que le commerçant t&apos;a partagé.
+              {tr(
+                "Saisis le code que le commerçant t'a partagé.",
+                "أدخل الرمز الذي شاركه معك التاجر."
+              )}
             </span>
           </span>
-          <ChevronRight className="size-[18px] text-[var(--violet)]" />
+          <ChevronRight className="size-[18px] text-[var(--violet)] rtl:rotate-180" />
         </Link>
 
         {/* Commerçants rejoints (actifs) */}
         {active.length > 0 && (
           <section className="space-y-2">
             <p className="px-1 text-[11px] font-bold tracking-wide text-[var(--muted)] uppercase">
-              Mes commerçants
+              {tr("Mes commerçants", "تجّاري")}
             </p>
             <ul className="space-y-2.5">
               {active.map((m) => {
@@ -121,8 +134,13 @@ export default async function DriverToursHubPage() {
                         <span className="text-xs font-medium text-[var(--muted)]">
                           {commune ? `${commune} · ` : ""}
                           {m.tour_pending > 0
-                            ? `${m.tour_pending} commande${m.tour_pending > 1 ? "s" : ""} en tournée`
-                            : "Aucune commande en attente"}
+                            ? isAr
+                              ? `${m.tour_pending} طلبية في الجولة`
+                              : `${m.tour_pending} commande${m.tour_pending > 1 ? "s" : ""} en tournée`
+                            : tr(
+                                "Aucune commande en attente",
+                                "لا طلبيات في الانتظار"
+                              )}
                         </span>
                       </span>
                       {m.tour_pending > 0 && (
@@ -130,7 +148,7 @@ export default async function DriverToursHubPage() {
                           {m.tour_pending}
                         </span>
                       )}
-                      <ChevronRight className="size-[18px] text-[var(--muted)]" />
+                      <ChevronRight className="size-[18px] text-[var(--muted)] rtl:rotate-180" />
                     </Link>
                   </li>
                 );
@@ -147,8 +165,11 @@ export default async function DriverToursHubPage() {
                 key={l.id}
                 className="rounded-[12px] border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.12)] px-3.5 py-2.5 text-xs font-medium text-[var(--amber)]"
               >
-                <b className="font-bold">{l.name}</b> · en attente de validation
-                du commerçant.
+                <b className="font-bold">{l.name}</b> ·{" "}
+                {tr(
+                  "en attente de validation du commerçant.",
+                  "في انتظار مصادقة التاجر."
+                )}
               </div>
             ))}
             {blocked.map((l) => (
@@ -156,8 +177,11 @@ export default async function DriverToursHubPage() {
                 key={l.id}
                 className="rounded-[12px] border border-[rgba(229,72,77,0.3)] bg-[var(--red-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--red)]"
               >
-                <b className="font-bold">{l.name}</b> · accès retiré. Resoumets
-                un code si tu en as un nouveau.
+                <b className="font-bold">{l.name}</b> ·{" "}
+                {tr(
+                  "accès retiré. Resoumets un code si tu en as un nouveau.",
+                  "سُحب الوصول. أعد إدخال رمز إذا كان لديك رمز جديد."
+                )}
               </div>
             ))}
           </div>
@@ -168,8 +192,11 @@ export default async function DriverToursHubPage() {
           blocked.length === 0 && (
             <PartnerEmptyState
               icon={<KeyRound className="size-5" />}
-              title="Aucun commerçant rejoint"
-              text="Saisis un code ci-dessus pour commencer à faire des tournées."
+              title={tr("Aucun commerçant rejoint", "لم تنضم إلى أي تاجر")}
+              text={tr(
+                "Saisis un code ci-dessus pour commencer à faire des tournées.",
+                "أدخل رمزًا أعلاه لتبدأ في القيام بالجولات."
+              )}
             />
           )}
       </div>

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useLocale } from "next-intl";
 import {
   Check,
   CreditCard,
@@ -34,6 +35,11 @@ const PERIOD_LABEL: Record<ChauffeurPlan["billing_period"], string> = {
   week: "semaine",
   month: "mois",
 };
+const PERIOD_LABEL_AR: Record<ChauffeurPlan["billing_period"], string> = {
+  day: "يوم",
+  week: "أسبوع",
+  month: "شهر",
+};
 const pct = (r: number) =>
   `${(r * 100).toLocaleString("fr-FR", { maximumFractionDigits: 1 })} %`;
 const fmtDA = (n: number) => n.toLocaleString("fr-FR").replace(/ | /g, " ");
@@ -50,6 +56,10 @@ const fmtDA = (n: number) => n.toLocaleString("fr-FR").replace(/ | /g, " ");
 export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
   const router = useRouter();
   const search = useSearchParams();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const period = (p: ChauffeurPlan["billing_period"]) =>
+    (isAr ? PERIOD_LABEL_AR : PERIOD_LABEL)[p];
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
   const [plans, setPlans] = useState<ChauffeurPlan[]>([]);
   const [paying, setPaying] = useState<ChauffeurPlan | null>(null);
@@ -110,10 +120,13 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
 
   const subErr = (reason?: string) =>
     reason === "plan_inactive" || reason === "paid_plans_disabled"
-      ? "Ce plan n'est pas disponible pour le moment."
+      ? tr(
+          "Ce plan n'est pas disponible pour le moment.",
+          "هذا العرض غير متاح حاليًا."
+        )
       : reason === "bad_plan"
-        ? "Plan introuvable."
-        : (reason ?? "Échec");
+        ? tr("Plan introuvable.", "عرض غير موجود.")
+        : (reason ?? tr("Échec", "فشل"));
 
   const payCcpDone = async () => {
     if (!paying || busy) return;
@@ -126,7 +139,9 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     setPaying(null);
     setStep("choice");
     setMsg(
-      `Virement déclaré — l'abonnement ${p.title} démarrera à l'approbation par l'équipe Coligo.`
+      isAr
+        ? `تم التصريح بالتحويل — سيبدأ اشتراك ${p.title} بعد موافقة فريق كوليڨو.`
+        : `Virement déclaré — l'abonnement ${p.title} démarrera à l'approbation par l'équipe Coligo.`
     );
     load();
   };
@@ -138,12 +153,18 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     const res = await subscribeDrivePlan(paying.code, "card");
     setBusy(false);
     if (!res.ok || !res.url)
-      return setError(subErr(res.error) ?? "Paiement carte indisponible.");
+      return setError(
+        subErr(res.error) ??
+          tr("Paiement carte indisponible.", "الدفع بالبطاقة غير متاح.")
+      );
     window.open(res.url, "_blank");
     setPaying(null);
     setStep("choice");
     setMsg(
-      "Confirmation bancaire en cours — la page se met à jour toute seule."
+      tr(
+        "Confirmation bancaire en cours — la page se met à jour toute seule.",
+        "التأكيد البنكي جارٍ — ستُحدَّث الصفحة تلقائيًا."
+      )
     );
     load();
   };
@@ -153,8 +174,14 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     setBusy(true);
     const res = await cancelMyPendingSub();
     setBusy(false);
-    if (!res.ok) setError(res.error ?? "Échec");
-    else setMsg("Tentative de paiement annulée — aucun montant n'est dû.");
+    if (!res.ok) setError(res.error ?? tr("Échec", "فشل"));
+    else
+      setMsg(
+        tr(
+          "Tentative de paiement annulée — aucun montant n'est dû.",
+          "أُلغيت محاولة الدفع — لا مبلغ مستحق."
+        )
+      );
     load();
   };
 
@@ -168,11 +195,13 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
       {!hideIntro && (
         <div>
           <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
-            Mon abonnement
+            {tr("Mon abonnement", "اشتراكي")}
           </h1>
           <p className="text-sm text-[var(--d-muted)]">
-            Gagnez en visibilité et gardez plus sur chaque course. Changez quand
-            vous voulez.
+            {tr(
+              "Gagnez en visibilité et gardez plus sur chaque course. Changez quand vous voulez.",
+              "زد ظهورك واحتفظ بأكثر من كل مشوار. غيّر متى شئت."
+            )}
           </p>
         </div>
       )}
@@ -184,27 +213,45 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
             className="size-4 shrink-0 animate-spin"
             style={{ color: VIOLET }}
           />
-          Confirmation bancaire en cours…
+          {tr("Confirmation bancaire en cours…", "التأكيد البنكي جارٍ…")}
         </Banner>
       )}
       {cardReturn === "confirmed" && (
         <Banner tone="ok">
-          Paiement confirmé — abonnement {labelOf(fin.plan)} actif.
+          {isAr
+            ? `تم تأكيد الدفع — اشتراك ${labelOf(fin.plan)} نشط.`
+            : `Paiement confirmé — abonnement ${labelOf(fin.plan)} actif.`}
         </Banner>
       )}
       {cardReturn === "failed" && (
         <Banner tone="err">
-          Paiement refusé — rien n&apos;a été débité ni activé.
+          {tr(
+            "Paiement refusé — rien n'a été débité ni activé.",
+            "رُفض الدفع — لم يُخصم أي مبلغ ولم يُفعَّل شيء."
+          )}
         </Banner>
       )}
       {fin.pendingSub && cardReturn !== "checking" && (
         <Banner tone={fin.pendingSub.method === "ccp" ? "ok" : "warn"}>
           <span>
             {fin.pendingSub.method === "ccp" ? (
+              isAr ? (
+                <>
+                  تحويل {labelOf(fin.pendingSub.plan)} ({fin.pendingSub.amount}{" "}
+                  دج) قيد التحقّق — يبدأ الاشتراك بعد موافقة فريق كوليڨو.
+                </>
+              ) : (
+                <>
+                  Virement {labelOf(fin.pendingSub.plan)} (
+                  {fin.pendingSub.amount} DA) en vérification —
+                  l&apos;abonnement démarre à l&apos;approbation par
+                  l&apos;équipe Coligo.
+                </>
+              )
+            ) : isAr ? (
               <>
-                Virement {labelOf(fin.pendingSub.plan)} ({fin.pendingSub.amount}{" "}
-                DA) en vérification — l&apos;abonnement démarre à
-                l&apos;approbation par l&apos;équipe Coligo.
+                دفع بالبطاقة {labelOf(fin.pendingSub.plan)} (
+                {fin.pendingSub.amount} دج) <b>غير مكتمل</b> — لم يُفعَّل شيء.
               </>
             ) : (
               <>
@@ -219,7 +266,8 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
               onClick={() => void cancelPending()}
               className="mt-1.5 flex items-center gap-1 text-[11px] font-extrabold underline"
             >
-              <X className="size-3" /> Annuler cette tentative
+              <X className="size-3" />{" "}
+              {tr("Annuler cette tentative", "إلغاء هذه المحاولة")}
             </button>
           </span>
         </Banner>
@@ -232,13 +280,15 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
       {/* 2) Plan Gratuit (formule de base). */}
       <PlanCard
         current={fin.plan === "free"}
-        title="Gratuit"
+        title={tr("Gratuit", "مجاني")}
         icon={Sparkles}
         header="linear-gradient(90deg,#64748B,#475569)"
         advantages={[
           fin.freeRate <= 0
-            ? "0 % de commission"
-            : `Commission ${pct(fin.freeRate)} par course`,
+            ? tr("0 % de commission", "عمولة 0 %")
+            : isAr
+              ? `عمولة ${pct(fin.freeRate)} على كل مشوار`
+              : `Commission ${pct(fin.freeRate)} par course`,
         ]}
       />
 
@@ -252,15 +302,21 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
           icon={Crown}
           header={`linear-gradient(90deg,${p.badge_color || "#5B2EFF"},${VIOLET})`}
           badgeLabel={p.badge_label}
-          price={`${fmtDA(p.price_da)} DA`}
-          per={`/ ${PERIOD_LABEL[p.billing_period]}`}
+          price={`${fmtDA(p.price_da)} ${tr("DA", "دج")}`}
+          per={`/ ${period(p.billing_period)}`}
           advantages={
             p.advantages.length
               ? p.advantages
               : [
-                  `Commission ${pct(p.commission_rate)}`,
+                  isAr
+                    ? `عمولة ${pct(p.commission_rate)}`
+                    : `Commission ${pct(p.commission_rate)}`,
                   ...(p.cashback_rate > 0
-                    ? [`Cashback client ${pct(p.cashback_rate)}`]
+                    ? [
+                        isAr
+                          ? `استرجاع نقدي للزبون ${pct(p.cashback_rate)}`
+                          : `Cashback client ${pct(p.cashback_rate)}`,
+                      ]
                     : []),
                 ]
           }
@@ -281,16 +337,16 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
         }}
       >
         <SheetTitle>
-          Payer l&apos;abonnement {paying?.title} ·{" "}
-          {paying ? fmtDA(paying.price_da) : 0} DA /{" "}
-          {paying ? PERIOD_LABEL[paying.billing_period] : ""}
+          {tr("Payer l'abonnement", "دفع الاشتراك")} {paying?.title} ·{" "}
+          {paying ? fmtDA(paying.price_da) : 0} {tr("DA", "دج")} /{" "}
+          {paying ? period(paying.billing_period) : ""}
         </SheetTitle>
         {step === "choice" ? (
           <>
             <button
               type="button"
               onClick={() => setStep("ccp")}
-              className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
+              className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-start text-[13.5px] font-bold"
             >
               <span
                 className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
@@ -299,16 +355,19 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
                 <Wallet className="size-5" />
               </span>
               <span>
-                Virement CCP / BaridiMob
+                {tr("Virement CCP / BaridiMob", "تحويل CCP / بريدي موب")}
                 <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
-                  Activé après vérification par l&apos;équipe Coligo
+                  {tr(
+                    "Activé après vérification par l'équipe Coligo",
+                    "يُفعَّل بعد تحقّق فريق كوليڨو"
+                  )}
                 </small>
               </span>
             </button>
             <button
               type="button"
               onClick={() => void payCard()}
-              className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
+              className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-start text-[13.5px] font-bold"
             >
               <span
                 className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
@@ -317,9 +376,12 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
                 <CreditCard className="size-5" />
               </span>
               <span>
-                Carte bancaire · en ligne
+                {tr("Carte bancaire · en ligne", "بطاقة بنكية · عبر الإنترنت")}
                 <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
-                  CIB / Edahabia · activation immédiate
+                  {tr(
+                    "CIB / Edahabia · activation immédiate",
+                    "CIB / الذهبية · تفعيل فوري"
+                  )}
                 </small>
               </span>
             </button>
@@ -327,7 +389,10 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
         ) : (
           <>
             <p className="mb-1.5 text-[13px] text-[var(--d-muted)]">
-              Effectuez le virement vers le CCP Coligo :
+              {tr(
+                "Effectuez le virement vers le CCP Coligo :",
+                "قم بالتحويل إلى حساب كوليڨو CCP:"
+              )}
             </p>
             <div
               className="my-2.5 rounded-[15px] border-[1.5px] border-dashed bg-[var(--d-soft)] p-3 text-center"
@@ -337,15 +402,19 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
                 className="text-[19px] font-extrabold tracking-[1px]"
                 style={{ color: VIOLET }}
               >
-                {fin.ccp.number} — clé {fin.ccp.key}
+                {fin.ccp.number} — {tr("clé", "المفتاح")} {fin.ccp.key}
               </p>
               <small className="text-[11px] text-[var(--d-muted)]">
-                {fin.ccp.name} · mentionnez votre n° de téléphone en référence
+                {fin.ccp.name} ·{" "}
+                {tr(
+                  "mentionnez votre n° de téléphone en référence",
+                  "اذكر رقم هاتفك في المرجع"
+                )}
               </small>
             </div>
             <PrimaryBtn disabled={busy} onClick={() => void payCcpDone()}>
               {busy ? <Loader2 className="size-5 animate-spin" /> : null}
-              J&apos;ai payé · envoyer le reçu
+              {tr("J'ai payé · envoyer le reçu", "دفعت · إرسال الإيصال")}
             </PrimaryBtn>
           </>
         )}
@@ -363,7 +432,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
             setStep("choice");
           }}
         >
-          Annuler
+          {tr("Annuler", "إلغاء")}
         </GhostBtn>
       </Sheet>
     </div>
@@ -394,6 +463,7 @@ function PlanCard({
   advantages: string[];
   onChoose?: () => void;
 }) {
+  const isAr = useLocale() === "ar";
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--d-line)] bg-[var(--d-surface)]">
       <div
@@ -403,12 +473,12 @@ function PlanCard({
         <Icon className="size-5" />
         <span className="drive-sora font-extrabold">{title}</span>
         {current ? (
-          <span className="ml-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
-            Actuel
+          <span className="ms-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+            {isAr ? "الحالي" : "Actuel"}
           </span>
         ) : (
           badgeLabel && (
-            <span className="ml-auto rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">
+            <span className="ms-auto rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">
               {badgeLabel}
             </span>
           )
@@ -443,7 +513,7 @@ function PlanCard({
               className="drive-sora mt-2 w-full rounded-[14px] py-3 text-sm font-bold text-white active:scale-[0.99]"
               style={{ background: VIOLET }}
             >
-              Choisir {title}
+              {isAr ? `اختيار ${title}` : `Choisir ${title}`}
             </button>
           </div>
         )}

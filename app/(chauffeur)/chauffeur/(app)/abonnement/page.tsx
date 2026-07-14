@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { DSubs } from "@/components/chauffeur/d-subs";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
@@ -49,6 +50,8 @@ function fmtDate(iso: string | null) {
 export default async function ChauffeurAbonnementPage() {
   const ch = await getCurrentChauffeur();
   if (!ch) redirect("/chauffeur/login");
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   // Lectures admin FILTRÉES sur ch.id (id de session) — même pattern que
   // getChauffeurFinances ; aucun paramètre client.
@@ -85,7 +88,9 @@ export default async function ChauffeurAbonnementPage() {
       }[]
     ).map((p) => ({
       id: `plan-${p.id}`,
-      title: `Abonnement ${PLAN_LABEL[p.plan] ?? p.plan} · ${grp(p.amount_da)} DA`,
+      title: isAr
+        ? `اشتراك ${PLAN_LABEL[p.plan] ?? p.plan} · ${grp(p.amount_da)} دج`
+        : `Abonnement ${PLAN_LABEL[p.plan] ?? p.plan} · ${grp(p.amount_da)} DA`,
       sub: `${fmtDate(p.created_at) ?? ""} · ${METHOD_LABEL[p.method] ?? p.method}`,
       status: p.status,
       when: p.created_at,
@@ -103,7 +108,9 @@ export default async function ChauffeurAbonnementPage() {
       }[]
     ).map((s) => ({
       id: `pass-${s.id}`,
-      title: `Pass Prioritaire${s.is_first_month ? " · 1er mois" : ""} · ${grp(s.amount_da)} DA`,
+      title: isAr
+        ? `البطاقة ذات الأولوية${s.is_first_month ? " · الشهر الأول" : ""} · ${grp(s.amount_da)} دج`
+        : `Pass Prioritaire${s.is_first_month ? " · 1er mois" : ""} · ${grp(s.amount_da)} DA`,
       sub: `${
         s.period_start && s.period_end
           ? `${fmtDate(s.period_start)} → ${fmtDate(s.period_end)}`
@@ -121,7 +128,7 @@ export default async function ChauffeurAbonnementPage() {
       {/* Titre sobre (style Bolt) — les cartes d'offre portent le discours. */}
       <div className="mx-auto max-w-[560px] px-4 pb-3">
         <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]">
-          Abonnement
+          {tr("Abonnement", "الاشتراك")}
         </h1>
       </div>
 
@@ -130,7 +137,7 @@ export default async function ChauffeurAbonnementPage() {
         tabs={[
           {
             id: "offres",
-            label: "Offres",
+            label: tr("Offres", "العروض"),
             // Prioritaire → Gratuit → plans + paiement — logique DSubs
             // inchangée. Suspense : requis par useSearchParams (?card=…).
             content: (
@@ -143,14 +150,17 @@ export default async function ChauffeurAbonnementPage() {
           },
           {
             id: "historique",
-            label: "Historique",
+            label: tr("Historique", "السجل"),
             badge: history.length,
             content: (
               <div className="mx-auto mt-3 max-w-[560px] px-4">
                 <SubsHistory
                   rows={history}
                   defaultOpen
-                  emptyText="Aucune opération pour l'instant."
+                  emptyText={tr(
+                    "Aucune opération pour l'instant.",
+                    "لا عمليات حتى الآن."
+                  )}
                 />
               </div>
             ),

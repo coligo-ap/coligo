@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useLocale } from "next-intl";
 import { BadgeCheck, Check, HandCoins, Star, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
@@ -39,14 +40,20 @@ export function NavAppSheet({
   onClose: () => void;
 }) {
   const [remember, setRemember] = useState(true);
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   if (!target) return null;
   const pref = getNavPref();
   return (
     <Sheet open onClose={onClose}>
-      <SheetTitle>Itinéraire vers {target.label}</SheetTitle>
+      <SheetTitle>
+        {tr("Itinéraire vers", "المسار نحو")} {target.label}
+      </SheetTitle>
       <p className="mb-3 text-[13px] text-[var(--d-muted)]">
-        Choisissez votre application GPS — l&apos;itinéraire s&apos;ouvre
-        directement.
+        {tr(
+          "Choisissez votre application GPS — l'itinéraire s'ouvre directement.",
+          "اختر تطبيق GPS — يُفتح المسار مباشرة."
+        )}
       </p>
       <div className="space-y-2">
         {NAV_APPS.map((a) => (
@@ -61,7 +68,9 @@ export function NavAppSheet({
             className="flex h-[52px] w-full items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 text-[14px] font-bold"
           >
             <span className="text-xl">{a.emoji}</span> {a.label}
-            <span className="ml-auto text-[var(--d-muted)]">›</span>
+            <span className="ms-auto text-[var(--d-muted)] rtl:-scale-x-100">
+              ›
+            </span>
           </button>
         ))}
       </div>
@@ -73,7 +82,7 @@ export function NavAppSheet({
           className="size-4"
           style={{ accentColor: VIOLET }}
         />
-        Se souvenir de mon choix
+        {tr("Se souvenir de mon choix", "تذكّر اختياري")}
       </label>
       {pref && (
         <button
@@ -85,10 +94,13 @@ export function NavAppSheet({
           className="mt-1 block w-full text-center text-[12px] font-bold"
           style={{ color: VIOLET }}
         >
-          Réinitialiser l&apos;application par défaut
+          {tr(
+            "Réinitialiser l'application par défaut",
+            "إعادة تعيين التطبيق الافتراضي"
+          )}
         </button>
       )}
-      <GhostBtn onClick={onClose}>Annuler</GhostBtn>
+      <GhostBtn onClick={onClose}>{tr("Annuler", "إلغاء")}</GhostBtn>
     </Sheet>
   );
 }
@@ -100,6 +112,7 @@ export function NavAppSheet({
 /* ════════ Fin de course (s-ddone) ════════ */
 
 const RATE_LABELS = ["Décevant", "Moyen", "Correct", "Très bien", "Excellent"];
+const RATE_LABELS_AR = ["مخيّب", "متوسط", "مقبول", "جيد جدًا", "ممتاز"];
 
 export function DoneScreen({
   done,
@@ -114,6 +127,9 @@ export function DoneScreen({
   onRequests: () => void;
   onHome: () => void;
 }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const rateLabels = isAr ? RATE_LABELS_AR : RATE_LABELS;
   const [rating, setRating] = useState(done.my_rating ?? 0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reported, setReported] = useState<string | null>(null);
@@ -156,7 +172,7 @@ export function DoneScreen({
           <Check className="size-7" style={{ color: GO }} />
         </span>
         <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
-          Course terminée
+          {tr("Course terminée", "انتهى المشوار")}
         </h1>
         <p
           className="drive-sora mt-1 text-[36px] leading-none font-extrabold tracking-[-1px]"
@@ -180,7 +196,8 @@ export function DoneScreen({
               <HandCoins className="size-5" style={{ color: GO }} />
             </span>
             <b className="text-[13.5px]" style={{ color: GO }}>
-              Pourboire du client · +{formatDA(tip)}
+              {tr("Pourboire du client", "إكرامية من الزبون")} · +
+              {formatDA(tip)}
             </b>
           </div>
         )}
@@ -188,18 +205,22 @@ export function DoneScreen({
         {/* ── Détail du gain ── */}
         <div className="drive-rise mt-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-1.5">
           <div className="flex items-center justify-between py-2 text-[13.5px]">
-            <span className="text-[var(--d-muted)]">Prix de la course</span>
+            <span className="text-[var(--d-muted)]">
+              {tr("Prix de la course", "ثمن المشوار")}
+            </span>
             <span>{formatDA(done.price_da)}</span>
           </div>
           <div className="flex items-center justify-between border-t border-[var(--d-line)] py-2 text-[13.5px]">
             <span className="text-[var(--d-muted)]">
-              Commission Coligo ({pct})
+              {tr("Commission Coligo", "عمولة كوليڨو")} ({pct})
             </span>
             <span style={{ color: RED }}>−{formatDA(done.commission_da)}</span>
           </div>
           {tip > 0 && (
             <div className="flex items-center justify-between border-t border-[var(--d-line)] py-2 text-[13.5px]">
-              <span className="text-[var(--d-muted)]">Pourboire</span>
+              <span className="text-[var(--d-muted)]">
+                {tr("Pourboire", "الإكرامية")}
+              </span>
               <span style={{ color: GO }}>+{formatDA(tip)}</span>
             </div>
           )}
@@ -216,14 +237,25 @@ export function DoneScreen({
           <span>
             <b className="block text-[13.5px]" style={{ color: GO }}>
               {done.payment_method === "cash"
-                ? "Espèces encaissées auprès du client"
+                ? tr(
+                    "Espèces encaissées auprès du client",
+                    "نقدًا، حُصِّلت من الزبون"
+                  )
                 : done.cash_due_da > 0
-                  ? `${formatDA(done.cash_due_da)} encaissés en espèces · ${formatDA(done.price_da - done.cash_due_da)} via Coligo Pay, crédités sur votre solde`
-                  : "Prépayée · encaissée par Coligo, créditée sur votre solde"}
+                  ? isAr
+                    ? `${formatDA(done.cash_due_da)} حُصِّلت نقدًا · ${formatDA(done.price_da - done.cash_due_da)} عبر كوليڨو باي، أُضيفت إلى رصيدك`
+                    : `${formatDA(done.cash_due_da)} encaissés en espèces · ${formatDA(done.price_da - done.cash_due_da)} via Coligo Pay, crédités sur votre solde`
+                  : tr(
+                      "Prépayée · encaissée par Coligo, créditée sur votre solde",
+                      "مدفوعة مسبقًا · حصّلتها كوليڨو وأُضيفت إلى رصيدك"
+                    )}
             </b>
             {done.commission_da > 0 && (
               <span className="text-[11px] text-[var(--d-muted)]">
-                Avec Premium (0 %), vous auriez gardé{" "}
+                {tr(
+                  "Avec Premium (0 %), vous auriez gardé",
+                  "مع Premium (0 %)، لكنت احتفظت بـ"
+                )}{" "}
                 <b>{formatDA(done.price_da)}</b>
               </span>
             )}
@@ -240,13 +272,15 @@ export function DoneScreen({
             </span>
             <span>
               <b className="block text-[13.5px]" style={{ color: VIOLET }}>
-                Course suivante : {queued.customer_name} ·{" "}
-                {queued.proposed_price_da + queued.boost_amount_da} DA
+                {tr("Course suivante :", "المشوار التالي:")}{" "}
+                {queued.customer_name} ·{" "}
+                {queued.proposed_price_da + queued.boost_amount_da}{" "}
+                {tr("DA", "دج")}
               </b>
               <span className="text-[11px] text-[var(--d-muted)]">
-                À{" "}
-                {`${(Math.round(queued.pickup_dist_km * 10) / 10).toString().replace(".", ",")} km`}{" "}
-                · le client vous attend
+                {tr("À", "على بعد")}{" "}
+                {`${(Math.round(queued.pickup_dist_km * 10) / 10).toString().replace(".", ",")} ${tr("km", "كم")}`}{" "}
+                · {tr("le client vous attend", "الزبون في انتظارك")}
               </span>
             </span>
           </div>
@@ -258,14 +292,14 @@ export function DoneScreen({
           style={{ animationDelay: ".15s" }}
         >
           <p className="mb-1.5 text-center text-[13px] font-semibold">
-            Notez le client
+            {tr("Notez le client", "قيّم الزبون")}
           </p>
           <div className="flex justify-center gap-2.5">
             {[1, 2, 3, 4, 5].map((n) => (
               <button
                 key={n}
                 type="button"
-                aria-label={RATE_LABELS[n - 1]}
+                aria-label={rateLabels[n - 1]}
                 className="transition-transform active:scale-90"
                 onClick={async () => {
                   setRating(n);
@@ -286,7 +320,7 @@ export function DoneScreen({
             className="mt-1.5 h-4 text-center text-[11.5px] font-bold"
             style={{ color: rating > 0 ? "#B45309" : "var(--d-muted)" }}
           >
-            {rating > 0 ? RATE_LABELS[rating - 1] : " "}
+            {rating > 0 ? rateLabels[rating - 1] : " "}
           </p>
         </div>
 
@@ -296,8 +330,9 @@ export function DoneScreen({
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             <BadgeCheck className="mt-0.5 size-4 shrink-0" />
-            Signalement transmis (« {reported} »). Examen sous 24 h — le client
-            peut être suspendu. Vous serez informé de la décision.
+            {isAr
+              ? `تم إرسال البلاغ («${reported}»). فحص خلال 24 ساعة — قد يُعلَّق حساب الزبون. سيتم إعلامك بالقرار.`
+              : `Signalement transmis (« ${reported} »). Examen sous 24 h — le client peut être suspendu. Vous serez informé de la décision.`}
           </div>
         ) : (
           <button
@@ -306,16 +341,23 @@ export function DoneScreen({
             className="mt-3 mb-1 block w-full text-center text-[12.5px] font-bold"
             style={{ color: RED }}
           >
-            Signaler un problème avec ce client
+            {tr(
+              "Signaler un problème avec ce client",
+              "الإبلاغ عن مشكلة مع هذا الزبون"
+            )}
           </button>
         )}
 
         <PrimaryBtn onClick={queued ? () => void onChainQueued() : onRequests}>
           {queued
-            ? `Enchaîner · aller chercher ${queued.customer_name}`
-            : "Voir les demandes suivantes"}
+            ? isAr
+              ? `متابعة · اذهب لأخذ ${queued.customer_name}`
+              : `Enchaîner · aller chercher ${queued.customer_name}`
+            : tr("Voir les demandes suivantes", "عرض الطلبات التالية")}
         </PrimaryBtn>
-        <GhostBtn onClick={onHome}>Retour à l&apos;accueil</GhostBtn>
+        <GhostBtn onClick={onHome}>
+          {tr("Retour à l'accueil", "العودة إلى الرئيسية")}
+        </GhostBtn>
       </div>
 
       <ReportModal

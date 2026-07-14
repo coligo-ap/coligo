@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { Car, ChevronDown, Loader2, Zap } from "lucide-react";
 import { formatDA } from "@/lib/utils";
 import { MoneyTabs } from "@/components/shared/money-tabs";
@@ -26,6 +27,21 @@ const MONTHS = [
   "décembre",
 ];
 
+const MONTHS_AR = [
+  "جانفي",
+  "فيفري",
+  "مارس",
+  "أفريل",
+  "ماي",
+  "جوان",
+  "جويلية",
+  "أوت",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
+];
+
 // Cache module (SWR) : au RETOUR sur l'Historique, on réaffiche la dernière
 // donnée INSTANTANÉMENT (plus de spinner plein écran), le refetch se fait en
 // arrière-plan. Évite de re-bloquer la page à chaque navigation.
@@ -40,6 +56,8 @@ const HISTO_PAGE = 60;
 
 /** Une ligne de course (réutilisée dans chaque mois de l'accordéon). */
 function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <div className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3">
       <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
@@ -62,20 +80,27 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
             <>
               {" "}
               · {formatDA(r.price_da)}
-              {r.net_da != null && <> · net +{formatDA(r.net_da)}</>}
+              {r.net_da != null && (
+                <>
+                  {" "}
+                  · {tr("net", "صافي")} +{formatDA(r.net_da)}
+                </>
+              )}
               {r.tip_da > 0 && (
                 <span className="font-bold" style={{ color: GO }}>
-                  · pourboire +{r.tip_da}
+                  · {tr("pourboire", "إكرامية")} +{r.tip_da}
                 </span>
               )}
-              {r.gamme === "confort" && " · Confort"}
+              {r.gamme === "confort" && ` · ${tr("Confort", "كونفور")}`}
               {r.boosted && <Zap className="size-3" style={{ color: GO }} />}
             </>
           ) : (
             <>
               {" "}
-              · annulée
-              {r.cancelled_by === "customer" ? " par le client" : ""}
+              · {tr("annulée", "أُلغيت")}
+              {r.cancelled_by === "customer"
+                ? tr(" par le client", " من طرف الزبون")
+                : ""}
             </>
           )}
         </small>
@@ -88,7 +113,7 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
             : { background: "rgba(229,72,77,.12)", color: RED }
         }
       >
-        {r.completed ? "Terminée" : "Annulée"}
+        {r.completed ? tr("Terminée", "مكتملة") : tr("Annulée", "ملغاة")}
       </span>
     </div>
   );
@@ -101,6 +126,8 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
  * précédents » (par plage serveur) pour remonter aussi loin que voulu.
  */
 export function DHisto() {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [rides, setRides] = useState<ChauffeurHistoryRide[] | null>(
     lastHistoCache
   );
@@ -168,13 +195,13 @@ export function DHisto() {
         </div>
       ) : rides.length === 0 ? (
         <p className="py-10 text-center text-sm text-[var(--d-muted)]">
-          Aucune course pour le moment.
+          {tr("Aucune course pour le moment.", "لا مشاوير حتى الآن.")}
         </p>
       ) : (
         <>
           {months.map(([key, items]) => {
             const d = new Date(items[0].when);
-            const label = `${MONTHS[d.getMonth()]} ${d.getFullYear()}`;
+            const label = `${(isAr ? MONTHS_AR : MONTHS)[d.getMonth()]} ${d.getFullYear()}`;
             const net = items.reduce(
               (s, r) => s + (r.completed && r.net_da != null ? r.net_da : 0),
               0
@@ -185,15 +212,16 @@ export function DHisto() {
                 <button
                   type="button"
                   onClick={() => toggle(key)}
-                  className="flex w-full items-center gap-2 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                  className="flex w-full items-center gap-2 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-start"
                 >
                   <span className="min-w-0 flex-1">
                     <b className="drive-sora block text-[14px] capitalize">
                       {label}
                     </b>
                     <small className="text-[11px] text-[var(--d-muted)]">
-                      {items.length} course{items.length > 1 ? "s" : ""} · net +
-                      {formatDA(net)}
+                      {items.length}{" "}
+                      {isAr ? "مشوار" : `course${items.length > 1 ? "s" : ""}`}{" "}
+                      · {tr("net", "صافي")} +{formatDA(net)}
                     </small>
                   </span>
                   <ChevronDown
@@ -222,7 +250,7 @@ export function DHisto() {
               {loadingMore ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
-                "Charger les mois précédents"
+                tr("Charger les mois précédents", "تحميل الأشهر السابقة")
               )}
             </button>
           )}

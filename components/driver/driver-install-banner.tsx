@@ -1,6 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
+import { useLocale } from "next-intl";
 import { InstallBanner } from "@/components/pwa/install-banner";
 
 /**
@@ -12,9 +13,10 @@ import { InstallBanner } from "@/components/pwa/install-banner";
  */
 export function DriverInstallBanner() {
   const isHome = usePathname() === "/driver";
+  const isAr = useLocale() === "ar";
   return (
     <InstallBanner
-      label="Installer l'application Livreur"
+      label={isAr ? "ثبّت تطبيق الموصّل" : "Installer l'application Livreur"}
       className={
         isHome
           ? "bottom-[calc(env(safe-area-inset-bottom)+10.75rem)]"

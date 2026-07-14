@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
+import { useLocale } from "next-intl";
 import {
   Car,
   ChevronRight,
@@ -23,7 +24,9 @@ import { cn } from "@/lib/utils";
 type PartnerRole = {
   key: string;
   title: string;
+  titleAr: string;
   desc: string;
+  descAr: string;
   icon: LucideIcon;
   /** Dégradé de la pastille (classes Tailwind from/to, couleurs de marque). */
   gradient: string;
@@ -34,7 +37,9 @@ const PARTNER_ROLES: PartnerRole[] = [
   {
     key: "merchant",
     title: "Commerçant",
+    titleAr: "تاجر",
     desc: "Vendez vos produits et recevez vos commandes en direct.",
+    descAr: "بِع منتجاتك واستقبل طلباتك مباشرة.",
     icon: Store,
     gradient: "from-[#5B2EFF] to-[#6C2BD9]",
     href: "/login",
@@ -42,7 +47,9 @@ const PARTNER_ROLES: PartnerRole[] = [
   {
     key: "chauffeur",
     title: "Chauffeur",
+    titleAr: "سائق",
     desc: "Transportez des passagers avec Coligo Drive.",
+    descAr: "انقل الركاب مع كوليڨو درايف.",
     icon: Car,
     gradient: "from-[#16B364] to-[#0E9F6E]",
     href: "/chauffeur/login",
@@ -50,7 +57,9 @@ const PARTNER_ROLES: PartnerRole[] = [
   {
     key: "driver",
     title: "Livreur",
+    titleAr: "موصّل",
     desc: "Livrez les commandes et gérez vos tournées.",
+    descAr: "وصّل الطلبات وأدر جولاتك.",
     icon: Truck,
     gradient: "from-[#EC4899] to-[#FF2D7A]",
     href: "/driver/login",
@@ -58,7 +67,9 @@ const PARTNER_ROLES: PartnerRole[] = [
   {
     key: "coligo-pay-agent",
     title: "Agent Coligo Pay",
+    titleAr: "وكيل كوليڨو باي",
     desc: "Point de recharge : vendez du crédit et gérez votre solde.",
+    descAr: "نقطة تعبئة: بِع الرصيد وأدر حسابك.",
     icon: HandCoins,
     gradient: "from-[#F4B740] to-[#E0922F]",
     href: "/partenaire/login",
@@ -76,15 +87,18 @@ const DEFAULT_TRIGGER_CLASS =
   "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex min-h-[44px] items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
 
 export function PartnerSheetButton({
-  label = "Espaces partenaires",
+  label,
   className,
 }: {
-  /** Libellé du bouton (défaut « Espaces partenaires »). */
+  /** Libellé du bouton (défaut « Espaces partenaires », bilingue FR/AR). */
   label?: string;
   /** Classes du déclencheur — permet d'adapter le bouton à chaque thème
    *  (nav d'auth, header Drive…) sans changer la feuille. */
   className?: string;
 } = {}) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const shownLabel = label ?? tr("Espaces partenaires", "فضاءات الشركاء");
   const [open, setOpen] = useState(false);
   // Le portail n'est dispo qu'après montage côté client (document.body).
   const [mounted, setMounted] = useState(false);
@@ -127,7 +141,7 @@ export function PartnerSheetButton({
         className={className ?? DEFAULT_TRIGGER_CLASS}
       >
         <Users className="size-3.5" />
-        {label}
+        {shownLabel}
       </button>
 
       {open &&
@@ -158,17 +172,20 @@ export function PartnerSheetButton({
                     id="partner-sheet-title"
                     className="text-foreground font-display text-lg font-bold"
                   >
-                    Espaces partenaires
+                    {tr("Espaces partenaires", "فضاءات الشركاء")}
                   </h2>
                   <p className="text-muted mt-0.5 text-sm">
-                    Choisissez votre espace partenaire.
+                    {tr(
+                      "Choisissez votre espace partenaire.",
+                      "اختر فضاء الشريك الخاص بك."
+                    )}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={close}
                   className="text-muted hover:bg-surface-2 -me-1 flex size-9 shrink-0 items-center justify-center rounded-full transition-colors"
-                  aria-label="Fermer"
+                  aria-label={tr("Fermer", "إغلاق")}
                 >
                   <X className="size-5" />
                 </button>
@@ -194,10 +211,10 @@ export function PartnerSheetButton({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="text-foreground font-display block text-sm font-bold">
-                            {role.title}
+                            {isAr ? role.titleAr : role.title}
                           </span>
                           <span className="text-muted mt-0.5 block text-xs leading-snug">
-                            {role.desc}
+                            {isAr ? role.descAr : role.desc}
                           </span>
                         </span>
                         <ChevronRight className="text-subtle size-5 shrink-0 transition-transform group-hover:translate-x-0.5 rtl:rotate-180 rtl:group-hover:-translate-x-0.5" />

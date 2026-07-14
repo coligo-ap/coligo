@@ -1,4 +1,5 @@
 import { Hourglass } from "lucide-react";
+import { getLocale } from "next-intl/server";
 import { requireDriverStage } from "@/lib/auth/driver-gate";
 import { OnboardingScreen } from "@/components/driver/onboarding/onboarding-screen";
 import { DriverPendingView } from "@/components/driver/onboarding/pending-view";
@@ -23,12 +24,17 @@ export default async function DriverPendingPage({
     requireDriverStage("pending"),
     searchParams,
   ]);
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
 
   return (
     <OnboardingScreen
       icon={<Hourglass className="size-6" />}
-      title="En attente de validation"
-      subtitle="L'équipe Coligo examine actuellement votre identité, votre véhicule et vos documents."
+      title={tr("En attente de validation", "في انتظار المصادقة")}
+      subtitle={tr(
+        "L'équipe Coligo examine actuellement votre identité, votre véhicule et vos documents.",
+        "يفحص فريق كوليڨو حاليًا هويتك ومركبتك ووثائقك."
+      )}
       step={3}
       stepCount={4}
     >

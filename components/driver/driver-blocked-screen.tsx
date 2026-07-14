@@ -1,3 +1,4 @@
+import { useLocale } from "next-intl";
 import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
 
 /**
@@ -7,6 +8,8 @@ import { DriverBottomNav } from "@/components/driver/driver-bottom-nav";
  * elle reste cliquable mais chaque page re-affiche ce blocage.
  */
 export function DriverBlockedScreen({ reason }: { reason?: string | null }) {
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <div
       className="mq-screen flex min-h-[100dvh] flex-col items-center justify-center px-6 text-center"
@@ -40,7 +43,7 @@ export function DriverBlockedScreen({ reason }: { reason?: string | null }) {
         className="mq-sora"
         style={{ fontSize: 22, fontWeight: 800, marginBottom: 8 }}
       >
-        Compte bloqué
+        {tr("Compte bloqué", "حساب محظور")}
       </h1>
       <p
         style={{
@@ -50,12 +53,14 @@ export function DriverBlockedScreen({ reason }: { reason?: string | null }) {
           lineHeight: 1.55,
         }}
       >
-        Votre compte est bloqué. Merci de prendre contact avec le support pour
-        résoudre le problème.
+        {tr(
+          "Votre compte est bloqué. Merci de prendre contact avec le support pour résoudre le problème.",
+          "حسابك محظور. يرجى التواصل مع الدعم لحل المشكلة."
+        )}
       </p>
       {reason ? (
         <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 10 }}>
-          Motif : {reason}
+          {tr("Motif :", "السبب:")} {reason}
         </p>
       ) : null}
       <DriverBottomNav />

@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { CalendarDays } from "lucide-react";
 import { BRAND_VIOLET, SORA } from "@/components/shared/partner-ui";
 
@@ -25,6 +26,21 @@ const MONTHS_FR = [
   "octobre",
   "novembre",
   "décembre",
+];
+
+const MONTHS_AR = [
+  "جانفي",
+  "فيفري",
+  "مارس",
+  "أفريل",
+  "ماي",
+  "جوان",
+  "جويلية",
+  "أوت",
+  "سبتمبر",
+  "أكتوبر",
+  "نوفمبر",
+  "ديسمبر",
 ];
 
 /** Liste YYYY-MM du plus récent au plus ancien, bornée au 1er mois d'activité. */
@@ -55,7 +71,7 @@ export function RelevePeriodPicker({
   customFrom,
   customTo,
   basePath = "/driver/gains",
-  currentLabel = "Période en cours (non réglé)",
+  currentLabel,
 }: {
   firstMonth: string | null;
   /** YYYY-MM si un mois est sélectionné dans l'URL. */
@@ -68,6 +84,11 @@ export function RelevePeriodPicker({
   currentLabel?: string;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const shownCurrentLabel =
+    currentLabel ??
+    tr("Période en cours (non réglé)", "الفترة الجارية (غير مسوّاة)");
   const isCustom = !!(customFrom && customTo);
   const [showCustom, setShowCustom] = useState(isCustom);
   const [from, setFrom] = useState(customFrom ?? "");
@@ -97,7 +118,7 @@ export function RelevePeriodPicker({
     <div className="mb-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3">
       <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
         <CalendarDays className="size-3.5" />
-        Période
+        {tr("Période", "الفترة")}
       </label>
       <select
         value={value}
@@ -105,26 +126,28 @@ export function RelevePeriodPicker({
         className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[13.5px] font-semibold text-[var(--d-ink)] outline-none"
         style={{ fontFamily: SORA }}
       >
-        <option value="current">{currentLabel}</option>
+        <option value="current">{shownCurrentLabel}</option>
         {[...byYear.entries()].map(([yr, mos]) => (
           <optgroup key={yr} label={yr}>
             {mos.map((mo) => {
               const m = Number(mo.slice(5)) - 1;
               return (
                 <option key={mo} value={mo}>
-                  {MONTHS_FR[m]} {yr}
+                  {(isAr ? MONTHS_AR : MONTHS_FR)[m]} {yr}
                 </option>
               );
             })}
           </optgroup>
         ))}
-        <option value="custom">Dates personnalisées…</option>
+        <option value="custom">
+          {tr("Dates personnalisées…", "تواريخ مخصّصة…")}
+        </option>
       </select>
 
       {showCustom && (
         <div className="mt-2.5 flex items-end gap-2">
           <label className="min-w-0 flex-1 text-[11px] font-semibold text-[var(--d-muted)]">
-            Du
+            {tr("Du", "من")}
             <input
               type="date"
               value={from}
@@ -133,7 +156,7 @@ export function RelevePeriodPicker({
             />
           </label>
           <label className="min-w-0 flex-1 text-[11px] font-semibold text-[var(--d-muted)]">
-            Au
+            {tr("Au", "إلى")}
             <input
               type="date"
               value={to}
@@ -148,7 +171,7 @@ export function RelevePeriodPicker({
             className="h-[38px] shrink-0 rounded-[12px] px-3.5 text-[12.5px] font-bold text-white disabled:opacity-50"
             style={{ fontFamily: SORA, background: BRAND_VIOLET }}
           >
-            Afficher
+            {tr("Afficher", "عرض")}
           </button>
         </div>
       )}

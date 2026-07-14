@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { getLocale } from "next-intl/server";
 import {
   AuthFooter,
   AuthNavBar,
@@ -19,7 +20,7 @@ import { cn } from "@/lib/utils";
  *
  * → garantit l'authenticité visuelle « Coligo » sur l'ensemble des espaces.
  */
-export function AuthScreen({
+export async function AuthScreen({
   navVariant,
   hero,
   cardTitle,
@@ -65,6 +66,7 @@ export function AuthScreen({
   /** Barre de navigation basse persistante (client) — rendue sous le châssis. */
   bottomNav?: ReactNode;
 }) {
+  const isAr = (await getLocale()) === "ar";
   return (
     <>
       <div
@@ -126,8 +128,8 @@ export function AuthScreen({
             </div>
 
             <p className="relative z-10 text-xs text-white/70">
-              © {new Date().getFullYear()} {APP_CONFIG.name} · Tous droits
-              réservés
+              © {new Date().getFullYear()} {APP_CONFIG.name} ·{" "}
+              {isAr ? "جميع الحقوق محفوظة" : "Tous droits réservés"}
             </p>
           </aside>
 

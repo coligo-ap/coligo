@@ -16,6 +16,7 @@ import {
   useState,
 } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale } from "next-intl";
 import { Loader2, RefreshCcw, Send } from "lucide-react";
 import { IdvIntro } from "./idv-intro";
 import { IdvDocCapture } from "./idv-doc-capture";
@@ -64,9 +65,14 @@ function docRatio(doc: IdvDocumentType | undefined): number {
   return doc?.mrz_format === "td3" ? 125 / 88 : 85.6 / 54;
 }
 
-function sideLabel(doc: IdvDocumentType | undefined, side: Side): string {
-  if (doc?.sides === 1) return "Page photo";
-  return side === "front" ? "Recto" : "Verso";
+function sideLabel(
+  doc: IdvDocumentType | undefined,
+  side: Side,
+  isAr: boolean
+): string {
+  if (doc?.sides === 1) return isAr ? "صفحة الصورة" : "Page photo";
+  if (side === "front") return isAr ? "الوجه الأمامي" : "Recto";
+  return isAr ? "الوجه الخلفي" : "Verso";
 }
 
 /**
@@ -102,6 +108,8 @@ export function IdvFlow({
   verification: IdvVerificationView | null;
 }) {
   const router = useRouter();
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   // Une coupure réseau au mauvais moment (changement de cellule, écran
   // verrouillé) ne doit pas coûter un dossier : on réessaie UNE fois, et
   // uniquement sur une panne de transport (la requête n'est jamais partie).
@@ -296,10 +304,13 @@ export function IdvFlow({
       <IdvScope>
         <IdvActionIntro
           illustration={<IllusSelfie size={112} />}
-          eyebrow="Étape 2 sur 3"
-          title="Selfie rapide"
-          hint="Quelques gestes simples pour prouver que c'est bien vous : regardez l'objectif, puis suivez les consignes à l'écran."
-          cta="Commencer le selfie"
+          eyebrow={tr("Étape 2 sur 3", "الخطوة 2 من 3")}
+          title={tr("Selfie rapide", "سيلفي سريع")}
+          hint={tr(
+            "Quelques gestes simples pour prouver que c'est bien vous : regardez l'objectif, puis suivez les consignes à l'écran.",
+            "بعض الحركات البسيطة لإثبات أنك أنت: انظر إلى العدسة ثم اتبع التعليمات على الشاشة."
+          )}
+          cta={tr("Commencer le selfie", "بدء السيلفي")}
           onStart={() => void beginSelfie()}
           pending={selfieStarting}
           error={selfieError}
@@ -326,7 +337,7 @@ export function IdvFlow({
       <IdvScope className="space-y-4">
         <IdvStepper
           current="document"
-          hint="Choisissez votre document"
+          hint={tr("Choisissez votre document", "اختر وثيقتك")}
           progress={0}
         />
         <IdvIntro
@@ -349,15 +360,19 @@ export function IdvFlow({
   if (step === "capture") {
     return (
       <IdvDocCapture
-        title={doc?.label_fr ?? "Document"}
-        sideLabel={sideLabel(doc, side)}
+        title={
+          (isAr ? doc?.label_ar : null) ??
+          doc?.label_fr ??
+          tr("Document", "الوثيقة")
+        }
+        sideLabel={sideLabel(doc, side, isAr)}
         ratio={docRatio(doc)}
         stepHint={
           doc?.sides === 2
             ? side === "front"
-              ? "Recto — 1 sur 2"
-              : "Verso — 2 sur 2"
-            : "Page photo"
+              ? tr("Recto — 1 sur 2", "الوجه الأمامي — 1 من 2")
+              : tr("Verso — 2 sur 2", "الوجه الخلفي — 2 من 2")
+            : tr("Page photo", "صفحة الصورة")
         }
         stepProgress={doc?.sides === 2 ? (side === "front" ? 0.25 : 0.6) : 0.4}
         onCapture={(blob) => {
@@ -377,12 +392,22 @@ export function IdvFlow({
       <IdvStepper
         current="document"
         hint={
-          needsBack ? "Recto capturé — passez au verso" : "Vérifiez vos photos"
+          needsBack
+            ? tr(
+                "Recto capturé — passez au verso",
+                "تم التقاط الوجه الأمامي — انتقل إلى الخلفي"
+              )
+            : tr("Vérifiez vos photos", "تحقّق من صورك")
         }
         progress={needsBack ? 0.5 : 0.85}
       />
       <p className="text-sm font-semibold">
-        {needsBack ? "Recto capturé — au tour du verso" : "Vérifiez vos photos"}
+        {needsBack
+          ? tr(
+              "Recto capturé — au tour du verso",
+              "تم التقاط الوجه الأمامي — دور الوجه الخلفي"
+            )
+          : tr("Vérifiez vos photos", "تحقّق من صورك")}
       </p>
 
       <div className="space-y-3">
@@ -391,7 +416,7 @@ export function IdvFlow({
             {/* eslint-disable-next-line @next/next/no-img-element -- aperçu blob local */}
             <img
               src={frontUrl}
-              alt="Aperçu du recto"
+              alt={tr("Aperçu du recto", "معاينة الوجه الأمامي")}
               className="w-full rounded-[14px] border"
               style={{ borderColor: "var(--idv-line)" }}
             />
@@ -399,7 +424,7 @@ export function IdvFlow({
               className="text-[11px]"
               style={{ color: "var(--idv-muted)" }}
             >
-              {sideLabel(doc, "front")}
+              {sideLabel(doc, "front", isAr)}
             </figcaption>
           </figure>
         )}
@@ -408,7 +433,7 @@ export function IdvFlow({
             {/* eslint-disable-next-line @next/next/no-img-element -- aperçu blob local */}
             <img
               src={backUrl}
-              alt="Aperçu du verso"
+              alt={tr("Aperçu du verso", "معاينة الوجه الخلفي")}
               className="w-full rounded-[14px] border"
               style={{ borderColor: "var(--idv-line)" }}
             />
@@ -416,7 +441,7 @@ export function IdvFlow({
               className="text-[11px]"
               style={{ color: "var(--idv-muted)" }}
             >
-              Verso
+              {tr("Verso", "الوجه الخلفي")}
             </figcaption>
           </figure>
         )}
@@ -458,7 +483,7 @@ export function IdvFlow({
           style={{ borderColor: "var(--idv-line)", color: "var(--idv-ink)" }}
         >
           <RefreshCcw className="size-4" />
-          Reprendre
+          {tr("Reprendre", "إعادة الالتقاط")}
         </button>
         {needsBack ? (
           <button
@@ -470,7 +495,7 @@ export function IdvFlow({
             className="flex flex-1 items-center justify-center gap-1.5 rounded-full py-3 text-sm font-semibold text-white"
             style={{ background: "var(--idv-accent)" }}
           >
-            Scanner le verso
+            {tr("Scanner le verso", "مسح الوجه الخلفي")}
           </button>
         ) : (
           <button
@@ -483,12 +508,12 @@ export function IdvFlow({
             {pending ? (
               <>
                 <Loader2 className="size-4 animate-spin" />
-                Analyse…
+                {tr("Analyse…", "جارٍ التحليل…")}
               </>
             ) : (
               <>
-                <Send className="size-4" />
-                Envoyer
+                <Send className="size-4 rtl:-scale-x-100" />
+                {tr("Envoyer", "إرسال")}
               </>
             )}
           </button>

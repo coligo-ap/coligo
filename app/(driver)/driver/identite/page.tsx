@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { getDriverGate, routeForStage } from "@/lib/auth/driver-gate";
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
@@ -40,13 +41,16 @@ export default async function DriverIdentitePage() {
       : "/driver/parametres";
   // Modes proposables = autorisés pour le profil ∩ actifs.
   const modes = enabledModes.filter((m) => gate.allowedModes.includes(m.key));
+  const isAr = (await getLocale()) === "ar";
 
   return (
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <PartnerBackHeader
         href={backHref}
-        title="Vérification d'identité"
-        subtitle="Document · selfie · validation"
+        title={isAr ? "التحقّق من الهوية" : "Vérification d'identité"}
+        subtitle={
+          isAr ? "الوثيقة · سيلفي · المصادقة" : "Document · selfie · validation"
+        }
       />
       <IdvFlow
         profile="driver"

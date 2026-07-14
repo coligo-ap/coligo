@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLocale } from "next-intl";
 import { Loader2, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
@@ -10,6 +11,7 @@ import { getActiveCourse } from "@/lib/driver/active-course-store";
 
 /** Bouton déconnexion livreur avec feedback inline (pending → loader). */
 export function DriverLogoutButton() {
+  const isAr = useLocale() === "ar";
   const [pending, setPending] = useState(false);
   // Message EN LIGNE : petite bulle ancrée sous le bouton icône (pas de toast).
   // Ancrée `end-0` + `max-w` → ne sort jamais de l'écran (cf. CLAUDE.md).
@@ -22,7 +24,9 @@ export function DriverLogoutButton() {
     if (getActiveCourse()) {
       setNote({
         ok: false,
-        text: "Terminez votre course en cours avant de vous déconnecter.",
+        text: isAr
+          ? "أنهِ توصيلتك الجارية قبل تسجيل الخروج."
+          : "Terminez votre course en cours avant de vous déconnecter.",
       });
       return;
     }
