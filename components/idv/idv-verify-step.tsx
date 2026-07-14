@@ -202,11 +202,13 @@ export function IdvVerifyStep({
 
   return (
     <IdvScope className="space-y-2.5">
-      <p className="text-[13px]" style={{ color: "var(--idv-muted)" }}>
-        {idv.rejected
-          ? "La vérification automatique n'a pas abouti. Réessayez, ou confiez vos pièces à l'équipe Coligo."
-          : "Comment souhaitez-vous prouver votre identité ?"}
-      </p>
+      {idv.rejected ? (
+        <IdvStatusBlock idv={idv} />
+      ) : (
+        <p className="text-[13px]" style={{ color: "var(--idv-muted)" }}>
+          Comment souhaitez-vous prouver votre identité ?
+        </p>
+      )}
 
       <Card
         value="instant"
@@ -248,10 +250,9 @@ export function IdvVerifyStep({
           d'état ne s'affiche QUE s'il apporte une information nouvelle (examen
           en cours, identité vérifiée, tentative refusée). Sinon il ne ferait que
           répéter la carte — doublon interdit. */}
-      {method === "instant" &&
-        (idv.verified || idv.inProgress || idv.rejected) && (
-          <IdvStatusBlock idv={idv} />
-        )}
+      {method === "instant" && (idv.verified || idv.inProgress) && (
+        <IdvStatusBlock idv={idv} />
+      )}
       {method === "manual" && <div className="pt-1">{children}</div>}
     </IdvScope>
   );
