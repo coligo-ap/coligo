@@ -14,9 +14,12 @@ export const IDV_CHECK_KEYS = [
   "mrz",
   "doc_expiry",
   "doc_authenticity",
+  "selfie_quality",
   "liveness_passive",
   "liveness_active",
+  "face_ambiguity",
   "face_match",
+  "face_replay",
 ] as const;
 
 export const IDV_REQUIREMENTS = ["required", "optional", "disabled"] as const;
