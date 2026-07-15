@@ -66,6 +66,29 @@ const config: CapacitorConfig = {
     // Pour l'étendre : mémoriser la dernière URL du rôle (Preferences) et la
     // relire dans offline.html au lieu de l'URL client codée en dur.
   },
+  ios: {
+    // `includePlugins` est une LISTE COMPLÈTE (pas une exclusion) : si on la
+    // renseigne, Capacitor l'utilise TELLE QUELLE au lieu de scanner
+    // package.json (cf. @capacitor/cli/dist/plugin.js getIncludedPluginPackages).
+    //
+    // @capacitor-community/background-geolocation est volontairement ABSENT :
+    // plugin livreur uniquement (components/driver/driver-dispatch-mount.tsx),
+    // jamais utilisé côté client — et son Package.swift exige
+    // `capacitor-swift-pm` 7.x alors que @capgo/capacitor-social-login exige
+    // 8.x. Les deux plages ne se recoupent jamais → SPM refuse de résoudre le
+    // graphe de dépendances et `xcodebuild` échoue avant même de compiler
+    // (aucune app iOS n'a besoin de background-geolocation pour l'instant,
+    // seule l'app CLIENT est publiée sur l'App Store).
+    includePlugins: [
+      "@capacitor-community/speech-recognition",
+      "@capacitor/app",
+      "@capacitor/geolocation",
+      "@capacitor/preferences",
+      "@capacitor/push-notifications",
+      "@capawesome/capacitor-app-update",
+      "@capgo/capacitor-social-login",
+    ],
+  },
   android: {
     // Géré côté Android — pas d'override mode debug ici.
     allowMixedContent: false,
