@@ -52,6 +52,21 @@ workflows:
           cd ios/App && pod install
       - name: Récupérer certificat + profil de provisionnement
         script: xcode-project use-profiles
+      - name: DEBUG workspace (temporaire — diagnostic exit 74)
+        script: |
+          echo "--- ios/App ---"
+          ls -la ios/App
+          echo "--- xcworkspace/contents.xcworkspacedata ---"
+          cat "ios/App/App.xcworkspace/contents.xcworkspacedata" || echo "ABSENT"
+          echo "--- schemes trouvés ---"
+          find ios/App -iname "*.xcscheme"
+          echo "--- pod --version / xcodebuild -version ---"
+          pod --version || true
+          xcodebuild -version
+          echo "--- xcodebuild -workspace ... -list ---"
+          xcodebuild -workspace "$XCODE_WORKSPACE" -list || true
+          echo "--- xcodebuild -showBuildSettings (verbose, sans wrapper) ---"
+          xcodebuild -workspace "$XCODE_WORKSPACE" -scheme "$XCODE_SCHEME" -showBuildSettings || true
       - name: Build .ipa signé
         script: |
           xcode-project build-ipa \
