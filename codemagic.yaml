@@ -54,6 +54,14 @@ workflows:
           node -e "require('fs').writeFileSync('ios/App/App/GoogleService-Info.plist', Buffer.from(process.env.GOOGLE_SERVICE_INFO_PLIST_B64, 'base64'))"
       - name: Récupérer certificat + profil de provisionnement
         script: xcode-project use-profiles
+      - name: Numéro de build auto-incrémenté
+        # App Store Connect refuse tout ré-upload dont le CFBundleVersion
+        # n'est pas STRICTEMENT supérieur au précédent (même MARKETING_VERSION
+        # inchangée). $BUILD_NUMBER = compteur Codemagic pour ce workflow,
+        # déjà strictement croissant à chaque build → jamais besoin d'y
+        # retoucher à la main.
+        script: |
+          cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
       - name: Build .ipa signé
         script: |
           xcode-project build-ipa \
