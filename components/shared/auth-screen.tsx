@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { getLocale } from "next-intl/server";
+import { useLocale } from "next-intl";
 import {
   AuthFooter,
   AuthNavBar,
@@ -20,7 +20,7 @@ import { cn } from "@/lib/utils";
  *
  * → garantit l'authenticité visuelle « Coligo » sur l'ensemble des espaces.
  */
-export async function AuthScreen({
+export function AuthScreen({
   navVariant,
   hero,
   cardTitle,
@@ -66,7 +66,12 @@ export async function AuthScreen({
   /** Barre de navigation basse persistante (client) — rendue sous le châssis. */
   bottomNav?: ReactNode;
 }) {
-  const isAr = (await getLocale()) === "ar";
+  // `useLocale` (PAS getLocale) : ce châssis est rendu côté serveur par les
+  // portails livreur/chauffeur/commerçant MAIS AUSSI importé par des pages
+  // CLIENT (« use client » : /se-connecter, /inscription). getLocale est
+  // server-only et CASSAIT le SSR de ces pages (React #419, incident du
+  // 15/07) ; useLocale est isomorphe.
+  const isAr = useLocale() === "ar";
   return (
     <>
       <div

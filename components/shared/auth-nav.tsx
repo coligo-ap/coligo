@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { getLocale } from "next-intl/server";
+import { useLocale } from "next-intl";
 import { ArrowLeft, Lock, ShoppingCart, User as UserIcon } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { APP_CONFIG } from "@/lib/config/app-config";
@@ -20,13 +20,15 @@ export type AuthVariant =
   | "chauffeur"
   | "partner";
 
-export async function AuthNavBar({
+export function AuthNavBar({
   variant,
 }: {
   /** Espace courant : "merchant" = /login,/signup ; "customer" = /se-connecter,/inscription ; "driver" = /driver/login,/driver/signup ; "chauffeur" = /chauffeur/* ; "partner" = /partenaire/*. */
   variant: AuthVariant;
 }) {
-  const isAr = (await getLocale()) === "ar";
+  // Isomorphe (useLocale, jamais getLocale) : importé par des pages CLIENT
+  // (« use client ») comme par les portails serveur — cf. incident #419.
+  const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
@@ -74,14 +76,14 @@ export async function AuthNavBar({
  * Pied de page minimal : copyright + quelques liens utiles. Pas de scroll
  * lourd : on reste compact pour ne pas gêner la page d'auth.
  */
-export async function AuthFooter({
+export function AuthFooter({
   showPortal = false,
 }: {
   /** Affiche le lien discret vers le portail super-admin (page login
    *  commerçant uniquement — jamais sur les pages grand public). */
   showPortal?: boolean;
 }) {
-  const isAr = (await getLocale()) === "ar";
+  const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     <footer className="border-border mt-auto border-t bg-white">
