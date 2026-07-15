@@ -17,10 +17,19 @@ workflows:
         distribution_type: app_store
         bundle_identifier: app.coligo.client
       xcode: latest
+      cocoapods: default
       node: lts
       vars:
         XCODE_WORKSPACE: "ios/App/App.xcworkspace"
         XCODE_SCHEME: "App"
+      # Groupe de variables à créer dans Codemagic : Team settings →
+      # Environment variables → nouveau groupe nommé EXACTEMENT "firebase_ios"
+      # → ajouter GOOGLE_SERVICE_INFO_PLIST_B64 (cocher "Secure") : contenu de
+      # GoogleService-Info.plist encodé en base64 — PAS le fichier lui-même
+      # (jamais commité, cf. .gitignore).
+      #   PowerShell : [Convert]::ToBase64String([IO.File]::ReadAllBytes("GoogleService-Info.plist")) | Set-Clipboard
+      groups:
+        - firebase_ios
     scripts:
       - name: Installer les dépendances Node
         script: npm ci
@@ -31,6 +40,16 @@ workflows:
         script: |
           npx cap sync ios
           node scripts/ios-client-config.mjs
+      - name: Restaurer GoogleService-Info.plist (Firebase push)
+        script: |
+          if [ -z "$GOOGLE_SERVICE_INFO_PLIST_B64" ]; then
+            echo "✖ GOOGLE_SERVICE_INFO_PLIST_B64 absent — le build sortirait sans push Firebase (crash au lancement, FirebaseApp.configure() l'exige)."
+            exit 1
+          fi
+          node -e "require('fs').writeFileSync('ios/App/App/GoogleService-Info.plist', Buffer.from(process.env.GOOGLE_SERVICE_INFO_PLIST_B64, 'base64'))"
+      - name: Installer les Pods (Firebase uniquement)
+        script: |
+          cd ios/App && pod install
       - name: Récupérer certificat + profil de provisionnement
         script: xcode-project use-profiles
       - name: Build .ipa signé
@@ -53,6 +72,5 @@ workflows:
           failure: true
 
     # Pas de déclenchement automatique volontairement : tant que le bouton
-    # « Continuer avec Apple » et le pont FCM natif (Firebase Messaging iOS)
-    # ne sont pas codés, chaque build se lance à la main depuis le dashboard
-    # Codemagic (bouton « Start new build »).
+    # « Continuer avec Apple » n'est pas codé côté UI, chaque build se lance à
+    # la main depuis le dashboard Codemagic (bouton « Start new build »).

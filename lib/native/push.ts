@@ -19,8 +19,9 @@ import { getNativePlatform, isNative } from "./context";
 export type PushRole = "merchant" | "customer" | "courier" | "chauffeur";
 
 export function isPushAvailable(): boolean {
-  return isNative() && getNativePlatform() === "android";
-  // iOS sera ajouté quand on packagera l'APK iOS (Capacitor iOS + APNs).
+  if (!isNative()) return false;
+  const platform = getNativePlatform();
+  return platform === "android" || platform === "ios";
 }
 
 type PushPluginModule = typeof import("@capacitor/push-notifications");

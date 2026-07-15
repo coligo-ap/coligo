@@ -51,6 +51,8 @@
 	<array>
 		<string>remote-notification</string>
 	</array>
+	<key>FirebaseAppDelegateProxyEnabled</key>
+	<false/>
 	<key>NSCameraUsageDescription</key>
 	<string>Coligo utilise l'appareil photo pour scanner un code-barres ou un QR code, et pour envoyer des photos dans le chat.</string>
 	<key>NSMicrophoneUsageDescription</key>
