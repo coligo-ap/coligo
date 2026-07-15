@@ -11,7 +11,7 @@
  *   npx cap sync ios && node scripts/ios-client-config.mjs
  *
  * (ios/App/App/capacitor.config.json est gitignored par Capacitor lui-même —
- * rien à committer, seulement à régénérer avant chaque build/pod install.)
+ * rien à committer, seulement à régénérer avant chaque build.)
  */
 
 import { writeFileSync } from "node:fs";
