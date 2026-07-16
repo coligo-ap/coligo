@@ -266,7 +266,7 @@ export function MapPickScreen({
       <button
         type="button"
         onClick={onBack}
-        className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+        className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         aria-label="retour"
       >
         <ChevronLeft className="size-5" />
@@ -275,7 +275,7 @@ export function MapPickScreen({
       {/* Recherche d'adresse SUR la carte : suggestions, et la sélection
           recentre l'épingle EXACTEMENT sur le lieu choisi (affinable au
           doigt ensuite). */}
-      <div className="absolute top-3 right-4 left-[68px] z-20">
+      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 left-[68px] z-20">
         <div className="flex items-center gap-2 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2.5 shadow-lg">
           <Search className="size-4 shrink-0 text-[var(--d-muted)]" />
           <input
@@ -501,7 +501,7 @@ export function MapPickScreen({
         <div className="mx-auto h-3.5 w-[3px] rounded-sm bg-[var(--d-ink)]" />
         <div className="mx-auto mt-1 size-[7px] rounded-full bg-[rgba(8,9,15,.3)]" />
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[max(24px,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
         <p className="mb-1 text-[13px] text-[var(--d-muted)]">
           {forWhat === "dep" ? t("depLabel") : t("destLabel")}
         </p>

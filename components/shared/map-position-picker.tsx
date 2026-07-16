@@ -555,7 +555,7 @@ export function MapPositionPicker({
             // conteneur est en z-[120] (contexte d'empilement isolé) → z-30
             // sans risque pour passer au-dessus du marqueur/contrôles.
             fullscreen
-              ? "top-[max(12px,env(safe-area-inset-top))] z-30"
+              ? "top-[calc(12px+env(safe-area-inset-top))] z-30"
               : "top-2 z-10"
           )}
         >
@@ -800,7 +800,7 @@ export function MapPositionPicker({
       {/* Plein écran : barre d'action EN BAS avec « Confirmer ma position »
           (noir) → court loader « Enregistrement… » puis retour au checkout. */}
       {fullscreen && (
-        <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/15 to-transparent p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+        <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/15 to-transparent p-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
           <button
             type="button"
             onClick={confirmFullscreen}

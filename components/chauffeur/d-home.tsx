@@ -1024,7 +1024,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       {homeOpen && (
         <Portal>
           <div className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45">
-            <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]">
+            <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
               <div className="mb-2 flex items-center justify-between">
                 <b className="drive-sora text-[16px] font-extrabold">
                   {tr("Mon domicile", "منزلي")}

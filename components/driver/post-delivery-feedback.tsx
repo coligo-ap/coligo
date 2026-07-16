@@ -77,7 +77,7 @@ export function PostDeliveryFeedback({
     });
 
   return (
-    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center">
+    <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
       <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-[var(--surface)] p-5 text-[var(--ink)]">
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-[var(--go-soft)] text-[var(--go)]">
           <Check className="size-7" />

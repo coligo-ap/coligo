@@ -124,7 +124,7 @@ export function ConfirmReception({
 
       {/* Double confirmation */}
       {armed && (
-        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center">
+        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
           <div className="w-full max-w-sm rounded-[20px] bg-white p-5 shadow-2xl">
             <div className="bg-success-100 text-success-700 mx-auto grid size-14 place-items-center rounded-full">
               <PackageCheck className="size-7" />

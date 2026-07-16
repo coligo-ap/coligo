@@ -140,7 +140,7 @@ export function NotificationBell({
                 </button>
               </div>
 
-              <div className="min-h-[180px] flex-1 overflow-y-auto px-3 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
+              <div className="min-h-[180px] flex-1 overflow-y-auto px-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
                 {groups.length === 0 ? (
                   <div className="flex flex-col items-center gap-2 py-12 text-center">
                     <span className="grid size-12 place-items-center rounded-full bg-[var(--d-soft)]">

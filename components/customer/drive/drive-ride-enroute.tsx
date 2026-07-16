@@ -214,7 +214,7 @@ export function EnrouteScreen({
         padding={{ top: 90, bottom: 440, left: 60, right: 60 }}
       />
       {/* Pill statut */}
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: inProgress ? GO : VIOLET }}
@@ -230,7 +230,7 @@ export function EnrouteScreen({
             setChatOpen(true);
             setMsgBanner(null);
           }}
-          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
+          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <span
@@ -256,7 +256,7 @@ export function EnrouteScreen({
 
       {/* Itinéraire anormal : « Tout va bien ? » */}
       {devAlert && (
-        <div className="drive-up absolute top-16 right-2.5 left-2.5 z-30 rounded-[20px] border-2 border-[#F59E0B] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
+        <div className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-30 rounded-[20px] border-2 border-[#F59E0B] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
           <div className="flex items-start gap-2.5">
             <span className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[rgba(245,158,11,.15)]">
               <AlertTriangle className="size-5 text-[#F59E0B]" />
@@ -318,7 +318,7 @@ export function EnrouteScreen({
       )}
 
       {/* Feuille bas : fiche chauffeur v3 */}
-      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {/* Tracker d'étapes (autre FORME que le pill : progression visuelle).

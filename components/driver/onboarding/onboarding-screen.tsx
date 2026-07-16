@@ -38,8 +38,8 @@ export function OnboardingScreen({
   return (
     <div className="min-h-[100dvh] bg-[var(--d-page)] text-[var(--d-ink)]">
       <main
-        className="mx-auto max-w-md px-5 pt-8"
-        style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom))" }}
+        className="mx-auto max-w-md px-5 pt-[calc(2rem+env(safe-area-inset-top))]"
+        style={{ paddingBottom: "calc(28px + env(safe-area-inset-bottom))" }}
       >
         <header
           className="mb-5 text-center"

@@ -270,7 +270,7 @@ export function DDocs({
   );
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-10">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-10">
       <div className="mb-2 flex items-center gap-3">
         <button
           type="button"
@@ -365,7 +365,7 @@ export function DDocs({
           onClick={() => setConfirmDelete(null)}
         >
           <div
-            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[max(16px,env(safe-area-inset-bottom))]"
+            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <b className="drive-sora block text-[16px] font-extrabold">
@@ -715,7 +715,7 @@ function SelfieCamera({
           </p>
         )}
       </div>
-      <div className="flex items-center justify-center gap-8 bg-black px-6 py-5 pb-[max(20px,env(safe-area-inset-bottom))]">
+      <div className="flex items-center justify-center gap-8 bg-black px-6 py-5 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <button
           type="button"
           onClick={onClose}

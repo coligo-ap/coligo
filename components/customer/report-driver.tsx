@@ -75,7 +75,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:items-center">
+        <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
           <div className="max-h-[88vh] w-full max-w-sm overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl">
             <div className="bg-danger-100 text-danger-700 mx-auto grid size-12 place-items-center rounded-full">
               <ShieldAlert className="size-6" />

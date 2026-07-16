@@ -280,7 +280,7 @@ export function RideChatSheet({
           )}
 
           {/* Saisie */}
-          <div className="flex items-center gap-2 border-t border-[var(--d-line)] px-4 pt-2.5 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
+          <div className="flex items-center gap-2 border-t border-[var(--d-line)] px-4 pt-2.5 pb-[calc(0.875rem+env(safe-area-inset-bottom))]">
             <input
               value={text}
               onChange={(e) => setText(e.target.value.slice(0, 500))}

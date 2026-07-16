@@ -258,7 +258,7 @@ export function SearchScreen({
           padding={mapPadding}
         />
       )}
-      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(2rem,env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
+      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
         {/* En-tête STICKY : poignée + statut + bouton ROUGE « Annuler ». Reste
             épinglé en haut du sheet → toujours accessible même si la liste des
             offres est longue (plus besoin de scroller jusqu'en bas pour annuler). */}
@@ -617,7 +617,7 @@ export function SearchScreen({
         <button
           type="button"
           onClick={onBackToPrice}
-          className="absolute top-3 left-4 z-20 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-20 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         >
           <X className="size-5" />
         </button>

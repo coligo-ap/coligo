@@ -224,7 +224,7 @@ function RingScreen({
           type="button"
           onClick={onHangup}
           aria-label={isAr ? "إلغاء" : "Annuler"}
-          className="mt-auto mb-[max(2.5rem,env(safe-area-inset-bottom))] grid size-16 place-items-center rounded-full bg-red-600 shadow-lg active:scale-95"
+          className="mt-auto mb-[calc(2.5rem+env(safe-area-inset-bottom))] grid size-16 place-items-center rounded-full bg-red-600 shadow-lg active:scale-95"
         >
           <PhoneOff className="size-7" />
         </button>
@@ -267,7 +267,7 @@ function IncomingScreen({
               ? "مكالمة واردة…"
               : "Appel entrant…"}
         </p>
-        <div className="mt-auto mb-[max(2.5rem,env(safe-area-inset-bottom))] flex items-center gap-16">
+        <div className="mt-auto mb-[calc(2.5rem+env(safe-area-inset-bottom))] flex items-center gap-16">
           <button
             type="button"
             onClick={onDecline}

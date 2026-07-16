@@ -106,7 +106,7 @@ const EMPTY_HISTORY: DriveHistory = { rides: [], favorites: [] };
 /** Squelette de l'historique Drive (1er chargement + frontière `loading.tsx`). */
 export function DriveHistorySkeleton() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
       <div className="mb-3 flex items-center gap-3">
         <div className="size-9 animate-pulse rounded-full bg-[var(--d-soft)]" />
         <div className="h-6 w-40 animate-pulse rounded-lg bg-[var(--d-soft)]" />
@@ -151,7 +151,7 @@ export function DriveHistoryView({
   const favs = history.favorites;
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-4 pb-24">
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
       <div className="mb-3 flex items-center gap-3">
         <button
           type="button"

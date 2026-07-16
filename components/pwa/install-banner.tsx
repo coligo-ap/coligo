@@ -59,7 +59,7 @@ export function InstallBanner({
     <>
       <div
         className={cn(
-          "fixed inset-x-0 bottom-[max(1rem,env(safe-area-inset-bottom))] z-40 px-3 sm:bottom-4",
+          "fixed inset-x-0 bottom-[calc(1rem+env(safe-area-inset-bottom))] z-40 px-3 sm:bottom-4",
           className
         )}
       >

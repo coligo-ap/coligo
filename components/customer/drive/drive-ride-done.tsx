@@ -366,7 +366,7 @@ export function CancelledScreen({
 }) {
   const t = useTranslations("drive.cancelledScreen");
   return (
-    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-surface)] px-5 pt-12">
+    <div className="drive-jakarta drive-screen z-40 bg-[var(--d-surface)] px-5 pt-[calc(3rem+env(safe-area-inset-top))]">
       <div className="flex flex-col items-center text-center">
         <span
           className="drive-pop mb-3 grid size-16 place-items-center rounded-full"

@@ -155,7 +155,7 @@ export function ExpressRun({
       {/* Bandeau direction. */}
       <div
         className="navbanner"
-        style={{ top: "max(14px,env(safe-area-inset-top))" }}
+        style={{ top: "calc(14px + env(safe-area-inset-top))" }}
       >
         <div className="ar">
           <svg
@@ -367,7 +367,7 @@ export function ExpressRun({
           onClick={() => setShowChat(false)}
         >
           <div
-            className="w-full rounded-t-[18px] bg-[var(--surface)] p-3 pb-[max(18px,env(safe-area-inset-bottom))]"
+            className="w-full rounded-t-[18px] bg-[var(--surface)] p-3 pb-[calc(18px+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between px-1">

@@ -888,7 +888,7 @@
   display: flex;
   justify-content: space-around;
   align-items: center;
-  padding-bottom: max(12px, env(safe-area-inset-bottom));
+  padding-bottom: calc(12px + env(safe-area-inset-bottom));
   z-index: 40;
 }
 [data-space="driver"] .mq-tab {
@@ -1449,7 +1449,7 @@
   z-index: 50;
   background: var(--surface);
   border-radius: 26px 26px 0 0;
-  padding: 16px 20px max(28px, env(safe-area-inset-bottom));
+  padding: 16px 20px calc(28px + env(safe-area-inset-bottom));
   border-top: 1px solid var(--line);
 }
 [data-space="driver"] .navsheet .step {
@@ -1512,7 +1512,7 @@
   background: var(--muted);
 }
 [data-space="driver"] .navsheet.collapsed {
-  padding-bottom: max(20px, env(safe-area-inset-bottom));
+  padding-bottom: calc(20px + env(safe-area-inset-bottom));
 }
 [data-space="driver"] .navsheet.collapsed .step {
   margin-bottom: 12px;

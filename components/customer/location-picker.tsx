@@ -420,7 +420,7 @@ export function LocationPicker({ onClose, initial }: Props) {
                 searchPlaceholder={tCheckout("searchAddressPlaceholder")}
               />
             </div>
-            <div className="border-border bg-surface shrink-0 border-t p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+            <div className="border-border bg-surface shrink-0 border-t p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
               <Button
                 type="button"
                 size="lg"

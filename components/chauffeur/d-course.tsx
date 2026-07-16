@@ -433,7 +433,7 @@ export function DCourse() {
     // (`getChauffeurRideOutcome` → "cancelled"). Jamais par défaut.
     if (ended === "cancelled") {
       return (
-        <div className="drive-jakarta drive-screen bg-[var(--d-surface)] px-5 pt-12">
+        <div className="drive-jakarta drive-screen bg-[var(--d-surface)] px-5 pt-[calc(3rem+env(safe-area-inset-top))]">
           <div className="flex flex-col items-center text-center">
             <span
               className="drive-pop mb-3 grid size-16 place-items-center rounded-full"
@@ -487,7 +487,7 @@ export function DCourse() {
   /* ════════ ATTRIBUTION (s-dmatch) ════════ */
   if (ride.status === "accepted" && !matchSeen) {
     return (
-      <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
+      <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-surface)] px-5 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-8">
         <div className="text-center">
           <span
             className="drive-pop mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -633,7 +633,7 @@ export function DCourse() {
         route={pickup && dest ? (ridePath ?? [pickup, dest]) : null}
         padding={{ top: 90, bottom: 420, left: 60, right: 60 }}
       />
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: inProgress ? GO : VIOLET }}
@@ -657,7 +657,7 @@ export function DCourse() {
             setChatOpen(true);
             setMsgBanner(null);
           }}
-          className="drive-up absolute top-16 right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-start shadow-xl"
+          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-start shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <span
@@ -686,7 +686,7 @@ export function DCourse() {
       {/* Back-to-back : course suivante près de la dépose (compteur 12 s) */}
       {inProgress && nextOff && (
         <div
-          className="drive-up absolute top-16 right-2.5 left-2.5 z-30 overflow-hidden rounded-[20px] border-2 bg-[var(--d-surface)] shadow-xl"
+          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-30 overflow-hidden rounded-[20px] border-2 bg-[var(--d-surface)] shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <div
@@ -769,7 +769,7 @@ export function DCourse() {
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(20px,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {/* Tracker d'étapes (progression visuelle, parité écran client). */}

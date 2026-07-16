@@ -178,14 +178,14 @@ export function DrivePriceScreen({
         <button
           type="button"
           onClick={() => setScreen("home")}
-          className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
           aria-label={t("back")}
         >
           <ChevronLeft className="size-5" />
         </button>
       </div>
 
-      <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[max(2rem,env(safe-area-inset-bottom))]">
+      <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <div className="mx-auto mb-4 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         {/* Départ / destination (rail pointillé) */}
         <Leg
@@ -241,7 +241,7 @@ export function DrivePriceScreen({
             onClick={() => !schedBusy && setSchedOpen(false)}
           >
             <div
-              className="w-full max-w-md rounded-t-[24px] bg-[var(--d-surface)] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]"
+              className="w-full max-w-md rounded-t-[24px] bg-[var(--d-surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="mb-1 text-[15px] font-extrabold">

@@ -31,7 +31,7 @@ export function DWait() {
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
     // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
-    <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
+    <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-8">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"
@@ -174,7 +174,7 @@ export function DFrozen({ reason }: { reason: string | null }) {
   ];
   return (
     // Overlay plein écran : recouvre la nav persistante de la coque `(app)`.
-    <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-10 pb-8">
+    <div className="drive-jakarta drive-page fixed inset-0 z-[70] overflow-y-auto bg-[var(--d-surface)] px-5 pt-[calc(2.5rem+env(safe-area-inset-top))] pb-8">
       <div className="text-center">
         <span
           className="mx-auto mb-3 grid size-16 place-items-center rounded-full"

@@ -22,8 +22,8 @@ export default async function DriverWelcomePage() {
   return (
     <div className="min-h-[100dvh] bg-[var(--d-page)] text-[var(--d-ink)]">
       <main
-        className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-5 pt-8"
-        style={{ paddingBottom: "max(28px, env(safe-area-inset-bottom))" }}
+        className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-5 pt-[calc(2rem+env(safe-area-inset-top))]"
+        style={{ paddingBottom: "calc(28px + env(safe-area-inset-bottom))" }}
       >
         <DriverWelcomeView
           firstName={gate.firstName}

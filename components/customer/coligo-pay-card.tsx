@@ -98,7 +98,7 @@ export function TopupModal({
       onClick={onClose}
     >
       <div
-        className="bg-surface w-full max-w-md rounded-t-[20px] p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] sm:rounded-[20px] sm:pb-5"
+        className="bg-surface w-full max-w-md rounded-t-[20px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-[20px] sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="mb-4 flex items-center justify-between">

@@ -600,7 +600,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           route={pickup && dest ? (mapRoutePath ?? [pickup, dest]) : null}
           padding={{ top: 100, bottom: 280, left: 50, right: 50 }}
         />
-        <div className="pointer-events-none absolute top-[88px] left-1/2 z-10 flex -translate-x-1/2 gap-2">
+        <div className="pointer-events-none absolute top-[calc(88px+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 gap-2">
           <span className="rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--d-muted)] shadow">
             {fmtkm(mapReq.pickup_dist_km)} · {tr("approche", "الاقتراب")}
           </span>
@@ -614,11 +614,11 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         <button
           type="button"
           onClick={() => setMapReq(null)}
-          className="absolute top-3 left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         >
           <ChevronLeft className="size-5 rtl:rotate-180" />
         </button>
-        <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[max(24px,env(safe-area-inset-bottom))]">
+        <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
           <div className="mb-1.5 flex items-center gap-2.5">
             <span
               className="drive-sora grid size-9 shrink-0 place-items-center rounded-full text-sm font-extrabold text-white"

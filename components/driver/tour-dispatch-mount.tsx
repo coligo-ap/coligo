@@ -111,7 +111,7 @@ export function TourDispatchMount() {
   if (!alert) return null;
 
   return (
-    <div className="fixed inset-x-0 top-0 z-[80] flex justify-center px-3 pt-[max(12px,env(safe-area-inset-top))]">
+    <div className="fixed inset-x-0 top-0 z-[80] flex justify-center px-3 pt-[calc(12px+env(safe-area-inset-top))]">
       <div className="partner-sheet-in flex w-full max-w-md items-center gap-3 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-xl">
         <button
           type="button"

@@ -304,7 +304,7 @@ export function CallOverlay({
         />
 
         {/* En-tête : qui + statut/chrono */}
-        <div className="relative z-10 flex flex-col items-center pt-[max(2.5rem,env(safe-area-inset-top))]">
+        <div className="relative z-10 flex flex-col items-center pt-[calc(2.5rem+env(safe-area-inset-top))]">
           {!remoteVideo && (
             <div className="mt-10 grid size-24 place-items-center rounded-full bg-white/10 text-4xl font-black">
               {peerName.charAt(0).toUpperCase()}
@@ -327,12 +327,12 @@ export function CallOverlay({
         {/* Vidéo locale en PiP (si cam allumée) */}
         <div
           ref={localVideoRef}
-          className="absolute top-[max(2.5rem,env(safe-area-inset-top))] right-3 z-20 h-40 w-28 overflow-hidden rounded-2xl border border-white/15 bg-black/40"
+          className="absolute top-[calc(2.5rem+env(safe-area-inset-top))] right-3 z-20 h-40 w-28 overflow-hidden rounded-2xl border border-white/15 bg-black/40"
           style={{ display: camOn ? "block" : "none" }}
         />
 
         {/* Barre d'actions */}
-        <div className="relative z-10 mt-auto flex items-center justify-center gap-5 pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+        <div className="relative z-10 mt-auto flex items-center justify-center gap-5 pb-[calc(2.5rem+env(safe-area-inset-bottom))]">
           {status !== "error" && (
             <>
               <CallBtn

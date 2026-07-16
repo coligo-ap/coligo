@@ -236,7 +236,7 @@ export function PartnerDrawer({
         }}
       >
         {/* Barre de fermeture */}
-        <div className="flex items-center justify-end px-3 pt-[max(10px,env(safe-area-inset-top))] pb-1">
+        <div className="flex items-center justify-end px-3 pt-[calc(10px+env(safe-area-inset-top))] pb-1">
           <button
             type="button"
             onClick={onClose}
@@ -256,7 +256,7 @@ export function PartnerDrawer({
 
         {footer && (
           <div
-            className="border-t px-4 py-3 pb-[max(12px,env(safe-area-inset-bottom))]"
+            className="border-t px-4 py-3 pb-[calc(12px+env(safe-area-inset-bottom))]"
             style={{ borderColor: theme.line }}
           >
             {footer}

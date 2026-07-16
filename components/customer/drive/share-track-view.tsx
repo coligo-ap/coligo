@@ -87,11 +87,11 @@ export function ShareTrackView({ token }: { token: string }) {
         }
         padding={{ top: 90, bottom: 260, left: 60, right: 60 }}
       />
-      <div className="absolute top-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
         <Car className="size-4" style={{ color: VIOLET }} />
         <span className="drive-sora">Coligo Drive · suivi en direct</span>
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[max(20px,env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <div className="mb-3 flex items-center gap-3">
           <span
             className="drive-sora grid size-[46px] shrink-0 place-items-center rounded-full text-lg font-extrabold text-white"

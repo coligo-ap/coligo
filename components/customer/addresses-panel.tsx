@@ -143,7 +143,7 @@ export function AddressesPanel({ addresses }: { addresses: Addr[] }) {
                   <p className="text-danger-600 text-sm">{state.error}</p>
                 )}
               </div>
-              <div className="border-border bg-surface shrink-0 border-t p-3 pb-[max(env(safe-area-inset-bottom),0.75rem)]">
+              <div className="border-border bg-surface shrink-0 border-t p-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
                 <ActionButton
                   type="submit"
                   className="w-full"

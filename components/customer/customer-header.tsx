@@ -204,7 +204,7 @@ export function CustomerHeader({
           <div
             className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-[20px]"
             style={{
-              paddingBottom: "max(0px, env(safe-area-inset-bottom))",
+              paddingBottom: "calc(0px + env(safe-area-inset-bottom))",
             }}
           >
             <div className="overflow-y-auto overscroll-contain px-5 pt-5 pb-5">
