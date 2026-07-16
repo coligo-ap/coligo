@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { IDV_ACTIVE_STATUSES, type IdvProfile, type IdvStatus } from "./types";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 // =============================================================================
 // IDV — lecture du dossier de L'UTILISATEUR CONNECTÉ (parcours client).
@@ -27,9 +28,10 @@ export async function getMyIdvVerification(
   profile: IdvProfile
 ): Promise<IdvVerificationView | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // BORNE OBLIGATOIRE (cf. lib/auth/session.ts) : jamais laisser pendre au
+  // réveil d'arrière-plan.
+  const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
+  const user = authResult?.data.user ?? null;
   if (!user) return null;
 
   const admin = createAdminClient();
@@ -56,15 +58,19 @@ export async function getMyIdvVerification(
       };
     };
   };
-  const { data } = await from("idv_verifications")
-    .select(
-      "id, status, document_type, mode, attempt, updated_at, manual_fallback"
-    )
-    .eq("user_id", user.id)
-    .eq("profile", profile)
-    .in("status", IDV_ACTIVE_STATUSES)
-    .maybeSingle();
-  return (data as IdvVerificationView | null) ?? null;
+  const result = await withTimeoutOrNull(
+    (async () =>
+      from("idv_verifications")
+        .select(
+          "id, status, document_type, mode, attempt, updated_at, manual_fallback"
+        )
+        .eq("user_id", user.id)
+        .eq("profile", profile)
+        .in("status", IDV_ACTIVE_STATUSES)
+        .maybeSingle())(),
+    4000
+  );
+  return (result?.data as IdvVerificationView | null) ?? null;
 }
 
 /**
@@ -77,9 +83,11 @@ export async function getMyLatestIdvVerification(
   profile: IdvProfile
 ): Promise<IdvVerificationView | null> {
   const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // BORNE OBLIGATOIRE — cette fonction fait foi pour le gate d'accès à
+  // l'espace (lib/idv/compliance.ts) : un timeout ici doit résoudre vite et
+  // JAMAIS pendre (sinon toute la navigation de l'espace se fige).
+  const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
+  const user = authResult?.data.user ?? null;
   if (!user) return null;
 
   const admin = createAdminClient();
@@ -105,13 +113,17 @@ export async function getMyLatestIdvVerification(
       };
     };
   };
-  const { data } = await from("idv_verifications")
-    .select(
-      "id, status, document_type, mode, attempt, updated_at, manual_fallback"
-    )
-    .eq("user_id", user.id)
-    .eq("profile", profile)
-    .order("updated_at", { ascending: false })
-    .limit(1);
-  return (data?.[0] as IdvVerificationView | undefined) ?? null;
+  const result = await withTimeoutOrNull(
+    (async () =>
+      from("idv_verifications")
+        .select(
+          "id, status, document_type, mode, attempt, updated_at, manual_fallback"
+        )
+        .eq("user_id", user.id)
+        .eq("profile", profile)
+        .order("updated_at", { ascending: false })
+        .limit(1))(),
+    4000
+  );
+  return (result?.data?.[0] as IdvVerificationView | undefined) ?? null;
 }

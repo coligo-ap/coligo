@@ -33,7 +33,7 @@ export default async function MerchantLayout({
   const idvRoute = idvRouteFor("merchant");
   const pathname = (await headers()).get("x-pathname") ?? "";
   if (!pathname.startsWith(idvRoute) && (await idvBlocksAccess("merchant"))) {
-    return <IdvRequiredScreen route={idvRoute} />;
+    return <IdvRequiredScreen route={idvRoute} profile="merchant" />;
   }
   return <MerchantShell>{children}</MerchantShell>;
 }

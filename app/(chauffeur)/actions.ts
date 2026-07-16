@@ -6,6 +6,7 @@ import { getLocale } from "next-intl/server";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
 import { openIdvManualFallback } from "@/lib/idv/fallback";
 import type { KycMethod } from "@/lib/driver/kyc";
@@ -582,6 +583,45 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     .select("home_dir_active")
     .eq("id", ch.id)
     .maybeSingle();
+  // BORNE OBLIGATOIRE : gate lu par CHAQUE page chauffeur — un socket à moitié
+  // mort au réveil d'arrière-plan ne doit jamais figer toute la navigation de
+  // l'espace. Timeout → gate indisponible, traité comme les autres échecs
+  // (return null ci-dessous).
+  const batch = await withTimeoutOrNull(
+    Promise.all([
+      admin
+        .from("chauffeurs")
+        .select(
+          "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
+        )
+        .eq("id", ch.id)
+        .maybeSingle(),
+      admin
+        .from("rides")
+        .select("chauffeur_rating.avg()")
+        .eq("chauffeur_id", ch.id)
+        .not("chauffeur_rating", "is", null)
+        .maybeSingle(),
+      admin
+        .from("rides")
+        .select("id", { count: "exact", head: true })
+        .eq("chauffeur_id", ch.id)
+        .eq("status", "completed"),
+      admin
+        .from("platform_settings")
+        .select("drive_home_dir_tolerance_deg")
+        .eq("id", true)
+        .maybeSingle(),
+      hdQuery,
+      admin
+        .from("chauffeur_presence")
+        .select("is_online, lat, lng")
+        .eq("chauffeur_id", ch.id)
+        .maybeSingle(),
+    ]),
+    5000
+  );
+  if (!batch) return null;
   const [
     { data },
     { data: avg },
@@ -589,37 +629,7 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
     { data: st },
     { data: hd },
     { data: presence },
-  ] = await Promise.all([
-    admin
-      .from("chauffeurs")
-      .select(
-        "id, full_name, first_name, phone, gamme, is_verified, is_frozen, is_blocked, frozen_reason, submitted_at, rejected_reason, home_addr_text, home_lat, home_lng, created_at, is_female_verified, vehicle_make, vehicle_model, vehicle_color, vehicle_plate, selfie_url"
-      )
-      .eq("id", ch.id)
-      .maybeSingle(),
-    admin
-      .from("rides")
-      .select("chauffeur_rating.avg()")
-      .eq("chauffeur_id", ch.id)
-      .not("chauffeur_rating", "is", null)
-      .maybeSingle(),
-    admin
-      .from("rides")
-      .select("id", { count: "exact", head: true })
-      .eq("chauffeur_id", ch.id)
-      .eq("status", "completed"),
-    admin
-      .from("platform_settings")
-      .select("drive_home_dir_tolerance_deg")
-      .eq("id", true)
-      .maybeSingle(),
-    hdQuery,
-    admin
-      .from("chauffeur_presence")
-      .select("is_online, lat, lng")
-      .eq("chauffeur_id", ch.id)
-      .maybeSingle(),
-  ]);
+  ] = batch;
   if (!data) return null;
   const rating = (avg as { avg?: number } | null)?.avg;
   const tolerance = st?.drive_home_dir_tolerance_deg ?? 45;

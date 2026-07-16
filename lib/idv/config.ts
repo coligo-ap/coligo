@@ -1,6 +1,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlag, isUsable, isVisible } from "@/lib/data/feature-flags";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 import type {
   IdvDocumentType,
   IdvGate,
@@ -47,10 +48,16 @@ const MODE_PUBLIC_COLS =
 export const getIdvModes = cache(async (): Promise<IdvModePublic[]> => {
   try {
     const from = await untypedFrom();
-    const { data } = await from("idv_modes")
-      .select(MODE_PUBLIC_COLS)
-      .order("position", { ascending: true });
-    return ((data ?? []) as IdvModePublic[]).filter((m) => m.enabled);
+    // BORNE OBLIGATOIRE : ne jamais laisser pendre au réveil d'arrière-plan
+    // (sinon TOUTE navigation de l'espace concerné se fige — le layout
+    // n'achève jamais son rendu).
+    const result = await withTimeoutOrNull(
+      from("idv_modes")
+        .select(MODE_PUBLIC_COLS)
+        .order("position", { ascending: true }),
+      4000
+    );
+    return ((result?.data ?? []) as IdvModePublic[]).filter((m) => m.enabled);
   } catch {
     return [];
   }
@@ -61,12 +68,17 @@ export const getIdvDocumentTypes = cache(
   async (): Promise<IdvDocumentType[]> => {
     try {
       const from = await untypedFrom();
-      const { data } = await from("idv_document_types")
-        .select(
-          "key, country, label_fr, label_ar, sides, mrz_format, enabled, position, expected_fields"
-        )
-        .order("position", { ascending: true });
-      return ((data ?? []) as IdvDocumentType[]).filter((d) => d.enabled);
+      const result = await withTimeoutOrNull(
+        from("idv_document_types")
+          .select(
+            "key, country, label_fr, label_ar, sides, mrz_format, enabled, position, expected_fields"
+          )
+          .order("position", { ascending: true }),
+        4000
+      );
+      return ((result?.data ?? []) as IdvDocumentType[]).filter(
+        (d) => d.enabled
+      );
     } catch {
       return [];
     }
@@ -78,13 +90,16 @@ export const getIdvProfileRules = cache(
   async (): Promise<Record<string, IdvProfileRule>> => {
     try {
       const from = await untypedFrom();
-      const { data } = await from("idv_profile_rules")
-        .select(
-          "profile, requirement, allowed_modes, default_mode, user_can_choose_mode"
-        )
-        .order("profile", { ascending: true });
+      const result = await withTimeoutOrNull(
+        from("idv_profile_rules")
+          .select(
+            "profile, requirement, allowed_modes, default_mode, user_can_choose_mode"
+          )
+          .order("profile", { ascending: true }),
+        4000
+      );
       return Object.fromEntries(
-        ((data ?? []) as IdvProfileRule[]).map((r) => [r.profile, r])
+        ((result?.data ?? []) as IdvProfileRule[]).map((r) => [r.profile, r])
       );
     } catch {
       return {};

@@ -1,5 +1,6 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 // =============================================================================
 // Feature flags — disponibilité des fonctionnalités pilotée par le super-admin
@@ -75,10 +76,19 @@ export const getFeatureFlags = cache(async (): Promise<FeatureFlags> => {
         cols: string
       ) => Promise<{ data: Record<string, unknown>[] | null }>;
     };
-    const { data } = await from("feature_flags").select(
-      "key, status, title_fr, title_ar, message_fr, message_ar"
+    // BORNE OBLIGATOIRE : `getFeatureFlags` gate quasi CHAQUE page de chaque
+    // espace (drive, coligo_pay, cashback, express, tour, IDV…) — un socket à
+    // moitié mort au réveil d'arrière-plan ne doit JAMAIS laisser cet `await`
+    // pendre, sinon c'est potentiellement toute page de tout domaine qui se
+    // fige (« la page n'avance plus »). Timeout → défaut (tout actif), comme
+    // les autres échecs déjà gérés ici.
+    const result = await withTimeoutOrNull(
+      from("feature_flags").select(
+        "key, status, title_fr, title_ar, message_fr, message_ar"
+      ),
+      4000
     );
-    for (const row of data ?? []) {
+    for (const row of result?.data ?? []) {
       const key = row.key as FeatureKey;
       if (key in out) {
         out[key] = {

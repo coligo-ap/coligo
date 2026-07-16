@@ -54,57 +54,72 @@ const NEEDS_USER_ACTION: IdvStatus[] = [
   "rejected",
 ];
 
-/** État de conformité IDV de l'utilisateur courant, pour un profil donné. */
+/**
+ * État de conformité IDV de l'utilisateur courant, pour un profil donné.
+ *
+ * Deux couches de fail-safe DÉLIBÉRÉMENT différentes :
+ *  1. Configuration illisible (flag/règles du profil) → NON BLOQUANT. C'est
+ *     une question de PRODUIT (la fonctionnalité s'applique-t-elle même ?),
+ *     jamais celle d'un compte précis — y échouer ne doit pas mettre toute une
+ *     flotte de partenaires à quai pour un blip de config sans rapport.
+ *  2. Le gate confirme que la vérification est OBLIGATOIRE, mais le DOSSIER de
+ *     CET utilisateur est illisible (timeout, panne) → BLOQUANT. Une fois
+ *     établi qu'une identité vérifiée est exigée, un statut inconnu n'est
+ *     JAMAIS traité comme conforme : c'est une exigence de conformité, pas un
+ *     confort produit — aucune page, requête ou action ne doit laisser passer
+ *     un compte dont on ne peut pas PROUVER l'identité. `getMyLatestIdvVerification`
+ *     est borné (4 s) : cet échec reste rare et vite retenté, jamais un blocage
+ *     muet (cf. IdvRequiredScreen, qui reste actionnable — lien + déconnexion).
+ */
 export const getIdvCompliance = cache(
   async (profile: IdvProfile): Promise<IdvCompliance> => {
     const route = ROUTES[profile] ?? "/";
+    const notEnabled: IdvCompliance = {
+      enabled: false,
+      required: false,
+      status: null,
+      verified: false,
+      inProgress: false,
+      actionNeeded: false,
+      rejected: false,
+      manualFallback: false,
+      route,
+    };
+
+    let gate;
     try {
-      const gate = await getIdvGate(profile);
-      if (!gate.enabled) {
-        return {
-          enabled: false,
-          required: false,
-          status: null,
-          verified: false,
-          inProgress: false,
-          actionNeeded: false,
-          rejected: false,
-          manualFallback: false,
-          route,
-        };
-      }
-      // DERNIER dossier, approuvé/refusé compris (un dossier approuvé n'est
-      // plus « vivant » : le lire via getMyIdvVerification renverrait null et
-      // on redemanderait indéfiniment une vérification déjà faite).
-      const verification = await getMyLatestIdvVerification(profile);
-      const status = verification?.status ?? null;
-      return {
-        enabled: true,
-        required: gate.requirement === "required",
-        status,
-        verified: status === "approved",
-        inProgress:
-          status === "doc_processing" ||
-          status === "selfie_processing" ||
-          status === "pending_review",
-        actionNeeded: status === null || NEEDS_USER_ACTION.includes(status),
-        rejected: status === "rejected",
-        manualFallback: verification?.manual_fallback === true,
-        route,
-      };
+      gate = await getIdvGate(profile);
     } catch {
-      return {
-        enabled: false,
-        required: false,
-        status: null,
-        verified: false,
-        inProgress: false,
-        actionNeeded: false,
-        rejected: false,
-        manualFallback: false,
-        route,
-      };
+      return notEnabled;
     }
+    if (!gate.enabled) return notEnabled;
+
+    // DERNIER dossier, approuvé/refusé compris (un dossier approuvé n'est plus
+    // « vivant » : le lire via getMyIdvVerification renverrait null et on
+    // redemanderait indéfiniment une vérification déjà faite). Un échec ICI ne
+    // doit JAMAIS se lire comme « vérifié » — cf. commentaire ci-dessus.
+    let verification: Awaited<ReturnType<typeof getMyLatestIdvVerification>> =
+      null;
+    try {
+      verification = await getMyLatestIdvVerification(profile);
+    } catch {
+      verification = null;
+    }
+    const status = verification?.status ?? null;
+    return {
+      enabled: true,
+      required: gate.requirement === "required",
+      status,
+      verified: status === "approved",
+      inProgress:
+        status === "doc_processing" ||
+        status === "selfie_processing" ||
+        status === "pending_review",
+      actionNeeded: status === null || NEEDS_USER_ACTION.includes(status),
+      rejected: status === "rejected",
+      manualFallback: verification?.manual_fallback === true,
+      route,
+    };
   }
 );
 

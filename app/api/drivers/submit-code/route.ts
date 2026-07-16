@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getDriverGate } from "@/lib/auth/driver-gate";
+import { idvBlocksAccess } from "@/lib/idv/compliance";
 import { hashReferralCode } from "@/lib/drivers/referral-code";
 import { notifyMerchantNewDriverRequest } from "@/lib/fcm/triggers";
 
@@ -42,6 +43,12 @@ export async function POST(req: Request) {
       { error: "account_not_verified" },
       { status: 403 }
     );
+  }
+  // Vérification d'identité (IDV) OBLIGATOIRE et non confirmée : endpoint
+  // exposé indépendamment du layout (qui bloque le rendu des pages, mais pas
+  // les appels d'API directs) → revalidée ICI, jamais seulement côté UI.
+  if (await idvBlocksAccess("driver")) {
+    return NextResponse.json({ error: "idv_required" }, { status: 403 });
   }
 
   let body: Body;

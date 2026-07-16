@@ -98,7 +98,7 @@ export default async function DriverLayout({
       <DriverThemeRoot
         fontVars={`${fontSora.variable} ${fontJakarta.variable}`}
       >
-        <IdvRequiredScreen route={idvRoute} />
+        <IdvRequiredScreen route={idvRoute} profile="driver" />
       </DriverThemeRoot>
     );
   }

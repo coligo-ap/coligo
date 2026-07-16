@@ -13,6 +13,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/session";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 export type CurrentMerchant = {
   id: string;
@@ -27,11 +28,17 @@ export const getCurrentMerchant = cache(
     const user = await getAuthUser();
     if (!user) return null;
     const supabase = await createClient();
-    const { data } = await supabase
-      .from("merchants")
-      .select("id, name, slug, is_frozen")
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // BORNE OBLIGATOIRE (cf. lib/auth/driver.ts / lib/auth/session.ts).
+    const result = await withTimeoutOrNull(
+      (async () =>
+        supabase
+          .from("merchants")
+          .select("id, name, slug, is_frozen")
+          .eq("user_id", user.id)
+          .maybeSingle())(),
+      4000
+    );
+    const data = result?.data ?? null;
     if (!data) return null;
     return {
       id: data.id,

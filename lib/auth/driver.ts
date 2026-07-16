@@ -12,6 +12,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DRIVER_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 export { canonicalPhone } from "@/lib/auth/phone-identity";
 
@@ -44,17 +45,27 @@ export const getCurrentDriver = cache(
     avatar_url: string | null;
   } | null> {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // BORNE OBLIGATOIRE (même esprit que lib/supabase/middleware.ts) : un socket
+    // à moitié mort au réveil d'arrière-plan ne doit jamais laisser ce layout
+    // (rendu sur TOUTE page livreur) pendre indéfiniment → « page figée ».
+    // Timeout = traité comme session/dossier absent, jamais un blocage muet.
+    const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
+    const user = authResult?.data.user ?? null;
     if (!user) return null;
-    const { data } = await supabase
-      .from("drivers")
-      .select(
-        "id, user_id, full_name, phone, is_frozen, is_blocked, is_verified, freeze_reason, block_reason, avatar_url"
-      )
-      .eq("user_id", user.id)
-      .maybeSingle();
+    // Le builder Supabase est un PromiseLike SANS .catch/.finally (pas un vrai
+    // Promise) → IIFE async pour en obtenir un que withTimeoutOrNull peut borner.
+    const result = await withTimeoutOrNull(
+      (async () =>
+        supabase
+          .from("drivers")
+          .select(
+            "id, user_id, full_name, phone, is_frozen, is_blocked, is_verified, freeze_reason, block_reason, avatar_url"
+          )
+          .eq("user_id", user.id)
+          .maybeSingle())(),
+      4000
+    );
+    const data = result?.data ?? null;
     return data
       ? {
           id: data.id,

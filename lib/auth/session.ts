@@ -13,13 +13,20 @@
 import { cache } from "react";
 import type { User } from "@supabase/supabase-js";
 import { createClient } from "@/lib/supabase/server";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 export const getAuthUser = cache(
   async function getAuthUser(): Promise<User | null> {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-    return user;
+    // BORNE OBLIGATOIRE (même esprit que lib/supabase/middleware.ts, où
+    // `getUser()` est déjà bornée à 4 s) : cette fonction est le SOCLE partagé
+    // de getCurrentCustomer/getCurrentMerchant/… et tourne dans CHAQUE
+    // layout/page RSC. Un socket à moitié mort au réveil d'arrière-plan (app
+    // restée longtemps en fond) ne doit jamais laisser cet `await` pendre —
+    // sinon toute navigation de l'espace concerné se fige (« page qui
+    // n'avance plus »). Timeout → traité comme non connecté (jamais un blocage
+    // muet), exactement comme un échec réseau.
+    const result = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
+    return result?.data.user ?? null;
   }
 );

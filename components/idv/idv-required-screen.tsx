@@ -8,6 +8,7 @@ import {
   IllusShield,
 } from "./idv-illustrations";
 import { IdvScope } from "./idv-theme";
+import { IdvLogoutRow, type IdvLogoutProfile } from "./idv-logout-row";
 
 // =============================================================================
 // IDV — ÉCRAN BLOQUANT « vérification obligatoire ». Rendu À LA PLACE du
@@ -24,7 +25,14 @@ const STEPS = [
   { Illus: IllusShield, label: "Vérification", labelAr: "التحقّق" },
 ] as const;
 
-export async function IdvRequiredScreen({ route }: { route: string }) {
+export async function IdvRequiredScreen({
+  route,
+  profile,
+}: {
+  route: string;
+  /** Choisit l'action de déconnexion réutilisée (driver/chauffeur/merchant). */
+  profile: IdvLogoutProfile;
+}) {
   const isAr = (await getLocale()) === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
@@ -91,6 +99,9 @@ export async function IdvRequiredScreen({ route }: { route: string }) {
           "بيانات مشفّرة، لا يطّلع عليها إلا فريق كوليڨو"
         )}
       </p>
+
+      {/* Échappatoire : ne jamais enfermer un compte sur cet écran sans issue. */}
+      <IdvLogoutRow profile={profile} />
     </IdvScope>
   );
 }

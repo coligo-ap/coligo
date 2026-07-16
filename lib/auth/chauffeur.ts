@@ -9,6 +9,7 @@
 import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { CHAUFFEUR_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 export { CHAUFFEUR_DOMAIN, canonicalPhone } from "@/lib/auth/phone-identity";
 
@@ -40,17 +41,24 @@ export type CurrentChauffeur = {
 export const getCurrentChauffeur = cache(
   async function getCurrentChauffeur(): Promise<CurrentChauffeur | null> {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // BORNE OBLIGATOIRE (cf. lib/auth/driver.ts / lib/auth/session.ts) : un
+    // socket à moitié mort au réveil d'arrière-plan ne doit jamais geler ce
+    // layout (rendu sur TOUTE page chauffeur).
+    const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
+    const user = authResult?.data.user ?? null;
     if (!user) return null;
-    const { data } = await supabase
-      .from("chauffeurs")
-      .select(
-        "id, user_id, full_name, phone, is_verified, is_frozen, is_blocked, vehicle_plate"
-      )
-      .eq("user_id", user.id)
-      .maybeSingle();
+    const result = await withTimeoutOrNull(
+      (async () =>
+        supabase
+          .from("chauffeurs")
+          .select(
+            "id, user_id, full_name, phone, is_verified, is_frozen, is_blocked, vehicle_plate"
+          )
+          .eq("user_id", user.id)
+          .maybeSingle())(),
+      4000
+    );
+    const data = result?.data ?? null;
     if (!data) return null;
     return {
       id: data.id,

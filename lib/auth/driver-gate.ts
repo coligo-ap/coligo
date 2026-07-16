@@ -16,6 +16,7 @@
 import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 /** Étapes du parcours, dans l'ordre. */
 export type DriverStage =
@@ -67,20 +68,27 @@ export const NOT_ACTIVE_ERROR =
 export const getDriverGate = cache(
   async function getDriverGate(): Promise<DriverGate | null> {
     const supabase = await createClient();
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
+    // BORNE OBLIGATOIRE (cf. lib/auth/session.ts) : gate lu par CHAQUE page
+    // livreur — un socket à moitié mort au réveil d'arrière-plan ne doit
+    // jamais figer toute la navigation de l'espace.
+    const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
+    const user = authResult?.data.user ?? null;
     if (!user) return null;
 
-    const { data } = await supabase
-      .from("drivers")
-      .select(
-        `id, user_id, full_name, phone, avatar_url, is_verified, is_frozen, is_blocked,
+    const result = await withTimeoutOrNull(
+      (async () =>
+        supabase
+          .from("drivers")
+          .select(
+            `id, user_id, full_name, phone, avatar_url, is_verified, is_frozen, is_blocked,
          freeze_reason, block_reason, submitted_at, verified_at, verified_ack_at,
          onboarding_done_at, rejected_at, rejection_reason`
-      )
-      .eq("user_id", user.id)
-      .maybeSingle();
+          )
+          .eq("user_id", user.id)
+          .maybeSingle())(),
+      4000
+    );
+    const data = result?.data ?? null;
     if (!data) return null;
 
     const isVerified = data.is_verified ?? false;

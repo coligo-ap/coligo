@@ -32,7 +32,9 @@ export async function ChauffeurGateGuard({
   // Vérification d'identité (IDV) OBLIGATOIRE et non confirmée → écran bloquant
   // RENDU (jamais un redirect : cf. lib/idv/compliance.ts, React #310 en prod).
   if (await idvBlocksAccess("chauffeur")) {
-    return <IdvRequiredScreen route={idvRouteFor("chauffeur")} />;
+    return (
+      <IdvRequiredScreen route={idvRouteFor("chauffeur")} profile="chauffeur" />
+    );
   }
   return <ChauffeurGateProvider gate={gate}>{children}</ChauffeurGateProvider>;
 }

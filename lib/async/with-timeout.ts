@@ -38,3 +38,32 @@ export function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
     );
   });
 }
+
+/**
+ * Variante SERVEUR : résout `null` au lieu de rejeter. Pour les résolutions
+ * d'identité/gate côté RSC (getCurrentDriver, getIdvGate, getMyLatestIdvVerification…)
+ * qui tournent DANS un layout ou une page — un rejet non catché y ferait planter
+ * tout le rendu (page d'erreur), pire qu'une session traitée comme absente.
+ * Même ressort que le `withTimeout` local de lib/supabase/middleware.ts (getUser
+ * borné à 4 s) : un socket à moitié mort après une longue veille app ne doit
+ * JAMAIS laisser un `await` serveur pendre indéfiniment — ce qui gèle TOUTE la
+ * navigation de l'espace (le layout/page ne finit jamais de streamer).
+ */
+export function withTimeoutOrNull<T>(
+  promise: Promise<T>,
+  ms: number
+): Promise<T | null> {
+  return new Promise<T | null>((resolve) => {
+    const timer = setTimeout(() => resolve(null), ms);
+    promise.then(
+      (v) => {
+        clearTimeout(timer);
+        resolve(v);
+      },
+      () => {
+        clearTimeout(timer);
+        resolve(null);
+      }
+    );
+  });
+}
