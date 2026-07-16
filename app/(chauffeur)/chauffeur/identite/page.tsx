@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getChauffeurGate } from "@/app/(chauffeur)/actions";
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
+import { getIdvCompliance } from "@/lib/idv/compliance";
 import { getMyIdvVerification } from "@/lib/idv/user-data";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
 import { IdvFlow } from "@/components/idv/idv-flow";
@@ -21,6 +22,11 @@ export default async function ChauffeurIdentitePage() {
 
   const idv = await getIdvGate("chauffeur");
   if (!idv.enabled) redirect("/chauffeur");
+
+  // Identité DÉJÀ confirmée : jamais rouvrir le parcours (cf. commentaire
+  // équivalent dans app/(driver)/driver/identite/page.tsx).
+  const compliance = await getIdvCompliance("chauffeur");
+  if (compliance.verified) redirect("/chauffeur");
 
   const [docTypes, enabledModes, verification] = await Promise.all([
     getIdvDocumentTypes(),

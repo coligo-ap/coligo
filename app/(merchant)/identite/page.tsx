@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft } from "lucide-react";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
+import { getIdvCompliance } from "@/lib/idv/compliance";
 import { getMyIdvVerification } from "@/lib/idv/user-data";
 import { IdvFlow } from "@/components/idv/idv-flow";
 
@@ -21,6 +22,11 @@ export default async function MerchantIdentitePage() {
 
   const idv = await getIdvGate("merchant");
   if (!idv.enabled) redirect("/dashboard");
+
+  // Identité DÉJÀ confirmée : jamais rouvrir le parcours (cf. commentaire
+  // équivalent dans app/(driver)/driver/identite/page.tsx).
+  const compliance = await getIdvCompliance("merchant");
+  if (compliance.verified) redirect("/dashboard");
 
   const [docTypes, enabledModes, verification] = await Promise.all([
     getIdvDocumentTypes(),

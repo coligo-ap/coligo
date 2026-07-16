@@ -3,6 +3,7 @@ import { getLocale } from "next-intl/server";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { getDriverGate, routeForStage } from "@/lib/auth/driver-gate";
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
+import { getIdvCompliance } from "@/lib/idv/compliance";
 import { getMyIdvVerification } from "@/lib/idv/user-data";
 import { DriverShell } from "@/components/driver/driver-shell";
 import { PartnerBackHeader } from "@/components/shared/partner-ui";
@@ -25,6 +26,12 @@ export default async function DriverIdentitePage() {
 
   const gate = await getIdvGate("driver");
   if (!gate.enabled) redirect("/driver");
+
+  // Identité DÉJÀ confirmée : jamais rouvrir le parcours (un dossier approuvé
+  // n'a plus de ligne « active » → l'écran repartirait de zéro, et resoumettre
+  // ferait perdre le statut vérifié — cf. submitIdvDocument).
+  const compliance = await getIdvCompliance("driver");
+  if (compliance.verified) redirect("/driver");
 
   const [docTypes, enabledModes, verification, driverGate] = await Promise.all([
     getIdvDocumentTypes(),

@@ -2,7 +2,7 @@
 // (types de documents, dossier en cours) se streament ensuite (règle perf).
 export default function Loading() {
   return (
-    <div className="mx-auto max-w-md animate-pulse px-5 pt-6">
+    <div className="pt-safe mx-auto max-w-md animate-pulse px-5">
       <div
         className="h-6 w-48 rounded-md"
         style={{ background: "var(--d-soft)" }}

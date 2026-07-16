@@ -90,7 +90,7 @@ export function PartnerDashboard({
   }, [refresh]);
 
   return (
-    <div className="mx-auto max-w-2xl space-y-4 p-4">
+    <div className="mx-auto max-w-2xl space-y-4 p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
       {/* ===== HERO ===== */}
       <div className="border-border relative overflow-hidden rounded-[20px] border bg-white p-5">
         <div className="flex items-start justify-between gap-3">

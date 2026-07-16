@@ -349,6 +349,18 @@ export async function submitIdvDocument(
     return { error: "La vérification d'identité n'est pas disponible." };
   }
 
+  // ── Identité DÉJÀ confirmée : jamais de nouveau dossier ───────────────────
+  // Sans cette garde, un compte approuvé qui atterrit sur /identite (lien
+  // périmé, notification ancienne, onglet rouvert) n'a AUCUN dossier « actif »
+  // (getMyIdvVerification ne voit que les statuts vivants) → l'écran repart de
+  // zéro, et soumettre créerait une ligne neuve dont l'updated_at plus récent
+  // ferait perdre le statut « approved » à getMyLatestIdvVerification (utilisé
+  // par le gate d'accès à l'espace). Un dossier approuvé ne se rouvre jamais.
+  const compliance = await getIdvCompliance(profile);
+  if (compliance.verified) {
+    return { error: "Votre identité est déjà vérifiée." };
+  }
+
   // ── Type de document + mode (toujours revalidés serveur) ─────────────────
   const docTypes = await getIdvDocumentTypes();
   const docType = docTypes.find(

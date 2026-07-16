@@ -39,7 +39,7 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
   });
 
   return (
-    <div className="mx-auto max-w-2xl px-4 pt-2 pb-24 lg:px-6">
+    <div className="mx-auto max-w-2xl px-4 pt-[calc(0.5rem+env(safe-area-inset-top))] pb-24 lg:px-6">
       <button
         type="button"
         onClick={goBack}
