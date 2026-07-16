@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
 import { MerchantSidebar } from "@/components/merchant/desktop-sidebar";
 import { MerchantTopbar } from "@/components/merchant/desktop-topbar";
 import { MerchantMobileHeader } from "@/components/merchant/mobile-header";
@@ -18,6 +19,7 @@ import { TawkChat } from "@/components/support/tawk-chat";
 import { expireStalePendingOrders } from "@/lib/merchant/expire-pending";
 import {
   DEFAULT_PRINT_SETTINGS,
+  type AutoPrintMode,
   type PrintSettings,
   type PrintWidth,
 } from "@/lib/types";
@@ -34,18 +36,56 @@ export async function MerchantShell({
 }) {
   const supabase = await createClient();
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  // PERF+BORNE : `getAuthUser()` (cache(), déjà bornée — lib/auth/session.ts)
+  // au lieu d'un `auth.getUser()` propre à ce composant, monté par-dessus
+  // CHAQUE page commerçant.
+  const user = await getAuthUser();
 
   if (!user) {
     redirect("/login");
   }
 
-  const { data: merchant, error } = await supabase
-    .from("merchants")
+  type MerchantRow = {
+    id: string;
+    name: string;
+    auto_accept_orders: boolean;
+    auto_print: AutoPrintMode;
+    print_copies: number;
+    print_width: PrintWidth;
+    orders_paused: boolean | null;
+    paused_until: string | null;
+    closure_start: string | null;
+    closure_end: string | null;
+    approval_status: "pending" | "approved" | "rejected" | null;
+    rejected_reason: string | null;
+  };
+  // UNE seule requête `merchants` (fusion des colonnes shop + approbation) —
+  // avant : deux SELECT séquentiels sur la MÊME ligne (même `eq(user_id)`),
+  // ajoutant un aller-retour réseau complet à chaque page commerçant.
+  // `approval_status`/`rejected_reason` hors types générés → requête castée.
+  const merchantQuery = supabase.from.bind(supabase) as unknown as (
+    t: string
+  ) => {
+    select: (c: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        maybeSingle: () => Promise<{
+          data: MerchantRow | null;
+          error: {
+            code: string;
+            message: string;
+            details: string;
+            hint: string;
+          } | null;
+        }>;
+      };
+    };
+  };
+  const { data: merchant, error } = await merchantQuery("merchants")
     .select(
-      "id, name, auto_accept_orders, auto_print, print_copies, print_width, orders_paused, paused_until, closure_start, closure_end"
+      "id, name, auto_accept_orders, auto_print, print_copies, print_width, orders_paused, paused_until, closure_start, closure_end, approval_status, rejected_reason"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -71,34 +111,13 @@ export async function MerchantShell({
   }
 
   // Validation obligatoire (mig 0273) : tant que le compte n'est pas approuvé,
-  // on court-circuite TOUT l'espace commerçant (dashboard, orders, catalog…) par
-  // un écran d'attente / refus. Colonnes hors types générés → requête castée.
-  const approvalQuery = supabase.from.bind(supabase) as unknown as (
-    t: string
-  ) => {
-    select: (c: string) => {
-      eq: (
-        c: string,
-        v: string
-      ) => {
-        maybeSingle: () => Promise<{
-          data: {
-            approval_status: "pending" | "approved" | "rejected" | null;
-            rejected_reason: string | null;
-          } | null;
-        }>;
-      };
-    };
-  };
-  const { data: approval } = await approvalQuery("merchants")
-    .select("approval_status, rejected_reason")
-    .eq("user_id", user.id)
-    .maybeSingle();
-  if (approval?.approval_status && approval.approval_status !== "approved") {
+  // on court-circuite TOUT l'espace commerçant (dashboard, orders, catalog…)
+  // par un écran d'attente / refus.
+  if (merchant.approval_status && merchant.approval_status !== "approved") {
     return (
       <MerchantPendingScreen
-        status={approval.approval_status}
-        reason={approval.rejected_reason ?? null}
+        status={merchant.approval_status}
+        reason={merchant.rejected_reason ?? null}
         merchantName={merchant.name}
       />
     );
@@ -130,7 +149,7 @@ export async function MerchantShell({
         auto_accept_orders: merchant.auto_accept_orders,
         auto_print: merchant.auto_print,
         print_copies: merchant.print_copies,
-        print_width: merchant.print_width as PrintWidth,
+        print_width: merchant.print_width,
       }
     : DEFAULT_PRINT_SETTINGS;
 

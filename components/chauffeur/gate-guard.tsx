@@ -25,13 +25,19 @@ export async function ChauffeurGateGuard({
 }: {
   children: React.ReactNode;
 }) {
-  const gate = await getChauffeurGate();
+  // PERF : les deux lectures sont INDÉPENDANTES (idvBlocksAccess n'a besoin
+  // que du profil "chauffeur", pas du résultat du gate) — en parallèle plutôt
+  // qu'en cascade pour ne pas empiler leurs allers-retours réseau.
+  const [gate, idvBlocked] = await Promise.all([
+    getChauffeurGate(),
+    idvBlocksAccess("chauffeur"),
+  ]);
   if (!gate) redirect("/chauffeur/login");
   if (gate.isBlocked) return <DBlocked />;
   if (gate.isFrozen) return <DFrozen reason={gate.frozenReason} />;
   // Vérification d'identité (IDV) OBLIGATOIRE et non confirmée → écran bloquant
   // RENDU (jamais un redirect : cf. lib/idv/compliance.ts, React #310 en prod).
-  if (await idvBlocksAccess("chauffeur")) {
+  if (idvBlocked) {
     return (
       <IdvRequiredScreen route={idvRouteFor("chauffeur")} profile="chauffeur" />
     );

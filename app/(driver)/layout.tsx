@@ -62,10 +62,21 @@ export default async function DriverLayout({
 }: {
   children: React.ReactNode;
 }) {
+  // PERF : ces trois lectures sont INDÉPENDANTES (aucune n'a besoin du
+  // résultat d'une autre) — les lancer en parallèle plutôt qu'en cascade
+  // évite d'empiler leurs allers-retours réseau (chacun de 200-400ms sur un
+  // lien instable, multipliés par 3 en séquentiel = ressenti « ça ne répond
+  // pas »). Elles partagent déjà le même utilisateur via `getAuthUser()`
+  // (cache() par requête).
+  const [driver, gate, idvBlocked] = await Promise.all([
+    getCurrentDriver(),
+    getDriverGate(),
+    idvBlocksAccess("driver"),
+  ]);
+
   // BLOCAGE (sanction dure) : un livreur bloqué n'a AUCUN accès à ses pages —
   // quel que soit l'onglet, on n'affiche que l'écran de blocage (+ la nav).
   // Le GEL (souple) laisse au contraire l'accès aux pages (géré écran par écran).
-  const driver = await getCurrentDriver();
   if (driver?.is_blocked) {
     return (
       <DriverThemeRoot
@@ -81,7 +92,6 @@ export default async function DriverLayout({
   // ni carte, ni réception Express, ni dispatch tournée, ni bandeau de course.
   // Ces composants sont ce qui rendrait une mise en ligne possible depuis un
   // écran d'inscription — ils n'existent tout simplement pas pour lui.
-  const gate = await getDriverGate();
   const isActive = gate?.stage === "active";
 
   // VÉRIFICATION D'IDENTITÉ obligatoire (IDV) et non confirmée → on RÉEND un
@@ -93,7 +103,7 @@ export default async function DriverLayout({
   const idvRoute = idvRouteFor("driver");
   const pathname = (await headers()).get("x-pathname") ?? "";
   const onIdvRoute = pathname.startsWith(idvRoute);
-  if (isActive && !onIdvRoute && (await idvBlocksAccess("driver"))) {
+  if (isActive && !onIdvRoute && idvBlocked) {
     return (
       <DriverThemeRoot
         fontVars={`${fontSora.variable} ${fontJakarta.variable}`}
