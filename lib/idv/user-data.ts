@@ -1,7 +1,7 @@
-import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { IDV_ACTIVE_STATUSES, type IdvProfile, type IdvStatus } from "./types";
 import { withTimeoutOrNull } from "@/lib/async/with-timeout";
+import { getAuthUser } from "@/lib/auth/session";
 
 // =============================================================================
 // IDV — lecture du dossier de L'UTILISATEUR CONNECTÉ (parcours client).
@@ -27,11 +27,9 @@ export type IdvVerificationView = {
 export async function getMyIdvVerification(
   profile: IdvProfile
 ): Promise<IdvVerificationView | null> {
-  const supabase = await createClient();
-  // BORNE OBLIGATOIRE (cf. lib/auth/session.ts) : jamais laisser pendre au
-  // réveil d'arrière-plan.
-  const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
-  const user = authResult?.data.user ?? null;
+  // PERF+BORNE : `getAuthUser()` (cache()) partage l'unique aller-retour Auth
+  // du rendu — jamais un par helper (cf. lib/auth/driver.ts).
+  const user = await getAuthUser();
   if (!user) return null;
 
   const admin = createAdminClient();
@@ -82,12 +80,10 @@ export async function getMyIdvVerification(
 export async function getMyLatestIdvVerification(
   profile: IdvProfile
 ): Promise<IdvVerificationView | null> {
-  const supabase = await createClient();
-  // BORNE OBLIGATOIRE — cette fonction fait foi pour le gate d'accès à
-  // l'espace (lib/idv/compliance.ts) : un timeout ici doit résoudre vite et
-  // JAMAIS pendre (sinon toute la navigation de l'espace se fige).
-  const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
-  const user = authResult?.data.user ?? null;
+  // PERF+BORNE : `getAuthUser()` (cache()) — cette fonction fait foi pour le
+  // gate d'accès à l'espace (lib/idv/compliance.ts) et NE DOIT PAS ajouter son
+  // propre aller-retour Auth séquentiel sur un rendu qui en fait déjà un.
+  const user = await getAuthUser();
   if (!user) return null;
 
   const admin = createAdminClient();

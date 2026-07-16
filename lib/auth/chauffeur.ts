@@ -10,6 +10,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { CHAUFFEUR_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
 import { withTimeoutOrNull } from "@/lib/async/with-timeout";
+import { getAuthUser } from "@/lib/auth/session";
 
 export { CHAUFFEUR_DOMAIN, canonicalPhone } from "@/lib/auth/phone-identity";
 
@@ -41,11 +42,10 @@ export type CurrentChauffeur = {
 export const getCurrentChauffeur = cache(
   async function getCurrentChauffeur(): Promise<CurrentChauffeur | null> {
     const supabase = await createClient();
-    // BORNE OBLIGATOIRE (cf. lib/auth/driver.ts / lib/auth/session.ts) : un
-    // socket à moitié mort au réveil d'arrière-plan ne doit jamais geler ce
-    // layout (rendu sur TOUTE page chauffeur).
-    const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
-    const user = authResult?.data.user ?? null;
+    // PERF+BORNE : `getAuthUser()` (cache()) partage l'unique aller-retour Auth
+    // du rendu avec le reste de la chaîne — jamais un par helper (cf.
+    // lib/auth/driver.ts).
+    const user = await getAuthUser();
     if (!user) return null;
     const result = await withTimeoutOrNull(
       (async () =>

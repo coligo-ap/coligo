@@ -13,6 +13,7 @@ import { cache } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { DRIVER_DOMAIN, phoneToAuthEmail } from "@/lib/auth/phone-identity";
 import { withTimeoutOrNull } from "@/lib/async/with-timeout";
+import { getAuthUser } from "@/lib/auth/session";
 
 export { canonicalPhone } from "@/lib/auth/phone-identity";
 
@@ -30,6 +31,12 @@ export function phoneToEmail(rawPhone: string): string | null {
  * navigation. `cache()` les dédupe pour le rendu courant. La SÉCURITÉ est
  * intacte : la session est toujours validée côté serveur à chaque requête
  * (le cache ne survit pas entre requêtes), RLS inchangées.
+ *
+ * PERF : passe par `getAuthUser()` (lib/auth/session.ts, elle-même `cache()`)
+ * plutôt que son propre `supabase.auth.getUser()` — sinon CHAQUE helper qui
+ * en a besoin (getDriverGate, getMyIdvVerification…) rejoue son propre aller-
+ * retour Auth dans le MÊME rendu, ce qui empile plusieurs centaines de ms
+ * SÉQUENTIELLES sur un lien instable (« la page tourne pour charger »).
  */
 export const getCurrentDriver = cache(
   async function getCurrentDriver(): Promise<{
@@ -45,12 +52,7 @@ export const getCurrentDriver = cache(
     avatar_url: string | null;
   } | null> {
     const supabase = await createClient();
-    // BORNE OBLIGATOIRE (même esprit que lib/supabase/middleware.ts) : un socket
-    // à moitié mort au réveil d'arrière-plan ne doit jamais laisser ce layout
-    // (rendu sur TOUTE page livreur) pendre indéfiniment → « page figée ».
-    // Timeout = traité comme session/dossier absent, jamais un blocage muet.
-    const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
-    const user = authResult?.data.user ?? null;
+    const user = await getAuthUser();
     if (!user) return null;
     // Le builder Supabase est un PromiseLike SANS .catch/.finally (pas un vrai
     // Promise) → IIFE async pour en obtenir un que withTimeoutOrNull peut borner.

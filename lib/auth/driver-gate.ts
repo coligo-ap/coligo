@@ -17,6 +17,7 @@ import { cache } from "react";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { withTimeoutOrNull } from "@/lib/async/with-timeout";
+import { getAuthUser } from "@/lib/auth/session";
 
 /** Étapes du parcours, dans l'ordre. */
 export type DriverStage =
@@ -68,11 +69,10 @@ export const NOT_ACTIVE_ERROR =
 export const getDriverGate = cache(
   async function getDriverGate(): Promise<DriverGate | null> {
     const supabase = await createClient();
-    // BORNE OBLIGATOIRE (cf. lib/auth/session.ts) : gate lu par CHAQUE page
-    // livreur — un socket à moitié mort au réveil d'arrière-plan ne doit
-    // jamais figer toute la navigation de l'espace.
-    const authResult = await withTimeoutOrNull(supabase.auth.getUser(), 4000);
-    const user = authResult?.data.user ?? null;
+    // PERF+BORNE : `getAuthUser()` est `cache()` — partagée avec getCurrentDriver
+    // et le reste de la chaîne dans le MÊME rendu (un seul aller-retour Auth,
+    // pas un par helper). Elle est elle-même bornée (lib/auth/session.ts).
+    const user = await getAuthUser();
     if (!user) return null;
 
     const result = await withTimeoutOrNull(
