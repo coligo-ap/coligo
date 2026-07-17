@@ -20,9 +20,9 @@ export const LEGAL = {
   country: "Algérie",
   site: "https://coligo.app",
   /** Date affichée sur les documents légaux — mettre à jour à chaque révision. */
-  lastUpdate: "8 juillet 2026",
+  lastUpdate: "17 juillet 2026",
   hosting: {
-    web: "Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis",
-    data: "Supabase Inc. (base de données et stockage, infrastructure cloud sécurisée)",
+    web: "Vercel Inc., 440 N Barranca Ave #4133, Covina, CA 91723, États-Unis (réseau de serveurs mondial ; le traitement applicatif de Coligo s'exécute sur des serveurs situés en Irlande, Union européenne)",
+    data: "Supabase Inc. (base de données et stockage), serveurs situés en Irlande, Union européenne",
   },
 } as const;
