@@ -289,54 +289,38 @@ export async function deleteMyCustomerAccount(): Promise<DeleteAccountState> {
   }
 
   try {
-    // 1) Anonymisation du profil (la ligne reste : pivot des registres).
-    const { error: custErr } = await admin
-      .from("customers")
-      .update({
-        full_name: "Compte supprimé",
-        phone: null,
-        email: null,
-        pay_handle: null,
-        latitude: null,
-        longitude: null,
-        default_wilaya_code: null,
-        default_commune: null,
-        sos_contacts: null,
-      })
-      .eq("id", customer.id);
-    if (custErr) throw custErr;
-
-    // 2) Snapshots PII sur les commandes (toutes terminées grâce à la garde).
-    //    Colonnes non financières → passe le guard mig 0166 (service_role).
-    const { error: ordErr } = await admin
-      .from("orders")
-      .update({
-        customer_name: "Client supprimé",
-        // Colonne NOT NULL : anonymisation par chaîne vide (null refusé en DB).
-        customer_phone: "",
-        customer_note: null,
-        delivery_address_text: null,
-        delivery_recipient_name: null,
-        delivery_lat: null,
-        delivery_lng: null,
-      })
-      .eq("customer_id", customer.id);
-    if (ordErr) throw ordErr;
-
-    // 3) Données personnelles pures → suppression réelle.
-    await admin
-      .from("customer_addresses")
-      .delete()
-      .eq("customer_id", customer.id);
-    await admin
-      .from("customer_favorites")
-      .delete()
-      .eq("customer_id", customer.id);
-    await admin
-      .from("customer_favorite_chauffeurs")
-      .delete()
-      .eq("customer_id", customer.id);
-    await admin.from("device_tokens").delete().eq("user_id", user.id);
+    // 1-3) Anonymisation ATOMIQUE côté SQL (mig 0375) : profil scrubé (la
+    //    ligne customers RESTE — pivot des commandes/courses/wallets/ledgers,
+    //    zéro impact comptable ni commerçant), snapshots PII des commandes
+    //    effacés (coordonnées arrondies ~1 km : la contrainte géo et les
+    //    stats de zone restent satisfaites), adresses textuelles des courses
+    //    effacées, adresses/favoris/tokens supprimés. Tout-ou-rien : plus
+    //    jamais de compte à moitié anonymisé si une contrainte évolue.
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    const { data: anonRes, error: anonErr } = await rpc(
+      "customer_anonymize_data",
+      { p_customer: customer.id }
+    );
+    if (anonErr) throw anonErr;
+    const anon = (anonRes ?? {}) as { ok?: boolean; error?: string };
+    if (!anon.ok) {
+      if (anon.error === "active_order") {
+        return {
+          error:
+            "Tu as une commande en cours. Attends qu'elle soit terminée (ou annule-la) avant de supprimer ton compte.",
+        };
+      }
+      if (anon.error === "active_ride") {
+        return {
+          error:
+            "Tu as une course en cours. Attends qu'elle soit terminée avant de supprimer ton compte.",
+        };
+      }
+      throw new Error(anon.error ?? "anonymize_failed");
+    }
 
     // 4) Neutralisation auth : email brouillé (l'ancien redevient réutilisable
     //    pour un nouveau compte), mot de passe aléatoire, métadonnées vidées
