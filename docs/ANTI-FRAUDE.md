@@ -116,7 +116,7 @@ remontent dans le moteur d'alertes global (`_admin_alert_rules_confiance`).
 - Migrations : `0373_fraud_core.sql` (tables + seeds), `0374_fraud_engine.sql`
   (features, détecteurs, évaluation, sweep, RPC admin, alertes).
 - `lib/fraud/` : `events.ts` (capture fire-and-forget), `tick.ts` (sweep +
-  notifications), `guard.ts` (gate client), `model.ts` (types client-safe).
+  notifications), `gate.ts` (gate client), `model.ts` (types client-safe).
 - Cron : `app/api/cron/fraud/route.ts` (quotidien 04:45).
 - Admin : `app/admin/(confiance)/anti-fraude/**` + `components/admin/fraud/*`.
 - Client : `components/customer/fraud-ack-gate.tsx` (modale bloquante).
