@@ -9,6 +9,8 @@ import {
   notifyRideMessage,
 } from "@/lib/fcm/triggers";
 import { notifyRideEvent } from "@/lib/notifications/notify";
+import { fraudIngestCancel } from "@/lib/fraud/events";
+import { getCustomerFraudGate } from "@/lib/fraud/gate";
 import {
   evaluateZone,
   logZoneBlock,
@@ -416,6 +418,24 @@ export async function requestDriveRide(input: {
 }): Promise<{ ok: boolean; rideId?: string; error?: string }> {
   const rpc = await rpcClient();
 
+  // Anti-fraude (mig 0374) : compte suspendu OU avertissement obligatoire non
+  // lu → pas de nouvelle course (défense en profondeur — la popup bloquante
+  // est montée par le layout client).
+  const fraudGate = await getCustomerFraudGate();
+  if (fraudGate.suspended) {
+    return {
+      ok: false,
+      error: "Ton compte est suspendu. Contacte le support Coligo.",
+    };
+  }
+  if (fraudGate.requireAck) {
+    return {
+      ok: false,
+      error:
+        "Un avertissement important t'attend — lis-le et confirme pour continuer.",
+    };
+  }
+
   // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE et le
   // CONSOMME pour le trajet courant AVANT d'engager le prix. Adresse changée /
   // devis expiré / déjà utilisé → refus net (le client re-demande un prix).
@@ -735,6 +755,8 @@ export async function cancelDriveRide(
     // Recherche annulée → la demande DISPARAÎT immédiatement des écrans des
     // chauffeurs qui la voyaient (retrait temps réel, sans attendre leur poll).
     void notifyChauffeursRideGone({ rideId });
+    // Anti-fraude : contexte de l'annulation (phase, position chauffeur, contact)
+    void fraudIngestCancel("ride", rideId, "customer");
   }
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }

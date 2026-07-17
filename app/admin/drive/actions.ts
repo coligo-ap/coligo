@@ -480,6 +480,11 @@ export async function adminCancelRide(input: {
       ...(res.refunded_da ? { refunded_da: res.refunded_da } : {}),
     },
   });
+  // Anti-fraude : trace de l'annulation admin (phase, position chauffeur)
+  {
+    const { fraudIngestCancel } = await import("@/lib/fraud/events");
+    void fraudIngestCancel("ride", input.rideId, "admin");
+  }
   try {
     const { notifyRideClosedByAdmin } = await import("@/lib/fcm/triggers");
     await notifyRideClosedByAdmin({

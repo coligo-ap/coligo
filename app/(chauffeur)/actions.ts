@@ -7,6 +7,8 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { withTimeoutOrNull } from "@/lib/async/with-timeout";
+import { fraudIngestCancel, fraudChauffeurToggle } from "@/lib/fraud/events";
+import { maybeFraudTick } from "@/lib/fraud/tick";
 import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
 import { openIdvManualFallback } from "@/lib/idv/fallback";
 import type { KycMethod } from "@/lib/driver/kyc";
@@ -688,6 +690,8 @@ export async function chauffeurHeartbeat(
       p_lng: lng,
       p_online: online,
     });
+    // Anti-fraude : sweep opportuniste (throttlé) — auto-déconnexions + notifs
+    void maybeFraudTick();
     // NOTE : la notif « une conductrice est en ligne » N'EST PLUS ici (elle
     // tournait à CHAQUE battement = gaspillage). Elle se déclenche désormais sur
     // la TRANSITION en ligne, dans setChauffeurOnline(true).
@@ -712,6 +716,8 @@ export async function setChauffeurOnline(
     .from("chauffeur_presence")
     .update({ is_online: online, updated_at: new Date().toISOString() })
     .eq("chauffeur_id", ch.id);
+  // Anti-fraude : trace la session (durée, immobilité) pour les détecteurs
+  if (!error) void fraudChauffeurToggle(ch.id, ch.user_id ?? null, online);
   // TRANSITION en ligne : si la conductrice est vérifiée « femme au volant »,
   // prévenir les clientes en attente (demandes female_only). Déplacé ici depuis
   // le heartbeat (qui le déclenchait à chaque battement). Best-effort.
@@ -1167,7 +1173,11 @@ export async function cancelRideAction(
     ok?: boolean;
     reason?: string;
   };
-  if (row?.ok) void notifyRideEvent(rideId, "ride_cancelled_by_chauffeur");
+  if (row?.ok) {
+    void notifyRideEvent(rideId, "ride_cancelled_by_chauffeur");
+    // Anti-fraude : contexte de l'annulation (phase, position, contact récent)
+    void fraudIngestCancel("ride", rideId, "chauffeur");
+  }
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 

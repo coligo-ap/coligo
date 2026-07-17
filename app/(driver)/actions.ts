@@ -7,6 +7,11 @@ import { z } from "zod";
 import { validateUploadedFile } from "@/lib/security/file-validation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  fraudNoteOfferDecisionByUser,
+  fraudDriverEventByUser,
+} from "@/lib/fraud/events";
+import { maybeFraudTick } from "@/lib/fraud/tick";
 import { getIdvCompliance, idvSubmissionBlock } from "@/lib/idv/compliance";
 import { openIdvManualFallback } from "@/lib/idv/fallback";
 import {
@@ -473,7 +478,16 @@ export async function declineExpress(
     data as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
   if (!row) return { ok: false, reason: "no_response" };
-  if (row.ok) revalidatePath("/driver");
+  if (row.ok) {
+    revalidatePath("/driver");
+    // Anti-fraude : refus explicite → trace + remise à zéro des non-réponses
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) await fraudNoteOfferDecisionByUser(user.id, orderId, "decline");
+    })();
+  }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
 
@@ -496,6 +510,13 @@ export async function markOrderPickedUp(
     revalidatePath("/driver");
     // Le client est prévenu que son livreur est en route.
     void notifyCustomerEnRoute({ orderId });
+    // Anti-fraude : pickup = acceptation effective de l'offre Express
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user) await fraudNoteOfferDecisionByUser(user.id, orderId, "accept");
+    })();
   }
   return { ok: row.ok, reason: row.reason ?? undefined };
 }
@@ -638,6 +659,19 @@ export async function noteCallAttempt(
   const row = (
     data as unknown as Array<{ ok: boolean; reason: string | null }> | null
   )?.[0];
+  // Anti-fraude : appel livreur → client tracé (détecteur « annulation après
+  // appel » — demande d'annuler hors plateforme).
+  if (row?.ok) {
+    void (async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (user)
+        await fraudDriverEventByUser(user.id, "call_initiated", orderId, {
+          from: "driver",
+        });
+    })();
+  }
   return { ok: row?.ok ?? false, reason: row?.reason ?? undefined };
 }
 
@@ -724,6 +758,14 @@ export async function driverHeartbeat(lat: number, lng: number): Promise<void> {
       args: Record<string, unknown>
     ) => Promise<{ error: { message: string } | null }>;
     await rpc("driver_heartbeat", { p_lat: lat, p_lng: lng });
+    // Anti-fraude : présence miroir (auto-déconnexion des présences muettes)
+    // + sweep opportuniste throttlé.
+    void rpc("fraud_touch_driver_presence", {
+      p_lat: lat,
+      p_lng: lng,
+      p_offer: null,
+    });
+    void maybeFraudTick();
   } catch {
     /* no-op : la présence est best-effort */
   }
@@ -865,7 +907,7 @@ export async function pullNextExpressNearby(
   lat: number,
   lng: number,
   radiusKm = 6
-): Promise<{ orderId?: string }> {
+): Promise<{ orderId?: string; forcedOffline?: boolean }> {
   try {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return {};
     // Aucune course n'est attribuée à un compte non activé.
@@ -876,6 +918,17 @@ export async function pullNextExpressNearby(
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    // Anti-fraude (mig 0374) : présence + détection des offres restées sans
+    // réponse. Si le livreur est en HORS-LIGNE FORCÉ (offres ignorées en
+    // série), on ne pull PAS — l'UI repasse le bouton sur STOP.
+    const { data: touch } = await rpc("fraud_touch_driver_presence", {
+      p_lat: lat,
+      p_lng: lng,
+      p_offer: null,
+    });
+    if ((touch as { forced_offline?: boolean } | null)?.forced_offline) {
+      return { forcedOffline: true };
+    }
     const { data, error } = await rpc("pull_next_express_nearby", {
       p_lat: lat,
       p_lng: lng,
@@ -886,6 +939,13 @@ export async function pullNextExpressNearby(
       | { res_order_id?: string }
       | undefined;
     if (!row?.res_order_id) return {};
+    // L'offre attribuée est enregistrée comme « vue » — si elle repart au canal
+    // sans décision (ni pickup ni refus), elle comptera comme ignorée.
+    void rpc("fraud_touch_driver_presence", {
+      p_lat: lat,
+      p_lng: lng,
+      p_offer: row.res_order_id,
+    });
     return { orderId: row.res_order_id };
   } catch {
     return {};

@@ -1,6 +1,8 @@
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getCustomerFraudGate } from "@/lib/fraud/gate";
+import { FraudAckGate } from "@/components/customer/fraud-ack-gate";
 import { CustomerQueryProvider } from "@/components/customer/customer-query-provider";
 import { CustomerChrome } from "@/components/customer/customer-chrome";
 import { ConfirmProvider } from "@/components/ui/confirm";
@@ -21,10 +23,11 @@ export default async function CustomerGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, customer, flags] = await Promise.all([
+  const [user, customer, flags, fraudGate] = await Promise.all([
     getAuthUser(),
     getCurrentCustomerFull(),
     getFeatureFlags(),
+    getCustomerFraudGate(),
   ]);
 
   // Onglets retirés de la nav si la fonctionnalité est « masquée » (super-admin).
@@ -45,6 +48,9 @@ export default async function CustomerGroupLayout({
         {/* Dialogues designés (confirm/prompt) pour tout l'espace client —
             remplace window.confirm/prompt (ex. vider le panier). */}
         <ConfirmProvider>{children}</ConfirmProvider>
+        {/* Anti-fraude : avertissement OBLIGATOIRE (impossible à fermer) après
+            plusieurs situations suspectes — docs/ANTI-FRAUDE.md §7. */}
+        {fraudGate.requireAck && <FraudAckGate />}
       </CustomerChrome>
     </CustomerQueryProvider>
   );

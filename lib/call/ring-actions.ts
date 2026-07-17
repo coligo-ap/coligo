@@ -3,6 +3,7 @@
 import { getDriveActiveRide } from "@/app/(customer)/drive/actions";
 import { getChauffeurActiveRide } from "@/app/(chauffeur)/actions";
 import { notifyRideIncomingCall } from "@/lib/fcm/triggers";
+import { fraudRecordRideCall } from "@/lib/fraud/events";
 
 /**
  * Fait sonner le pair (push FCM) lors d'un appel in-app Drive, pour qu'il soit
@@ -21,4 +22,6 @@ export async function ringRidePeer(input: {
       : await getChauffeurActiveRide();
   if (!ride || ride.id !== input.rideId) return;
   await notifyRideIncomingCall({ rideId: input.rideId, fromRole: input.role });
+  // Anti-fraude : appel tracé (détecteur « annulation après appel »)
+  void fraudRecordRideCall(input.rideId, input.role);
 }

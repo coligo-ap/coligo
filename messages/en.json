@@ -1380,5 +1380,14 @@
     "noMatch": "\"{name}\" isn't available at any merchant right now.",
     "searchInstead": "Search \"{name}\" as text",
     "recent": "Recently scanned"
+  },
+  "fraudAck": {
+    "title": "Important warning",
+    "intro": "For your safety, everything happens IN the app — never outside it.",
+    "rule1": "NEVER agree when a driver, courier or merchant asks you to cancel your order or ride.",
+    "rule2": "Someone calls saying “cancel, we'll work it out”? Refuse and report it to support.",
+    "support": "Outside Coligo: no protection, no refund, no recourse. In doubt? Contact support from the Help Center.",
+    "error": "Could not save — try again.",
+    "confirm": "Yes, I understand and I agree"
   }
 }

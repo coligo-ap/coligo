@@ -21,6 +21,7 @@ import {
   getTopupBalanceForCustomer,
 } from "@/lib/customer/cashback";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getCustomerFraudGate } from "@/lib/fraud/gate";
 import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
@@ -213,6 +214,24 @@ export async function createOrder(
       ok: false,
       error:
         "Ajoute un numéro de téléphone algérien valide (0X XX XX XX XX) dans ton profil (Compte) avant de commander.",
+    };
+  }
+
+  // Anti-fraude (mig 0374) : compte suspendu OU avertissement obligatoire non
+  // lu → pas de nouvelle commande (défense en profondeur — la popup bloquante
+  // est montée par le layout client).
+  const fraudGate = await getCustomerFraudGate();
+  if (fraudGate.suspended) {
+    return {
+      ok: false,
+      error: "Ton compte est suspendu. Contacte le support Coligo.",
+    };
+  }
+  if (fraudGate.requireAck) {
+    return {
+      ok: false,
+      error:
+        "Un avertissement important t'attend sur l'accueil — lis-le et confirme pour continuer.",
     };
   }
 

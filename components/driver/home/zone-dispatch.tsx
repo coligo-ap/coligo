@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { driverHeartbeat, pullNextExpressNearby } from "@/app/(driver)/actions";
 import { useWorkZone, LIVE_RADIUS_KM } from "@/lib/driver/work-zone";
+import { setDriverOnline } from "@/lib/driver/online-store";
 import { setDispatchActive } from "@/lib/realtime/dispatch-presence";
 import { ensureRealtimeAuth } from "@/lib/realtime/ensure-auth";
 import { playNewOrder } from "@/lib/driver/sounds";
@@ -78,6 +79,18 @@ export function ZoneDispatch({
           origin.lng,
           origin.radiusKm
         );
+        // HORS-LIGNE FORCÉ (anti-fraude : offres ignorées en série) : le
+        // serveur a coupé la réception → on aligne le bouton sur STOP et on
+        // prévient. La cloche/push explique la mesure (fraud_tick).
+        if (alive && r.forcedOffline) {
+          setDriverOnline(false);
+          toast.error(
+            isArRef.current
+              ? "تم إيقافك مؤقتًا بسبب تجاهل الطلبات — عد عندما تكون جاهزًا"
+              : "Mis hors ligne : plusieurs demandes ignorées. Repasse en ligne quand tu es vraiment disponible."
+          );
+          return;
+        }
         if (alive && r.orderId) {
           // Réception GLOBALE (n'importe quelle page) : il faut SONNER, pas juste
           // un toast — sinon le livreur, app en poche, rate la course. Son gaté

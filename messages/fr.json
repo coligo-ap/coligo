@@ -1374,5 +1374,14 @@
     "noMatch": "« {name} » n'est disponible chez aucun commerçant pour l'instant.",
     "searchInstead": "Chercher « {name} » en texte",
     "recent": "Scannés récemment"
+  },
+  "fraudAck": {
+    "title": "Avertissement important",
+    "intro": "Pour ta sécurité, tout se passe DANS l'application — jamais en dehors.",
+    "rule1": "N'accepte JAMAIS qu'un chauffeur, livreur ou commerçant te demande d'annuler ta commande ou ta course.",
+    "rule2": "On t'appelle pour te dire « annule, on s'arrange » ? Refuse et signale-le au support.",
+    "support": "Hors de Coligo : aucune protection, aucun remboursement, aucun recours. Un doute ? Contacte le support depuis le Centre d'aide.",
+    "error": "Impossible d'enregistrer — réessaie.",
+    "confirm": "Oui, j'ai compris et je suis d'accord"
   }
 }

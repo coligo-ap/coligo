@@ -452,6 +452,7 @@ export const ADMIN_NAV: AdminNavDomain[] = [
       "/admin/security",
       "/admin/integrity",
       "/admin/identite",
+      "/admin/anti-fraude",
     ],
     sections: [
       {
@@ -462,6 +463,41 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Signalements",
             icon: ShieldAlert,
             keywords: ["plainte", "litige", "abus", "no-show"],
+          },
+          {
+            href: "/admin/anti-fraude",
+            label: "Anti-fraude",
+            icon: Radar,
+            exact: true,
+            keywords: [
+              "fraude",
+              "trust score",
+              "risque",
+              "annulation",
+              "collusion",
+              "commission",
+            ],
+            children: [
+              {
+                href: "/admin/anti-fraude/alertes",
+                label: "Alertes fraude",
+                icon: ShieldAlert,
+                pending: true,
+                keywords: ["examiner", "confirmer", "faux positif", "verdict"],
+              },
+              {
+                href: "/admin/anti-fraude/comptes",
+                label: "Comptes à risque",
+                icon: Users,
+                keywords: ["classement", "score", "investigation", "timeline"],
+              },
+              {
+                href: "/admin/anti-fraude/regles",
+                label: "Règles & réglages",
+                icon: SlidersHorizontal,
+                keywords: ["seuil", "poids", "apprentissage", "détecteur"],
+              },
+            ],
           },
           {
             href: "/admin/identite",

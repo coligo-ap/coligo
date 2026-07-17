@@ -1,6 +1,7 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { fraudIngestCancel } from "@/lib/fraud/events";
 import {
   notifyChauffeursNewRide,
   notifyChauffeursRideGone,
@@ -175,6 +176,8 @@ export async function cancelMyRide(
     ok?: boolean;
     reason?: string;
   };
+  // Anti-fraude : contexte de l'annulation (phase, position chauffeur, contact)
+  if (row?.ok) void fraudIngestCancel("ride", rideId, "customer");
   return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
 }
 

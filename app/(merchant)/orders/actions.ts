@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentMerchantId } from "@/lib/auth/merchant";
+import { fraudIngestCancel } from "@/lib/fraud/events";
 import {
   isValidTransition,
   ORDER_STATUS_META,
@@ -167,6 +168,8 @@ export async function cancelOrderByMerchant(
   // Stoppe le livreur s'il avait accepté la course (push instantané ; le pop-up
   // + arrêt en temps réel sont gérés par DriverCancelWatch côté app livreur).
   void notifyDriverOrderCancelled({ orderId });
+  // Anti-fraude : contexte de l'annulation commerçant (phase, contact récent)
+  void fraudIngestCancel("order", orderId, "merchant");
   revalidatePath("/dashboard");
   revalidatePath("/orders");
   revalidatePath(`/orders/${orderId}`);

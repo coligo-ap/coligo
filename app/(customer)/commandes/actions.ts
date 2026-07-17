@@ -18,6 +18,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 import { notifyMerchantOrderCancelled } from "@/lib/fcm/triggers";
+import { fraudIngestCancel } from "@/lib/fraud/events";
 import type { OrderStatus } from "@/lib/types";
 import type { CustomerOrderRow } from "@/components/customer/customer-orders-tabs";
 
@@ -71,6 +72,10 @@ export async function cancelMyOrder(orderId: string): Promise<CancelResult> {
         console.warn("[cancelMyOrder] notify failed:", e);
       }
     }
+
+    // Anti-fraude : contexte de l'annulation client (phase, position livreur,
+    // contact récent) — fire-and-forget, ne bloque jamais l'annulation.
+    if (res.ok) void fraudIngestCancel("order", orderId, "customer");
 
     revalidatePath(`/commandes/${orderId}`);
     revalidatePath("/commandes");

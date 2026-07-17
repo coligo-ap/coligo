@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { maybeFraudTick } from "@/lib/fraud/tick";
 
 /**
  * POST /api/telemetry/ping — trace appareil/IP/localisation de l'utilisateur
@@ -86,5 +87,8 @@ export async function POST(req: Request) {
     console.warn("[telemetry] log_device_ping failed:", error.message);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+  // Anti-fraude : sweep opportuniste throttlé (auto-déconnexions + notifs) —
+  // le ping arrive de tous les rôles, c'est un excellent battement de cœur.
+  void maybeFraudTick();
   return NextResponse.json({ ok: true });
 }

@@ -866,6 +866,11 @@ export async function adminCancelOrder(
       ...(res.refunded_da ? { refunded_da: res.refunded_da } : {}),
     },
   });
+  // Anti-fraude : trace de l'annulation admin (phase, position livreur)
+  {
+    const { fraudIngestCancel } = await import("@/lib/fraud/events");
+    void fraudIngestCancel("order", orderId, "admin");
+  }
 
   // Notifications best-effort (jamais bloquantes).
   try {

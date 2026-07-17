@@ -1681,6 +1681,117 @@ export type Database = {
         };
         Relationships: [];
       };
+      fraud_events: {
+        Row: {
+          id: number;
+          actor_kind: string;
+          actor_id: string;
+          user_id: string | null;
+          event_type: string;
+          order_id: string | null;
+          ride_id: string | null;
+          counterparty_kind: string | null;
+          counterparty_id: string | null;
+          lat: number | null;
+          lng: number | null;
+          ip: string | null;
+          device: string | null;
+          meta: Json;
+          created_at: string;
+        };
+        Insert: {
+          actor_kind: string;
+          actor_id: string;
+          user_id?: string | null;
+          event_type: string;
+          order_id?: string | null;
+          ride_id?: string | null;
+          counterparty_kind?: string | null;
+          counterparty_id?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+          ip?: string | null;
+          device?: string | null;
+          meta?: Json;
+          created_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["fraud_events"]["Insert"]>;
+        Relationships: [];
+      };
+      fraud_partner_presence: {
+        Row: {
+          actor_kind: string;
+          actor_id: string;
+          user_id: string | null;
+          is_online: boolean;
+          online_since: string;
+          last_seen_at: string;
+          last_moved_at: string | null;
+          lat: number | null;
+          lng: number | null;
+          ignore_streak: number;
+          last_offer_id: string | null;
+          last_offer_at: string | null;
+          forced_offline_at: string | null;
+          updated_at: string;
+        };
+        Insert: {
+          actor_kind: string;
+          actor_id: string;
+          user_id?: string | null;
+          is_online?: boolean;
+          online_since?: string;
+          last_seen_at?: string;
+          last_moved_at?: string | null;
+          lat?: number | null;
+          lng?: number | null;
+          ignore_streak?: number;
+          last_offer_id?: string | null;
+          last_offer_at?: string | null;
+          forced_offline_at?: string | null;
+          updated_at?: string;
+        };
+        Update: Partial<
+          Database["public"]["Tables"]["fraud_partner_presence"]["Insert"]
+        >;
+        Relationships: [];
+      };
+      fraud_scores: {
+        Row: {
+          actor_kind: string;
+          actor_id: string;
+          user_id: string | null;
+          display_name: string | null;
+          trust_score: number;
+          fraud_score: number;
+          risk_score: number;
+          risk_level: string;
+          components: Json;
+          features: Json;
+          suspicious_count: number;
+          evaluated_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          actor_kind: string;
+          actor_id: string;
+          user_id?: string | null;
+          display_name?: string | null;
+          trust_score?: number;
+          fraud_score?: number;
+          risk_score?: number;
+          risk_level?: string;
+          components?: Json;
+          features?: Json;
+          suspicious_count?: number;
+          evaluated_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["fraud_scores"]["Insert"]>;
+        Relationships: [];
+      };
       user_notifications: {
         Row: {
           id: string;
