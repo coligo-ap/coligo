@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { Suspense } from "react";
 import Link from "next/link";
 import { LogOut, ShieldCheck } from "lucide-react";
@@ -14,6 +15,11 @@ import { AdminShell } from "@/components/admin/admin-sidebar";
 import { ConfirmProvider } from "@/components/ui/confirm";
 
 export const dynamic = "force-dynamic";
+
+// SEO/Sécurité : l'espace admin n'est JAMAIS indexé (noindex + robots.txt).
+export const metadata: Metadata = {
+  robots: { index: false, follow: false },
+};
 
 export default async function AdminLayout({
   children,

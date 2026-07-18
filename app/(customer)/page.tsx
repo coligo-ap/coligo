@@ -26,6 +26,15 @@ import { ReviewPrompt } from "@/components/customer/review-prompt";
 
 export const dynamic = "force-dynamic";
 
+// SEO — page d'entrée principale : titre marketing + canonique (les
+// variantes ?utm/?q pointent toutes vers /).
+export const metadata = {
+  title: "Coligo — Courses, repas et commerces de proximité livrés en Algérie",
+  description:
+    "Commande auprès des commerçants près de chez toi : courses, repas, retrait sur place ou livraison rapide. Paiement en ligne (CIB/EDAHABIA, carte internationale) ou en espèces.",
+  alternates: { canonical: "/" },
+};
+
 // =============================================================================
 // Accueil CLIENT — refonte style Uber Eats (version lancement).
 // Header (zone + compte + panier) → recherche → catégories rondes → pilules →

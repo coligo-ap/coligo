@@ -26,6 +26,37 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 
 export const dynamic = "force-dynamic";
 
+// SEO — les boutiques publiques sont le cœur du référencement de la
+// marketplace : titre « {boutique} à {wilaya} », description réelle du
+// commerçant, canonique propre /m/[slug], vignette = logo.
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ slug: string }>;
+}) {
+  const { slug } = await params;
+  const m = await getPublicMerchantBySlug(slug);
+  if (!m) return { robots: { index: false } };
+  const wilaya = m.wilaya_code
+    ? (WILAYAS.find((w) => w.code === m.wilaya_code)?.name ?? null)
+    : null;
+  const title = wilaya ? `${m.name} à ${wilaya}` : m.name;
+  const description =
+    m.description_fr?.slice(0, 155) ??
+    `Commandez chez ${m.name}${wilaya ? ` à ${wilaya}` : ""} sur ${APP_CONFIG.name} — retrait sur place ou livraison, paiement en ligne ou en espèces.`;
+  return {
+    title: `${title} — ${APP_CONFIG.name}`,
+    description,
+    alternates: { canonical: `/m/${slug}` },
+    openGraph: {
+      title: `${title} — ${APP_CONFIG.name}`,
+      description,
+      type: "website",
+      ...(m.logo_url ? { images: [{ url: m.logo_url }] } : {}),
+    },
+  };
+}
+
 export default async function MerchantPublicPage({
   params,
 }: {
