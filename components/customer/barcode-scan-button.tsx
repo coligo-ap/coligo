@@ -33,9 +33,10 @@ import type { BarcodeSurface } from "@/lib/barcode/resolve";
 // à la détection, flash vert « Code-barres détecté » + vibration SUR la
 // caméra, puis une FEUILLE DE RÉSULTATS glisse depuis le bas (prix, « chez
 // {commerçant} » sur l'accueil), AJOUT PANIER direct (produit simple) ou
-// « Voir » (options/poids → boutique avec recherche préremplie), « Scanner
-// un autre produit » pour enchaîner. Non résolu → message + repli recherche
-// texte. Rendu GATÉ côté serveur (feature flag par surface).
+// « Voir » (options/poids → boutique avec recherche préremplie). Le scan
+// reste ARMÉ en continu : viser un AUTRE produit remplace le résultat tout
+// seul (« Scanner un autre produit » = simple raccourci de nettoyage). Non
+// résolu → message + repli recherche texte. Rendu GATÉ côté serveur.
 // =============================================================================
 
 type Panel =
@@ -65,9 +66,12 @@ export function BarcodeScanButton({
   // panneau pendant le scan → l'espace sous la caméra ne reste jamais vide et
   // un produit vu plus tôt reste ajoutable sans re-scanner.
   const [recent, setRecent] = useState<MatchedProduct[]>([]);
-  // Ignore les détections tant qu'un résultat est affiché (le client lit) —
-  // « Scanner un autre produit » réarme.
-  const armedRef = useRef(true);
+  // SCAN CONTINU : la détection reste ARMÉE même quand un résultat est
+  // affiché — pointer un AUTRE produit remplace le résultat tout seul, sans
+  // « Scanner un autre produit ». Garde-fous : une seule recherche en vol,
+  // et le MÊME code encore dans le champ ne relance pas (fenêtre glissante).
+  const searchingRef = useRef(false);
+  const lastEanRef = useRef<{ ean: string; at: number } | null>(null);
   // Flash « Code-barres détecté » PAR-DESSUS la caméra (feedback immédiat
   // façon grandes apps de scan) — auto-effacé, doublé d'une vibration.
   const [detected, setDetected] = useState(false);
@@ -76,14 +80,23 @@ export function BarcodeScanButton({
   function reset() {
     setPanel({ kind: "scanning" });
     setDetected(false);
-    armedRef.current = true;
+    lastEanRef.current = null;
   }
 
   async function handleScan(raw: string) {
-    if (!armedRef.current) return;
     const ean = raw.replace(/\D/g, "");
     if (ean.length < 8) return;
-    armedRef.current = false;
+    if (searchingRef.current) return;
+    const now = Date.now();
+    const last = lastEanRef.current;
+    if (last && last.ean === ean && now - last.at < 5000) {
+      // Même produit toujours devant la caméra : on repousse la fenêtre au
+      // lieu de relancer la même recherche en boucle.
+      last.at = now;
+      return;
+    }
+    lastEanRef.current = { ean, at: now };
+    searchingRef.current = true;
     if (detectTimerRef.current) window.clearTimeout(detectTimerRef.current);
     setDetected(true);
     detectTimerRef.current = window.setTimeout(() => setDetected(false), 1200);
@@ -93,27 +106,31 @@ export function BarcodeScanButton({
       /* vibration indisponible : feedback visuel seul */
     }
     setPanel({ kind: "searching", ean });
-    const res: ScanFindResult = await scanBarcodeFind({
-      ean,
-      surface,
-      merchantId,
-    });
-    if (!res.ok) {
-      setPanel({ kind: "not-found", ean });
-      return;
+    try {
+      const res: ScanFindResult = await scanBarcodeFind({
+        ean,
+        surface,
+        merchantId,
+      });
+      if (!res.ok) {
+        setPanel({ kind: "not-found", ean });
+        return;
+      }
+      if (res.products.length === 0) {
+        setPanel({ kind: "no-match", name: res.name });
+        return;
+      }
+      setPanel({ kind: "found", name: res.name, products: res.products });
+      setRecent((prev) => {
+        const ids = new Set(res.products.map((p) => p.product_id));
+        return [
+          ...res.products,
+          ...prev.filter((p) => !ids.has(p.product_id)),
+        ].slice(0, 8);
+      });
+    } finally {
+      searchingRef.current = false;
     }
-    if (res.products.length === 0) {
-      setPanel({ kind: "no-match", name: res.name });
-      return;
-    }
-    setPanel({ kind: "found", name: res.name, products: res.products });
-    setRecent((prev) => {
-      const ids = new Set(res.products.map((p) => p.product_id));
-      return [
-        ...res.products,
-        ...prev.filter((p) => !ids.has(p.product_id)),
-      ].slice(0, 8);
-    });
   }
 
   return (

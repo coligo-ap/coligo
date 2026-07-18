@@ -78,7 +78,7 @@ import {
   RRow,
   SectionTitle,
   TotRow,
-  WalletRow,
+  WalletCard,
 } from "./checkout-ui";
 
 type Props = {
@@ -134,6 +134,31 @@ export function CheckoutView({
   const [intlIntent, setIntlIntent] = useState<
     (StripeIntentPayload & { order_id: string }) | null
   >(null);
+  // Points de pagination du carrousel paiement (affichés seulement si les
+  // cartes débordent réellement de l'écran).
+  const payScrollRef = useRef<HTMLDivElement>(null);
+  const [payDots, setPayDots] = useState<{
+    count: number;
+    active: number;
+  } | null>(null);
+  const updatePayDots = () => {
+    const el = payScrollRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    if (max <= 8) {
+      setPayDots(null);
+      return;
+    }
+    const count = el.children.length;
+    // RTL : scrollLeft négatif → valeur absolue.
+    const active = Math.min(
+      count - 1,
+      Math.round((Math.abs(el.scrollLeft) / max) * (count - 1))
+    );
+    setPayDots((prev) =>
+      prev?.count === count && prev.active === active ? prev : { count, active }
+    );
+  };
   const [note, setNote] = useState("");
   const [delivery, setDelivery] = useState<DeliveryChoice>({
     fulfillment: "pickup",
@@ -189,6 +214,13 @@ export function CheckoutView({
       setCtx(data);
     });
   }, [cart]);
+
+  // Points du carrousel paiement : recalcul quand le contexte (donc le
+  // nombre de cartes) change — puis maintenus par onScroll.
+  useEffect(() => {
+    updatePayDots();
+     
+  }, [ctx]);
 
   // Si le panier change, l'estimation du code promo n'est plus garantie →
   // on l'efface (le client réapplique ; le serveur reste juge final).
@@ -954,10 +986,14 @@ export function CheckoutView({
           <SectionTitle icon={CreditCard} className="px-4 pt-4">
             {t("payment")}
           </SectionTitle>
-          {/* CARROUSEL horizontal (scroll-snap, barre masquée) : toutes les
-              cartes sur UNE ligne, largeur fixe → on aperçoit le bord de la
-              suivante (affordance de défilement, style Bolt). */}
-          <div className="scrollbar-hide flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pt-3 pb-4">
+          {/* CARROUSEL horizontal (scroll-snap, barre masquée) : les 3 moyens
+              de paiement VISIBLES D'UN COUP (maquette) — un tiers de largeur
+              chacun, défilement + points seulement si ça déborde. */}
+          <div
+            ref={payScrollRef}
+            onScroll={updatePayDots}
+            className="scrollbar-hide flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pt-3 pb-2"
+          >
             <PayCard
               icon={Banknote}
               selected={payment === "cash"}
@@ -973,7 +1009,7 @@ export function CheckoutView({
               chipTone={
                 cashbackOn && cashbackEarnCash > 0 ? "success" : "muted"
               }
-              className="w-[168px] shrink-0 snap-start"
+              className="min-w-[124px] shrink-0 basis-[calc((100%-20px)/3)] snap-start"
             />
             {onlineVisible && (
               <PayCard
@@ -998,7 +1034,7 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
-                className="w-[168px] shrink-0 snap-start"
+                className="min-w-[124px] shrink-0 basis-[calc((100%-20px)/3)] snap-start"
               />
             )}
             {/* Carte internationale € — visible UNIQUEMENT si le serveur l'a
@@ -1027,10 +1063,29 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
-                className="w-[168px] shrink-0 snap-start"
+                className="min-w-[124px] shrink-0 basis-[calc((100%-20px)/3)] snap-start"
               />
             )}
           </div>
+
+          {/* Points de pagination (maquette) — seulement si ça déborde. */}
+          {payDots && payDots.count > 1 ? (
+            <div className="flex items-center justify-center gap-1.5 pb-3">
+              {Array.from({ length: payDots.count }, (_, i) => (
+                <span
+                  key={i}
+                  className={cn(
+                    "h-1.5 rounded-full transition-all",
+                    i === payDots.active
+                      ? "bg-primary-600 w-4"
+                      : "bg-border-strong w-1.5"
+                  )}
+                />
+              ))}
+            </div>
+          ) : (
+            <div className="pb-2" />
+          )}
 
           {/* Capacité € atteinte : bandeau informatif + « Me prévenir »
               (inline, état local — pas de toast). */}
@@ -1097,36 +1152,6 @@ export function CheckoutView({
               </button>
             )}
 
-          {/* Soldes — DEUX switches séparés, cumulables (si solde > 0).
-              Masqués si la fonctionnalité correspondante est coupée (super-admin). */}
-          {((coligoPayOn && ctx.topup_balance_da > 0) ||
-            (cashbackOn && ctx.cashback_balance_da > 0)) && (
-            <div className="divide-border border-border divide-y border-t">
-              {coligoPayOn && ctx.topup_balance_da > 0 && (
-                <WalletRow
-                  icon={Wallet}
-                  title="Coligo Pay"
-                  sub={t("balanceAmount", {
-                    amount: formatDA(ctx.topup_balance_da),
-                  })}
-                  checked={useTopup}
-                  onToggle={() => toggleWallet("topup")}
-                />
-              )}
-              {cashbackOn && ctx.cashback_balance_da > 0 && (
-                <WalletRow
-                  icon={Gift}
-                  title={t("myCashback")}
-                  sub={t("availableAmount", {
-                    amount: formatDA(ctx.cashback_balance_da),
-                  })}
-                  checked={useCashback}
-                  onToggle={() => toggleWallet("cashback")}
-                />
-              )}
-            </div>
-          )}
-
           {onlineTooLow && (
             <div className="border-danger-200 bg-danger-50 text-danger-800 mx-4 mt-3 mb-1 rounded-[10px] border px-3 py-2 text-xs">
               {t.rich("onlineTooLow", {
@@ -1147,6 +1172,39 @@ export function CheckoutView({
             </div>
           )}
         </Block>
+
+        {/* Cartes de SOLDE (maquette) : Coligo Pay (violet) + Mon cashback
+            (vert) — REDESIGN pur des anciens switches, mêmes conditions. */}
+        {coligoPayOn && ctx.topup_balance_da > 0 && (
+          <div className="mt-3">
+            <WalletCard
+              icon={Wallet}
+              tone="primary"
+              title="Coligo Pay"
+              subLabel={t("walletBalanceShort")}
+              amountLabel={formatDA(ctx.topup_balance_da)}
+              checked={useTopup}
+              onToggle={() => toggleWallet("topup")}
+              delay={0.14}
+            />
+          </div>
+        )}
+        {cashbackOn && ctx.cashback_balance_da > 0 && (
+          <div className="mt-3">
+            <WalletCard
+              icon={Gift}
+              tone="success"
+              title={t("myCashback")}
+              subLabel={t("cashbackAvailable")}
+              amountLabel={formatDA(ctx.cashback_balance_da)}
+              savePillText={t("cashbackSavePill")}
+              href="/cashback"
+              checked={useCashback}
+              onToggle={() => toggleWallet("cashback")}
+              delay={0.16}
+            />
+          </div>
+        )}
 
         {/* Promo + Note = lignes repliables compactes. */}
         <Block className="mt-3" delay={0.17}>
