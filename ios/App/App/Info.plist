@@ -61,5 +61,10 @@
 	<string>Coligo utilise votre position pour vous proposer les commerces à proximité et suivre votre commande sur la carte.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>
 	<string>Coligo enregistre vos reçus et factures téléchargés dans vos photos.</string>
+	<!-- Chiffrement standard uniquement (HTTPS/TLS) : dispense d'export
+	     compliance — supprime le blocage « Missing Compliance » sur CHAQUE
+	     build TestFlight. -->
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 </dict>
 </plist>
