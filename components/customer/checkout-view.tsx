@@ -59,6 +59,10 @@ import {
 } from "@/lib/finance/service-fee";
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
 import { joinIntlWaitlist } from "@/app/(customer)/checkout/intl-actions";
+import {
+  IntlPaymentSheet,
+  type StripeIntentPayload,
+} from "@/components/customer/intl-payment-sheet";
 import type { FeatureStatus } from "@/lib/data/feature-flags";
 import type { PaymentMethod } from "@/lib/types";
 import {
@@ -125,6 +129,11 @@ export function CheckoutView({
   const [waitlistState, setWaitlistState] = useState<
     "idle" | "pending" | "done"
   >("idle");
+  // Paiement € EMBARQUÉ : la feuille s'ouvre sur le retour de createOrder
+  // (client_secret + montant €) — aucune redirection hors de l'app.
+  const [intlIntent, setIntlIntent] = useState<
+    (StripeIntentPayload & { order_id: string }) | null
+  >(null);
   const [note, setNote] = useState("");
   const [delivery, setDelivery] = useState<DeliveryChoice>({
     fulfillment: "pickup",
@@ -509,6 +518,12 @@ export function CheckoutView({
       });
       if (!res.ok) {
         setSubmitError(res.error);
+        return;
+      }
+      if (payment === "online" && res.stripe_intent) {
+        // Rail € : la feuille de paiement embarquée s'ouvre DANS la page —
+        // le panier n'est vidé qu'au succès du paiement.
+        setIntlIntent({ ...res.stripe_intent, order_id: res.order_id });
         return;
       }
       if (payment === "online" && res.checkout_url) {
@@ -1453,6 +1468,26 @@ export function CheckoutView({
           )}
         </div>
       </div>
+
+      {/* Feuille de paiement € EMBARQUÉE (carte + Apple Pay + Google Pay) —
+          aucune redirection : tout se passe dans la page. Au succès, la page
+          /checkout/success vide le panier et suit la confirmation webhook. */}
+      {intlIntent && (
+        <IntlPaymentSheet
+          intent={intlIntent}
+          onSuccess={() => {
+            const orderId = intlIntent.order_id;
+            setIntlIntent(null);
+            setIsRedirecting(true);
+            router.push(`/checkout/success?order_id=${orderId}`);
+          }}
+          onClose={() => {
+            // Abandon AVANT paiement : panier intact, commande pending
+            // (re-soumission idempotente ou filet d'expiration).
+            setIntlIntent(null);
+          }}
+        />
+      )}
     </div>
   );
 }

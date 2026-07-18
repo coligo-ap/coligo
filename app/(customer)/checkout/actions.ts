@@ -52,7 +52,11 @@ import {
   getRequestCountry,
   type IntlRefusal,
 } from "@/lib/payments/intl";
-import { createIntlCheckoutSession } from "@/lib/payments/stripe";
+import {
+  createIntlCheckoutSession,
+  createIntlPaymentIntent,
+  getPublishableKey,
+} from "@/lib/payments/stripe";
 
 export type CreateOrderInput = {
   merchant_id: string;
@@ -132,6 +136,17 @@ export type CreateOrderResult =
        * tout), absent.
        */
       checkout_url?: string;
+      /**
+       * Rail stripe_eur : PAIEMENT EMBARQUÉ dans la page (Payment Element —
+       * carte + Apple Pay + Google Pay). `client_secret` est FAIT pour le
+       * client ; le montant € affiché sur le bouton vient d'ici (le taux,
+       * lui, ne sort jamais). Le webhook reste la seule source de vérité.
+       */
+      stripe_intent?: {
+        client_secret: string;
+        publishable_key: string;
+        eur_cents: number;
+      };
     }
   | { ok: false; error: string };
 
@@ -1539,9 +1554,10 @@ export async function createOrder(
         .update({ payment_status: "paid" })
         .eq("id", order.id);
     } else if (input.online_rail === "stripe_eur") {
-      // ── Rail INTERNATIONAL (Stripe, EUR) — le taux maison reste serveur. ──
-      // Re-vérification AUTORITAIRE (pays, plafonds, taux) au moment T : la
-      // visibilité affichée plus tôt ne fait pas foi.
+      // ── Rail INTERNATIONAL (Stripe, EUR) — PAIEMENT EMBARQUÉ dans la page
+      // (Payment Element : carte + Apple Pay + Google Pay). Le taux maison
+      // reste serveur. Re-vérification AUTORITAIRE (pays, plafonds, taux) au
+      // moment T : la visibilité affichée plus tôt ne fait pas foi.
       try {
         const elig = await checkIntlEligibility({
           customerId: customer.id,
@@ -1551,18 +1567,17 @@ export async function createOrder(
         if (!elig.ok) {
           return { ok: false, error: intlRefusalMessage(elig.reason) };
         }
-        const { successUrl, failureUrl } = buildCallbackUrls({
-          context: "order",
-          orderId: order.id,
-        });
-        const session = await createIntlCheckoutSession({
+        const publishableKey = await getPublishableKey();
+        if (!publishableKey) {
+          return {
+            ok: false,
+            error: "Paiement en euros momentanément indisponible.",
+          };
+        }
+        const intent = await createIntlPaymentIntent({
           orderId: order.id,
           eurCents: elig.eur_cents!,
           description: `Commande Coligo #${order.pickup_code}`,
-          locale: "fr",
-          paypalEnabled: elig.paypal_enabled,
-          successUrl,
-          cancelUrl: failureUrl,
           metadata: {
             type: "order",
             order_id: order.id,
@@ -1582,7 +1597,7 @@ export async function createOrder(
         ).insert({
           order_id: order.id,
           customer_id: customer.id,
-          stripe_session_id: session.id,
+          stripe_payment_intent: intent.id,
           eur_cents: elig.eur_cents!,
           total_da: totalWithDelivery,
           rate_da: elig.rate.rate_da,
@@ -1596,7 +1611,17 @@ export async function createOrder(
             error: "Commande créée mais paiement indisponible. Réessaye.",
           };
         }
-        checkoutUrl = session.url;
+        revalidatePath("/commandes");
+        return {
+          ok: true,
+          order_id: order.id,
+          pickup_code: order.pickup_code,
+          stripe_intent: {
+            client_secret: intent.clientSecret,
+            publishable_key: publishableKey,
+            eur_cents: elig.eur_cents!,
+          },
+        };
       } catch (e) {
         // Commande conservée : le client peut réessayer (idempotent via
         // client_operation_id), comme sur le rail Chargily.

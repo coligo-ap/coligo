@@ -84,6 +84,19 @@ export function stripeAnyKeyPresent(): boolean {
   );
 }
 
+/** Clé publiable du mode actif — SEULE clé qui a le droit d'aller au client
+ *  (elle est faite pour ça : monter le Payment Element). */
+export async function getPublishableKey(): Promise<string | null> {
+  const mode = await getStripeMode();
+  const key =
+    mode === "live"
+      ? process.env.NEXT_PUBLIC_STRIPE_LIVE_PUBLISHABLE_KEY
+      : process.env.NEXT_PUBLIC_STRIPE_TEST_PUBLISHABLE_KEY;
+  if (!key) return null;
+  const expected = mode === "live" ? "pk_live_" : "pk_test_";
+  return key.startsWith(expected) ? key : null;
+}
+
 /** Présence des clés par mode (pour l'écran admin — jamais les valeurs). */
 export function stripeKeysPresence(): {
   test: boolean;
@@ -156,6 +169,42 @@ export async function createIntlCheckoutSession(
     throw new Error("Stripe n'a pas renvoyé d'URL de paiement.");
   }
   return { id: session.id, url: session.url, livemode: mode === "live" };
+}
+
+export type CreateIntlIntentInput = {
+  orderId: string;
+  eurCents: number; // calculé serveur (taux maison) — JAMAIS depuis le client
+  description: string;
+  metadata: Record<string, string>;
+};
+
+/** Crée un PaymentIntent pour le PAIEMENT EMBARQUÉ (Payment Element dans la
+ *  page — carte + Apple Pay + Google Pay via automatic_payment_methods).
+ *  3DS FORCÉ. Le client ne reçoit que le client_secret (fait pour ça) ; le
+ *  webhook payment_intent.succeeded reste la seule source de vérité. */
+export async function createIntlPaymentIntent(
+  input: CreateIntlIntentInput
+): Promise<{ id: string; clientSecret: string; livemode: boolean }> {
+  const mode = await getStripeMode();
+  const stripe = stripeFor(mode);
+  const intent = await stripe.paymentIntents.create({
+    amount: input.eurCents,
+    currency: "eur",
+    description: input.description,
+    automatic_payment_methods: { enabled: true, allow_redirects: "never" },
+    payment_method_options: {
+      card: { request_three_d_secure: "any" },
+    },
+    metadata: input.metadata,
+  });
+  if (!intent.client_secret) {
+    throw new Error("Stripe n'a pas renvoyé de client_secret.");
+  }
+  return {
+    id: intent.id,
+    clientSecret: intent.client_secret,
+    livemode: mode === "live",
+  };
 }
 
 /** Vérifie la signature du webhook et parse l'événement. Un webhook peut

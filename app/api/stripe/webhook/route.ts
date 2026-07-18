@@ -98,6 +98,182 @@ export async function POST(req: NextRequest) {
   };
 
   // -------------------------------------------------------------------------
+  // payment_intent.succeeded — paiement EMBARQUÉ confirmé (Payment Element).
+  // Même logique que checkout.session.completed, session retrouvée par
+  // stripe_payment_intent (index unique 0378).
+  // -------------------------------------------------------------------------
+  if (event.type === "payment_intent.succeeded") {
+    const pi = event.data.object as Stripe.PaymentIntent;
+    const orderId =
+      typeof pi.metadata?.order_id === "string" ? pi.metadata.order_id : null;
+
+    const { data: sess } = await sessions
+      .select("id, order_id, customer_id, eur_cents, total_da, status")
+      .eq("stripe_payment_intent", pi.id)
+      .maybeSingle();
+    if (!sess || !orderId || sess.order_id !== orderId) {
+      console.error("[stripe/webhook] intent inconnu/croisé", pi.id, orderId);
+      await auditIntl(
+        admin,
+        "intl_session_mismatch",
+        `payment_intent.succeeded sur intent inconnu ou croisé (${pi.id}).`
+      );
+      await recordEvent(null);
+      return NextResponse.json({ ok: true, unknown_intent: true });
+    }
+
+    // Défense en profondeur : montant + devise confirmés par Stripe.
+    if (pi.currency !== "eur" || pi.amount !== sess.eur_cents) {
+      console.error(
+        `[stripe/webhook] montant/devise inattendus ${pi.id}: ` +
+          `${pi.amount} ${pi.currency} attendu=${sess.eur_cents} eur`
+      );
+      await auditIntl(
+        admin,
+        "intl_amount_mismatch",
+        `Intent ${pi.id} : payé ${pi.amount} ${pi.currency} ≠ attendu ${sess.eur_cents} c€.`,
+        sess.id
+      );
+      await recordEvent(sess.id);
+      return NextResponse.json({ ok: false, amount_mismatch: true });
+    }
+
+    await sessions
+      .update({ status: "paid", paid_at: new Date().toISOString() })
+      .eq("stripe_payment_intent", pi.id)
+      .eq("status", "created");
+
+    const { data: target } = await admin
+      .from("orders")
+      .select("total_da, status, payment_status, customer_id")
+      .eq("id", orderId)
+      .maybeSingle();
+    if (!target) {
+      await recordEvent(sess.id);
+      return NextResponse.json({ ok: true, unknown_order: true });
+    }
+
+    const { data: updated, error } = await admin
+      .from("orders")
+      .update({ payment_status: "paid" })
+      .eq("id", orderId)
+      .eq("payment_status", "pending")
+      .select("id, merchant_id, customer_name, total_da")
+      .maybeSingle();
+    if (error) {
+      console.error("[stripe/webhook] intent order paid failed:", error);
+      await recordEvent(sess.id);
+      return NextResponse.json(
+        { ok: false, error: error.message },
+        { status: 500 }
+      );
+    }
+    if (updated) {
+      void notifyMerchantNewOrder({
+        merchantId: updated.merchant_id,
+        orderId: updated.id,
+        customerName: updated.customer_name,
+        totalDa: updated.total_da,
+      });
+      void notifyDriversTour({ orderId: updated.id });
+      await recordEvent(sess.id);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Rejeu OU payé sur commande annulée entre-temps → même filet que le flux
+    // hébergé : recrédit Coligo Pay (idempotent via l'index unique, l'id de
+    // l'intent tient lieu de checkout id).
+    if (target.payment_status !== "paid" && target.customer_id) {
+      const { error: compErr } = await (
+        admin.from("customer_wallet_entries") as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<{
+            error: { code?: string; message: string } | null;
+          }>;
+        }
+      ).insert({
+        customer_id: target.customer_id,
+        order_id: orderId,
+        type: "topup_credit",
+        source: "topup",
+        amount_da: sess.total_da,
+        chargily_checkout_id: pi.id,
+        note: `Paiement Stripe (€) reçu APRÈS annulation de la commande ${orderId} — recrédité sur Coligo Pay.`,
+      });
+      if (compErr?.code !== "23505") {
+        if (compErr) {
+          console.error(
+            "[stripe/webhook] compensation credit failed:",
+            compErr.message
+          );
+        }
+        await admin.from("admin_audit_log").insert({
+          admin_email: "stripe",
+          action: "paid_after_cancel",
+          target_kind: "order",
+          target_id: orderId,
+          note:
+            `${sess.eur_cents} c€ payés (Stripe, embarqué) APRÈS annulation ` +
+            `(status=${target.status}, payment_status=${target.payment_status}) → ` +
+            (compErr
+              ? "ÉCHEC du recrédit Coligo Pay — RÉCONCILIATION MANUELLE REQUISE."
+              : `${sess.total_da} DA recrédités sur Coligo Pay du client.`),
+        });
+      }
+    }
+    await recordEvent(sess.id);
+    return NextResponse.json({ ok: true, already_processed: true });
+  }
+
+  // -------------------------------------------------------------------------
+  // payment_intent.payment_failed — échec d'une tentative sur la feuille
+  // embarquée. RIEN à annuler : le client est toujours devant le Payment
+  // Element et peut réessayer avec une autre carte (la session reste
+  // 'created' ; le filet d'expiration des commandes online pending fait le
+  // ménage si le client abandonne). On trace seulement.
+  // -------------------------------------------------------------------------
+  if (event.type === "payment_intent.payment_failed") {
+    const pi = event.data.object as Stripe.PaymentIntent;
+    const { data: sess } = await sessions
+      .select("id, order_id, customer_id, eur_cents, total_da, status")
+      .eq("stripe_payment_intent", pi.id)
+      .maybeSingle();
+    await recordEvent(sess?.id ?? null);
+    return NextResponse.json({ ok: true });
+  }
+
+  // -------------------------------------------------------------------------
+  // payment_intent.canceled — intent annulé (jamais payé) : même traitement
+  // que checkout.session.expired.
+  // -------------------------------------------------------------------------
+  if (event.type === "payment_intent.canceled") {
+    const pi = event.data.object as Stripe.PaymentIntent;
+    const { data: sess } = await sessions
+      .select("id, order_id, customer_id, eur_cents, total_da, status")
+      .eq("stripe_payment_intent", pi.id)
+      .maybeSingle();
+    if (sess) {
+      await sessions
+        .update({ status: "expired" })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      const { error } = await admin
+        .from("orders")
+        .update({
+          status: "cancelled",
+          payment_status: "failed",
+          payment_failure_reason: "Paiement en euros annulé (non complété).",
+        })
+        .eq("id", sess.order_id)
+        .eq("payment_status", "pending");
+      if (error) {
+        console.error("[stripe/webhook] intent cancel failed:", error);
+      }
+    }
+    await recordEvent(sess?.id ?? null);
+    return NextResponse.json({ ok: true });
+  }
+
+  // -------------------------------------------------------------------------
   // checkout.session.completed — paiement confirmé
   // -------------------------------------------------------------------------
   if (event.type === "checkout.session.completed") {
