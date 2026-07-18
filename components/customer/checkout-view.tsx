@@ -63,6 +63,7 @@ import {
   IntlPaymentSheet,
   type StripeIntentPayload,
 } from "@/components/customer/intl-payment-sheet";
+import { IntlApproxTag } from "@/components/customer/intl-approx";
 import type { FeatureStatus } from "@/lib/data/feature-flags";
 import type { PaymentMethod } from "@/lib/types";
 import {
@@ -1509,6 +1510,16 @@ export function CheckoutView({
             ) : (
               <span className="relative z-[2] flex items-center justify-center gap-2">
                 {t("confirmOrder")}
+                {/* Carte internationale : « ≈ X € » en petit (façon Uber) —
+                    le client sait AVANT de confirmer ce que sa carte paiera. */}
+                {payment === "online" &&
+                  onlineRail === "stripe_eur" &&
+                  totalAfterWallets > 0 && (
+                    <IntlApproxTag
+                      totalDa={totalAfterWallets}
+                      className="text-[12px] font-bold tabular-nums opacity-90"
+                    />
+                  )}
                 <ChevronRight className="size-[18px]" />
               </span>
             )}

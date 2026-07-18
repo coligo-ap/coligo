@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
 import { loadStripe } from "@stripe/stripe-js";
 import {
@@ -10,9 +10,13 @@ import {
   useElements,
   useStripe,
 } from "@stripe/react-stripe-js";
-import { Loader2, Lock, X } from "lucide-react";
+import { Loader2, Lock, RefreshCcw, X } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
+import {
+  nativePaymentAvailable,
+  presentNativePaymentSheet,
+} from "@/lib/native/stripe-payment";
 
 // =============================================================================
 // IntlPaymentSheet — paiement € EMBARQUÉ (Payment Element), style Bolt :
@@ -34,7 +38,7 @@ export type StripeIntentPayload = {
   total_da?: number;
 };
 
-function eurLabel(cents: number): string {
+export function eurLabel(cents: number): string {
   return `${(cents / 100).toFixed(2).replace(".", ",")} €`;
 }
 
@@ -51,10 +55,33 @@ export function IntlPaymentSheet({
 }) {
   const t = useTranslations("checkout");
   const locale = useLocale();
+  // APK/iOS : la WebView n'a PAS l'API Payment Request → le Payment Element
+  // web ne peut pas montrer Google Pay/Apple Pay. On présente alors la
+  // PaymentSheet NATIVE Stripe (Google Pay/Apple Pay/carte, 3DS natif) —
+  // même client_secret, même webhook source de vérité.
+  const nativeMode = nativePaymentAvailable();
+  const [nativeFailed, setNativeFailed] = useState(false);
+  const nativeLaunchedRef = { current: false } as { current: boolean };
+  const launchNative = async () => {
+    const r = await presentNativePaymentSheet({
+      clientSecret: intent.client_secret,
+      publishableKey: intent.publishable_key,
+    });
+    if (r === "paid") onSuccess();
+    else if (r === "canceled") onClose();
+    else setNativeFailed(true);
+  };
+  useEffect(() => {
+    if (!nativeMode || nativeLaunchedRef.current) return;
+    nativeLaunchedRef.current = true;
+    void launchNative();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   // Une seule promesse loadStripe par montage (exigence stripe-js), clé du
-  // MODE actif renvoyée par le serveur.
+  // MODE actif renvoyée par le serveur. Jamais chargée en mode natif.
   const stripePromise = useMemo(
-    () => loadStripe(intent.publishable_key),
+    () => (nativeMode ? null : loadStripe(intent.publishable_key)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [intent.publishable_key]
   );
   // Thème : le sombre client est la classe `theme-dark` posée sur <html>
@@ -120,43 +147,76 @@ export function IntlPaymentSheet({
             </span>
           </div>
 
-          <div className="max-h-[62dvh] overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
-            <Elements
-              stripe={stripePromise}
-              options={{
-                clientSecret: intent.client_secret,
-                locale: locale === "ar" ? "ar" : locale === "en" ? "en" : "fr",
-                appearance: {
-                  theme: dark ? "night" : "stripe",
-                  variables: {
-                    colorPrimary: "#6C2BD9",
-                    colorDanger: "#e11d48",
-                    borderRadius: "14px",
-                    fontFamily:
-                      "'Plus Jakarta Sans', 'Sora', system-ui, sans-serif",
-                    fontSizeBase: "14px",
-                    spacingUnit: "4px",
-                  },
-                  rules: {
-                    ".Input": { boxShadow: "none", borderWidth: "1.5px" },
-                    ".Input:focus": {
-                      borderColor: "#6C2BD9",
-                      boxShadow: "0 0 0 3px rgba(108,43,217,.15)",
+          {/* APK/iOS : la feuille NATIVE Stripe est au-dessus — ici juste
+              l'attente ou la reprise après échec. */}
+          {nativeMode ? (
+            <div className="grid place-items-center gap-3 px-5 py-8 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
+              {nativeFailed ? (
+                <>
+                  <p className="text-danger-800 text-center text-[13px] font-bold">
+                    {t("intlPayError")}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setNativeFailed(false);
+                      void launchNative();
+                    }}
+                    className="bg-primary-600 inline-flex h-11 items-center gap-2 rounded-full px-5 text-[13.5px] font-extrabold text-white"
+                  >
+                    <RefreshCcw className="size-4" />
+                    {t("retryPayment")}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <Loader2 className="text-primary-600 size-6 animate-spin" />
+                  <p className="text-muted text-[12.5px] font-semibold">
+                    {t("intlSheetSub")}
+                  </p>
+                </>
+              )}
+            </div>
+          ) : (
+            <div className="max-h-[62dvh] overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">
+              <Elements
+                stripe={stripePromise}
+                options={{
+                  clientSecret: intent.client_secret,
+                  locale:
+                    locale === "ar" ? "ar" : locale === "en" ? "en" : "fr",
+                  appearance: {
+                    theme: dark ? "night" : "stripe",
+                    variables: {
+                      colorPrimary: "#6C2BD9",
+                      colorDanger: "#e11d48",
+                      borderRadius: "14px",
+                      fontFamily:
+                        "'Plus Jakarta Sans', 'Sora', system-ui, sans-serif",
+                      fontSizeBase: "14px",
+                      spacingUnit: "4px",
                     },
-                    ".Tab": { borderRadius: "12px" },
-                    ".Label": { fontWeight: "700", fontSize: "12px" },
+                    rules: {
+                      ".Input": { boxShadow: "none", borderWidth: "1.5px" },
+                      ".Input:focus": {
+                        borderColor: "#6C2BD9",
+                        boxShadow: "0 0 0 3px rgba(108,43,217,.15)",
+                      },
+                      ".Tab": { borderRadius: "12px" },
+                      ".Label": { fontWeight: "700", fontSize: "12px" },
+                    },
                   },
-                },
-              }}
-            >
-              <PayForm
-                eurCents={intent.eur_cents}
-                paying={paying}
-                setPaying={setPaying}
-                onSuccess={onSuccess}
-              />
-            </Elements>
-          </div>
+                }}
+              >
+                <PayForm
+                  eurCents={intent.eur_cents}
+                  paying={paying}
+                  setPaying={setPaying}
+                  onSuccess={onSuccess}
+                />
+              </Elements>
+            </div>
+          )}
         </div>
       </div>
     </Portal>

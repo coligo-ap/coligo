@@ -21,6 +21,7 @@ import { AvailabilityNotice } from "@/components/zones/availability-notice";
 import { DriveMap, type LatLng } from "./drive-map";
 import { PrimaryBtn, ProxModal, GO, ROSE, VIOLET } from "./drive-modals";
 import { Leg, OptRow, ZoneBlockNotice } from "./drive-ui";
+import { IntlApproxTag } from "@/components/customer/intl-approx";
 import type { DriveContext, DriveQuote } from "@/app/(customer)/drive/actions";
 import type { Gamme, Pt, Screen } from "./drive-types";
 
@@ -694,6 +695,18 @@ export function DrivePriceScreen({
           {priceStale
             ? t("price.recalculating")
             : t("price.propose", { price: offerPrice })}
+          {/* Carte internationale : « ≈ X € » en petit (façon Uber) — le
+              client voit AVANT de demander ce que sa carte paiera. */}
+          {!priceStale &&
+            payMode === "card" &&
+            cardRail === "eur" &&
+            intlAvailable &&
+            offerPrice > 0 && (
+              <IntlApproxTag
+                totalDa={offerPrice + (boostOn ? boostAmt : 0)}
+                className="ms-1.5 text-[12px] font-bold tabular-nums opacity-90"
+              />
+            )}
         </PrimaryBtn>
       </div>
 
