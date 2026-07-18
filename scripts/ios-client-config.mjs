@@ -35,7 +35,14 @@ writeFileSync(
       webDir: "capacitor-webroot",
       server: {
         url: SERVER_URL,
-        iosScheme: "https",
+        // ⚠️ PAS de `iosScheme: "https"` : interdit par Capacitor sur iOS
+        // (WKWebView gère déjà http/https). Avec, le pont calcule son origine
+        // interne en `capacitor://coligo.app` et traite https://coligo.app
+        // comme un site EXTERNE → ouverture dans Safari + WebView blanche
+        // (bug vécu build 21). `androidScheme: "https"` reste valide côté
+        // Android — c'est un cas spécial Android uniquement.
+        // Garde-fou : les navigations restent bornées au domaine.
+        allowNavigation: ["coligo.app", "*.coligo.app"],
       },
       ios: {
         // Doit rester égal au blanc de l'écran de lancement natif (Splash.imageset)
