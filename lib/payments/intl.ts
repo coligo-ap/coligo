@@ -134,63 +134,116 @@ export async function getIntlSettings(admin: Admin): Promise<IntlSettings> {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Taux du marché parallèle — scrape fail-soft + snapshots DB
+// Taux du marché parallèle — CHAÎNE MULTI-SOURCES fail-soft + snapshots DB
 // ─────────────────────────────────────────────────────────────────────────────
-// Source par défaut : cotations « Square Port-Saïd » publiées par devise-dz
-// (pas d'API officielle — il n'en existe aucune pour le parallèle). URL
-// surchargeable via INTL_RATE_SOURCE_URL sans redéploiement. On prend la
-// valeur ACHAT (la plus basse des deux) : c'est ce qu'obtiendrait réellement
-// la famille en changeant du cash — base honnête avant marge.
-const RATE_SOURCE_URL =
-  process.env.INTL_RATE_SOURCE_URL ??
-  "https://www.devise-dz.com/square-port-said/";
-const RATE_SOURCE_NAME = "devise-dz";
+// Pas d'API officielle du parallèle → on interroge PLUSIEURS sites publics de
+// cotations « Square Port-Saïd », chacun avec SON parseur ciblé (structure
+// vérifiée le 18/07/2026, valeurs croisées cohérentes : 275/277-280 DA/€).
+// La première source qui répond avec un taux plausible gagne ; le nom de la
+// source gagnante est tracé dans le snapshot. Une source qui casse ne coupe
+// rien : la suivante prend le relais, et les snapshots amortissent le tout.
+// On prend la valeur ACHAT (la plus basse) : base honnête avant marge.
+//
 // Sanité absolue du parse (indépendante des réglages admin) : hors de cette
 // fourchette, c'est un bug de parse, pas un taux.
 const PARSE_MIN = 120;
 const PARSE_MAX = 500;
 const SNAPSHOT_FRESH_MS = 6 * 60 * 60 * 1000; // 6 h
 
-function parseParallelEur(html: string): number | null {
-  // Page = tableau de cotations ; on cherche la ligne EUR et on capture les
-  // deux premiers nombres plausibles (achat / vente), tolérant au markup.
-  const eurZone = html.match(/EUR|1\s*€|Euro/i);
-  if (!eurZone || eurZone.index == null) return null;
-  const after = html.slice(eurZone.index, eurZone.index + 600);
-  const nums: number[] = [];
-  const re = /(\d{3})(?:[.,](\d{1,2}))?/g;
-  let m: RegExpExecArray | null;
-  while ((m = re.exec(after)) && nums.length < 2) {
-    const v = Number(`${m[1]}.${m[2] ?? "0"}`);
-    if (v >= PARSE_MIN && v <= PARSE_MAX) nums.push(v);
-  }
-  if (nums.length === 0) return null;
-  return Math.min(...nums); // achat (conservateur)
+function plausible(v: number): boolean {
+  return Number.isFinite(v) && v >= PARSE_MIN && v <= PARSE_MAX;
 }
 
-async function fetchParallelRate(): Promise<
-  { ok: true; rate: number } | { ok: false; note: string }
-> {
+type RateSource = {
+  name: string;
+  url: string;
+  parse: (html: string) => number | null;
+};
+
+const RATE_SOURCES: RateSource[] = [
+  {
+    // JSON-LD schema.org : {"currency":"EUR","currentExchangeRate":{"price":275,…}}
+    // — le plus robuste (données structurées, pas de markup fragile).
+    name: "squareportsaid",
+    url: "https://squareportsaid.com/en/",
+    parse: (html) => {
+      const m = html.match(
+        /"currency"\s*:\s*"EUR"[\s\S]{0,200}?"price"\s*:\s*(\d+(?:\.\d+)?)/
+      );
+      if (!m) return null;
+      const v = Number(m[1]);
+      return plausible(v) ? v : null;
+    },
+  },
+  {
+    // « <h1>1 EURO</h1> … <h1>280<span>.00</span></h1> … BUY RATE … 277 … SELL »
+    // → on capture les deux cours autour du bloc EURO et on prend le min.
+    name: "devisesquare",
+    url: "https://devisesquare.com/",
+    parse: (html) => {
+      const i = html.search(/1\s*EURO\b/i);
+      if (i < 0) return null;
+      const zone = html.slice(i, i + 1200);
+      const nums: number[] = [];
+      const re = /<h1>(\d{3})(?:<span>\.(\d{1,2})<\/span>)?<\/h1>/g;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(zone)) && nums.length < 2) {
+        const v = Number(`${m[1]}.${m[2] ?? "0"}`);
+        if (plausible(v)) nums.push(v);
+      }
+      return nums.length > 0 ? Math.min(...nums) : null;
+    },
+  },
+  {
+    // « 1 Euro … = 278 DA … (Achat) … = 280 DA … (Vente) » — cash uniquement
+    // (on s'arrête avant les lignes « Euro Visa »).
+    name: "vikizia",
+    url: "https://vikizia.com/devise.php",
+    parse: (html) => {
+      const nums: number[] = [];
+      const re =
+        /1\s*Euro\s*(?!Visa)[\s\S]{0,120}?=\s*(\d{3}(?:[.,]\d{1,2})?)\s*DA/gi;
+      let m: RegExpExecArray | null;
+      while ((m = re.exec(html)) && nums.length < 2) {
+        const v = Number(m[1].replace(",", "."));
+        if (plausible(v)) nums.push(v);
+      }
+      return nums.length > 0 ? Math.min(...nums) : null;
+    },
+  },
+];
+
+async function fetchOne(
+  src: RateSource
+): Promise<{ ok: true; rate: number } | { ok: false; note: string }> {
   try {
     const ctl = new AbortController();
-    const t = setTimeout(() => ctl.abort(), 5000);
-    const res = await fetch(RATE_SOURCE_URL, {
+    const t = setTimeout(() => ctl.abort(), 6000);
+    const res = await fetch(src.url, {
       signal: ctl.signal,
       cache: "no-store",
       headers: { "User-Agent": "Mozilla/5.0 (compatible; ColigoRate/1.0)" },
     });
     clearTimeout(t);
     if (!res.ok) return { ok: false, note: `HTTP ${res.status}` };
-    const html = await res.text();
-    const rate = parseParallelEur(html);
+    const rate = src.parse(await res.text());
     if (rate == null) return { ok: false, note: "parse impossible" };
     return { ok: true, rate };
   } catch (e) {
-    return {
-      ok: false,
-      note: e instanceof Error ? e.message : "fetch échoué",
-    };
+    return { ok: false, note: e instanceof Error ? e.message : "fetch échoué" };
   }
+}
+
+async function fetchParallelRate(): Promise<
+  { ok: true; rate: number; source: string } | { ok: false; note: string }
+> {
+  const failures: string[] = [];
+  for (const src of RATE_SOURCES) {
+    const r = await fetchOne(src);
+    if (r.ok) return { ok: true, rate: r.rate, source: src.name };
+    failures.push(`${src.name}: ${r.note}`);
+  }
+  return { ok: false, note: failures.join(" | ") };
 }
 
 type Snapshot = { raw_rate_da: number; fetched_at: string };
@@ -241,7 +294,7 @@ export async function fetchAndRecordParallelRate(
 ): Promise<number | null> {
   const fetched = await fetchParallelRate();
   await tbl(admin, "intl_rate_snapshots").insert({
-    source: RATE_SOURCE_NAME,
+    source: fetched.ok ? fetched.source : "all-sources",
     raw_rate_da: fetched.ok ? fetched.rate : null,
     ok: fetched.ok,
     note: fetched.ok ? null : fetched.note,
@@ -270,7 +323,7 @@ export async function resolveEffectiveRate(
     Math.max(raw, settings.rate_floor_da),
     settings.rate_ceiling_da
   );
-  return { rate_da: clamped, source: `auto:${RATE_SOURCE_NAME}` };
+  return { rate_da: clamped, source: "auto:parallel-market" };
 }
 
 /** DA → centimes d'euro, arrondi AU-DESSUS (on ne perd jamais au change). */
