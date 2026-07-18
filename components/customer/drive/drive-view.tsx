@@ -821,7 +821,29 @@ export function DriveView({ userId }: { userId: string }) {
       // froid, réseau qui stalle) laisserait le spinner tourner à l'infini — le
       // `finally` ne s'exécute pas sur une promesse jamais réglée. Au-delà : on
       // rejette, message inline, bouton réactivé (le `finally` libère tout).
-      const res = await withTimeout(requestDriveRide(payload), 15000);
+      let res = await withTimeout(requestDriveRide(payload), 15000);
+      // AUTO-RÉCUPÉRATION devis : « déjà utilisé / expiré / introuvable » ne
+      // doit JAMAIS bloquer le client — on ré-émet un devis frais en silence
+      // et on retente UNE fois (même trajet, même prix serveur).
+      if (!res.ok && res.error && /estimation/i.test(res.error)) {
+        const fresh = await issueDriveQuote({
+          pickup_lat: payload.pickup_lat,
+          pickup_lng: payload.pickup_lng,
+          pickup_text: payload.pickup_text ?? null,
+          dest_lat: payload.dest_lat,
+          dest_lng: payload.dest_lng,
+          dest_text: payload.dest_text ?? null,
+          price_da: payload.proposed_price_da,
+          gamme: payload.gamme,
+        }).catch(() => null);
+        if (fresh?.quoteId) {
+          setQuoteId(fresh.quoteId);
+          res = await withTimeout(
+            requestDriveRide({ ...payload, quote_id: fresh.quoteId }),
+            15000
+          );
+        }
+      }
       if (!res.ok) {
         setRequestError(res.error ?? t("requestFailed"));
         return;
@@ -836,7 +858,7 @@ export function DriveView({ userId }: { userId: string }) {
             15000
           );
           if (!intl.ok) {
-            setRequestError(t("requestFailed"));
+            setRequestError(t("intlPayUnavailable"));
             await cancelDriveRide(res.rideId, "Paiement € indisponible");
             return;
           }

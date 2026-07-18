@@ -24,6 +24,10 @@
     {
       "path": "/api/cron/fraud",
       "schedule": "45 4 * * *"
+    },
+    {
+      "path": "/api/cron/intl-sweep",
+      "schedule": "15 4 * * *"
     }
   ]
 }

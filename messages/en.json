@@ -1009,6 +1009,7 @@
     "myPosition": "My current position",
     "swap": "Swap pickup and destination",
     "requestFailed": "Request failed — try again.",
+    "intlPayUnavailable": "Euro payment temporarily unavailable — pick another payment method.",
     "status": {
       "completed": "Completed",
       "cancelled": "Cancelled"

@@ -436,16 +436,20 @@ export async function requestDriveRide(input: {
     };
   }
 
-  // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE et le
-  // CONSOMME pour le trajet courant AVANT d'engager le prix. Adresse changée /
-  // devis expiré / déjà utilisé → refus net (le client re-demande un prix).
+  // Anti-prix-périmé (Partie D) : si un devis a été émis, on le VÉRIFIE
+  // (fraîcheur + adresses) AVANT d'engager le prix — mais on ne le CONSOMME
+  // qu'APRÈS la création réussie de la course. Sinon, tout échec en aval
+  // (zone, RPC, réseau) brûlait le devis et le retap du client mourait sur
+  // « Devis déjà utilisé » alors qu'aucune course n'existait. Le prix reste
+  // inviolable : il vient d'un devis SERVEUR frais (TTL + adresses liées),
+  // et l'idempotence par operation_id + le verrou client couvrent le rejeu.
   if (input.quote_id) {
     const chk = await verifyPriceQuote({
       quoteId: input.quote_id,
       context: "drive",
       pickup: { lat: input.pickup_lat, lng: input.pickup_lng },
       dest: { lat: input.dest_lat, lng: input.dest_lng },
-      consume: true,
+      consume: false,
     });
     if (!chk.ok) {
       return { ok: false, error: quoteRejectionMessage(chk.reason) };
@@ -517,6 +521,17 @@ export async function requestDriveRide(input: {
   }
   const rideId = typeof data === "string" ? data : undefined;
   if (rideId) {
+    // Course créée → consommation du devis MAINTENANT (best-effort : un
+    // « déjà consommé » ici = double-submit absorbé par operation_id).
+    if (input.quote_id) {
+      void verifyPriceQuote({
+        quoteId: input.quote_id,
+        context: "drive",
+        pickup: { lat: input.pickup_lat, lng: input.pickup_lng },
+        dest: { lat: input.dest_lat, lng: input.dest_lng },
+        consume: true,
+      }).catch(() => {});
+    }
     void notifyChauffeursNewRide({ rideId });
     void triggerDemoResponder(rideId);
   }
@@ -1264,6 +1279,12 @@ export async function createRideIntlPayment(rideId: string): Promise<
     if (!elig.ok) return { ok: false, error: `intl_${elig.reason}` };
     const publishableKey = await stripeMod.getPublishableKey();
     if (!publishableKey) return { ok: false, error: "intl_off" };
+    // ANTI-DOUBLE-DÉBIT : neutralise un intent précédent de CETTE course +
+    // balaye les sessions abandonnées (filet — les intents n'expirent pas).
+    const { supersedeStaleSessions, sweepStaleIntlSessions } =
+      await import("@/lib/payments/intl-guard");
+    await supersedeStaleSessions(admin, { rideId: ride.id });
+    void sweepStaleIntlSessions();
     const intent = await stripeMod.createIntlPaymentIntent({
       orderId: ride.id,
       eurCents: elig.eur_cents!,

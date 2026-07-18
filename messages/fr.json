@@ -1009,6 +1009,7 @@
     "myPosition": "Ma position actuelle",
     "swap": "Inverser départ et arrivée",
     "requestFailed": "Demande impossible — réessayez.",
+    "intlPayUnavailable": "Paiement en euros momentanément indisponible — choisis un autre moyen de paiement.",
     "status": {
       "completed": "Terminée",
       "cancelled": "Annulée"

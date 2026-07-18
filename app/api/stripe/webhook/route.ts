@@ -266,10 +266,25 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
-    // Rejeu OU payé sur commande annulée entre-temps → même filet que le flux
-    // hébergé : recrédit Coligo Pay (idempotent via l'index unique, l'id de
-    // l'intent tient lieu de checkout id).
-    if (target.payment_status !== "paid" && target.customer_id) {
+    // Transition refusée. Trois cas, JAMAIS un client débité sans
+    // contrepartie :
+    //   - rejeu du même événement (sess.status déjà 'paid') → rien ;
+    //   - payé APRÈS annulation de la commande → recrédit Coligo Pay ;
+    //   - DOUBLE DÉBIT (commande déjà payée par un AUTRE intent alors que
+    //     cette session était encore 'created' — vieux onglet/feuille) →
+    //     recrédit Coligo Pay du même montant + alerte réconciliation.
+    // Idempotent via l'index unique (l'id de l'intent tient lieu de
+    // checkout id).
+    const afterCancel = target.payment_status !== "paid";
+    // sess.status lu AVANT la transition : 'paid' = rejeu du payeur (rien) ;
+    // tout autre statut ('created' OU 'expired' supersédée mais payée quand
+    // même) = un VRAI second débit → compensation.
+    const doubleCharge =
+      target.payment_status === "paid" && sess.status !== "paid";
+    if ((afterCancel || doubleCharge) && target.customer_id) {
+      const noteText = doubleCharge
+        ? `DOUBLE paiement Stripe (€) détecté sur la commande ${orderId} — second débit recrédité sur Coligo Pay.`
+        : `Paiement Stripe (€) reçu APRÈS annulation de la commande ${orderId} — recrédité sur Coligo Pay.`;
       const { error: compErr } = await (
         admin.from("customer_wallet_entries") as unknown as {
           insert: (row: Record<string, unknown>) => Promise<{
@@ -283,7 +298,7 @@ export async function POST(req: NextRequest) {
         source: "topup",
         amount_da: sess.total_da,
         chargily_checkout_id: pi.id,
-        note: `Paiement Stripe (€) reçu APRÈS annulation de la commande ${orderId} — recrédité sur Coligo Pay.`,
+        note: noteText,
       });
       if (compErr?.code !== "23505") {
         if (compErr) {
@@ -298,7 +313,7 @@ export async function POST(req: NextRequest) {
           target_kind: "order",
           target_id: orderId,
           note:
-            `${sess.eur_cents} c€ payés (Stripe, embarqué) APRÈS annulation ` +
+            `${sess.eur_cents} c€ payés (Stripe, embarqué) ${doubleCharge ? "en DOUBLE" : "APRÈS annulation"} ` +
             `(status=${target.status}, payment_status=${target.payment_status}) → ` +
             (compErr
               ? "ÉCHEC du recrédit Coligo Pay — RÉCONCILIATION MANUELLE REQUISE."
@@ -336,14 +351,36 @@ export async function POST(req: NextRequest) {
 
     // Course Drive jamais payée → même traitement que Chargily failed :
     // drive_card_failed ramène le client au choix de gamme (mig 0163).
+    // ⚠️ SUPERSESSION : si la session n'était PLUS 'created' (remplacée par
+    // un nouvel intent — la course va être payée autrement), on n'annule
+    // RIEN : cet événement ne fait que confirmer l'annulation du vieil
+    // intent chez Stripe.
     if (pi.metadata?.type === "ride") {
       const rideId =
         typeof pi.metadata.ride_id === "string" ? pi.metadata.ride_id : null;
+      const { data: rideSess } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          select: (cols: string) => {
+            eq: (
+              c: string,
+              v: unknown
+            ) => {
+              maybeSingle: () => Promise<{
+                data: { id: string; status: string } | null;
+              }>;
+            };
+          };
+        }
+      )
+        .select("id, status")
+        .eq("stripe_payment_intent", pi.id)
+        .maybeSingle();
+      const wasLive = rideSess?.status === "created";
       await sessions
         .update({ status: "expired" })
         .eq("stripe_payment_intent", pi.id)
         .eq("status", "created");
-      if (rideId) {
+      if (rideId && wasLive) {
         const rpc = admin.rpc.bind(admin) as unknown as (
           fn: string,
           args: Record<string, unknown>
@@ -355,7 +392,7 @@ export async function POST(req: NextRequest) {
           console.error("[stripe/webhook] ride card failed:", error.message);
         }
       }
-      await recordEvent(null);
+      await recordEvent(rideSess?.id ?? null);
       return NextResponse.json({ ok: true });
     }
 
@@ -363,7 +400,10 @@ export async function POST(req: NextRequest) {
       .select("id, order_id, customer_id, eur_cents, total_da, status")
       .eq("stripe_payment_intent", pi.id)
       .maybeSingle();
-    if (sess) {
+    // ⚠️ SUPERSESSION : session déjà sortie de 'created' (remplacée par un
+    // nouvel intent, ou déjà traitée) → on n'annule PAS la commande — le
+    // client est peut-être en train de la payer sur la nouvelle feuille.
+    if (sess && sess.status === "created") {
       await sessions
         .update({ status: "expired" })
         .eq("stripe_payment_intent", pi.id)

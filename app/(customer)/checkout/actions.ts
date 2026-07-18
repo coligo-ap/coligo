@@ -1573,6 +1573,12 @@ export async function createOrder(
             error: "Paiement en euros momentanément indisponible.",
           };
         }
+        // ANTI-DOUBLE-DÉBIT : neutralise les intents précédents de CETTE
+        // commande (re-soumission) + balaye les sessions abandonnées.
+        const { supersedeStaleSessions, sweepStaleIntlSessions } =
+          await import("@/lib/payments/intl-guard");
+        await supersedeStaleSessions(writeDb, { orderId: order.id });
+        void sweepStaleIntlSessions();
         const intent = await createIntlPaymentIntent({
           orderId: order.id,
           eurCents: elig.eur_cents!,
@@ -1823,6 +1829,12 @@ export async function retryOnlineOrderPayment(
           error: "Paiement en euros momentanément indisponible.",
         };
       }
+      // ANTI-DOUBLE-DÉBIT : le retry remplace l'intent précédent — l'ancien
+      // est annulé chez Stripe (session marquée 'expired' d'abord).
+      const { supersedeStaleSessions, sweepStaleIntlSessions } =
+        await import("@/lib/payments/intl-guard");
+      await supersedeStaleSessions(admin, { orderId: order.id });
+      void sweepStaleIntlSessions();
       const intent = await createIntlPaymentIntent({
         orderId: order.id,
         eurCents: elig.eur_cents!,
