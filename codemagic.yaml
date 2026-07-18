@@ -63,10 +63,19 @@ workflows:
         script: |
           cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
       - name: Build .ipa signé
+        # PROFIL ÉPINGLÉ PAR NOM : « Coligo Client Apple Pay » = le profil
+        # MANUEL créé dans le portail (les profils fabriqués par l'API ASC ne
+        # peuvent PAS contenir la capability Apple Pay — limitation Apple, cf.
+        # builds #12-#17 : use-profiles re-choisissait toujours « Coligo
+        # Client App Store », alphabétiquement premier et regénérable). Si ce
+        # profil manuel est supprimé du portail, ce build échouera avec
+        # « profile not found » — le recréer (App Store, app.coligo.client,
+        # cert Apple Distribution d'Esam) plutôt que retirer ce pin.
         script: |
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME"
+            --scheme "$XCODE_SCHEME" \
+            --archive-flags "PROVISIONING_PROFILE_SPECIFIER='Coligo Client Apple Pay'"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
