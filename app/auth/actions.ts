@@ -35,17 +35,34 @@ export async function signInWithGoogleNative(input: {
   const idToken = input.idToken?.trim();
   if (!idToken) return { error: "Jeton Google manquant." };
 
+  // Le SDK Google iOS (via le plugin) n'embarque pas toujours le nonce dans
+  // le jeton (Android/Credential Manager le fait). Supabase exige la
+  // COHÉRENCE : nonce fourni ⇔ claim présent. On décode donc le payload
+  // (sans vérification — Supabase vérifie la signature) et on ne transmet le
+  // nonce QUE si le jeton en porte un.
+  let tokenHasNonce = false;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(idToken.split(".")[1], "base64url").toString("utf8")
+    ) as { nonce?: string };
+    tokenHasNonce = typeof payload.nonce === "string" && payload.nonce !== "";
+  } catch {
+    /* payload illisible : Supabase tranchera */
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithIdToken({
     provider: "google",
     token: idToken,
-    nonce: input.nonce || undefined,
+    nonce: tokenHasNonce ? input.nonce || undefined : undefined,
   });
   if (error) {
-    // Le message de Supabase est technique (audience, nonce, expiration) : on
-    // n'expose que le nécessaire, et le détail part dans les logs serveur.
     console.error("signInWithIdToken (google, natif) :", error.message);
-    return { error: "La connexion avec Google a échoué. Réessaie." };
+    // Cause technique COURTE entre crochets : indispensable pour diagnostiquer
+    // à distance sur un téléphone de testeur (pas de console accessible).
+    return {
+      error: `La connexion avec Google a échoué. Réessaie. [${error.message.slice(0, 90)}]`,
+    };
   }
 
   const to = await provisionSocialUser(
