@@ -954,9 +954,10 @@ export function CheckoutView({
           <SectionTitle icon={CreditCard} className="px-4 pt-4">
             {t("payment")}
           </SectionTitle>
-          <div
-            className={`grid gap-2.5 px-4 pt-3 pb-4 ${onlineVisible ? "grid-cols-2" : "grid-cols-1"}`}
-          >
+          {/* CARROUSEL horizontal (scroll-snap, barre masquée) : toutes les
+              cartes sur UNE ligne, largeur fixe → on aperçoit le bord de la
+              suivante (affordance de défilement, style Bolt). */}
+          <div className="scrollbar-hide flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pt-3 pb-4">
             <PayCard
               icon={Banknote}
               selected={payment === "cash"}
@@ -972,6 +973,7 @@ export function CheckoutView({
               chipTone={
                 cashbackOn && cashbackEarnCash > 0 ? "success" : "muted"
               }
+              className="w-[168px] shrink-0 snap-start"
             />
             {onlineVisible && (
               <PayCard
@@ -996,12 +998,13 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
+                className="w-[168px] shrink-0 snap-start"
               />
             )}
             {/* Carte internationale € — visible UNIQUEMENT si le serveur l'a
                 jugée éligible (flag + pays IP + plafonds). Aucun taux ni
                 montant € ici : le client paie son total en DA, la conversion
-                s'affiche sur la page Stripe. */}
+                s'affiche sur la feuille Stripe. */}
             {onlineVisible && onlineUsable && ctx.intl_payment.available && (
               <PayCard
                 icon={Globe}
@@ -1024,8 +1027,7 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
-                compact
-                className={onlineVisible ? "col-span-2" : undefined}
+                className="w-[168px] shrink-0 snap-start"
               />
             )}
           </div>

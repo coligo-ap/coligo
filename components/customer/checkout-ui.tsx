@@ -66,7 +66,6 @@ export function PayCard({
   bolt,
   disabled,
   className,
-  compact,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   selected: boolean;
@@ -78,56 +77,7 @@ export function PayCard({
   bolt?: boolean;
   disabled?: boolean;
   className?: string;
-  /** Variante BASSE pleine largeur (icône · textes · coche sur UNE ligne) —
-   *  utilisée pour la carte internationale sous les deux cartes standard. */
-  compact?: boolean;
 }) {
-  if (compact) {
-    return (
-      <button
-        type="button"
-        onClick={onClick}
-        disabled={disabled}
-        aria-pressed={selected}
-        className={cn(
-          "relative flex items-center gap-3 rounded-[16px] border-2 p-3 pe-11 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
-          selected
-            ? "border-primary-600 bg-primary-50 shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
-            : "border-border bg-surface hover:border-primary-300",
-          className
-        )}
-      >
-        <span
-          className={cn(
-            "absolute end-2.5 top-1/2 grid size-[20px] -translate-y-1/2 place-items-center rounded-full transition",
-            selected
-              ? "bg-primary-600 co-pop text-white"
-              : "border-border-strong border-2 bg-white"
-          )}
-        >
-          {selected && <Check className="size-3" strokeWidth={3.5} />}
-        </span>
-        <span
-          className={cn(
-            "grid size-[34px] shrink-0 place-items-center rounded-[10px]",
-            selected
-              ? "text-primary-600 bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]"
-              : "bg-surface-2 text-foreground"
-          )}
-        >
-          <Icon className="size-[17px]" />
-        </span>
-        <span className="min-w-0">
-          <span className="text-foreground block text-[13.5px] leading-tight font-extrabold">
-            {title}
-          </span>
-          <span className="text-muted mt-0.5 block truncate text-[11px] leading-snug font-semibold">
-            {sub}
-          </span>
-        </span>
-      </button>
-    );
-  }
   return (
     <button
       type="button"
