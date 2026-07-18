@@ -12,5 +12,9 @@
 	<array>
 		<string>applinks:coligo.app</string>
 	</array>
+	<key>com.apple.developer.in-app-payments</key>
+	<array>
+		<string>merchant.app.coligo.client</string>
+	</array>
 </dict>
 </plist>

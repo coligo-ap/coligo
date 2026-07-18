@@ -18,11 +18,11 @@
 
 import { isNative, getNativePlatform } from "@/lib/native/context";
 
-// Merchant ID Apple Pay (developer.apple.com → Identifiers → Merchant IDs,
-// certificat créé via le dashboard Stripe). VIDE tant qu'il n'existe pas :
-// iOS garde la feuille native carte seule, rien ne casse. À remplir avec
-// « merchant.app.coligo.client » une fois créé + entitlement in-app-payments.
-const APPLE_PAY_MERCHANT_ID = "";
+// Merchant ID Apple Pay — créé par le proprio le 18/07/2026 sur
+// developer.apple.com. Le certificat de traitement DOIT venir du CSR généré
+// par le dashboard STRIPE (Réglages → Apple Pay → iOS certificates), jamais
+// d'OpenSSL : la clé privée doit être chez Stripe pour déchiffrer les tokens.
+const APPLE_PAY_MERCHANT_ID = "merchant.app.coligo.client";
 
 export type NativePayResult = "paid" | "canceled" | "failed";
 
