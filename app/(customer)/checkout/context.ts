@@ -26,6 +26,7 @@ import {
 } from "@/lib/delivery/pricing";
 import { haversineKm } from "@/lib/delivery/distance";
 import { algiersDateAndTime, isSlotExpired } from "@/lib/delivery/slots";
+import { checkIntlEligibility } from "@/lib/payments/intl";
 import type { Json } from "@/lib/supabase/database.types";
 
 export type CheckoutContextInput = {
@@ -144,6 +145,12 @@ export type CheckoutContext = {
   service_fee_free_in_da: number | null;
   /** Contexte livraison — `enabled=false` = section livraison cachée au checkout. */
   delivery: CheckoutDeliveryContext;
+  /**
+   * Paiement international (Stripe EUR, diaspora) — UNIQUEMENT des booléens :
+   * le taux de change ne quitte jamais le serveur. `capacity_blocked` = la
+   * capacité plateforme est atteinte → message dédié + bouton « Me prévenir ».
+   */
+  intl_payment: { available: boolean; capacity_blocked: boolean };
 };
 
 /**
@@ -218,6 +225,7 @@ export async function fetchCheckoutContext(
       slots: [] as CheckoutDeliveryContext["slots"],
       free_delivery: null,
     },
+    intl_payment: { available: false, capacity_blocked: false },
   };
 
   if (!merchant) {
@@ -308,12 +316,15 @@ export async function fetchCheckoutContext(
   });
 
   // Livraison : champs commerçant + barème + adresses client + créneaux.
+  // + éligibilité paiement international (mode 'visibility' : zéro fetch
+  // réseau du taux — le chemin chaud du checkout reste rapide).
   const [
     merchDeliveryRes,
     deliverySettingsRes,
     addressesRes,
     slotsRes,
     zonesRes,
+    intlPayment,
   ] = await Promise.all([
     supabase
       .from("merchants")
@@ -357,6 +368,23 @@ export async function fetchCheckoutContext(
       .select("band_index, max_km, price_da")
       .eq("merchant_id", merchant.id)
       .order("band_index", { ascending: true }),
+    (async (): Promise<{ available: boolean; capacity_blocked: boolean }> => {
+      try {
+        const customer = await getCurrentCustomer();
+        if (!customer) return { available: false, capacity_blocked: false };
+        const elig = await checkIntlEligibility({
+          customerId: customer.id,
+          mode: "visibility",
+        });
+        if (elig.ok) return { available: true, capacity_blocked: false };
+        return {
+          available: false,
+          capacity_blocked: elig.reason === "capacity",
+        };
+      } catch {
+        return { available: false, capacity_blocked: false };
+      }
+    })(),
   ]);
 
   const merchDelivery = merchDeliveryRes.data;
@@ -527,5 +555,6 @@ export async function fetchCheckoutContext(
     service_fee_tiers: tiers,
     service_fee_free_in_da: daUntilFreeServiceFee(settled.totalDa, tiers),
     delivery: deliveryCtx,
+    intl_payment: intlPayment,
   };
 }

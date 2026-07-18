@@ -1,0 +1,437 @@
+// =============================================================================
+// Paiements internationaux EUR (diaspora) — moteur taux + éligibilité + audit
+// =============================================================================
+// Règles produit (18/07/2026) :
+//   - le taux de change (1 EUR = X DA) ne SORT JAMAIS de ce module vers le
+//     client final : seuls le montant EUR final (sur la page Stripe) et des
+//     booléens d'éligibilité sont exposés ;
+//   - taux 'auto' = marché parallèle observé (scrape fail-soft, snapshots en
+//     DB) − marge admin (défaut 30 DA), borné plancher/plafond de sanité ;
+//   - taux 'manual' = imposé par le super-admin, effet immédiat, prioritaire ;
+//   - AUCUN taux résolvable ⇒ option coupée (fail-closed : on n'invente
+//     jamais un taux) ;
+//   - visibilité par PAYS (header Vercel x-vercel-ip-country) + plafonds
+//     par commande / client / plateforme (intl_caps_usage, mig 0376).
+// Tout passe par le client service_role : les tables intl_* n'ont AUCUNE
+// policy RLS. Chaque appelant est une server action auth-gardée, une page
+// admin (requireAdminDomain) ou le webhook Stripe (signature vérifiée).
+// =============================================================================
+
+import "server-only";
+import { headers } from "next/headers";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { stripeAnyKeyPresent } from "@/lib/payments/stripe";
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Types
+// ─────────────────────────────────────────────────────────────────────────────
+export type IntlSettings = {
+  enabled: boolean;
+  allowed_countries: string[];
+  rate_mode: "auto" | "manual";
+  manual_rate_da: number | null;
+  auto_margin_da: number;
+  rate_floor_da: number;
+  rate_ceiling_da: number;
+  per_order_min_eur_cents: number;
+  per_order_max_eur_cents: number;
+  per_user_day_eur_cents: number;
+  per_user_month_eur_cents: number;
+  platform_day_eur_cents: number;
+  platform_month_eur_cents: number;
+  paypal_enabled: boolean;
+  updated_by: string | null;
+  updated_at: string;
+};
+
+export type EffectiveRate = { rate_da: number; source: string };
+
+export type IntlRefusal =
+  | "off" // coupé (kill-switch, clés absentes, flag online)
+  | "country" // pays non autorisé
+  | "rate" // aucun taux résolvable
+  | "order_min"
+  | "order_max"
+  | "user_day"
+  | "user_month"
+  | "capacity"; // plafond plateforme (jour ou mois)
+
+export type IntlEligibility =
+  | {
+      ok: true;
+      rate: EffectiveRate;
+      eur_cents: number | null;
+      paypal_enabled: boolean;
+    }
+  | { ok: false; reason: IntlRefusal };
+
+type Admin = ReturnType<typeof createAdminClient>;
+
+// Casts localisés : les tables intl_* (mig 0376) ne sont pas dans
+// database.types.ts généré (Docker requis) — même pattern que feature-flags.
+function tbl(admin: Admin, name: string) {
+  return (admin.from as unknown as (t: string) => never)(name) as unknown as {
+    select: (cols: string) => {
+      eq: (
+        c: string,
+        v: unknown
+      ) => {
+        maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
+      };
+      order: (
+        c: string,
+        o: { ascending: boolean }
+      ) => {
+        limit: (n: number) => Promise<{
+          data: Record<string, unknown>[] | null;
+        }>;
+      };
+    };
+    insert: (
+      row: Record<string, unknown>
+    ) => Promise<{ error: { code?: string; message: string } | null }>;
+    update: (row: Record<string, unknown>) => {
+      eq: (
+        c: string,
+        v: unknown
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+    upsert: (
+      row: Record<string, unknown>
+    ) => Promise<{ error: { message: string } | null }>;
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Réglages (singleton id=true)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getIntlSettings(admin: Admin): Promise<IntlSettings> {
+  const { data } = await tbl(admin, "intl_payment_settings")
+    .select("*")
+    .eq("id", true)
+    .maybeSingle();
+  const d = (data ?? {}) as Record<string, unknown>;
+  return {
+    enabled: d.enabled === true,
+    allowed_countries: Array.isArray(d.allowed_countries)
+      ? (d.allowed_countries as string[])
+      : [],
+    rate_mode: d.rate_mode === "manual" ? "manual" : "auto",
+    manual_rate_da: d.manual_rate_da == null ? null : Number(d.manual_rate_da),
+    auto_margin_da: Number(d.auto_margin_da ?? 30),
+    rate_floor_da: Number(d.rate_floor_da ?? 150),
+    rate_ceiling_da: Number(d.rate_ceiling_da ?? 400),
+    per_order_min_eur_cents: Number(d.per_order_min_eur_cents ?? 500),
+    per_order_max_eur_cents: Number(d.per_order_max_eur_cents ?? 30000),
+    per_user_day_eur_cents: Number(d.per_user_day_eur_cents ?? 30000),
+    per_user_month_eur_cents: Number(d.per_user_month_eur_cents ?? 80000),
+    platform_day_eur_cents: Number(d.platform_day_eur_cents ?? 100000),
+    platform_month_eur_cents: Number(d.platform_month_eur_cents ?? 200000),
+    paypal_enabled: d.paypal_enabled === true,
+    updated_by: (d.updated_by as string | null) ?? null,
+    updated_at: (d.updated_at as string) ?? new Date().toISOString(),
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Taux du marché parallèle — scrape fail-soft + snapshots DB
+// ─────────────────────────────────────────────────────────────────────────────
+// Source par défaut : cotations « Square Port-Saïd » publiées par devise-dz
+// (pas d'API officielle — il n'en existe aucune pour le parallèle). URL
+// surchargeable via INTL_RATE_SOURCE_URL sans redéploiement. On prend la
+// valeur ACHAT (la plus basse des deux) : c'est ce qu'obtiendrait réellement
+// la famille en changeant du cash — base honnête avant marge.
+const RATE_SOURCE_URL =
+  process.env.INTL_RATE_SOURCE_URL ??
+  "https://www.devise-dz.com/square-port-said/";
+const RATE_SOURCE_NAME = "devise-dz";
+// Sanité absolue du parse (indépendante des réglages admin) : hors de cette
+// fourchette, c'est un bug de parse, pas un taux.
+const PARSE_MIN = 120;
+const PARSE_MAX = 500;
+const SNAPSHOT_FRESH_MS = 6 * 60 * 60 * 1000; // 6 h
+
+function parseParallelEur(html: string): number | null {
+  // Page = tableau de cotations ; on cherche la ligne EUR et on capture les
+  // deux premiers nombres plausibles (achat / vente), tolérant au markup.
+  const eurZone = html.match(/EUR|1\s*€|Euro/i);
+  if (!eurZone || eurZone.index == null) return null;
+  const after = html.slice(eurZone.index, eurZone.index + 600);
+  const nums: number[] = [];
+  const re = /(\d{3})(?:[.,](\d{1,2}))?/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(after)) && nums.length < 2) {
+    const v = Number(`${m[1]}.${m[2] ?? "0"}`);
+    if (v >= PARSE_MIN && v <= PARSE_MAX) nums.push(v);
+  }
+  if (nums.length === 0) return null;
+  return Math.min(...nums); // achat (conservateur)
+}
+
+async function fetchParallelRate(): Promise<
+  { ok: true; rate: number } | { ok: false; note: string }
+> {
+  try {
+    const ctl = new AbortController();
+    const t = setTimeout(() => ctl.abort(), 5000);
+    const res = await fetch(RATE_SOURCE_URL, {
+      signal: ctl.signal,
+      cache: "no-store",
+      headers: { "User-Agent": "Mozilla/5.0 (compatible; ColigoRate/1.0)" },
+    });
+    clearTimeout(t);
+    if (!res.ok) return { ok: false, note: `HTTP ${res.status}` };
+    const html = await res.text();
+    const rate = parseParallelEur(html);
+    if (rate == null) return { ok: false, note: "parse impossible" };
+    return { ok: true, rate };
+  } catch (e) {
+    return {
+      ok: false,
+      note: e instanceof Error ? e.message : "fetch échoué",
+    };
+  }
+}
+
+type Snapshot = { raw_rate_da: number; fetched_at: string };
+
+async function latestOkSnapshot(admin: Admin): Promise<Snapshot | null> {
+  const { data } = await tbl(admin, "intl_rate_snapshots")
+    .select("raw_rate_da, fetched_at, ok")
+    .order("fetched_at", { ascending: false })
+    .limit(25);
+  for (const row of data ?? []) {
+    if (row.ok === true && row.raw_rate_da != null) {
+      return {
+        raw_rate_da: Number(row.raw_rate_da),
+        fetched_at: String(row.fetched_at),
+      };
+    }
+  }
+  return null;
+}
+
+/** Taux parallèle courant : snapshot frais (< 6 h) > re-fetch (tracé) >
+ *  dernier snapshot connu quel que soit son âge (fail-soft) > null.
+ *  `networkFetch=false` (chemin chaud du checkout, simple visibilité) :
+ *  n'appelle JAMAIS le réseau tant qu'un snapshot existe — seul le paiement
+ *  réel (autoritaire) rafraîchit un snapshot périmé. */
+async function currentParallelRate(
+  admin: Admin,
+  networkFetch: boolean
+): Promise<number | null> {
+  const last = await latestOkSnapshot(admin);
+  if (
+    last &&
+    Date.now() - new Date(last.fetched_at).getTime() < SNAPSHOT_FRESH_MS
+  ) {
+    return last.raw_rate_da;
+  }
+  if (!networkFetch && last) return last.raw_rate_da;
+  const fetched = await fetchAndRecordParallelRate(admin);
+  if (fetched != null) return fetched;
+  return last ? last.raw_rate_da : null;
+}
+
+/** Fetch immédiat du marché parallèle + snapshot tracé (succès OU échec —
+ *  l'alerte intl_rate_fetch_fail lit ces lignes). Exporté pour le bouton
+ *  « Rafraîchir le taux » de l'admin. */
+export async function fetchAndRecordParallelRate(
+  admin: Admin
+): Promise<number | null> {
+  const fetched = await fetchParallelRate();
+  await tbl(admin, "intl_rate_snapshots").insert({
+    source: RATE_SOURCE_NAME,
+    raw_rate_da: fetched.ok ? fetched.rate : null,
+    ok: fetched.ok,
+    note: fetched.ok ? null : fetched.note,
+  });
+  return fetched.ok ? fetched.rate : null;
+}
+
+/** Taux effectif appliqué aux paiements — JAMAIS exposé au client final. */
+export async function resolveEffectiveRate(
+  admin: Admin,
+  settings: IntlSettings,
+  opts?: { networkFetch?: boolean }
+): Promise<EffectiveRate | null> {
+  if (settings.rate_mode === "manual") {
+    const r = settings.manual_rate_da;
+    if (r != null && r > 0) return { rate_da: r, source: "manual" };
+    return null; // mode manuel sans taux saisi = coupé (fail-closed)
+  }
+  const parallel = await currentParallelRate(
+    admin,
+    opts?.networkFetch !== false
+  );
+  if (parallel == null) return null;
+  const raw = parallel - settings.auto_margin_da;
+  const clamped = Math.min(
+    Math.max(raw, settings.rate_floor_da),
+    settings.rate_ceiling_da
+  );
+  return { rate_da: clamped, source: `auto:${RATE_SOURCE_NAME}` };
+}
+
+/** DA → centimes d'euro, arrondi AU-DESSUS (on ne perd jamais au change). */
+export function computeEurCents(totalDa: number, rateDa: number): number {
+  return Math.ceil((totalDa * 100) / rateDa);
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Pays du visiteur (header Vercel) — null si inconnu (dev local)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function getRequestCountry(): Promise<string | null> {
+  // Override de dev : INTL_DEV_COUNTRY=FR dans .env.local pour tester le
+  // gating sans être derrière Vercel.
+  if (process.env.INTL_DEV_COUNTRY) return process.env.INTL_DEV_COUNTRY;
+  try {
+    const h = await headers();
+    const c = h.get("x-vercel-ip-country");
+    return c ? c.toUpperCase() : null;
+  } catch {
+    return null;
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Audit — via admin_audit_log (alimente les alertes super-admin, mig 0376)
+// ─────────────────────────────────────────────────────────────────────────────
+export async function auditIntl(
+  admin: Admin,
+  action: string,
+  note: string,
+  targetId?: string | null
+): Promise<void> {
+  try {
+    await tbl(admin, "admin_audit_log").insert({
+      admin_email: "intl",
+      action,
+      target_kind: "intl_payment",
+      target_id: targetId ?? null,
+      note,
+    });
+  } catch (e) {
+    console.error("[intl] audit failed:", e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Éligibilité — vérité UNIQUE, appelée à l'affichage (visibilité) ET à la
+// création de session (autoritaire). `totalDa` absent = simple visibilité.
+// ─────────────────────────────────────────────────────────────────────────────
+export async function checkIntlEligibility(opts: {
+  customerId: string;
+  totalDa?: number;
+  /** 'visibility' (défaut si totalDa absent) = chemin chaud : pas de fetch
+   *  réseau du taux, pas d'audit capacité. 'authoritative' = création de
+   *  session : taux rafraîchi si périmé, capacité auditée. */
+  mode?: "visibility" | "authoritative";
+}): Promise<IntlEligibility> {
+  const admin = createAdminClient();
+  const authoritative =
+    opts.mode === "authoritative" ||
+    (opts.mode == null && opts.totalDa != null);
+
+  // 1. Clés Stripe présentes ? (sans elles, rien n'est proposable)
+  if (!stripeAnyKeyPresent()) return { ok: false, reason: "off" };
+
+  // 2. Réglages + kill-switch
+  const settings = await getIntlSettings(admin);
+  if (!settings.enabled) return { ok: false, reason: "off" };
+
+  // 3. Pays (fail-closed si inconnu, '*' = monde entier)
+  const country = await getRequestCountry();
+  const allowAll = settings.allowed_countries.includes("*");
+  if (
+    !allowAll &&
+    (!country || !settings.allowed_countries.includes(country))
+  ) {
+    return { ok: false, reason: "country" };
+  }
+
+  // 4. Taux résolvable (réseau uniquement en mode autoritaire)
+  const rate = await resolveEffectiveRate(admin, settings, {
+    networkFetch: authoritative,
+  });
+  if (!rate) return { ok: false, reason: "rate" };
+
+  // 5. Plafonds (usage vivant : paid + sessions ouvertes ≤ 35 min)
+  const rpc = admin.rpc.bind(admin) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data: capsData, error: capsErr } = await rpc("intl_caps_usage", {
+    p_customer: opts.customerId,
+  });
+  if (capsErr) {
+    console.error("[intl] caps usage failed:", capsErr.message);
+    return { ok: false, reason: "off" }; // fail-closed
+  }
+  const caps = (Array.isArray(capsData) ? capsData[0] : capsData) as {
+    user_day_cents: number;
+    user_month_cents: number;
+    platform_day_cents: number;
+    platform_month_cents: number;
+  } | null;
+  const usage = {
+    userDay: Number(caps?.user_day_cents ?? 0),
+    userMonth: Number(caps?.user_month_cents ?? 0),
+    platformDay: Number(caps?.platform_day_cents ?? 0),
+    platformMonth: Number(caps?.platform_month_cents ?? 0),
+  };
+
+  // Capacité plateforme déjà saturée → refus même sans montant (visibilité).
+  if (
+    usage.platformDay >= settings.platform_day_eur_cents ||
+    usage.platformMonth >= settings.platform_month_eur_cents
+  ) {
+    return { ok: false, reason: "capacity" };
+  }
+
+  if (opts.totalDa == null) {
+    return {
+      ok: true,
+      rate,
+      eur_cents: null,
+      paypal_enabled: settings.paypal_enabled,
+    };
+  }
+
+  // 6. Montant de CETTE commande
+  const eurCents = computeEurCents(opts.totalDa, rate.rate_da);
+  if (eurCents < settings.per_order_min_eur_cents) {
+    return { ok: false, reason: "order_min" };
+  }
+  if (eurCents > settings.per_order_max_eur_cents) {
+    return { ok: false, reason: "order_max" };
+  }
+  if (usage.userDay + eurCents > settings.per_user_day_eur_cents) {
+    return { ok: false, reason: "user_day" };
+  }
+  if (usage.userMonth + eurCents > settings.per_user_month_eur_cents) {
+    return { ok: false, reason: "user_month" };
+  }
+  if (
+    usage.platformDay + eurCents > settings.platform_day_eur_cents ||
+    usage.platformMonth + eurCents > settings.platform_month_eur_cents
+  ) {
+    // Capacité atteinte AVEC une vraie tentative → tracé (alerte super-admin).
+    if (authoritative) {
+      await auditIntl(
+        admin,
+        "intl_capacity_block",
+        `Client ${opts.customerId} refusé : commande ${eurCents} c€ dépasse la capacité plateforme.`,
+        null
+      );
+    }
+    return { ok: false, reason: "capacity" };
+  }
+
+  return {
+    ok: true,
+    rate,
+    eur_cents: eurCents,
+    paypal_enabled: settings.paypal_enabled,
+  };
+}

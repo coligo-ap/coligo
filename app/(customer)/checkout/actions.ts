@@ -47,6 +47,12 @@ import { zoneMessageFr } from "@/lib/zones/service-zones";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import type { OpeningHours, PaymentMethod } from "@/lib/types";
 import { formatQty, isValidQty } from "@/lib/units";
+import {
+  checkIntlEligibility,
+  getRequestCountry,
+  type IntlRefusal,
+} from "@/lib/payments/intl";
+import { createIntlCheckoutSession } from "@/lib/payments/stripe";
 
 export type CreateOrderInput = {
   merchant_id: string;
@@ -61,6 +67,13 @@ export type CreateOrderInput = {
   pickup_slot_start?: string | null; // ISO
   pickup_slot_end?: string | null; // ISO
   payment_method: PaymentMethod;
+  /**
+   * Rail du paiement en ligne : "chargily" (défaut — CIB/EDAHABIA en DA) ou
+   * "stripe_eur" (carte internationale, montant EUR calculé serveur au taux
+   * maison — jamais exposé). La commande reste `payment_method='online'` en
+   * base dans les deux cas : aucun trigger financier ne change.
+   */
+  online_rail?: "chargily" | "stripe_eur" | null;
   customer_note?: string | null;
   promo_code?: string | null;
   /**
@@ -148,6 +161,26 @@ export async function issueDeliveryQuote(input: {
     meta: { mode: input.mode },
   });
   return q ? { quoteId: q.quoteId } : null;
+}
+
+/** Message FR pour un refus de paiement international (rail stripe_eur) —
+ *  jamais de taux ni de montant EUR dans ces messages côté client. */
+function intlRefusalMessage(reason: IntlRefusal): string {
+  switch (reason) {
+    case "country":
+      return "Le paiement en euros n'est pas disponible dans ta région.";
+    case "order_min":
+      return "Montant trop faible pour un paiement en euros — paye autrement.";
+    case "order_max":
+      return "Montant trop élevé pour un paiement en euros — réduis le panier ou paye autrement.";
+    case "user_day":
+    case "user_month":
+      return "Tu as atteint ton plafond de paiements en euros. Réessaye plus tard.";
+    case "capacity":
+      return "Les paiements en euros sont momentanément indisponibles. Réessaye bientôt.";
+    default:
+      return "Le paiement en euros est momentanément indisponible.";
+  }
 }
 
 /** Message FR pour un refus de code PLATEFORME, selon la raison renvoyée par
@@ -1505,6 +1538,76 @@ export async function createOrder(
         .from("orders")
         .update({ payment_status: "paid" })
         .eq("id", order.id);
+    } else if (input.online_rail === "stripe_eur") {
+      // ── Rail INTERNATIONAL (Stripe, EUR) — le taux maison reste serveur. ──
+      // Re-vérification AUTORITAIRE (pays, plafonds, taux) au moment T : la
+      // visibilité affichée plus tôt ne fait pas foi.
+      try {
+        const elig = await checkIntlEligibility({
+          customerId: customer.id,
+          totalDa: totalWithDelivery,
+          mode: "authoritative",
+        });
+        if (!elig.ok) {
+          return { ok: false, error: intlRefusalMessage(elig.reason) };
+        }
+        const { successUrl, failureUrl } = buildCallbackUrls({
+          context: "order",
+          orderId: order.id,
+        });
+        const session = await createIntlCheckoutSession({
+          orderId: order.id,
+          eurCents: elig.eur_cents!,
+          description: `Commande Coligo #${order.pickup_code}`,
+          locale: "fr",
+          paypalEnabled: elig.paypal_enabled,
+          successUrl,
+          cancelUrl: failureUrl,
+          metadata: {
+            type: "order",
+            order_id: order.id,
+            client_operation_id: input.client_operation_id,
+            customer_id: customer.id,
+          },
+        });
+        // Session tracée (plafonds + audit + rapprochement webhook). Échec
+        // d'écriture = paiement REFUSÉ (on ne laisse jamais partir un
+        // paiement qu'on ne saurait pas rapprocher).
+        const { error: sessErr } = await (
+          writeDb.from("intl_payment_sessions" as never) as unknown as {
+            insert: (row: Record<string, unknown>) => Promise<{
+              error: { message: string } | null;
+            }>;
+          }
+        ).insert({
+          order_id: order.id,
+          customer_id: customer.id,
+          stripe_session_id: session.id,
+          eur_cents: elig.eur_cents!,
+          total_da: totalWithDelivery,
+          rate_da: elig.rate.rate_da,
+          rate_source: elig.rate.source,
+          ip_country: await getRequestCountry(),
+        });
+        if (sessErr) {
+          console.error("[createOrder] intl session insert:", sessErr.message);
+          return {
+            ok: false,
+            error: "Commande créée mais paiement indisponible. Réessaye.",
+          };
+        }
+        checkoutUrl = session.url;
+      } catch (e) {
+        // Commande conservée : le client peut réessayer (idempotent via
+        // client_operation_id), comme sur le rail Chargily.
+        return {
+          ok: false,
+          error:
+            e instanceof Error
+              ? `Commande créée mais paiement indisponible : ${e.message}`
+              : "Commande créée mais paiement indisponible.",
+        };
+      }
     } else {
       try {
         const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
@@ -1640,20 +1743,100 @@ export async function retryOnlineOrderPayment(
       context: "order",
       orderId: order.id,
     });
-    const checkout = await createChargilyCheckout({
-      amount: order.total_da,
-      successUrl,
-      failureUrl,
-      webhookEndpoint,
-      locale: "fr",
-      description: `Commande Coligo #${order.pickup_code}`,
-      metadata: {
-        type: "order",
+
+    // Rail d'ORIGINE : une commande partie en Stripe (EUR) se relance en
+    // Stripe — jamais de bascule silencieuse de rail (montants et devise
+    // différents). Détection : une session intl existe pour cette commande.
+    const admin = createAdminClient();
+    const { data: intlRows } = await (
+      admin.from("intl_payment_sessions" as never) as unknown as {
+        select: (cols: string) => {
+          eq: (
+            c: string,
+            v: unknown
+          ) => {
+            order: (
+              c: string,
+              o: { ascending: boolean }
+            ) => {
+              limit: (n: number) => Promise<{
+                data: Record<string, unknown>[] | null;
+              }>;
+            };
+          };
+        };
+      }
+    )
+      .select("id, status")
+      .eq("order_id", order.id)
+      .order("created_at", { ascending: false })
+      .limit(1);
+    const isIntl = (intlRows ?? []).length > 0;
+
+    let newCheckoutUrl: string;
+    if (isIntl) {
+      const elig = await checkIntlEligibility({
+        customerId: customer.id,
+        totalDa: order.total_da,
+        mode: "authoritative",
+      });
+      if (!elig.ok) {
+        return { ok: false, error: intlRefusalMessage(elig.reason) };
+      }
+      const session = await createIntlCheckoutSession({
+        orderId: order.id,
+        eurCents: elig.eur_cents!,
+        description: `Commande Coligo #${order.pickup_code}`,
+        locale: "fr",
+        paypalEnabled: elig.paypal_enabled,
+        successUrl,
+        cancelUrl: failureUrl,
+        metadata: {
+          type: "order",
+          order_id: order.id,
+          client_operation_id: order.client_operation_id ?? "",
+          customer_id: customer.id,
+        },
+      });
+      const { error: sessErr } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<{
+            error: { message: string } | null;
+          }>;
+        }
+      ).insert({
         order_id: order.id,
-        client_operation_id: order.client_operation_id ?? null,
         customer_id: customer.id,
-      },
-    });
+        stripe_session_id: session.id,
+        eur_cents: elig.eur_cents!,
+        total_da: order.total_da,
+        rate_da: elig.rate.rate_da,
+        rate_source: elig.rate.source,
+        ip_country: await getRequestCountry(),
+      });
+      if (sessErr) {
+        console.error("[retryOnline] intl session insert:", sessErr.message);
+        return { ok: false, error: "Paiement indisponible. Réessaye." };
+      }
+      newCheckoutUrl = session.url;
+    } else {
+      const checkout = await createChargilyCheckout({
+        amount: order.total_da,
+        successUrl,
+        failureUrl,
+        webhookEndpoint,
+        locale: "fr",
+        description: `Commande Coligo #${order.pickup_code}`,
+        metadata: {
+          type: "order",
+          order_id: order.id,
+          client_operation_id: order.client_operation_id ?? null,
+          customer_id: customer.id,
+        },
+      });
+      newCheckoutUrl = checkout.checkout_url;
+    }
+
     // Si la commande était passée à 'failed' on la repasse 'pending' pour
     // refléter la nouvelle tentative.
     if (order.payment_status === "failed") {
@@ -1662,7 +1845,7 @@ export async function retryOnlineOrderPayment(
         .update({ payment_status: "pending" })
         .eq("id", order.id);
     }
-    return { ok: true, checkout_url: checkout.checkout_url };
+    return { ok: true, checkout_url: newCheckoutUrl };
   } catch (e) {
     return {
       ok: false,

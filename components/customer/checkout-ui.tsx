@@ -65,6 +65,7 @@ export function PayCard({
   chipTone,
   bolt,
   disabled,
+  className,
 }: {
   icon: React.ComponentType<{ className?: string }>;
   selected: boolean;
@@ -75,6 +76,7 @@ export function PayCard({
   chipTone: "success" | "muted";
   bolt?: boolean;
   disabled?: boolean;
+  className?: string;
 }) {
   return (
     <button
@@ -86,7 +88,8 @@ export function PayCard({
         "relative flex flex-col items-start gap-2.5 rounded-[16px] border-2 p-3.5 pt-4 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
         selected
           ? "border-primary-600 bg-primary-50 shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
-          : "border-border bg-surface hover:border-primary-300"
+          : "border-border bg-surface hover:border-primary-300",
+        className
       )}
     >
       {/* Coche de sélection (coin) */}

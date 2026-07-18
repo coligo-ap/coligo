@@ -124,6 +124,55 @@ export async function setChargilyLiveMode(
 }
 
 /**
+ * Bascule TEST / LIVE de Stripe (mig 0377) — même modèle que Chargily : les
+ * clés vivent dans l'environnement, on ne change QUE le mode actif, et on
+ * refuse d'activer un mode dont la clé n'est pas configurée (ou a un mauvais
+ * préfixe). S'applique immédiatement aux paiements internationaux (€).
+ */
+export async function setStripeLiveMode(
+  live: boolean
+): Promise<AdminFormState> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+
+  if (live) {
+    const key = process.env.STRIPE_LIVE_SECRET_KEY;
+    if (!key) {
+      return {
+        error:
+          "STRIPE_LIVE_SECRET_KEY absente de l'environnement — ajoutez la clé (Vercel) puis redéployez avant d'activer le live.",
+      };
+    }
+    if (!key.startsWith("sk_live_")) {
+      return {
+        error:
+          "La clé configurée en STRIPE_LIVE_SECRET_KEY n'a pas le préfixe « sk_live_ » — vérifiez la clé.",
+      };
+    }
+  } else {
+    const key = process.env.STRIPE_TEST_SECRET_KEY;
+    if (!key || !key.startsWith("sk_test_")) {
+      return {
+        error:
+          "Aucune clé TEST valide (STRIPE_TEST_SECRET_KEY) dans l'environnement.",
+      };
+    }
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("platform_settings")
+    .update({
+      stripe_live_mode: live,
+      updated_at: new Date().toISOString(),
+    } as never)
+    .eq("id", true);
+  if (error) return { error: error.message };
+
+  revalidatePath("/admin/controle");
+  return { ok: true };
+}
+
+/**
  * Active / désactive le transfert P2P Coligo Pay (boutons Envoyer / Recevoir
  * côté client). Source unique = platform_settings.p2p_enabled, lue partout
  * (lib/customer/p2p.ts, wallet-actions, wallet-qr-view, /coligo-pay/envoyer).

@@ -12,6 +12,7 @@ import {
   Clock,
   CreditCard,
   Gift,
+  Globe,
   Loader2,
   Check,
   Receipt,
@@ -57,6 +58,7 @@ import {
   daUntilFreeServiceFee,
 } from "@/lib/finance/service-fee";
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
+import { joinIntlWaitlist } from "@/app/(customer)/checkout/intl-actions";
 import type { FeatureStatus } from "@/lib/data/feature-flags";
 import type { PaymentMethod } from "@/lib/types";
 import {
@@ -113,6 +115,16 @@ export function CheckoutView({
   const [chosenSlotIdx, setChosenSlotIdx] = useState<number | null>(null);
   const [chosenDayKey, setChosenDayKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentMethod>("cash");
+  // Rail du paiement en ligne : Chargily (CIB/EDAHABIA, DA) ou Stripe (carte
+  // internationale, €). Le taux de change n'apparaît JAMAIS ici — le client
+  // voit son total en DA, le montant € s'affiche sur la page Stripe.
+  const [onlineRail, setOnlineRail] = useState<"chargily" | "stripe_eur">(
+    "chargily"
+  );
+  // « Me prévenir » (capacité € atteinte) — état local, message inline.
+  const [waitlistState, setWaitlistState] = useState<
+    "idle" | "pending" | "done"
+  >("idle");
   const [note, setNote] = useState("");
   const [delivery, setDelivery] = useState<DeliveryChoice>({
     fulfillment: "pickup",
@@ -188,6 +200,18 @@ export function CheckoutView({
       setPayment("cash");
     }
   }, [ctx, payment, onlineUsable]);
+
+  // Repli Chargily si le rail international disparaît (kill-switch, pays,
+  // capacité) pendant que la carte € était sélectionnée.
+  useEffect(() => {
+    if (
+      onlineRail === "stripe_eur" &&
+      ctx != null &&
+      !ctx.intl_payment.available
+    ) {
+      setOnlineRail("chargily");
+    }
+  }, [ctx, onlineRail]);
 
   // Désactive l'usage des soldes si la fonctionnalité est coupée (super-admin).
   useEffect(() => {
@@ -443,6 +467,7 @@ export function CheckoutView({
         pickup_slot_start: slot?.start.toISOString() ?? null,
         pickup_slot_end: slot?.end.toISOString() ?? null,
         payment_method: payment,
+        online_rail: payment === "online" ? onlineRail : null,
         customer_note: note.trim() || null,
         fulfillment_type: delivery.fulfillment,
         delivery_mode:
@@ -651,9 +676,11 @@ export function CheckoutView({
   // serveur marque payé). On rassure le client au lieu de bloquer.
   const onlineFullyCovered =
     payment === "online" && walletUsed && totalAfterWallets === 0;
-  // Sinon, le reste en ligne doit atteindre le minimum Chargily.
+  // Sinon, le reste en ligne doit atteindre le minimum Chargily (le rail €
+  // a ses propres bornes, vérifiées serveur avec message dédié).
   const onlineTooLow =
     payment === "online" &&
+    onlineRail === "chargily" &&
     totalAfterWallets > 0 &&
     totalAfterWallets < CHARGILY_MIN_AMOUNT_DA;
   const slotMissing = pickupType === "slot" && chosenSlotIdx == null;
@@ -934,8 +961,12 @@ export function CheckoutView({
             {onlineVisible && (
               <PayCard
                 icon={CreditCard}
-                selected={payment === "online"}
-                onClick={() => onlineUsable && setPayment("online")}
+                selected={payment === "online" && onlineRail === "chargily"}
+                onClick={() => {
+                  if (!onlineUsable) return;
+                  setPayment("online");
+                  setOnlineRail("chargily");
+                }}
                 title={t("online")}
                 bolt
                 sub={onlineUsable ? t("onlineSub") : "Bientôt"}
@@ -952,7 +983,75 @@ export function CheckoutView({
                 }
               />
             )}
+            {/* Carte internationale € — visible UNIQUEMENT si le serveur l'a
+                jugée éligible (flag + pays IP + plafonds). Aucun taux ni
+                montant € ici : le client paie son total en DA, la conversion
+                s'affiche sur la page Stripe. */}
+            {onlineVisible && onlineUsable && ctx.intl_payment.available && (
+              <PayCard
+                icon={Globe}
+                selected={payment === "online" && onlineRail === "stripe_eur"}
+                onClick={() => {
+                  if (!ctx.merchant.accepts_online) return;
+                  setPayment("online");
+                  setOnlineRail("stripe_eur");
+                }}
+                title={t("intlCard")}
+                sub={t("intlCardSub")}
+                disabled={!ctx.merchant.accepts_online}
+                chip={
+                  cashbackOn && cashbackEarnOnline > 0
+                    ? t("cashbackChip", {
+                        amount: formatDA(cashbackEarnOnline),
+                      })
+                    : t("noCashbackChip")
+                }
+                chipTone={
+                  cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
+                }
+                className={onlineVisible ? "col-span-2" : undefined}
+              />
+            )}
           </div>
+
+          {/* Capacité € atteinte : bandeau informatif + « Me prévenir »
+              (inline, état local — pas de toast). */}
+          {onlineVisible &&
+            onlineUsable &&
+            ctx.intl_payment.capacity_blocked && (
+              <div className="border-border bg-surface-2 mx-4 mb-4 rounded-[13px] border px-3.5 py-3">
+                <p className="text-foreground flex items-center gap-2 text-[12.5px] font-bold">
+                  <Globe className="text-muted size-4 shrink-0" />
+                  {t("intlCapacityTitle")}
+                </p>
+                <p className="text-muted mt-1 text-[11.5px] font-medium">
+                  {t("intlCapacityBody")}
+                </p>
+                {waitlistState === "done" ? (
+                  <p className="text-success-600 mt-2 inline-flex items-center gap-1.5 text-[12px] font-extrabold">
+                    <Check className="size-3.5" />
+                    {t("intlNotifyDone")}
+                  </p>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={waitlistState === "pending"}
+                    onClick={() => {
+                      setWaitlistState("pending");
+                      void joinIntlWaitlist().then((r) =>
+                        setWaitlistState(r.ok ? "done" : "idle")
+                      );
+                    }}
+                    className="border-border text-foreground mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-extrabold disabled:opacity-60"
+                  >
+                    {waitlistState === "pending" && (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    )}
+                    {t("intlNotifyBtn")}
+                  </button>
+                )}
+              </div>
+            )}
 
           {/* Comparatif : en espèces, montre le gain MANQUÉ → tap = bascule. */}
           {payment === "cash" &&

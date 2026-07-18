@@ -1,9 +1,11 @@
 import { createClient } from "@/lib/supabase/server";
 import { getFeatureFlags, type FeatureKey } from "@/lib/data/feature-flags";
 import { chargilyKeysPresence } from "@/lib/payments/chargily";
+import { stripeKeysPresence } from "@/lib/payments/stripe";
 import { FeatureFlagCard } from "@/components/admin/feature-flags-form";
 import { DispatchRadiiForm } from "@/components/admin/dispatch-radii-form";
 import { ChargilyModeCard } from "@/components/admin/chargily-mode-card";
+import { StripeModeCard } from "@/components/admin/stripe-mode-card";
 import { ColigoPayP2pCard } from "@/components/admin/coligo-pay-p2p-card";
 
 export const dynamic = "force-dynamic";
@@ -77,6 +79,7 @@ export default async function AdminControlePage() {
             express_dispatch_radius_km: number | string | null;
             drive_dispatch_radius_km: number | string | null;
             chargily_live_mode: boolean | null;
+            stripe_live_mode: boolean | null;
             p2p_enabled: boolean | null;
           } | null;
         }>;
@@ -87,7 +90,7 @@ export default async function AdminControlePage() {
     getFeatureFlags(),
     from("platform_settings")
       .select(
-        "express_dispatch_radius_km, drive_dispatch_radius_km, chargily_live_mode, p2p_enabled"
+        "express_dispatch_radius_km, drive_dispatch_radius_km, chargily_live_mode, stripe_live_mode, p2p_enabled"
       )
       .eq("id", true)
       .maybeSingle(),
@@ -114,6 +117,12 @@ export default async function AdminControlePage() {
           live={settings?.chargily_live_mode === true}
           keys={chargilyKeysPresence()}
         />
+        <div className="mt-3">
+          <StripeModeCard
+            live={settings?.stripe_live_mode === true}
+            keys={stripeKeysPresence()}
+          />
+        </div>
       </section>
 
       <section
