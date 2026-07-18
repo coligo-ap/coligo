@@ -28,13 +28,14 @@ import type { MatchedProduct } from "@/lib/barcode/match";
 import type { BarcodeSurface } from "@/lib/barcode/resolve";
 
 // =============================================================================
-// BarcodeScanButton — scan TEMPS RÉEL façon Picnic, front Bolt : la caméra
-// reste ouverte ; dès qu'un code est lu, le produit résolu s'affiche dans un
-// panneau blanc SOUS la caméra avec les produits correspondants (prix, « chez
-// {commerçant} » sur l'accueil), bouton AJOUTER AU PANIER direct (produit
-// simple) ou « Voir » (options/poids → boutique avec recherche préremplie),
-// et « Scanner un autre produit » pour enchaîner. Non résolu → message +
-// repli recherche texte. Rendu GATÉ côté serveur (feature flag par surface).
+// BarcodeScanButton — scan TEMPS RÉEL façon Lidl/Bolt : gros titre, caméra
+// RECTANGULAIRE (cadre large adapté aux codes-barres) toujours ouverte ;
+// à la détection, flash vert « Code-barres détecté » + vibration SUR la
+// caméra, puis une FEUILLE DE RÉSULTATS glisse depuis le bas (prix, « chez
+// {commerçant} » sur l'accueil), AJOUT PANIER direct (produit simple) ou
+// « Voir » (options/poids → boutique avec recherche préremplie), « Scanner
+// un autre produit » pour enchaîner. Non résolu → message + repli recherche
+// texte. Rendu GATÉ côté serveur (feature flag par surface).
 // =============================================================================
 
 type Panel =
@@ -67,9 +68,14 @@ export function BarcodeScanButton({
   // Ignore les détections tant qu'un résultat est affiché (le client lit) —
   // « Scanner un autre produit » réarme.
   const armedRef = useRef(true);
+  // Flash « Code-barres détecté » PAR-DESSUS la caméra (feedback immédiat
+  // façon grandes apps de scan) — auto-effacé, doublé d'une vibration.
+  const [detected, setDetected] = useState(false);
+  const detectTimerRef = useRef<number | null>(null);
 
   function reset() {
     setPanel({ kind: "scanning" });
+    setDetected(false);
     armedRef.current = true;
   }
 
@@ -78,6 +84,14 @@ export function BarcodeScanButton({
     const ean = raw.replace(/\D/g, "");
     if (ean.length < 8) return;
     armedRef.current = false;
+    if (detectTimerRef.current) window.clearTimeout(detectTimerRef.current);
+    setDetected(true);
+    detectTimerRef.current = window.setTimeout(() => setDetected(false), 1200);
+    try {
+      navigator.vibrate?.(60);
+    } catch {
+      /* vibration indisponible : feedback visuel seul */
+    }
     setPanel({ kind: "searching", ean });
     const res: ScanFindResult = await scanBarcodeFind({
       ean,
@@ -122,122 +136,151 @@ export function BarcodeScanButton({
 
       {open && (
         <Portal>
-          <div className="fixed inset-0 z-[120] flex flex-col bg-black">
-            <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2">
-              <p className="text-[15px] font-extrabold text-white">
+          <div className="fixed inset-0 z-[120] bg-black">
+            <style>{`
+              @keyframes bsSheetUp{from{transform:translateY(100%)}to{transform:none}}
+              @keyframes bsPop{0%{transform:scale(.4);opacity:0}60%{transform:scale(1.12)}100%{transform:scale(1);opacity:1}}
+              @keyframes bsFlashIn{from{opacity:0}to{opacity:1}}
+            `}</style>
+
+            {/* GROS titre : lecture immédiate « scan code-barres », pas QR. */}
+            <div className="flex items-start justify-between gap-3 px-5 pt-[calc(env(safe-area-inset-top)+0.875rem)]">
+              <h2 className="text-[26px] leading-8 font-extrabold text-white">
                 {t("title")}
-              </p>
+              </h2>
               <button
                 type="button"
                 onClick={() => setOpen(false)}
                 aria-label={t("close")}
-                className="grid size-9 place-items-center rounded-full bg-white/15 text-white"
+                className="grid size-9 shrink-0 place-items-center rounded-full bg-white/15 text-white"
               >
                 <X className="size-5" />
               </button>
             </div>
 
-            {/* Caméra TOUJOURS montée (scan continu) — bloc FIXE en haut. */}
-            <div className="flex shrink-0 items-center justify-center px-6 py-3">
-              <QrScanner
-                mode="barcode"
-                oneShot={false}
-                onScan={(text) => void handleScan(text)}
-                className="aspect-square w-full max-w-[280px] overflow-hidden rounded-[24px]"
-              />
+            {/* Caméra TOUJOURS montée (scan continu) — carte RECTANGULAIRE
+                large (cadre code-barres) ; le flash « détecté » s'affiche
+                par-dessus. */}
+            <div className="px-4 pt-4">
+              <div className="relative mx-auto w-full max-w-[430px]">
+                <QrScanner
+                  mode="barcode"
+                  oneShot={false}
+                  onScan={(text) => void handleScan(text)}
+                  className="aspect-[7/5] w-full max-w-none overflow-hidden rounded-[24px]"
+                />
+                {detected && (
+                  <div className="ring-success-500 pointer-events-none absolute inset-0 z-10 grid animate-[bsFlashIn_.15s_ease] place-items-center rounded-[24px] bg-black/45 ring-4 ring-inset">
+                    <div className="flex flex-col items-center gap-2.5">
+                      <span className="bg-success-500 grid size-14 animate-[bsPop_.3s_ease] place-items-center rounded-full text-white">
+                        <Check className="size-8" strokeWidth={3} />
+                      </span>
+                      <p className="text-[16px] font-extrabold text-white">
+                        {t("detected")}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
             </div>
 
-            {/* Panneau RÉSULTAT temps réel (style Bolt) : occupe TOUT l'espace
-                restant sous la caméra (plus de vide noir inutilisable) et
-                affiche les scans récents en attendant le prochain code. */}
-            <div className="min-h-0 flex-1 overflow-y-auto rounded-t-[24px] bg-white px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
-              {panel.kind === "scanning" && (
-                <>
-                  <p className="text-muted py-3 text-center text-[13px] font-semibold">
-                    {t("hint")}
-                  </p>
-                  {recent.length > 0 && (
-                    <>
-                      <p className="text-subtle mt-1 mb-1 text-[11px] font-extrabold tracking-wide uppercase">
-                        {t("recent")}
-                      </p>
-                      <ul className="divide-border divide-y">
-                        {recent.map((p) => (
-                          <ResultRow
-                            key={p.product_id}
-                            product={p}
-                            surface={surface}
-                            onNavigate={() => setOpen(false)}
-                          />
-                        ))}
-                      </ul>
-                    </>
-                  )}
-                </>
-              )}
+            {/* FEUILLE DE RÉSULTATS : glisse depuis le bas dès qu'un code est
+                lu (comportement scanner des grandes apps) ; repliée pendant le
+                scan, elle ne montre que la consigne + les scans récents. */}
+            <div
+              key={panel.kind === "scanning" ? "idle" : "result"}
+              className="absolute inset-x-0 bottom-0 z-10 flex max-h-[55dvh] animate-[bsSheetUp_.32s_cubic-bezier(.16,1,.3,1)] flex-col rounded-t-[24px] bg-white shadow-[0_-8px_30px_rgba(0,0,0,.35)]"
+            >
+              <span className="bg-border mx-auto mt-2 h-1 w-10 shrink-0 rounded-full" />
+              <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+                {panel.kind === "scanning" && (
+                  <>
+                    <p className="text-muted py-3 text-center text-[13px] font-semibold">
+                      {t("hint")}
+                    </p>
+                    {recent.length > 0 && (
+                      <>
+                        <p className="text-subtle mt-1 mb-1 text-[11px] font-extrabold tracking-wide uppercase">
+                          {t("recent")}
+                        </p>
+                        <ul className="divide-border divide-y">
+                          {recent.map((p) => (
+                            <ResultRow
+                              key={p.product_id}
+                              product={p}
+                              surface={surface}
+                              onNavigate={() => setOpen(false)}
+                            />
+                          ))}
+                        </ul>
+                      </>
+                    )}
+                  </>
+                )}
 
-              {panel.kind === "searching" && (
-                <p className="text-foreground inline-flex w-full items-center justify-center gap-2 py-3 text-[13.5px] font-bold">
-                  <Loader2 className="text-primary-600 size-4 animate-spin" />
-                  {t("searching")}
-                </p>
-              )}
+                {panel.kind === "searching" && (
+                  <p className="text-foreground inline-flex w-full items-center justify-center gap-2 py-3 text-[13.5px] font-bold">
+                    <Loader2 className="text-primary-600 size-4 animate-spin" />
+                    {t("searching")}
+                  </p>
+                )}
 
-              {panel.kind === "found" && (
-                <>
-                  <p className="text-foreground text-[14px] font-extrabold">
-                    {panel.name}
-                  </p>
-                  <p className="text-muted mb-2 text-[11.5px] font-medium">
-                    {t("foundCount", { count: panel.products.length })}
-                  </p>
-                  <ul className="divide-border divide-y">
-                    {panel.products.map((p) => (
-                      <ResultRow
-                        key={p.product_id}
-                        product={p}
-                        surface={surface}
-                        onNavigate={() => setOpen(false)}
-                      />
-                    ))}
-                  </ul>
-                </>
-              )}
+                {panel.kind === "found" && (
+                  <>
+                    <p className="text-foreground text-[14px] font-extrabold">
+                      {panel.name}
+                    </p>
+                    <p className="text-muted mb-2 text-[11.5px] font-medium">
+                      {t("foundCount", { count: panel.products.length })}
+                    </p>
+                    <ul className="divide-border divide-y">
+                      {panel.products.map((p) => (
+                        <ResultRow
+                          key={p.product_id}
+                          product={p}
+                          surface={surface}
+                          onNavigate={() => setOpen(false)}
+                        />
+                      ))}
+                    </ul>
+                  </>
+                )}
 
-              {panel.kind === "no-match" && (
-                <div className="py-2 text-center">
-                  <p className="text-foreground text-[13.5px] font-bold">
-                    {t("noMatch", { name: panel.name })}
+                {panel.kind === "no-match" && (
+                  <div className="py-2 text-center">
+                    <p className="text-foreground text-[13.5px] font-bold">
+                      {t("noMatch", { name: panel.name })}
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setOpen(false);
+                        onFound(panel.name);
+                      }}
+                      className="text-primary-700 mt-2 text-[13px] font-bold underline"
+                    >
+                      {t("searchInstead", { name: panel.name })}
+                    </button>
+                  </div>
+                )}
+
+                {panel.kind === "not-found" && (
+                  <p className="text-foreground py-2 text-center text-[13.5px] font-bold">
+                    {t("notFound", { ean: panel.ean })}
                   </p>
+                )}
+
+                {panel.kind !== "scanning" && (
                   <button
                     type="button"
-                    onClick={() => {
-                      setOpen(false);
-                      onFound(panel.name);
-                    }}
-                    className="text-primary-700 mt-2 text-[13px] font-bold underline"
+                    onClick={reset}
+                    className="border-border text-foreground mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border text-[13.5px] font-extrabold"
                   >
-                    {t("searchInstead", { name: panel.name })}
+                    <ScanBarcode className="size-4" />
+                    {t("scanAgain")}
                   </button>
-                </div>
-              )}
-
-              {panel.kind === "not-found" && (
-                <p className="text-foreground py-2 text-center text-[13.5px] font-bold">
-                  {t("notFound", { ean: panel.ean })}
-                </p>
-              )}
-
-              {panel.kind !== "scanning" && (
-                <button
-                  type="button"
-                  onClick={reset}
-                  className="border-border text-foreground mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border text-[13.5px] font-extrabold"
-                >
-                  <ScanBarcode className="size-4" />
-                  {t("scanAgain")}
-                </button>
-              )}
+                )}
+              </div>
             </div>
           </div>
         </Portal>

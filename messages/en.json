@@ -1367,6 +1367,7 @@
     "button": "Scan a barcode",
     "title": "Scan a barcode",
     "hint": "Aim at the product's barcode — the search starts on its own.",
+    "detected": "Barcode detected",
     "searching": "Searching for the product…",
     "notFound": "Product not recognized ({ean}) — type its name.",
     "scanError": "Scan failed. Try again.",

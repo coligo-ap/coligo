@@ -681,11 +681,19 @@ export function QrScanner({
                 let sw = vw;
                 let sh = vh;
                 if (!fullFrame) {
-                  const side = Math.round(Math.min(vw, vh) * 0.72);
-                  sx = Math.round((vw - side) / 2);
-                  sy = Math.round((vh - side) / 2);
-                  sw = side;
-                  sh = side;
+                  if (mode === "barcode") {
+                    // Code-barres = LARGE : ROI en bande horizontale (90 % ×
+                    // 55 %) — le recadrage carré coupait les EAN qui occupent
+                    // toute la largeur du cadre rectangulaire.
+                    sw = Math.round(vw * 0.9);
+                    sh = Math.round(vh * 0.55);
+                  } else {
+                    const side = Math.round(Math.min(vw, vh) * 0.72);
+                    sw = side;
+                    sh = side;
+                  }
+                  sx = Math.round((vw - sw) / 2);
+                  sy = Math.round((vh - sh) / 2);
                 }
                 const scale = Math.min(1, 900 / Math.max(sw, sh));
                 canvas.width = Math.max(1, Math.round(sw * scale));
@@ -783,14 +791,34 @@ export function QrScanner({
         autoPlay
       />
 
-      {/* Cadre de visée */}
-      <div className="pointer-events-none absolute inset-6 rounded-[12px] border-2 border-white/80">
-        <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-[12px]" />
-        <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-[12px]" />
-        <span className="bg-primary-500 absolute -bottom-px -left-px size-5 rounded-bl-[12px]" />
-        <span className="bg-primary-500 absolute -right-px -bottom-px size-5 rounded-br-[12px]" />
-      </div>
-      <div className="bg-primary-400/80 pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 animate-pulse" />
+      {/* Cadre de visée — barcode : cadre LARGE + laser qui balaye de haut en
+          bas (l'œil reconnaît un scanner de code-barres, pas un lecteur QR) ;
+          qr : cadre carré + ligne fixe. */}
+      {mode === "barcode" ? (
+        <>
+          <style>{`@keyframes qrsLaser{0%,100%{top:8%}50%{top:88%}}`}</style>
+          <div className="pointer-events-none absolute inset-x-6 inset-y-7 rounded-[14px] border-2 border-white/80">
+            <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-[14px]" />
+            <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-[14px]" />
+            <span className="bg-primary-500 absolute -bottom-px -left-px size-5 rounded-bl-[14px]" />
+            <span className="bg-primary-500 absolute -right-px -bottom-px size-5 rounded-br-[14px]" />
+            <span
+              className="bg-primary-400 absolute inset-x-3 h-[3px] rounded-full shadow-[0_0_14px_3px_rgba(138,77,255,.55)]"
+              style={{ animation: "qrsLaser 2.2s ease-in-out infinite" }}
+            />
+          </div>
+        </>
+      ) : (
+        <>
+          <div className="pointer-events-none absolute inset-6 rounded-[12px] border-2 border-white/80">
+            <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-[12px]" />
+            <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-[12px]" />
+            <span className="bg-primary-500 absolute -bottom-px -left-px size-5 rounded-bl-[12px]" />
+            <span className="bg-primary-500 absolute -right-px -bottom-px size-5 rounded-br-[12px]" />
+          </div>
+          <div className="bg-primary-400/80 pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 animate-pulse" />
+        </>
+      )}
 
       {onClose && (
         <button

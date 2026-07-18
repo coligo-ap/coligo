@@ -79,7 +79,7 @@ export function BarcodeField({
                     setOpen(false);
                   }
                 }}
-                className="aspect-square w-full max-w-[300px] overflow-hidden rounded-[24px]"
+                className="aspect-[7/5] w-full max-w-[360px] overflow-hidden rounded-[24px]"
               />
               <p className="mt-4 max-w-[300px] text-center text-[13px] font-semibold text-white/85">
                 Visez le code-barres du produit.

@@ -1361,6 +1361,7 @@
     "button": "Scanner un code-barres",
     "title": "Scanner un code-barres",
     "hint": "Visez le code-barres du produit — la recherche se lance toute seule.",
+    "detected": "Code-barres détecté",
     "searching": "Recherche du produit…",
     "notFound": "Produit non reconnu ({ean}) — tapez son nom.",
     "scanError": "Scan impossible. Réessayez.",
