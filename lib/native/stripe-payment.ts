@@ -20,9 +20,18 @@ import { isNative, getNativePlatform } from "@/lib/native/context";
 
 export type NativePayResult = "paid" | "canceled" | "failed";
 
-/** Le paiement natif est-il disponible ici ? (APK/iOS uniquement.) */
+/** Le paiement natif est-il disponible ici ? Exige le WebView Capacitor ET
+ *  le plugin Stripe DANS le binaire : un APK antérieur au plugin (le JS est
+ *  servi à distance, pas le natif) retombe sur la feuille web — carte OK,
+ *  wallets masqués — au lieu d'un échec. */
 export function nativePaymentAvailable(): boolean {
-  return isNative();
+  if (!isNative()) return false;
+  const cap = (
+    window as unknown as {
+      Capacitor?: { isPluginAvailable?: (name: string) => boolean };
+    }
+  ).Capacitor;
+  return cap?.isPluginAvailable?.("Stripe") === true;
 }
 
 /**
