@@ -53,34 +53,17 @@ try {
     )
   ).rows[0];
 
-  ok(ride.client_phone_shared === false, "par défaut : numéro MASQUÉ (false)");
+  // Mig 0380 : le numéro est AFFICHÉ par défaut, le client peut le MASQUER.
+  ok(ride.client_phone_shared === true, "par défaut : numéro AFFICHÉ (true)");
 
-  // B (autre client) tente de partager la course de A → refusé (FOUND false).
+  // B (autre client) tente de MASQUER la course de A → refusé (FOUND false).
   await asUser(B.u);
   const rB = (
-    await c.query("select public.set_ride_phone_shared($1,true) as r", [
+    await c.query("select public.set_ride_phone_shared($1,false) as r", [
       ride.id,
     ])
   ).rows[0].r;
-  ok(rB === false, "un AUTRE client ne peut pas partager la course de A");
-  await asService();
-  ok(
-    (
-      await c.query("select client_phone_shared from rides where id=$1", [
-        ride.id,
-      ])
-    ).rows[0].client_phone_shared === false,
-    "→ flag inchangé après tentative non autorisée"
-  );
-
-  // A (propriétaire) partage → ok.
-  await asUser(A.u);
-  const rA = (
-    await c.query("select public.set_ride_phone_shared($1,true) as r", [
-      ride.id,
-    ])
-  ).rows[0].r;
-  ok(rA === true, "le CLIENT propriétaire peut afficher son numéro");
+  ok(rB === false, "un AUTRE client ne peut pas modifier la course de A");
   await asService();
   ok(
     (
@@ -88,12 +71,17 @@ try {
         ride.id,
       ])
     ).rows[0].client_phone_shared === true,
-    "→ flag = true (numéro exposable au chauffeur)"
+    "→ flag inchangé après tentative non autorisée"
   );
 
-  // A re-masque → false (le bouton direct disparaît côté chauffeur).
+  // A (propriétaire) MASQUE → ok.
   await asUser(A.u);
-  await c.query("select public.set_ride_phone_shared($1,false)", [ride.id]);
+  const rA = (
+    await c.query("select public.set_ride_phone_shared($1,false) as r", [
+      ride.id,
+    ])
+  ).rows[0].r;
+  ok(rA === true, "le CLIENT propriétaire peut masquer son numéro");
   await asService();
   ok(
     (
@@ -101,7 +89,20 @@ try {
         ride.id,
       ])
     ).rows[0].client_phone_shared === false,
-    "le client peut re-masquer à tout moment"
+    "→ flag = false (numéro JAMAIS envoyé au chauffeur)"
+  );
+
+  // A ré-affiche → true (le bouton direct réapparaît côté chauffeur).
+  await asUser(A.u);
+  await c.query("select public.set_ride_phone_shared($1,true)", [ride.id]);
+  await asService();
+  ok(
+    (
+      await c.query("select client_phone_shared from rides where id=$1", [
+        ride.id,
+      ])
+    ).rows[0].client_phone_shared === true,
+    "le client peut ré-afficher à tout moment"
   );
 
   await c.query("ROLLBACK");

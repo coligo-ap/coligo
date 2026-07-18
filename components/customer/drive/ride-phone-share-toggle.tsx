@@ -9,15 +9,17 @@ import {
 } from "@/app/(customer)/drive/actions";
 
 /**
- * Toggle « Afficher mon numéro au chauffeur ». Par défaut le numéro est MASQUÉ
- * (le chauffeur joint le client via Coligo Call). Le client peut l'afficher /
- * le re-masquer à tout moment pendant la course — le gating est SERVEUR
- * (set_ride_phone_shared), donc le vrai numéro n'atteint le chauffeur que si
- * partagé, et disparaît instantanément si re-masqué (Realtime côté chauffeur).
+ * Toggle « Afficher mon numéro au chauffeur ». Par défaut le numéro est
+ * AFFICHÉ (mig 0380 — décision produit) ; le client peut le MASQUER / le
+ * ré-afficher à tout moment pendant la course — le gating reste SERVEUR
+ * (set_ride_phone_shared) : masqué, le vrai numéro n'atteint jamais le
+ * chauffeur (qui garde Coligo Call), et il disparaît instantanément côté
+ * chauffeur au re-masquage (Realtime).
  */
 export function RidePhoneShareToggle({ rideId }: { rideId: string }) {
   const t = useTranslations("drive.enroute");
-  const [shared, setShared] = useState(false);
+  // Défaut AFFICHÉ (aligné sur le défaut DB) — évite le flash OFF→ON.
+  const [shared, setShared] = useState(true);
   const [pending, startTransition] = useTransition();
 
   useEffect(() => {
