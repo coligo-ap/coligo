@@ -53,7 +53,6 @@ import {
   type IntlRefusal,
 } from "@/lib/payments/intl";
 import {
-  createIntlCheckoutSession,
   createIntlPaymentIntent,
   getPublishableKey,
 } from "@/lib/payments/stripe";
@@ -1704,9 +1703,23 @@ export async function createOrder(
 // Pré-requis : la commande lui appartient, elle est `online`, `payment_status`
 // est encore 'pending' ou 'failed', et `total_da > 0`.
 // ===========================================================================
+export type RetryPaymentResult =
+  | {
+      ok: true;
+      /** Rail Chargily : URL de la page de paiement hébergée. */
+      checkout_url?: string;
+      /** Rail € : feuille EMBARQUÉE (même payload que createOrder). */
+      stripe_intent?: {
+        client_secret: string;
+        publishable_key: string;
+        eur_cents: number;
+      };
+    }
+  | { ok: false; error: string };
+
 export async function retryOnlineOrderPayment(
   orderId: string
-): Promise<{ ok: true; checkout_url: string } | { ok: false; error: string }> {
+): Promise<RetryPaymentResult> {
   const supabase = await createClient();
   const {
     data: { user },
@@ -1756,12 +1769,6 @@ export async function retryOnlineOrderPayment(
   if (order.total_da <= 0) {
     return { ok: false, error: "Montant invalide." };
   }
-  if (order.total_da < CHARGILY_MIN_AMOUNT_DA) {
-    return {
-      ok: false,
-      error: `Le paiement en ligne nécessite un minimum de ${CHARGILY_MIN_AMOUNT_DA} DA.`,
-    };
-  }
 
   try {
     const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
@@ -1798,8 +1805,9 @@ export async function retryOnlineOrderPayment(
       .limit(1);
     const isIntl = (intlRows ?? []).length > 0;
 
-    let newCheckoutUrl: string;
     if (isIntl) {
+      // Rail € : nouveau PaymentIntent → feuille EMBARQUÉE (comme au
+      // checkout — plus de page hébergée non plus au retry).
       const elig = await checkIntlEligibility({
         customerId: customer.id,
         totalDa: order.total_da,
@@ -1808,14 +1816,17 @@ export async function retryOnlineOrderPayment(
       if (!elig.ok) {
         return { ok: false, error: intlRefusalMessage(elig.reason) };
       }
-      const session = await createIntlCheckoutSession({
+      const publishableKey = await getPublishableKey();
+      if (!publishableKey) {
+        return {
+          ok: false,
+          error: "Paiement en euros momentanément indisponible.",
+        };
+      }
+      const intent = await createIntlPaymentIntent({
         orderId: order.id,
         eurCents: elig.eur_cents!,
         description: `Commande Coligo #${order.pickup_code}`,
-        locale: "fr",
-        paypalEnabled: elig.paypal_enabled,
-        successUrl,
-        cancelUrl: failureUrl,
         metadata: {
           type: "order",
           order_id: order.id,
@@ -1832,7 +1843,7 @@ export async function retryOnlineOrderPayment(
       ).insert({
         order_id: order.id,
         customer_id: customer.id,
-        stripe_session_id: session.id,
+        stripe_payment_intent: intent.id,
         eur_cents: elig.eur_cents!,
         total_da: order.total_da,
         rate_da: elig.rate.rate_da,
@@ -1843,24 +1854,43 @@ export async function retryOnlineOrderPayment(
         console.error("[retryOnline] intl session insert:", sessErr.message);
         return { ok: false, error: "Paiement indisponible. Réessaye." };
       }
-      newCheckoutUrl = session.url;
-    } else {
-      const checkout = await createChargilyCheckout({
-        amount: order.total_da,
-        successUrl,
-        failureUrl,
-        webhookEndpoint,
-        locale: "fr",
-        description: `Commande Coligo #${order.pickup_code}`,
-        metadata: {
-          type: "order",
-          order_id: order.id,
-          client_operation_id: order.client_operation_id ?? null,
-          customer_id: customer.id,
+      if (order.payment_status === "failed") {
+        await supabase
+          .from("orders")
+          .update({ payment_status: "pending" })
+          .eq("id", order.id);
+      }
+      return {
+        ok: true,
+        stripe_intent: {
+          client_secret: intent.clientSecret,
+          publishable_key: publishableKey,
+          eur_cents: elig.eur_cents!,
         },
-      });
-      newCheckoutUrl = checkout.checkout_url;
+      };
     }
+
+    // Rail Chargily (DA) — minimum imposé par Chargily.
+    if (order.total_da < CHARGILY_MIN_AMOUNT_DA) {
+      return {
+        ok: false,
+        error: `Le paiement en ligne nécessite un minimum de ${CHARGILY_MIN_AMOUNT_DA} DA.`,
+      };
+    }
+    const checkout = await createChargilyCheckout({
+      amount: order.total_da,
+      successUrl,
+      failureUrl,
+      webhookEndpoint,
+      locale: "fr",
+      description: `Commande Coligo #${order.pickup_code}`,
+      metadata: {
+        type: "order",
+        order_id: order.id,
+        client_operation_id: order.client_operation_id ?? null,
+        customer_id: customer.id,
+      },
+    });
 
     // Si la commande était passée à 'failed' on la repasse 'pending' pour
     // refléter la nouvelle tentative.
@@ -1870,7 +1900,7 @@ export async function retryOnlineOrderPayment(
         .update({ payment_status: "pending" })
         .eq("id", order.id);
     }
-    return { ok: true, checkout_url: newCheckoutUrl };
+    return { ok: true, checkout_url: checkout.checkout_url };
   } catch (e) {
     return {
       ok: false,
