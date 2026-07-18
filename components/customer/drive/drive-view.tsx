@@ -32,6 +32,7 @@ import {
 import {
   cancelDriveRide,
   createRideCardCheckout,
+  createRideIntlPayment,
   getDriveActiveRide,
   getDriveContext,
   getDriveQuotes,
@@ -41,9 +42,14 @@ import {
   precheckDriveRoute,
   requestDriveRide,
   requestScheduledRide,
+  rideIntlAvailability,
   type DriveActiveRide,
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
+import {
+  IntlPaymentSheet,
+  type StripeIntentPayload,
+} from "@/components/customer/intl-payment-sheet";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
 import { withTimeout } from "@/lib/async/with-timeout";
 import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
@@ -147,6 +153,17 @@ export function DriveView({ userId }: { userId: string }) {
   const [payMode, setPayMode] = useState<"cash" | "card" | "coligo_pay">(
     "cash"
   );
+  // Rail de la CARTE : CIB/EDAHABIA en DA (Chargily, défaut) ou carte
+  // internationale en € (Stripe, feuille embarquée). Le sous-choix n'existe
+  // que si le serveur juge l'option € proposable (flag+pays+capacité).
+  const [cardRail, setCardRail] = useState<"dzd" | "eur">("dzd");
+  const [intlAvailable, setIntlAvailable] = useState(false);
+  const [rideIntlIntent, setRideIntlIntent] = useState<
+    (StripeIntentPayload & { ride_id: string }) | null
+  >(null);
+  useEffect(() => {
+    void rideIntlAvailability().then(setIntlAvailable);
+  }, []);
   const [boostOn, setBoostOn] = useState(false);
   const [boostAmt, setBoostAmt] = useState(10);
   const [femaleOnly, setFemaleOnly] = useState(false);
@@ -809,8 +826,28 @@ export function DriveView({ userId }: { userId: string }) {
         setRequestError(res.error ?? t("requestFailed"));
         return;
       }
-      // CARTE : payer AVANT que la demande soit diffusée (Chargily Pay existant).
+      // CARTE : payer AVANT que la demande soit diffusée.
       if (payMode === "card" && res.rideId) {
+        if (cardRail === "eur") {
+          // Rail INTERNATIONAL (€) : feuille de paiement EMBARQUÉE — la
+          // diffusion partira du webhook payment_intent.succeeded.
+          const intl = await withTimeout(
+            createRideIntlPayment(res.rideId),
+            15000
+          );
+          if (!intl.ok) {
+            setRequestError(t("requestFailed"));
+            await cancelDriveRide(res.rideId, "Paiement € indisponible");
+            return;
+          }
+          setRideIntlIntent({
+            client_secret: intl.client_secret,
+            publishable_key: intl.publishable_key,
+            eur_cents: intl.eur_cents,
+            ride_id: res.rideId,
+          });
+          return; // la feuille prend la main (succès → écran course)
+        }
         const checkout = await withTimeout(
           createRideCardCheckout(res.rideId),
           15000
@@ -1033,54 +1070,76 @@ export function DriveView({ userId }: { userId: string }) {
   /* ════════════════ PRIX + GAMMES + OPTIONS ════════════════ */
   if (screen === "price" && pickup && dest) {
     return (
-      <DrivePriceScreen
-        pickup={pickup}
-        dest={dest}
-        route={route}
-        distanceLabel={distanceLabel}
-        etaMin={etaMin}
-        quotes={quotes}
-        quote={quote}
-        gamme={gamme}
-        price={price}
-        offerPrice={offerPrice}
-        priceStale={priceStale}
-        boostOn={boostOn}
-        boostAmt={boostAmt}
-        femaleOnly={femaleOnly}
-        prox={prox}
-        payMode={payMode}
-        welcome={welcome}
-        ctx={ctx}
-        zoneBlock={zoneBlock}
-        zoneJoined={zoneJoined}
-        requestError={requestError}
-        submitting={submitting}
-        schedOpen={schedOpen}
-        schedAt={schedAt}
-        schedBusy={schedBusy}
-        schedMsg={schedMsg}
-        schedDone={schedDone}
-        proxOpen={proxOpen}
-        setScreen={setScreen}
-        pickGamme={pickGamme}
-        stepPrice={stepPrice}
-        setPrice={setPrice}
-        setPayMode={setPayMode}
-        setBoostOn={setBoostOn}
-        setBoostAmt={setBoostAmt}
-        setFemaleOnly={setFemaleOnly}
-        setProx={setProx}
-        setProxOpen={setProxOpen}
-        defBoost={defBoost}
-        submitRequest={submitRequest}
-        joinDriveWaitlist={joinDriveWaitlist}
-        setSchedOpen={setSchedOpen}
-        setSchedAt={setSchedAt}
-        setSchedDone={setSchedDone}
-        setSchedMsg={setSchedMsg}
-        submitSchedule={submitSchedule}
-      />
+      <>
+        {/* Feuille de paiement € EMBARQUÉE (carte + Apple Pay + Google Pay).
+            Succès → écran course (le webhook diffusera aux chauffeurs) ;
+            abandon → la demande est annulée proprement. */}
+        {rideIntlIntent && (
+          <IntlPaymentSheet
+            intent={rideIntlIntent}
+            onSuccess={() => {
+              setRideIntlIntent(null);
+              void refreshActive().then(() => setScreen("ride"));
+            }}
+            onClose={() => {
+              const rid = rideIntlIntent.ride_id;
+              setRideIntlIntent(null);
+              void cancelDriveRide(rid, "Paiement € abandonné");
+            }}
+          />
+        )}
+        <DrivePriceScreen
+          pickup={pickup}
+          dest={dest}
+          route={route}
+          distanceLabel={distanceLabel}
+          etaMin={etaMin}
+          quotes={quotes}
+          quote={quote}
+          gamme={gamme}
+          price={price}
+          offerPrice={offerPrice}
+          priceStale={priceStale}
+          boostOn={boostOn}
+          boostAmt={boostAmt}
+          femaleOnly={femaleOnly}
+          prox={prox}
+          payMode={payMode}
+          cardRail={cardRail}
+          intlAvailable={intlAvailable}
+          welcome={welcome}
+          ctx={ctx}
+          zoneBlock={zoneBlock}
+          zoneJoined={zoneJoined}
+          requestError={requestError}
+          submitting={submitting}
+          schedOpen={schedOpen}
+          schedAt={schedAt}
+          schedBusy={schedBusy}
+          schedMsg={schedMsg}
+          schedDone={schedDone}
+          proxOpen={proxOpen}
+          setScreen={setScreen}
+          pickGamme={pickGamme}
+          stepPrice={stepPrice}
+          setPrice={setPrice}
+          setPayMode={setPayMode}
+          setCardRail={setCardRail}
+          setBoostOn={setBoostOn}
+          setBoostAmt={setBoostAmt}
+          setFemaleOnly={setFemaleOnly}
+          setProx={setProx}
+          setProxOpen={setProxOpen}
+          defBoost={defBoost}
+          submitRequest={submitRequest}
+          joinDriveWaitlist={joinDriveWaitlist}
+          setSchedOpen={setSchedOpen}
+          setSchedAt={setSchedAt}
+          setSchedDone={setSchedDone}
+          setSchedMsg={setSchedMsg}
+          submitSchedule={submitSchedule}
+        />
+      </>
     );
   }
 

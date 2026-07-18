@@ -53,6 +53,8 @@ export function DrivePriceScreen({
   femaleOnly,
   prox,
   payMode,
+  cardRail,
+  intlAvailable,
   welcome,
   ctx,
   zoneBlock,
@@ -70,6 +72,7 @@ export function DrivePriceScreen({
   stepPrice,
   setPrice,
   setPayMode,
+  setCardRail,
   setBoostOn,
   setBoostAmt,
   setFemaleOnly,
@@ -100,6 +103,10 @@ export function DrivePriceScreen({
   femaleOnly: boolean;
   prox: { name: string; phone: string } | null;
   payMode: "cash" | "card" | "coligo_pay";
+  /** Rail carte : CIB/EDAHABIA (DA, Chargily) ou internationale (€, Stripe). */
+  cardRail: "dzd" | "eur";
+  /** Option € proposable pour CE client (jugé serveur) ? */
+  intlAvailable: boolean;
   welcome: {
     isNew: boolean;
     anchor: number;
@@ -123,6 +130,7 @@ export function DrivePriceScreen({
   stepPrice: (dir: 1 | -1) => void;
   setPrice: Dispatch<SetStateAction<number>>;
   setPayMode: Dispatch<SetStateAction<"cash" | "card" | "coligo_pay">>;
+  setCardRail: Dispatch<SetStateAction<"dzd" | "eur">>;
   setBoostOn: Dispatch<SetStateAction<boolean>>;
   setBoostAmt: Dispatch<SetStateAction<number>>;
   setFemaleOnly: Dispatch<SetStateAction<boolean>>;
@@ -400,6 +408,47 @@ export function DrivePriceScreen({
             );
           })}
         </div>
+
+        {/* CARTE : sous-choix du RAIL — CIB/EDAHABIA (DA) ou carte
+            internationale (€, Visa/MC/Apple Pay/Google Pay, feuille
+            embarquée). Visible seulement si l'option € est proposable. */}
+        {payMode === "card" && intlAvailable && (
+          <div className="mb-3 flex gap-2">
+            {(
+              [
+                ["dzd", t("pay.cardDzd"), t("pay.cardDzdSub")],
+                ["eur", t("pay.cardEur"), t("pay.cardEurSub")],
+              ] as const
+            ).map(([r, label, sub]) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setCardRail(r)}
+                className="flex-1 rounded-[12px] border-[1.5px] px-2 py-2 text-start text-[12px] font-bold"
+                style={
+                  cardRail === r
+                    ? {
+                        borderColor: "var(--d-violet)",
+                        background: "var(--d-accent)",
+                        color: "var(--d-violet)",
+                      }
+                    : {
+                        borderColor: "var(--d-line)",
+                        color: "var(--d-muted)",
+                      }
+                }
+              >
+                {label}
+                <span
+                  className="block text-[10px] leading-snug font-semibold"
+                  style={{ color: "var(--d-muted)" }}
+                >
+                  {sub}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
 
         {/* Solde Coligo Pay partiel : le complément ira en ESPÈCES au
             chauffeur — ou recharger pour couvrir toute la course. */}

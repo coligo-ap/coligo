@@ -1076,7 +1076,11 @@
     },
     "pay": {
       "cash": "💵 Cash",
-      "card": "💳 Card"
+      "card": "💳 Card",
+      "cardDzd": "CIB / EDAHABIA",
+      "cardDzdSub": "In dinars (DA)",
+      "cardEur": "International (€, $, £…)",
+      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay"
     },
     "boost": {
       "title": "Boost my request",

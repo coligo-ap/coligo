@@ -104,6 +104,92 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   if (event.type === "payment_intent.succeeded") {
     const pi = event.data.object as Stripe.PaymentIntent;
+
+    // ── Course Drive (metadata.type === "ride") — miroir du flux Chargily :
+    // séquestre via drive_card_paid (idempotent) puis DIFFUSION aux
+    // chauffeurs. Montant vérifié contre la session (EUR figé serveur).
+    if (pi.metadata?.type === "ride") {
+      const rideId =
+        typeof pi.metadata.ride_id === "string" ? pi.metadata.ride_id : null;
+      const { data: rideSess } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          select: (cols: string) => {
+            eq: (
+              c: string,
+              v: unknown
+            ) => {
+              maybeSingle: () => Promise<{
+                data: {
+                  id: string;
+                  ride_id: string | null;
+                  eur_cents: number;
+                  total_da: number;
+                } | null;
+              }>;
+            };
+          };
+        }
+      )
+        .select("id, ride_id, eur_cents, total_da")
+        .eq("stripe_payment_intent", pi.id)
+        .maybeSingle();
+      if (!rideSess || !rideId || rideSess.ride_id !== rideId) {
+        await auditIntl(
+          admin,
+          "intl_session_mismatch",
+          `payment_intent.succeeded (ride) sur intent inconnu ou croisé (${pi.id}).`
+        );
+        await recordEvent(null);
+        return NextResponse.json({ ok: true, unknown_intent: true });
+      }
+      if (pi.currency !== "eur" || pi.amount !== rideSess.eur_cents) {
+        await auditIntl(
+          admin,
+          "intl_amount_mismatch",
+          `Intent ride ${pi.id} : payé ${pi.amount} ${pi.currency} ≠ attendu ${rideSess.eur_cents} c€.`,
+          rideSess.id
+        );
+        await recordEvent(rideSess.id);
+        return NextResponse.json({ ok: false, amount_mismatch: true });
+      }
+      await sessions
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      // Montant DA de la course = total_da FIGÉ dans la session (le taux a
+      // servi uniquement à facturer l'EUR — le ledger Drive reste en DA).
+      const { data, error } = await rpc("drive_card_paid", {
+        p_ride_id: rideId,
+        p_amount_da: rideSess.total_da,
+        p_checkout_id: pi.id,
+      });
+      if (error) {
+        console.error("[stripe/webhook] ride paid failed:", error);
+        await recordEvent(rideSess.id);
+        // 500 → Stripe réessaie (RPC idempotente, rejeu sans danger).
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 500 }
+        );
+      }
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        ok?: boolean;
+        refunded?: boolean;
+      };
+      if (row?.ok && !row.refunded) {
+        const { notifyChauffeursNewRide } = await import("@/lib/fcm/triggers");
+        void notifyChauffeursNewRide({ rideId });
+        void rpc("drive_demo_respond", { p_ride_id: rideId });
+      }
+      await recordEvent(rideSess.id);
+      return NextResponse.json({ ok: true });
+    }
+
     const orderId =
       typeof pi.metadata?.order_id === "string" ? pi.metadata.order_id : null;
 
@@ -247,6 +333,32 @@ export async function POST(req: NextRequest) {
   // -------------------------------------------------------------------------
   if (event.type === "payment_intent.canceled") {
     const pi = event.data.object as Stripe.PaymentIntent;
+
+    // Course Drive jamais payée → même traitement que Chargily failed :
+    // drive_card_failed ramène le client au choix de gamme (mig 0163).
+    if (pi.metadata?.type === "ride") {
+      const rideId =
+        typeof pi.metadata.ride_id === "string" ? pi.metadata.ride_id : null;
+      await sessions
+        .update({ status: "expired" })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      if (rideId) {
+        const rpc = admin.rpc.bind(admin) as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => Promise<{ error: { message: string } | null }>;
+        const { error } = await rpc("drive_card_failed", {
+          p_ride_id: rideId,
+        });
+        if (error) {
+          console.error("[stripe/webhook] ride card failed:", error.message);
+        }
+      }
+      await recordEvent(null);
+      return NextResponse.json({ ok: true });
+    }
+
     const { data: sess } = await sessions
       .select("id, order_id, customer_id, eur_cents, total_da, status")
       .eq("stripe_payment_intent", pi.id)

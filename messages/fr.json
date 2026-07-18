@@ -1076,7 +1076,11 @@
     },
     "pay": {
       "cash": "💵 Espèces",
-      "card": "💳 Carte"
+      "card": "💳 Carte",
+      "cardDzd": "CIB / EDAHABIA",
+      "cardDzdSub": "En dinars (DA)",
+      "cardEur": "Internationale (€, $, £…)",
+      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay"
     },
     "boost": {
       "title": "Booster ma demande",

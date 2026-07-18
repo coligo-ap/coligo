@@ -1174,6 +1174,136 @@ export async function createRideCardCheckout(
   }
 }
 
+/* ─────────────── Paiement carte INTERNATIONALE € (Stripe) ─────────────── */
+
+/**
+ * L'option « Carte internationale (€) » est-elle proposable à CE client ?
+ * (flag + clés + pays IP + capacité — mode 'visibility', zéro fetch réseau).
+ * Appelée au montage de l'écran prix ; la création de paiement re-vérifie
+ * TOUT en mode autoritaire de toute façon.
+ */
+export async function rideIntlAvailability(): Promise<boolean> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return false;
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!cust) return false;
+    const { checkIntlEligibility } = await import("@/lib/payments/intl");
+    const elig = await checkIntlEligibility({
+      customerId: cust.id,
+      mode: "visibility",
+    });
+    return elig.ok;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Course payée en CARTE INTERNATIONALE (€) : PaymentIntent Stripe sur le
+ * prix DA converti au taux maison (jamais exposé) → feuille de paiement
+ * EMBARQUÉE. Le webhook payment_intent.succeeded pose le séquestre
+ * (drive_card_paid) et déclenche la diffusion — même contrat que Chargily.
+ */
+export async function createRideIntlPayment(rideId: string): Promise<
+  | {
+      ok: true;
+      client_secret: string;
+      publishable_key: string;
+      eur_cents: number;
+    }
+  | { ok: false; error: string }
+> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "auth" };
+  const { data: cust } = await supabase
+    .from("customers")
+    .select("id")
+    .eq("user_id", user.id)
+    .maybeSingle();
+  if (!cust) return { ok: false, error: "no_customer" };
+
+  const { data: ride } = await admin
+    .from("rides")
+    .select(
+      "id, customer_id, status, payment_method, agreed_price_da, proposed_price_da, boost_amount_da, online_paid_at"
+    )
+    .eq("id", rideId)
+    .maybeSingle();
+  if (!ride || ride.customer_id !== cust.id)
+    return { ok: false, error: "not_your_ride" };
+  if (ride.payment_method !== "card") return { ok: false, error: "not_card" };
+  if (ride.online_paid_at) return { ok: false, error: "already_paid" };
+  const amount =
+    ride.agreed_price_da ??
+    (ride.proposed_price_da ?? 0) + (ride.boost_amount_da ?? 0);
+  if (!amount || amount <= 0) return { ok: false, error: "no_amount" };
+
+  try {
+    const [{ checkIntlEligibility, getRequestCountry }, stripeMod] =
+      await Promise.all([
+        import("@/lib/payments/intl"),
+        import("@/lib/payments/stripe"),
+      ]);
+    const elig = await checkIntlEligibility({
+      customerId: cust.id,
+      totalDa: amount,
+      mode: "authoritative",
+    });
+    if (!elig.ok) return { ok: false, error: `intl_${elig.reason}` };
+    const publishableKey = await stripeMod.getPublishableKey();
+    if (!publishableKey) return { ok: false, error: "intl_off" };
+    const intent = await stripeMod.createIntlPaymentIntent({
+      orderId: ride.id,
+      eurCents: elig.eur_cents!,
+      description: "Course Coligo Drive",
+      metadata: { type: "ride", ride_id: ride.id },
+    });
+    const { error: sessErr } = await (
+      admin.from("intl_payment_sessions" as never) as unknown as {
+        insert: (row: Record<string, unknown>) => Promise<{
+          error: { message: string } | null;
+        }>;
+      }
+    ).insert({
+      ride_id: ride.id,
+      customer_id: cust.id,
+      stripe_payment_intent: intent.id,
+      eur_cents: elig.eur_cents!,
+      total_da: amount,
+      rate_da: elig.rate.rate_da,
+      rate_source: elig.rate.source,
+      ip_country: await getRequestCountry(),
+    });
+    if (sessErr) {
+      console.error("[drive] intl session insert:", sessErr.message);
+      return { ok: false, error: "intl_session" };
+    }
+    return {
+      ok: true,
+      client_secret: intent.clientSecret,
+      publishable_key: publishableKey,
+      eur_cents: elig.eur_cents!,
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "stripe_error",
+    };
+  }
+}
+
 /**
  * État du paiement carte d'une course (sondé pendant « En attente du paiement
  * carte… ») : failed = checkout Chargily échoué/abandonné → la demande a été

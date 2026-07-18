@@ -1076,7 +1076,11 @@
     },
     "pay": {
       "cash": "💵 نقدًا",
-      "card": "💳 بطاقة"
+      "card": "💳 بطاقة",
+      "cardDzd": "CIB / EDAHABIA",
+      "cardDzdSub": "بالدينار (دج)",
+      "cardEur": "دولية (€، $، £…)",
+      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay"
     },
     "boost": {
       "title": "تعزيز طلبي",
