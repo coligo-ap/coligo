@@ -772,6 +772,7 @@
     "password": "Password",
     "forgotShort": "Forgot?",
     "googleAuthFailed": "Signing in with Google failed. Try again.",
+    "googleNativeUnavailable": "Google sign-in is coming to the app soon — use your email for now.",
     "signingIn": "Signing in…",
     "notRegisteredYet": "Not registered yet?",
     "createAccount": "Create an account",

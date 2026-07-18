@@ -8,6 +8,7 @@ import {
   canUseNativeGoogle,
   NativeGoogleError,
 } from "@/lib/native/google-signin";
+import { isNative as isNativeApp } from "@/lib/native/context";
 import { signInWithGoogleNative } from "@/app/auth/actions";
 
 /**
@@ -53,6 +54,12 @@ export function SocialAuth({
     labels?.button ?? merchantDefaults?.button ?? t("continueWithGoogle");
   const errorLabel =
     labels?.error ?? merchantDefaults?.error ?? t("googleAuthFailed");
+  // App native sans config Google (iOS sans client OAuth iOS) : message
+  // dédié — surtout PAS le repli OAuth web (éjection Safari).
+  const nativeUnavailableLabel =
+    intent === "merchant"
+      ? "Connexion Google bientôt disponible dans l'app — utilisez votre email."
+      : t("googleNativeUnavailable");
   const [loading, setLoading] = useState(false);
   // Erreur INLINE sous le bouton (cf. CLAUDE.md : pas de toast sur une action
   // de bouton). L'utilisateur regarde le bouton, pas le coin de l'écran.
@@ -88,8 +95,19 @@ export function SocialAuth({
     setLoading(true);
     setError(null);
     try {
-      if (canUseNativeGoogle()) await signInNative();
-      else await signInWeb();
+      if (canUseNativeGoogle()) {
+        await signInNative();
+      } else if (isNativeApp()) {
+        // App SANS config Google native (ex. iOS sans client OAuth iOS) :
+        // ne JAMAIS basculer sur l'OAuth web — dans la WebView, Google est
+        // un hôte externe → éjection vers Safari et session perdue hors de
+        // l'app. Message inline, connexion email toujours possible.
+        setError(nativeUnavailableLabel);
+        setLoading(false);
+        return;
+      } else {
+        await signInWeb();
+      }
     } catch (e) {
       // Fermer la feuille Google n'est pas une erreur : on se tait.
       if (e instanceof NativeGoogleError && e.cancelled) {

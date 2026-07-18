@@ -772,6 +772,7 @@
     "password": "Mot de passe",
     "forgotShort": "Oublié ?",
     "googleAuthFailed": "La connexion avec Google a échoué. Réessaie.",
+    "googleNativeUnavailable": "Connexion Google bientôt disponible dans l'app — utilise ton email en attendant.",
     "signingIn": "Connexion…",
     "notRegisteredYet": "Pas encore inscrit ?",
     "createAccount": "Créer un compte",

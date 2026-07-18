@@ -1,6 +1,6 @@
 "use client";
 
-import { isNative } from "./context";
+import { isNative, getNativePlatform } from "./context";
 
 /**
  * Sign-In Google NATIF (Android : Credential Manager ; iOS : Google Sign-In SDK).
@@ -27,10 +27,20 @@ import { isNative } from "./context";
 
 /** Client OAuth de type WEB, dans Google Cloud. C'est l'audience du jeton. */
 const WEB_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_WEB_CLIENT_ID;
+/** Client OAuth de type iOS (bundle app.coligo.client) — REQUIS sur iPhone :
+ *  le SDK Google natif iOS refuse de s'initialiser sans lui (l'Android, via
+ *  Credential Manager, se contente du client web). */
+const IOS_CLIENT_ID = process.env.NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID;
 
-/** Vrai si l'on tourne dans l'APK ET que le client Google est configuré. */
+/** Vrai si l'on tourne dans l'app ET que le client Google requis existe. */
 export function canUseNativeGoogle(): boolean {
-  return isNative() && Boolean(WEB_CLIENT_ID);
+  if (!isNative() || !WEB_CLIENT_ID) return false;
+  // iOS exige SON client OAuth ; sans lui on ne tente pas (et surtout on ne
+  // bascule JAMAIS sur l'OAuth web : dans la WebView, accounts.google.com
+  // est un hôte externe → l'app éjecterait vers Safari et la session
+  // atterrirait dans le navigateur, pas dans l'app).
+  if (getNativePlatform() === "ios") return Boolean(IOS_CLIENT_ID);
+  return true;
 }
 
 /** Nonce brut : 32 octets aléatoires, en base64url. */
@@ -84,7 +94,16 @@ export async function nativeGoogleIdToken(): Promise<{
   const nonce = randomNonce();
   const hashedNonce = await sha256Hex(nonce);
 
-  await SocialLogin.initialize({ google: { webClientId: WEB_CLIENT_ID } });
+  await SocialLogin.initialize({
+    google: {
+      webClientId: WEB_CLIENT_ID,
+      // iOS : le SDK natif Google veut le client de SA plateforme (le jeton
+      // reste émis pour l'audience web grâce à webClientId).
+      ...(getNativePlatform() === "ios" && IOS_CLIENT_ID
+        ? { iOSClientId: IOS_CLIENT_ID }
+        : {}),
+    },
+  });
 
   let result;
   try {

@@ -47,11 +47,13 @@ export async function GET(
     Location: new URL(landing, req.url).toString(),
   });
 
-  // Marque le WebView de l'APK. `; wv)` dans l'user-agent = WebView Android —
-  // Chrome l'y met, Capacitor ne le retire pas. On évite ainsi de marquer un
-  // navigateur qui ouvrirait cette URL à la main. Voir lib/config/native.ts.
+  // Marque le WebView des apps. `; wv)` = WebView Android (posé par Chrome) ;
+  // `ColigoApp` = marqueur appendUserAgent de l'app iOS (le WKWebView est
+  // sinon indiscernable de Safari — bug vécu : bannières web servies dans
+  // l'app iOS). On évite ainsi de marquer un navigateur qui ouvrirait cette
+  // URL à la main. Voir lib/config/native.ts.
   const ua = req.headers.get("user-agent") ?? "";
-  if (/;\s*wv\)/i.test(ua)) {
+  if (/;\s*wv\)|ColigoApp/i.test(ua)) {
     headers.append(
       "Set-Cookie",
       `${NATIVE_COOKIE}=1; Path=/; Max-Age=${NATIVE_COOKIE_MAX_AGE}; SameSite=Lax; Secure`

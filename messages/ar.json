@@ -772,6 +772,7 @@
     "password": "كلمة المرور",
     "forgotShort": "نسيتها؟",
     "googleAuthFailed": "فشل تسجيل الدخول عبر غوغل. أعد المحاولة.",
+    "googleNativeUnavailable": "تسجيل الدخول عبر غوغل سيتوفر قريبًا في التطبيق — استعمل بريدك الإلكتروني حاليًا.",
     "signingIn": "جارٍ تسجيل الدخول…",
     "notRegisteredYet": "ليس لديك حساب بعد؟",
     "createAccount": "إنشاء حساب",

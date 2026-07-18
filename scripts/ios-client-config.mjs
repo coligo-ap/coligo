@@ -33,6 +33,12 @@ writeFileSync(
       appId: "app.coligo.client",
       appName: "Coligo",
       webDir: "capacitor-webroot",
+      // Marqueur d'identification APP dans le user-agent : contrairement à
+      // Android (« ; wv) » ajouté par Chrome), le WKWebView iOS est
+      // indiscernable de Safari → le serveur ne posait jamais le cookie
+      // coligo_native et servait les bannières WEB (installer la PWA, mise à
+      // jour) DANS l'app. /api/start/<role> reconnaît ce marqueur.
+      appendUserAgent: "ColigoApp",
       server: {
         url: SERVER_URL,
         // ⚠️ PAS de `iosScheme: "https"` : interdit par Capacitor sur iOS
