@@ -111,3 +111,25 @@ workflows:
     # Pas de déclenchement automatique volontairement : tant que le bouton
     # « Continuer avec Apple » n'est pas codé côté UI, chaque build se lance à
     # la main depuis le dashboard Codemagic (bouton « Start new build »).
+
+  # ── Sonde LECTURE SEULE du statut App Store (aucun build) ──────────────────
+  # Interroge l'API App Store Connect avec les identifiants de l'intégration :
+  # état de la version 1.0 (Prepare for Submission / Waiting for Review /
+  # Ready for Sale…), soumissions en cours. Déclenchée à la main / par API.
+  asc-status:
+    name: ASC — statut App Store (lecture seule)
+    max_build_duration: 10
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: coligo_asc
+    scripts:
+      - name: Statut de l'app et des versions
+        script: |
+          set +e
+          echo "=== APP 6790816270 ==="
+          app-store-connect apps get 6790816270
+          echo "=== VERSIONS APP STORE (états) ==="
+          app-store-connect apps app-store-versions 6790816270
+          echo "=== BUILDS RÉCENTS ==="
+          app-store-connect apps builds 6790816270 | head -60
+          exit 0
