@@ -63,19 +63,30 @@ workflows:
         script: |
           cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
       - name: Build .ipa signé
-        # PROFIL ÉPINGLÉ PAR NOM : « Coligo Client Apple Pay » = le profil
-        # MANUEL créé dans le portail (les profils fabriqués par l'API ASC ne
-        # peuvent PAS contenir la capability Apple Pay — limitation Apple, cf.
-        # builds #12-#17 : use-profiles re-choisissait toujours « Coligo
-        # Client App Store », alphabétiquement premier et regénérable). Si ce
-        # profil manuel est supprimé du portail, ce build échouera avec
-        # « profile not found » — le recréer (App Store, app.coligo.client,
-        # cert Apple Distribution d'Esam) plutôt que retirer ce pin.
+        # PROFIL « Coligo Client Apple Pay » IMPOSÉ — par FILTRAGE sur la
+        # machine, pas par flag xcodebuild global (un flag global s'applique
+        # aussi aux paquets SPM qui refusent tout profil → échec #18). Les
+        # profils fabriqués par l'API ASC ne peuvent PAS contenir la
+        # capability Apple Pay (limitation Apple) et la sélection auto
+        # re-choisissait toujours « Coligo Client App Store » (#12-#17) : on
+        # supprime donc du disque tout profil ≠ « Coligo Client Apple Pay »
+        # (le profil MANUEL du portail, seul à porter Apple Pay + merchant),
+        # puis use-profiles n'a plus qu'un candidat et l'applique cible par
+        # cible. Si le profil manuel disparaît du portail : le recréer
+        # (App Store, app.coligo.client, cert Apple Distribution d'Esam).
         script: |
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          for p in "$PROFILES_DIR"/*.mobileprovision; do
+            name=$(security cms -D -i "$p" | plutil -extract Name raw -o - -)
+            echo "profil présent : $name"
+            if [ "$name" != "Coligo Client Apple Pay" ]; then
+              rm -f "$p"; echo "  → retiré (sans Apple Pay)"
+            fi
+          done
+          xcode-project use-profiles
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
-            --scheme "$XCODE_SCHEME" \
-            --archive-flags "PROVISIONING_PROFILE_SPECIFIER='Coligo Client Apple Pay'"
+            --scheme "$XCODE_SCHEME"
     artifacts:
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
