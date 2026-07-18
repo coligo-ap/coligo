@@ -81,6 +81,9 @@ const config: CapacitorConfig = {
     // seule l'app CLIENT est publiée sur l'App Store).
     includePlugins: [
       "@capacitor-community/speech-recognition",
+      // Paiement € natif (PaymentSheet : Apple Pay + carte) — exige
+      // capacitor-swift-pm ≥ 8, compatible avec social-login (vérifié).
+      "@capacitor-community/stripe",
       "@capacitor/app",
       "@capacitor/geolocation",
       "@capacitor/preferences",

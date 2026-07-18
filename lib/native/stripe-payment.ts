@@ -18,6 +18,12 @@
 
 import { isNative, getNativePlatform } from "@/lib/native/context";
 
+// Merchant ID Apple Pay (developer.apple.com → Identifiers → Merchant IDs,
+// certificat créé via le dashboard Stripe). VIDE tant qu'il n'existe pas :
+// iOS garde la feuille native carte seule, rien ne casse. À remplir avec
+// « merchant.app.coligo.client » une fois créé + entitlement in-app-payments.
+const APPLE_PAY_MERCHANT_ID = "";
+
 export type NativePayResult = "paid" | "canceled" | "failed";
 
 /** Le paiement natif est-il disponible ici ? Exige le WebView Capacitor ET
@@ -53,9 +59,16 @@ export async function presentNativePaymentSheet(opts: {
       // Google Pay (Android) : environnement de test si clé pk_test_.
       enableGooglePay: getNativePlatform() === "android",
       GooglePayIsTesting: opts.publishableKey.startsWith("pk_test_"),
-      // Apple Pay (iOS) — nécessitera un merchantIdentifier Apple le jour
-      // où l'app iOS existera ; sans lui la feuille garde carte seule.
-      enableApplePay: getNativePlatform() === "ios",
+      // Apple Pay (iOS) : activé SEULEMENT quand le Merchant ID Apple existe
+      // (developer.apple.com → Identifiers → Merchant IDs + certificat de
+      // traitement créé depuis le dashboard Stripe, puis entitlement
+      // in-app-payments). Vide = feuille native carte seule sur iOS — les
+      // builds Codemagic ne cassent pas en attendant.
+      enableApplePay:
+        getNativePlatform() === "ios" && APPLE_PAY_MERCHANT_ID.length > 0,
+      ...(APPLE_PAY_MERCHANT_ID
+        ? { applePayMerchantId: APPLE_PAY_MERCHANT_ID }
+        : {}),
       countryCode: "FR",
     });
     const { paymentResult } = await Stripe.presentPaymentSheet();
