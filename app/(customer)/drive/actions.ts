@@ -192,6 +192,77 @@ export async function getDriveContext(): Promise<DriveContext> {
   };
 }
 
+/* ────────────── Course active (bandeau live, version LÉGÈRE) ────────────── */
+
+export type ActiveRideLite = {
+  id: string;
+  status: string;
+  dest_text: string | null;
+  chauffeur_name: string | null;
+  /** Course carte pas encore payée (feuille fermée / page quittée). */
+  awaiting_payment: boolean;
+};
+
+/**
+ * Course active du client pour le bandeau live de la marketplace — payload
+ * MINIMAL (id, statut, destination, prénom chauffeur), même philosophie que
+ * fetchMyActiveOrders. Admin client + filtre customer_id de LA session
+ * (self-guard service_role). null = aucune course en cours.
+ */
+export async function fetchMyActiveRideLite(): Promise<ActiveRideLite | null> {
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    if (!user) return null;
+    const { data: cust } = await supabase
+      .from("customers")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (!cust) return null;
+
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select(
+        "id, status, dest_text, payment_method, online_paid_at, chauffeurs(first_name, full_name)"
+      )
+      .eq("customer_id", cust.id)
+      // "scheduled" existe dans l'enum SQL (mig 0265) mais pas dans les types
+      // générés (Docker requis) → cast localisé, comme ailleurs.
+      .in("status", [
+        "searching",
+        "scheduled",
+        "accepted",
+        "arriving",
+        "arrived",
+        "in_progress",
+      ] as never[])
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (!ride) return null;
+    const ch = ride.chauffeurs as unknown as {
+      first_name: string | null;
+      full_name: string;
+    } | null;
+    return {
+      id: ride.id,
+      status: ride.status,
+      dest_text: ride.dest_text,
+      chauffeur_name: ch ? (ch.first_name ?? ch.full_name.split(" ")[0]) : null,
+      awaiting_payment:
+        ride.payment_method === "card" &&
+        ride.online_paid_at == null &&
+        ride.status === "searching",
+    };
+  } catch {
+    return null;
+  }
+}
+
 /* ─────────────────────────── Devis par gamme ─────────────────────────── */
 
 export type DriveQuote = {

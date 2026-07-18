@@ -7,8 +7,11 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
   Bike,
+  Car,
   ChefHat,
   ChevronRight,
+  CreditCard,
+  MapPin,
   Package,
   Pencil,
   ReceiptText,
@@ -24,6 +27,10 @@ import {
   fetchMyActiveOrders,
   type ActiveOrderLite,
 } from "@/app/(customer)/commandes/actions";
+import {
+  fetchMyActiveRideLite,
+  type ActiveRideLite,
+} from "@/app/(customer)/drive/actions";
 import type { OrderStatus } from "@/lib/types";
 import { writeOfflineSnapshot } from "@/lib/native/offline-snapshot";
 
@@ -106,9 +113,24 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
     staleTime: 10_000,
     enabled: !hidden,
   });
+  // Course Drive active — même bandeau : le client sur la marketplace voit
+  // sa recherche de chauffeur / sa course en cours d'un coup d'œil. Masquée
+  // sur /drive (l'écran course montre déjà tout, en mieux).
+  const onDrive = pathname.startsWith("/drive");
+  const { data: ride, refetch: refetchRide } = useQuery({
+    queryKey: ["customer-active-ride-lite", userId],
+    queryFn: () => fetchMyActiveRideLite(),
+    placeholderData: keepPreviousData,
+    refetchInterval: 20_000,
+    staleTime: 10_000,
+    enabled: !hidden && !onDrive,
+  });
   // Timers throttlés en arrière-plan → resync immédiat au retour (règle
   // produit « arrière-plan → reprise »).
-  useResumeResync(() => void refetch());
+  useResumeResync(() => {
+    void refetch();
+    void refetchRide();
+  });
 
   // Fermeture par carte : mémorisée par (id → statut) pour la session. Si le
   // statut évolue (préparation → prête), la carte REVIENT automatiquement.
@@ -143,27 +165,181 @@ export function ActiveOrdersBar({ userId }: { userId: string }) {
   }, [data, t]);
 
   const orders = (data ?? []).filter((o) => dismissed[o.id] !== o.status);
-  if (hidden || orders.length === 0) return null;
+  // La course Drive suit la même mécanique de fermeture (id → statut) — la
+  // carte revient dès que le statut évolue (accepté, arrivé…).
+  const activeRide =
+    !onDrive && ride && dismissed[ride.id] !== ride.status ? ride : null;
+  const total = orders.length + (activeRide ? 1 : 0);
+  if (hidden || total === 0) return null;
+  const multi = total > 1;
 
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-30 px-3 pb-1.5 lg:bottom-4">
       <div
         className={cn(
           "mx-auto max-w-md",
-          orders.length > 1 &&
+          multi &&
             "scrollbar-hide flex snap-x snap-mandatory gap-2 overflow-x-auto"
         )}
       >
+        {/* La course d'ABORD : c'est l'événement le plus « temps réel »
+            (un chauffeur arrive) — puis les commandes commerçants. */}
+        {activeRide && (
+          <ActiveRideCard
+            ride={activeRide}
+            multi={multi}
+            onDismiss={() => dismiss(activeRide.id, activeRide.status)}
+          />
+        )}
         {orders.map((o) => (
           <ActiveOrderCard
             key={o.id}
             order={o}
-            multi={orders.length > 1}
+            multi={multi}
             onDismiss={() => dismiss(o.id, o.status)}
           />
         ))}
       </div>
     </div>
+  );
+}
+
+/** Libellé i18n du statut d'une course (namespace orders.ride*). */
+function rideStatusKey(ride: ActiveRideLite): string {
+  if (ride.awaiting_payment) return "rideAwaitingPayment";
+  switch (ride.status) {
+    case "scheduled":
+      return "rideScheduled";
+    case "accepted":
+      return "rideAccepted";
+    case "arriving":
+      return "rideArriving";
+    case "arrived":
+      return "rideArrived";
+    case "in_progress":
+      return "rideInProgress";
+    default:
+      return "rideSearching";
+  }
+}
+
+/** Carte COURSE DRIVE du bandeau — même gabarit que les commandes, teinte
+ *  violette Drive, scène voiture animée (lucide + CSS, repli-first). */
+function ActiveRideCard({
+  ride,
+  multi,
+  onDismiss,
+}: {
+  ride: ActiveRideLite;
+  multi: boolean;
+  onDismiss: () => void;
+}) {
+  const t = useTranslations("orders");
+  const searching = ride.status === "searching" && !ride.awaiting_payment;
+  const arrived = ride.status === "arrived";
+  const moving =
+    ride.status === "accepted" ||
+    ride.status === "arriving" ||
+    ride.status === "in_progress";
+
+  return (
+    <Link
+      href="/drive"
+      className={cn(
+        "border-border bg-surface pointer-events-auto relative flex items-center gap-3 rounded-[14px] border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
+        multi ? "w-[86%] shrink-0 snap-start" : "flex w-full"
+      )}
+    >
+      {/* Scène : voiture + traits de vitesse (en mouvement), halo pulsé
+          (recherche), étincelle (chauffeur sur place). */}
+      <span className="bg-primary-50 dark:bg-primary-950/40 relative grid size-11 shrink-0 place-items-center overflow-visible rounded-full">
+        {searching && (
+          <span
+            aria-hidden
+            className="border-primary-400/60 absolute inset-0 animate-ping rounded-full border-2"
+          />
+        )}
+        {moving && (
+          <span
+            aria-hidden
+            className="absolute start-0.5 top-1/2 flex -translate-y-1/2 flex-col gap-[3px]"
+          >
+            <span className="co-speedline bg-primary-400/70 h-[2px] w-[7px] rounded-full" />
+            <span className="co-speedline bg-primary-400/70 h-[2px] w-[10px] rounded-full" />
+            <span className="co-speedline bg-primary-400/70 h-[2px] w-[6px] rounded-full" />
+          </span>
+        )}
+        <span className={moving ? "co-drive" : undefined} aria-hidden>
+          {ride.awaiting_payment ? (
+            <CreditCard className="text-warning-500 size-5" />
+          ) : (
+            <Car className="text-primary-700 size-5 rtl:-scale-x-100" />
+          )}
+        </span>
+        {arrived && (
+          <span aria-hidden className="co-sparkle absolute end-0 -top-0.5">
+            <Sparkles className="text-warning-500 size-3" />
+          </span>
+        )}
+      </span>
+
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground flex items-center gap-1.5 truncate text-[13.5px] font-bold">
+          <span className="text-primary-700 font-black">{t("rideTitle")}</span>
+          {ride.dest_text && (
+            <span className="text-muted inline-flex min-w-0 items-center gap-0.5 text-[12px] font-semibold">
+              <MapPin className="size-3 shrink-0" />
+              <span className="truncate">{ride.dest_text}</span>
+            </span>
+          )}
+        </span>
+        <span
+          className={cn(
+            "mt-0.5 block truncate text-[12px] font-semibold",
+            ride.awaiting_payment
+              ? "text-warning-600"
+              : arrived
+                ? "text-success-700"
+                : "text-primary-700"
+          )}
+        >
+          {ride.chauffeur_name && !searching && !ride.awaiting_payment
+            ? `${ride.chauffeur_name} · `
+            : ""}
+          {t(rideStatusKey(ride))}
+          {(searching || moving) && (
+            <span aria-hidden>
+              <span className="co-dot">.</span>
+              <span className="co-dot">.</span>
+              <span className="co-dot">.</span>
+            </span>
+          )}
+        </span>
+      </span>
+
+      <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
+
+      <span
+        role="button"
+        tabIndex={0}
+        aria-label={t("activeDismiss")}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          onDismiss();
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            e.stopPropagation();
+            onDismiss();
+          }
+        }}
+        className="bg-surface-3 text-muted hover:text-foreground absolute -end-1.5 -top-1.5 grid size-6 place-items-center rounded-full border border-[var(--color-border)] shadow-sm"
+      >
+        <X className="size-3" />
+      </span>
+    </Link>
   );
 }
 
