@@ -27,7 +27,16 @@
 // (stale-while-revalidate). Page jamais visitée : on attend le réseau jusqu'au
 // plafond dur `NAV_FETCH_TIMEOUT_MS`, puis /offline (auto-rechargée au retour
 // du réseau). Le réseau reste prioritaire dès qu'il répond dans les temps.
-const CACHE_VERSION = "coligo-v21";
+// v22 : AUTO-DESTRUCTION dans les apps NATIVES (WebView Capacitor). Le SW
+// n'y a rien à faire : sa course réseau⟷cache peut servir un vieux bundle
+// DANS l'app (bug vécu iOS) et son cache gaspille la mémoire du WebView.
+// Le navigateur re-télécharge TOUJOURS sw.js lors des checks de mise à
+// jour (jamais depuis le cache) → cette version atteint même les appareils
+// dont tout le reste est en cache, se désenregistre et purge tout.
+// Détection : « ; wv) » = WebView Android (posé par Chrome), « ColigoApp »
+// = marqueur appendUserAgent de l'app iOS. Aligné sur /api/start/<role>.
+const CACHE_VERSION = "coligo-v22";
+const NATIVE_UA = /;\s*wv\)|ColigoApp/i.test(self.navigator.userAgent || "");
 /** Plafond DUR du fetch réseau d'une navigation (socket mort/figé). */
 const NAV_FETCH_TIMEOUT_MS = 8000;
 /** Budget accordé au réseau quand une copie en cache existe déjà — au-delà,
@@ -70,6 +79,15 @@ self.addEventListener("install", (event) => {
 self.addEventListener("activate", (event) => {
   event.waitUntil(
     (async () => {
+      // App NATIVE : purge TOTALE + désenregistrement — le worker disparaît
+      // et l'app repart en direct sur le réseau dès la prochaine navigation.
+      if (NATIVE_UA) {
+        const all = await caches.keys();
+        await Promise.all(all.map((k) => caches.delete(k)));
+        await self.registration.unregister();
+        await self.clients.claim();
+        return;
+      }
       const keys = await caches.keys();
       await Promise.all(
         keys

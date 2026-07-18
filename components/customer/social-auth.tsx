@@ -115,7 +115,14 @@ export function SocialAuth({
         return;
       }
       console.error("connexion Google :", e);
-      setError(errorLabel);
+      // En APP : la cause native exacte est ajoutée entre parenthèses —
+      // sans elle, impossible de diagnostiquer à distance (pas de console
+      // accessible sur un iPhone de testeur).
+      const detail =
+        isNativeApp() && e instanceof Error && e.message
+          ? ` (${e.message.slice(0, 140)})`
+          : "";
+      setError(errorLabel + detail);
       setLoading(false);
       return;
     }
