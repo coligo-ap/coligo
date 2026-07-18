@@ -14,7 +14,7 @@
  * rien à committer, seulement à régénérer avant chaque build.)
  */
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -26,13 +26,27 @@ const SERVER_URL =
   process.env.COLIGO_CLIENT_URL?.trim() ||
   "https://coligo.app/api/start/client";
 
+// ⚠️ FUSION, jamais ÉCRASEMENT : `cap sync ios` génère dans ce fichier des
+// clés VITALES — surtout `packageClassList`, la liste qui ENREGISTRE les
+// plugins natifs côté iOS (SPM). L'ancienne version réécrivait l'objet
+// complet sans elle → AUCUN plugin natif enregistré → « plugin is not
+// implemented on iOS » sur Google, Stripe, push… (bug vécu builds ≤ 24).
+// On lit donc le fichier généré et on ne surcharge QUE l'identité client.
+const generated = JSON.parse(readFileSync(OUT, "utf8"));
+if (!Array.isArray(generated.packageClassList)) {
+  throw new Error(
+    "packageClassList absent du capacitor.config.json généré — lancer " +
+      "`npx cap sync ios` AVANT ce script (cf. codemagic.yaml)."
+  );
+}
+
 writeFileSync(
   OUT,
   JSON.stringify(
     {
+      ...generated,
       appId: "app.coligo.client",
       appName: "Coligo",
-      webDir: "capacitor-webroot",
       // Marqueur d'identification APP dans le user-agent : contrairement à
       // Android (« ; wv) » ajouté par Chrome), le WKWebView iOS est
       // indiscernable de Safari → le serveur ne posait jamais le cookie
@@ -51,6 +65,7 @@ writeFileSync(
         allowNavigation: ["coligo.app", "*.coligo.app"],
       },
       ios: {
+        ...(generated.ios ?? {}),
         // Doit rester égal au blanc de l'écran de lancement natif (Splash.imageset)
         // et à android.backgroundColor de capacitor.config.ts — fond continu du tap
         // sur l'icône jusqu'à l'intro CSS de la page.
@@ -63,5 +78,6 @@ writeFileSync(
   ) + "\n"
 );
 console.log(
-  `✔ ios/App/App/capacitor.config.json (client) — server.url = ${SERVER_URL}`
+  `✔ ios/App/App/capacitor.config.json (client) — server.url = ${SERVER_URL} — ` +
+    `${generated.packageClassList.length} plugins natifs enregistrés`
 );
