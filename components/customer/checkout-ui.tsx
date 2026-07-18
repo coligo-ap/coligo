@@ -191,10 +191,11 @@ export function WalletCard({
       )}
       style={{ animationDelay: `${delay}s` }}
     >
-      {/* Illustration décorative (icône + pièces) — côté opposé au texte. */}
+      {/* Illustration décorative (icône + pièces) — décalée VERS L'INTÉRIEUR
+          pour ne pas gêner le toggle (qui vit au bord end de la carte). */}
       <span
         aria-hidden
-        className="pointer-events-none absolute end-5 top-6 select-none"
+        className="pointer-events-none absolute end-[84px] top-7 opacity-80 select-none"
       >
         <Icon
           className={cn(

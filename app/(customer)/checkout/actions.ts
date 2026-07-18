@@ -145,6 +145,8 @@ export type CreateOrderResult =
         client_secret: string;
         publishable_key: string;
         eur_cents: number;
+        /** Total DA réellement couvert — affiché en référence sur la feuille. */
+        total_da: number;
       };
     }
   | { ok: false; error: string };
@@ -1625,6 +1627,7 @@ export async function createOrder(
             client_secret: intent.clientSecret,
             publishable_key: publishableKey,
             eur_cents: elig.eur_cents!,
+            total_da: totalWithDelivery,
           },
         };
       } catch (e) {
@@ -1719,6 +1722,8 @@ export type RetryPaymentResult =
         client_secret: string;
         publishable_key: string;
         eur_cents: number;
+        /** Total DA réellement couvert — affiché en référence sur la feuille. */
+        total_da: number;
       };
     }
   | { ok: false; error: string };
@@ -1878,6 +1883,7 @@ export async function retryOnlineOrderPayment(
           client_secret: intent.clientSecret,
           publishable_key: publishableKey,
           eur_cents: elig.eur_cents!,
+          total_da: order.total_da,
         },
       };
     }

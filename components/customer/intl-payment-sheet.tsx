@@ -11,7 +11,7 @@ import {
   useStripe,
 } from "@stripe/react-stripe-js";
 import { Loader2, Lock, X } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { cn, formatDA } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
 
 // =============================================================================
@@ -30,6 +30,8 @@ export type StripeIntentPayload = {
   client_secret: string;
   publishable_key: string;
   eur_cents: number;
+  /** Total DA couvert par ce paiement — récap AVANT de payer. */
+  total_da?: number;
 };
 
 function eurLabel(cents: number): string {
@@ -98,6 +100,24 @@ export function IntlPaymentSheet({
             >
               <X className="size-5" />
             </button>
+          </div>
+
+          {/* RÉCAP PRIX — le client voit ce qu'il va payer AVANT de payer :
+              montant € en gros + total DA couvert en référence. */}
+          <div className="bg-surface-2 mx-5 mt-3 flex items-center justify-between rounded-[14px] px-4 py-3">
+            <span className="text-muted text-[12px] font-bold">
+              {t("intlSheetTotal")}
+            </span>
+            <span className="text-end">
+              <b className="text-foreground block text-[20px] leading-6 font-extrabold tabular-nums">
+                {eurLabel(intent.eur_cents)}
+              </b>
+              {intent.total_da != null && (
+                <span className="text-muted block text-[11px] font-semibold tabular-nums">
+                  {t("intlSheetDaRef", { amount: formatDA(intent.total_da) })}
+                </span>
+              )}
+            </span>
           </div>
 
           <div className="max-h-[62dvh] overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+1.25rem)]">

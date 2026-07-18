@@ -1233,6 +1233,8 @@ export async function createRideIntlPayment(rideId: string): Promise<
       client_secret: string;
       publishable_key: string;
       eur_cents: number;
+      /** Prix DA de la course — affiché en référence sur la feuille. */
+      total_da: number;
     }
   | { ok: false; error: string }
 > {
@@ -1316,6 +1318,7 @@ export async function createRideIntlPayment(rideId: string): Promise<
       client_secret: intent.clientSecret,
       publishable_key: publishableKey,
       eur_cents: elig.eur_cents!,
+      total_da: amount,
     };
   } catch (err) {
     return {

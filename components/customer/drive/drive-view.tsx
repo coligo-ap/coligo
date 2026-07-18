@@ -866,6 +866,7 @@ export function DriveView({ userId }: { userId: string }) {
             client_secret: intl.client_secret,
             publishable_key: intl.publishable_key,
             eur_cents: intl.eur_cents,
+            total_da: intl.total_da,
             ride_id: res.rideId,
           });
           return; // la feuille prend la main (succès → écran course)
