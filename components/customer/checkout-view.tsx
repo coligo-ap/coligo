@@ -219,7 +219,6 @@ export function CheckoutView({
   // nombre de cartes) change — puis maintenus par onScroll.
   useEffect(() => {
     updatePayDots();
-     
   }, [ctx]);
 
   // Si le panier change, l'estimation du code promo n'est plus garantie →
@@ -992,7 +991,7 @@ export function CheckoutView({
           <div
             ref={payScrollRef}
             onScroll={updatePayDots}
-            className="scrollbar-hide flex snap-x snap-mandatory scroll-px-4 gap-2.5 overflow-x-auto px-4 pt-3 pb-2"
+            className="scrollbar-hide flex snap-x snap-mandatory scroll-px-4 gap-2 overflow-x-auto px-4 pt-3 pb-2"
           >
             <PayCard
               icon={Banknote}
@@ -1009,7 +1008,7 @@ export function CheckoutView({
               chipTone={
                 cashbackOn && cashbackEarnCash > 0 ? "success" : "muted"
               }
-              className="min-w-[124px] shrink-0 basis-[calc((100%-20px)/3)] snap-start"
+              className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
             />
             {onlineVisible && (
               <PayCard
@@ -1034,7 +1033,7 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
-                className="min-w-[124px] shrink-0 basis-[calc((100%-20px)/3)] snap-start"
+                className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
               />
             )}
             {/* Carte internationale € — visible UNIQUEMENT si le serveur l'a
@@ -1063,7 +1062,7 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
-                className="min-w-[124px] shrink-0 basis-[calc((100%-20px)/3)] snap-start"
+                className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
               />
             )}
           </div>
