@@ -66,5 +66,17 @@
 	     build TestFlight. -->
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
+	<!-- Callback du Sign-In Google NATIF : URL scheme = REVERSED_CLIENT_ID du
+	     client OAuth iOS (Google Cloud, bundle app.coligo.client). Doit rester
+	     apparié à NEXT_PUBLIC_GOOGLE_IOS_CLIENT_ID (env Vercel). -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.236418285528-g0jkn5rbdk3hk6bd11lq4qhfn1gom8bk</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>
