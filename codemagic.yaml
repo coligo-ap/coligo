@@ -76,6 +76,13 @@ workflows:
         # (App Store, app.coligo.client, cert Apple Distribution d'Esam).
         script: |
           PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_DIR"
+          # Le téléchargeur automatique IGNORE le profil manuel du portail
+          # (vérifié builds #16-#19, alors que cert/entitlements matchent) →
+          # on INSTALLE le fichier committé (ios/certs/, aucun secret : certs
+          # publics + entitlements). À renouveler avant le 15/07/2027
+          # (expiration) ou si le certificat de distribution change.
+          cp ios/certs/Coligo_Client_Apple_Pay.mobileprovision "$PROFILES_DIR/"
           for p in "$PROFILES_DIR"/*.mobileprovision; do
             name=$(security cms -D -i "$p" | plutil -extract Name raw -o - -)
             echo "profil présent : $name"
