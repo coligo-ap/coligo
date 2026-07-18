@@ -5,6 +5,7 @@ import { useLocale, useTranslations } from "next-intl";
 import { loadStripe } from "@stripe/stripe-js";
 import {
   Elements,
+  ExpressCheckoutElement,
   PaymentElement,
   useElements,
   useStripe,
@@ -160,9 +161,13 @@ function PayForm({
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [succeeded, setSucceeded] = useState(false);
+  // Apple Pay / Google Pay détectés sur CET appareil ? (Safari/iPhone →
+  // Apple Pay, Chrome/Android → Google Pay ; rien = boutons masqués).
+  const [hasWallets, setHasWallets] = useState(false);
 
-  async function pay() {
-    if (!stripe || !elements || paying || succeeded) return;
+  /** Confirmation partagée : bouton carte ET boutons express (wallets). */
+  async function confirmNow() {
+    if (!stripe || !elements || succeeded) return;
     setError(null);
     setPaying(true);
     try {
@@ -188,6 +193,11 @@ function PayForm({
     }
   }
 
+  async function pay() {
+    if (paying) return;
+    await confirmNow();
+  }
+
   return (
     <>
       {!ready && (
@@ -196,13 +206,39 @@ function PayForm({
         </div>
       )}
       <div className={cn(!ready && "hidden")}>
+        {/* Boutons EXPRESS (Apple Pay / Google Pay) — rendus par Stripe
+            uniquement si l'appareil les supporte ; le formulaire carte reste
+            en dessous. Link coupé (bruit inutile pour la diaspora). */}
+        <div className={cn(!hasWallets && "hidden")}>
+          <ExpressCheckoutElement
+            options={{
+              buttonHeight: 48,
+              buttonTheme: { applePay: "black", googlePay: "black" },
+              paymentMethods: {
+                applePay: "auto",
+                googlePay: "auto",
+                link: "never",
+              },
+            }}
+            onReady={(e) => setHasWallets(!!e.availablePaymentMethods)}
+            onConfirm={() => void confirmNow()}
+          />
+          <div className="my-4 flex items-center gap-3">
+            <span className="bg-border h-px flex-1" />
+            <span className="text-subtle text-[11px] font-extrabold tracking-wide uppercase">
+              {t("intlOrCard")}
+            </span>
+            <span className="bg-border h-px flex-1" />
+          </div>
+        </div>
+
         <PaymentElement
           onReady={() => setReady(true)}
           options={{
             layout: { type: "tabs", defaultCollapsed: false },
-            // Apple Pay / Google Pay : détection auto (domaine déjà vérifié
-            // côté Stripe pour coligo.app) — apparaissent en premier onglet.
-            wallets: { applePay: "auto", googlePay: "auto" },
+            // Les wallets vivent DANS les boutons express ci-dessus — on les
+            // retire du formulaire carte pour éviter le doublon.
+            wallets: { applePay: "never", googlePay: "never" },
           }}
         />
 

@@ -1024,6 +1024,7 @@ export function CheckoutView({
                 chipTone={
                   cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
                 }
+                compact
                 className={onlineVisible ? "col-span-2" : undefined}
               />
             )}
