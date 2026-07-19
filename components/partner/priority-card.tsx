@@ -1,31 +1,36 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import Link from "next/link";
 import { useLocale } from "next-intl";
 import {
   Crown,
   Zap,
   BadgeCheck,
   Wallet,
-  CreditCard,
+  ChevronDown,
   LifeBuoy,
   Loader2,
+  X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { subscribePriorityCard } from "@/components/partner/priority-actions";
+import {
+  SubscribeSheet,
+  type SubscribeStep,
+} from "@/components/partner/subscribe-sheet";
 import {
   isSupportConfigured,
   openSupportChat,
 } from "@/components/support/tawk-chat";
 
 // =============================================================================
-// Carte « Abonnement Prioritaire » — commune livreur + chauffeur (ch.7).
-// Paiement ADAPTATIF (Uber-style) : si le solde Coligo Pay couvre l'abonnement →
-// paiement instantané au portefeuille ; sinon → carte bancaire (instantanée) +
-// possibilité de recharger le portefeuille. On ne laisse jamais l'utilisateur
-// sans option claire. Dark-aware via les tokens (.bg-white suit la surface sombre
-// sous .drive-jakarta / [data-space=client], cf. globals.css).
+// Carte « Abonnement Prioritaire » — commune livreur + chauffeur, ACCORDÉON
+// (brief « Reste a faire Coligo » §1) : abo ACTIF → carte repliée par défaut
+// (le partenaire la connaît, badge « Actif » visible) ; pas d'abo → dépliée
+// avec UN seul bouton « S'abonner · XX DA ». Le paiement passe par la
+// SubscribeSheet partagée : solde Coligo Pay suffisant → confirmation +
+// activation instantanée ; sinon → carte (Chargily) ou recharge pré-
+// sélectionnée. AUCUN code technique (already_subscribed…) n'atteint l'écran.
 // =============================================================================
 
 type State = {
@@ -47,9 +52,14 @@ export function PriorityCard() {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [state, setState] = useState<State | null>(null);
-  const [busy, setBusy] = useState<null | "wallet" | "card">(null);
+  const [busy, setBusy] = useState<null | "wallet" | "card" | "cancel">(null);
   const [msg, setMsg] = useState<string | null>(null);
   const [polling, setPolling] = useState(false);
+  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetStep, setSheetStep] = useState<SubscribeStep>("confirm");
+  const [sheetErr, setSheetErr] = useState<string | null>(null);
+  // null = état automatique (replié si abo actif) ; un tap le fige.
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   async function load() {
@@ -64,21 +74,37 @@ export function PriorityCard() {
     };
   }, []);
 
+  // Codes serveur → messages clairs (JAMAIS de code brut à l'écran).
+  const prioErr = (code?: string | null) =>
+    code === "insufficient_wallet"
+      ? tr("Solde Coligo Pay insuffisant.", "رصيد كوليڨو باي غير كافٍ.")
+      : code === "already_subscribed"
+        ? tr("Vous avez déjà un abonnement actif.", "لديك اشتراك نشط بالفعل.")
+        : code === "pass_disabled"
+          ? tr(
+              "Cette offre n'est pas disponible pour le moment.",
+              "هذا العرض غير متاح حاليًا."
+            )
+          : tr(
+              "Le paiement n'a pas abouti. Réessayez.",
+              "لم تكتمل عملية الدفع. أعد المحاولة."
+            );
+
   const rechargeHref =
     state?.subject_type === "driver"
       ? "/driver/recharger"
       : "/chauffeur/recharger";
-  // Retour Chargily = la page où vit désormais la carte (sous-page Abonnement
-  // dans les DEUX espaces) — le poll ?prio=success s'y joue.
+  // Retour Chargily = la page où vit la carte (sous-page Abonnement dans les
+  // DEUX espaces) — le poll s'y joue.
   const returnPath =
     state?.subject_type === "driver"
       ? "/driver/abonnement"
       : "/chauffeur/abonnement";
 
-  // Paiement au PORTEFEUILLE (instantané).
+  // Paiement au PORTEFEUILLE (instantané) — depuis la feuille de confirmation.
   async function payWallet() {
     setBusy("wallet");
-    setMsg(null);
+    setSheetErr(null);
     const sb = createClient();
     const { data, error } = await sb.rpc("priority_subscribe", {
       p_payment_method: "wallet",
@@ -86,37 +112,27 @@ export function PriorityCard() {
     setBusy(null);
     const res = data as { ok?: boolean; error?: string } | null;
     if (error || !res?.ok) {
-      setMsg(
-        res?.error === "insufficient_wallet"
-          ? tr(
-              "Solde insuffisant — payez par carte ou rechargez.",
-              "رصيد غير كافٍ — ادفع بالبطاقة أو أعد التعبئة."
-            )
-          : tr(
-              "Échec de la souscription. Réessayez.",
-              "فشل الاشتراك. أعد المحاولة."
-            )
-      );
+      if (res?.error === "insufficient_wallet") setSheetStep("methods");
+      setSheetErr(prioErr(error ? null : res?.error));
       await load();
       return;
     }
+    setSheetStep("success");
     await load();
   }
 
   // Paiement par CARTE (Chargily, nouvel onglet) → on POLLE l'activation (webhook).
   async function payCard() {
     setBusy("card");
-    setMsg(null);
+    setSheetErr(null);
     const res = await subscribePriorityCard(returnPath);
     setBusy(null);
     if (!res.ok || !res.url) {
-      setMsg(
-        res.error ??
-          tr("Paiement carte indisponible.", "الدفع بالبطاقة غير متاح.")
-      );
+      setSheetErr(prioErr(res.error));
       return;
     }
     window.open(res.url, "_blank");
+    setSheetOpen(false);
     setMsg(tr("Confirmation bancaire en cours…", "التأكيد البنكي جارٍ…"));
     setPolling(true);
     let tries = 0;
@@ -137,8 +153,9 @@ export function PriorityCard() {
     }, 3000);
   }
 
+  // Résiliation (abo actif) OU annulation d'une tentative en attente.
   async function cancel() {
-    setBusy("wallet");
+    setBusy("cancel");
     setMsg(null);
     const sb = createClient();
     await sb.rpc("priority_sub_cancel");
@@ -156,203 +173,233 @@ export function PriorityCard() {
 
   if (!state || !state.partner) return null;
 
-  const active = state.is_priority;
+  const active = Boolean(state.is_priority);
+  const pending = !active && state.status === "pending";
   // Pass masqué par le super-admin : on ne montre l'offre que si le partenaire
   // a déjà un abo en cours (pour voir l'échéance / résilier). Sinon → rien.
-  if (state.enabled === false && !active && state.status !== "pending")
-    return null;
+  if (state.enabled === false && !active && !pending) return null;
   const amount = state.price_da ?? state.monthly_da ?? 0;
   const balance = state.wallet_balance ?? 0;
   const covers = balance >= amount;
+  const open = userOpen ?? !active;
+
+  const offer = {
+    title: tr("Abonnement Prioritaire", "اشتراك الأولوية"),
+    priceDa: amount,
+    durationDays: 30,
+    advantages: [
+      tr(
+        "Proposé en premier sur les courses proches",
+        "تُعرض أولًا على التوصيلات القريبة"
+      ),
+      tr(
+        "Badge Prioritaire visible par le client",
+        "شارة الأولوية مرئية للزبون"
+      ),
+    ],
+    note: state.eligible_first_month
+      ? isAr
+        ? `الشهر الأول، ثم ${fmtDA(state.monthly_da ?? 0)} دج/شهر`
+        : `1er mois, puis ${fmtDA(state.monthly_da ?? 0)} DA/mois`
+      : null,
+  };
+
+  const openSubscribe = () => {
+    setSheetErr(null);
+    setSheetStep(covers ? "confirm" : "methods");
+    setSheetOpen(true);
+  };
+
+  const closeSheet = () => {
+    setSheetOpen(false);
+    setSheetStep("confirm");
+    setSheetErr(null);
+  };
 
   return (
     <div className="border-border overflow-hidden rounded-2xl border bg-white">
-      <div className="flex items-center gap-2 bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-4 py-3 text-white">
-        <Crown className="size-5" />
-        <span className="font-extrabold">
+      {/* En-tête accordéon : replie/déplie la carte. */}
+      <button
+        type="button"
+        onClick={() => setUserOpen(!open)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-4 py-3 text-start text-white"
+      >
+        <Crown className="size-5 shrink-0" />
+        <span className="min-w-0 flex-1 truncate font-extrabold">
           {tr("Abonnement Prioritaire", "اشتراك الأولوية")}
         </span>
         {active && (
-          <span className="ms-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+          <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
             {tr("Actif", "نشط")}
           </span>
         )}
-      </div>
+        {pending && (
+          <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">
+            {tr("En attente", "قيد التأكيد")}
+          </span>
+        )}
+        <ChevronDown
+          className="size-4 shrink-0 text-white/80 transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
 
-      <div className="space-y-3 p-4">
-        <ul className="space-y-2 text-sm">
-          <li className="flex items-start gap-2">
-            <Zap className="text-primary-600 mt-0.5 size-4 shrink-0" />
-            <span>
-              {isAr ? (
-                <>
-                  <b>تُعرض أولًا</b> على التوصيلات القريبة.
-                </>
-              ) : (
-                <>
-                  <b>Proposé en premier</b> sur les courses proches.
-                </>
-              )}
-            </span>
-          </li>
-          <li className="flex items-start gap-2">
-            <BadgeCheck className="text-primary-600 mt-0.5 size-4 shrink-0" />
-            <span>
-              {isAr ? (
-                <>
-                  <b>شارة الأولوية</b> مرئية للزبون.
-                </>
-              ) : (
-                <>
-                  <b>Badge Prioritaire</b> visible par le client.
-                </>
-              )}
-            </span>
-          </li>
-        </ul>
+      {open && (
+        <div className="space-y-3 p-4">
+          <ul className="space-y-2 text-sm">
+            <li className="flex items-start gap-2">
+              <Zap className="text-primary-600 mt-0.5 size-4 shrink-0" />
+              <span>
+                {isAr ? (
+                  <>
+                    <b>تُعرض أولًا</b> على التوصيلات القريبة.
+                  </>
+                ) : (
+                  <>
+                    <b>Proposé en premier</b> sur les courses proches.
+                  </>
+                )}
+              </span>
+            </li>
+            <li className="flex items-start gap-2">
+              <BadgeCheck className="text-primary-600 mt-0.5 size-4 shrink-0" />
+              <span>
+                {isAr ? (
+                  <>
+                    <b>شارة الأولوية</b> مرئية للزبون.
+                  </>
+                ) : (
+                  <>
+                    <b>Badge Prioritaire</b> visible par le client.
+                  </>
+                )}
+              </span>
+            </li>
+          </ul>
 
-        {active ? (
-          <div>
-            <p className="text-muted text-sm">
-              {tr("Actif jusqu'au", "نشط حتى")}{" "}
-              <b className="text-foreground">
-                {state.period_end
-                  ? new Date(state.period_end).toLocaleDateString(
-                      isAr ? "ar-DZ" : "fr-DZ"
-                    )
-                  : "—"}
-              </b>
-              .
+          {active ? (
+            <div>
+              <p className="text-muted text-sm">
+                {tr("Actif jusqu'au", "نشط حتى")}{" "}
+                <b className="text-foreground">
+                  {state.period_end
+                    ? new Date(state.period_end).toLocaleDateString(
+                        isAr ? "ar-DZ" : "fr-DZ"
+                      )
+                    : "—"}
+                </b>
+                .
+              </p>
+              <button
+                type="button"
+                onClick={cancel}
+                disabled={busy != null}
+                className="text-danger-600 mt-2 text-sm font-semibold hover:underline disabled:opacity-50"
+              >
+                {busy === "cancel"
+                  ? tr("Résiliation…", "جارٍ الإلغاء…")
+                  : tr("Résilier", "إلغاء الاشتراك")}
+              </button>
+            </div>
+          ) : pending ? (
+            <div className="bg-surface-2 rounded-xl px-3 py-2.5 text-sm">
+              <p className="text-muted">
+                {tr(
+                  "Paiement en cours de confirmation — l'abonnement s'activera automatiquement.",
+                  "الدفع قيد التأكيد — سيُفعَّل الاشتراك تلقائيًا."
+                )}
+              </p>
+              <button
+                type="button"
+                disabled={busy != null}
+                onClick={cancel}
+                className="text-danger-600 mt-1.5 flex items-center gap-1 text-xs font-extrabold disabled:opacity-50"
+              >
+                <X className="size-3" />
+                {tr("Annuler cette tentative", "إلغاء هذه المحاولة")}
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-2.5">
+              {/* Solde Coligo Pay + verdict de couverture. */}
+              <div className="bg-surface-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
+                <Wallet className="text-primary-600 size-4 shrink-0" />
+                <span className="text-muted">
+                  {tr("Solde Coligo Pay :", "رصيد كوليڨو باي:")}{" "}
+                  <b className="text-foreground">
+                    {fmtDA(balance)} {tr("DA", "دج")}
+                  </b>
+                </span>
+                <span
+                  className={`ms-auto rounded-full px-2 py-0.5 font-bold ${
+                    covers
+                      ? "bg-success-50 text-success-700"
+                      : "bg-warning-50 text-warning-700"
+                  }`}
+                >
+                  {covers
+                    ? tr("couvre l’abonnement", "يغطي الاشتراك")
+                    : tr("insuffisant", "غير كافٍ")}
+                </span>
+              </div>
+
+              {/* Bouton UNIQUE — le prix vit dans le bouton (zéro doublon). */}
+              <button
+                type="button"
+                onClick={openSubscribe}
+                disabled={busy != null || polling}
+                className="bg-primary-600 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
+              >
+                <Crown className="size-4" />
+                {isAr
+                  ? `اشترك · ${fmtDA(amount)} دج`
+                  : `S'abonner · ${fmtDA(amount)} DA`}
+              </button>
+              {state.eligible_first_month && (
+                <p className="text-muted text-center text-xs">
+                  {isAr
+                    ? `الشهر الأول، ثم ${fmtDA(state.monthly_da ?? 0)} دج/شهر`
+                    : `le 1er mois, puis ${fmtDA(state.monthly_da ?? 0)} DA/mois`}
+                </p>
+              )}
+            </div>
+          )}
+
+          {(msg || polling) && (
+            <p className="text-muted flex items-center gap-2 text-sm font-medium">
+              {polling && (
+                <Loader2 className="text-primary-600 size-4 shrink-0 animate-spin" />
+              )}
+              {msg}
             </p>
+          )}
+
+          {isSupportConfigured() && (
             <button
               type="button"
-              onClick={cancel}
-              disabled={busy != null}
-              className="text-danger-600 mt-2 text-sm font-semibold hover:underline disabled:opacity-50"
+              onClick={contactSupport}
+              className="text-muted hover:text-primary-700 flex w-full items-center justify-center gap-1.5 text-xs font-semibold"
             >
-              {tr("Résilier", "إلغاء الاشتراك")}
+              <LifeBuoy className="size-3.5" />
+              {tr("Contacter le support", "التواصل مع الدعم")}
             </button>
-          </div>
-        ) : (
-          <div className="space-y-2.5">
-            {/* Prix (promo 1er mois si éligible). */}
-            <p className="text-sm">
-              <b className="text-lg">
-                {fmtDA(amount)} {tr("DA", "دج")}
-              </b>{" "}
-              <span className="text-muted">
-                {state.eligible_first_month
-                  ? isAr
-                    ? `الشهر الأول، ثم ${fmtDA(state.monthly_da ?? 0)} دج/شهر`
-                    : `le 1er mois, puis ${fmtDA(state.monthly_da ?? 0)} DA/mois`
-                  : tr("/ mois", "/ شهر")}
-              </span>
-            </p>
+          )}
+        </div>
+      )}
 
-            {/* Solde Coligo Pay + verdict de couverture. */}
-            <div className="bg-surface-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
-              <Wallet className="text-primary-600 size-4 shrink-0" />
-              <span className="text-muted">
-                {tr("Solde Coligo Pay :", "رصيد كوليڨو باي:")}{" "}
-                <b className="text-foreground">
-                  {fmtDA(balance)} {tr("DA", "دج")}
-                </b>
-              </span>
-              <span
-                className={`ms-auto rounded-full px-2 py-0.5 font-bold ${
-                  covers
-                    ? "bg-success-50 text-success-700"
-                    : "bg-warning-50 text-warning-700"
-                }`}
-              >
-                {covers
-                  ? tr("couvre l’abonnement", "يغطي الاشتراك")
-                  : tr("insuffisant", "غير كافٍ")}
-              </span>
-            </div>
-
-            {/* PAIEMENT ADAPTATIF : la meilleure option d'abord, les autres restent
-                visibles pour ne jamais bloquer la compréhension. */}
-            {covers ? (
-              <>
-                <button
-                  type="button"
-                  onClick={payWallet}
-                  disabled={busy != null || polling}
-                  className="bg-primary-600 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  {busy === "wallet" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <Wallet className="size-4" />
-                  )}
-                  {tr(
-                    "Payer avec Coligo Pay · instantané",
-                    "الدفع بكوليڨو باي · فوري"
-                  )}
-                </button>
-                <button
-                  type="button"
-                  onClick={payCard}
-                  disabled={busy != null || polling}
-                  className="border-border text-foreground flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-bold disabled:opacity-50"
-                >
-                  {busy === "card" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="size-4" />
-                  )}
-                  {tr("Payer par carte", "الدفع بالبطاقة")}
-                </button>
-              </>
-            ) : (
-              <>
-                <button
-                  type="button"
-                  onClick={payCard}
-                  disabled={busy != null || polling}
-                  className="bg-primary-600 flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white disabled:opacity-50"
-                >
-                  {busy === "card" ? (
-                    <Loader2 className="size-4 animate-spin" />
-                  ) : (
-                    <CreditCard className="size-4" />
-                  )}
-                  {tr("Payer par carte · immédiat", "الدفع بالبطاقة · فوري")}
-                </button>
-                <Link
-                  href={rechargeHref}
-                  prefetch
-                  className="border-primary-600 text-primary-700 flex w-full items-center justify-center gap-2 rounded-xl border py-2.5 text-sm font-bold"
-                >
-                  <Wallet className="size-4" />
-                  {tr("Recharger Coligo Pay", "تعبئة كوليڨو باي")}
-                </Link>
-              </>
-            )}
-          </div>
-        )}
-
-        {(msg || polling) && (
-          <p className="text-muted flex items-center gap-2 text-sm font-medium">
-            {polling && (
-              <Loader2 className="text-primary-600 size-4 shrink-0 animate-spin" />
-            )}
-            {msg}
-          </p>
-        )}
-
-        {isSupportConfigured() && (
-          <button
-            type="button"
-            onClick={contactSupport}
-            className="text-muted hover:text-primary-700 flex w-full items-center justify-center gap-1.5 text-xs font-semibold"
-          >
-            <LifeBuoy className="size-3.5" />
-            {tr("Contacter le support", "التواصل مع الدعم")}
-          </button>
-        )}
-      </div>
+      {/* Feuille de paiement partagée (confirm / moyens / succès). */}
+      <SubscribeSheet
+        offer={sheetOpen ? offer : null}
+        step={sheetStep}
+        balance={balance}
+        busy={busy === "wallet" || busy === "card"}
+        error={sheetErr}
+        rechargeBase={rechargeHref}
+        onConfirm={() => void payWallet()}
+        onCard={() => void payCard()}
+        onClose={closeSheet}
+      />
     </div>
   );
 }

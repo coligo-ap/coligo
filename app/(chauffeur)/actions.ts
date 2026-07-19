@@ -1559,6 +1559,7 @@ export type ChauffeurPlan = {
   subtitle: string | null;
   price_da: number;
   billing_period: "day" | "week" | "month";
+  duration_days: number;
   commission_rate: number;
   cashback_rate: number;
   advantages: string[];
@@ -1573,7 +1574,7 @@ export async function getDrivePlansForChauffeur(): Promise<ChauffeurPlan[]> {
   const { data } = await admin
     .from("drive_plans")
     .select(
-      "code,title,subtitle,price_da,billing_period,commission_rate,cashback_rate,advantages,badge_label,badge_color,is_priority,is_active,is_default,display_rank"
+      "code,title,subtitle,price_da,billing_period,duration_days,commission_rate,cashback_rate,advantages,badge_label,badge_color,is_priority,is_active,is_default,display_rank"
     )
     .eq("is_active", true)
     .eq("is_default", false)
@@ -1584,6 +1585,7 @@ export async function getDrivePlansForChauffeur(): Promise<ChauffeurPlan[]> {
     subtitle: p.subtitle,
     price_da: Number(p.price_da),
     billing_period: p.billing_period,
+    duration_days: Number(p.duration_days ?? 30),
     commission_rate: Number(p.commission_rate),
     cashback_rate: Number(p.cashback_rate),
     advantages: p.advantages ?? [],
@@ -1595,12 +1597,13 @@ export async function getDrivePlansForChauffeur(): Promise<ChauffeurPlan[]> {
 
 export async function subscribeDrivePlan(
   plan: string,
-  method: "ccp" | "card",
+  method: "ccp" | "card" | "wallet",
   opts?: { upgrade?: boolean }
 ): Promise<{ ok: boolean; url?: string; error?: string }> {
   const rpc = await rpcClient();
   // Upgrade Pro → Premium : montant au prorata des jours restants (source SQL).
   // Sinon : souscription au plan (prix + durée IMPOSÉS par drive_plans, 0304).
+  // `wallet` (0382) : débit Coligo Pay + activation immédiate côté SQL.
   const { data, error } = opts?.upgrade
     ? await rpc("drive_sub_upgrade", { p_method: method })
     : await rpc("drive_subscribe", {
@@ -1615,7 +1618,7 @@ export async function subscribeDrivePlan(
     amount_da?: number;
   };
   if (!row?.ok) return { ok: false, error: row?.reason };
-  if (method === "ccp") return { ok: true };
+  if (method !== "card") return { ok: true };
 
   // Carte bancaire : Chargily, activation immédiate après webhook.
   try {

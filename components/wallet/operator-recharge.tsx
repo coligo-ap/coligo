@@ -75,7 +75,13 @@ export function OperatorRecharge({
   const [config, setConfig] = useState<TopupConfig | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const [method, setMethod] = useState<Method>("card");
+  // Moyen PRÉ-SÉLECTIONNABLE via l'URL (?method=ccp|cash|card) — la feuille
+  // d'abonnement y renvoie quand le solde ne couvre pas l'offre, pour que
+  // l'utilisateur comprenne immédiatement l'étape suivante.
+  const [method, setMethod] = useState<Method>(() => {
+    const m = search.get("method");
+    return m === "ccp" || m === "cash" || m === "card" ? m : "card";
+  });
   const [amount, setAmount] = useState<string>("");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);

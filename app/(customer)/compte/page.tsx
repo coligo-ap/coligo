@@ -327,15 +327,8 @@ export default async function CustomerAccountPage({
           <CustomerLogoutButton />
         </div>
 
-        {/* Suppression de compte (exigence Google Play) — lien discret. */}
-        <div className="pt-4 text-center">
-          <Link
-            href="/compte/supprimer"
-            className="text-muted hover:text-danger-700 text-xs font-semibold underline-offset-2 hover:underline"
-          >
-            {t("deleteAccount")}
-          </Link>
-        </div>
+        {/* La suppression de compte vit dans « Informations personnelles »
+            (brief « Reste a faire Coligo » §2) — plus de lien ici. */}
 
         {/* Version installée (APK uniquement) — utile au support. */}
         <AppVersionLabel />

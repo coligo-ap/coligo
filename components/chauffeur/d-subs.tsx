@@ -3,23 +3,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
-import {
-  Check,
-  CreditCard,
-  Crown,
-  Loader2,
-  Sparkles,
-  Wallet,
-  X,
-} from "lucide-react";
-import {
-  VIOLET,
-  PrimaryBtn,
-  GhostBtn,
-  Sheet,
-  SheetTitle,
-} from "@/components/customer/drive/drive-modals";
+import { Check, ChevronDown, Crown, Loader2, Sparkles, X } from "lucide-react";
+import { VIOLET } from "@/components/customer/drive/drive-modals";
+import { createClient } from "@/lib/supabase/client";
 import { PriorityCard } from "@/components/partner/priority-card";
+import {
+  SubscribeSheet,
+  type SubscribeStep,
+} from "@/components/partner/subscribe-sheet";
 import { PLAN_LABEL } from "./d-ui";
 import {
   cancelMyPendingSub,
@@ -45,11 +36,13 @@ const pct = (r: number) =>
 const fmtDA = (n: number) => n.toLocaleString("fr-FR").replace(/ | /g, " ");
 
 /**
- * Abonnements Drive — AFFICHAGE UNIFIÉ (une seule liste, design « Pass
- * Prioritaire »). Ordre : Prioritaire (produit à part, payé au portefeuille
- * Coligo Pay via PriorityCard) → Gratuit → plans de COMMISSION actifs
- * (Pro/Premium/personnalisés, data-driven 0304, payés en CCP/carte). Le chauffeur
- * ne transmet qu'un CODE de plan ; prix et durée sont imposés par le serveur.
+ * Abonnements Drive — liste ACCORDÉON (brief « Reste a faire Coligo » §1) :
+ * l'offre EN COURS est repliée par défaut (le chauffeur la connaît), les autres
+ * offres sont dépliées pour inciter à la découverte. Chaque offre porte UN seul
+ * bouton « S'abonner · XX DA ». Le paiement passe par la SubscribeSheet
+ * partagée : solde Coligo Pay suffisant → confirmation + activation instantanée
+ * (drive_subscribe 'wallet', mig 0382) ; sinon → carte (Chargily direct) ou
+ * recharge Coligo Pay pré-sélectionnée (?method=…).
  *
  * ⚠️ Carte : SEUL le webhook Chargily fait foi (?card=success → on POLLE).
  */
@@ -62,8 +55,9 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     (isAr ? PERIOD_LABEL_AR : PERIOD_LABEL)[p];
   const [fin, setFin] = useState<ChauffeurFinances | null>(null);
   const [plans, setPlans] = useState<ChauffeurPlan[]>([]);
+  const [walletBal, setWalletBal] = useState<number>(0);
   const [paying, setPaying] = useState<ChauffeurPlan | null>(null);
-  const [step, setStep] = useState<"choice" | "ccp">("choice");
+  const [step, setStep] = useState<SubscribeStep>("confirm");
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,6 +70,14 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
   const load = () => {
     void getChauffeurFinances().then(setFin);
     void getDrivePlansForChauffeur().then(setPlans);
+    // Solde Coligo Pay (portefeuille opérateur) — même source que la
+    // PriorityCard ; le serveur re-vérifie de toute façon au paiement.
+    void createClient()
+      .rpc("my_priority_state")
+      .then(({ data }) => {
+        const b = (data as { wallet_balance?: number } | null)?.wallet_balance;
+        setWalletBal(typeof b === "number" ? b : 0);
+      });
   };
   useEffect(load, []);
 
@@ -118,6 +120,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     );
   }
 
+  // Jamais de code technique à l'écran : tout code inconnu → message générique.
   const subErr = (reason?: string) =>
     reason === "plan_inactive" || reason === "paid_plans_disabled"
       ? tr(
@@ -126,23 +129,44 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
         )
       : reason === "bad_plan"
         ? tr("Plan introuvable.", "عرض غير موجود.")
-        : (reason ?? tr("Échec", "فشل"));
+        : reason === "insufficient_wallet"
+          ? tr("Solde Coligo Pay insuffisant.", "رصيد كوليڨو باي غير كافٍ.")
+          : reason === "already_subscribed"
+            ? tr(
+                "Vous avez déjà un abonnement actif.",
+                "لديك اشتراك نشط بالفعل."
+              )
+            : tr(
+                "Le paiement n'a pas abouti. Réessayez.",
+                "لم تكتمل عملية الدفع. أعد المحاولة."
+              );
 
-  const payCcpDone = async () => {
+  const openPlan = (p: ChauffeurPlan) => {
+    setPaying(p);
+    setError(null);
+    setStep(walletBal >= p.price_da ? "confirm" : "methods");
+  };
+
+  const closeSheet = () => {
+    setPaying(null);
+    setStep("confirm");
+    setError(null);
+  };
+
+  // Solde suffisant → paiement Coligo Pay instantané (activation immédiate).
+  const payWallet = async () => {
     if (!paying || busy) return;
     setBusy(true);
     setError(null);
-    const res = await subscribeDrivePlan(paying.code, "ccp");
+    const res = await subscribeDrivePlan(paying.code, "wallet");
     setBusy(false);
-    if (!res.ok) return setError(subErr(res.error));
-    const p = paying;
-    setPaying(null);
-    setStep("choice");
-    setMsg(
-      isAr
-        ? `تم التصريح بالتحويل — سيبدأ اشتراك ${p.title} بعد موافقة فريق كوليڨو.`
-        : `Virement déclaré — l'abonnement ${p.title} démarrera à l'approbation par l'équipe Coligo.`
-    );
+    if (!res.ok) {
+      if (res.error === "insufficient_wallet") setStep("methods");
+      setError(subErr(res.error));
+      load();
+      return;
+    }
+    setStep("success");
     load();
   };
 
@@ -152,14 +176,9 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     setError(null);
     const res = await subscribeDrivePlan(paying.code, "card");
     setBusy(false);
-    if (!res.ok || !res.url)
-      return setError(
-        subErr(res.error) ??
-          tr("Paiement carte indisponible.", "الدفع بالبطاقة غير متاح.")
-      );
+    if (!res.ok || !res.url) return setError(subErr(res.error));
     window.open(res.url, "_blank");
-    setPaying(null);
-    setStep("choice");
+    closeSheet();
     setMsg(
       tr(
         "Confirmation bancaire en cours — la page se met à jour toute seule.",
@@ -302,8 +321,11 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
           icon={Crown}
           header={`linear-gradient(90deg,${p.badge_color || "#5B2EFF"},${VIOLET})`}
           badgeLabel={p.badge_label}
-          price={`${fmtDA(p.price_da)} ${tr("DA", "دج")}`}
-          per={`/ ${period(p.billing_period)}`}
+          subscribeLabel={
+            isAr
+              ? `اشترك · ${fmtDA(p.price_da)} دج / ${period(p.billing_period)}`
+              : `S'abonner · ${fmtDA(p.price_da)} DA / ${period(p.billing_period)}`
+          }
           advantages={
             p.advantages.length
               ? p.advantages
@@ -320,126 +342,46 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
                     : []),
                 ]
           }
-          onChoose={() => {
-            setPaying(p);
-            setStep("choice");
-            setError(null);
-          }}
+          onChoose={() => openPlan(p)}
         />
       ))}
 
-      {/* Modale paiement (plans de commission : CCP / carte). */}
-      <Sheet
-        open={paying != null}
-        onClose={() => {
-          setPaying(null);
-          setStep("choice");
-        }}
-      >
-        <SheetTitle>
-          {tr("Payer l'abonnement", "دفع الاشتراك")} {paying?.title} ·{" "}
-          {paying ? fmtDA(paying.price_da) : 0} {tr("DA", "دج")} /{" "}
-          {paying ? period(paying.billing_period) : ""}
-        </SheetTitle>
-        {step === "choice" ? (
-          <>
-            <button
-              type="button"
-              onClick={() => setStep("ccp")}
-              className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-start text-[13.5px] font-bold"
-            >
-              <span
-                className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
-                style={{ background: "var(--d-accent)", color: VIOLET }}
-              >
-                <Wallet className="size-5" />
-              </span>
-              <span>
-                {tr("Virement CCP / BaridiMob", "تحويل CCP / بريدي موب")}
-                <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
-                  {tr(
-                    "Activé après vérification par l'équipe Coligo",
-                    "يُفعَّل بعد تحقّق فريق كوليڨو"
-                  )}
-                </small>
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => void payCard()}
-              className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-start text-[13.5px] font-bold"
-            >
-              <span
-                className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
-                style={{ background: "var(--d-accent)", color: VIOLET }}
-              >
-                <CreditCard className="size-5" />
-              </span>
-              <span>
-                {tr("Carte bancaire · en ligne", "بطاقة بنكية · عبر الإنترنت")}
-                <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
-                  {tr(
-                    "CIB / Edahabia · activation immédiate",
-                    "CIB / الذهبية · تفعيل فوري"
-                  )}
-                </small>
-              </span>
-            </button>
-          </>
-        ) : (
-          <>
-            <p className="mb-1.5 text-[13px] text-[var(--d-muted)]">
-              {tr(
-                "Effectuez le virement vers le CCP Coligo :",
-                "قم بالتحويل إلى حساب كوليڨو CCP:"
-              )}
-            </p>
-            <div
-              className="my-2.5 rounded-[15px] border-[1.5px] border-dashed bg-[var(--d-soft)] p-3 text-center"
-              style={{ borderColor: VIOLET }}
-            >
-              <p
-                className="text-[19px] font-extrabold tracking-[1px]"
-                style={{ color: VIOLET }}
-              >
-                {fin.ccp.number} — {tr("clé", "المفتاح")} {fin.ccp.key}
-              </p>
-              <small className="text-[11px] text-[var(--d-muted)]">
-                {fin.ccp.name} ·{" "}
-                {tr(
-                  "mentionnez votre n° de téléphone en référence",
-                  "اذكر رقم هاتفك في المرجع"
-                )}
-              </small>
-            </div>
-            <PrimaryBtn disabled={busy} onClick={() => void payCcpDone()}>
-              {busy ? <Loader2 className="size-5 animate-spin" /> : null}
-              {tr("J'ai payé · envoyer le reçu", "دفعت · إرسال الإيصال")}
-            </PrimaryBtn>
-          </>
-        )}
-        {error && (
-          <p
-            className="mt-2 text-center text-xs font-bold"
-            style={{ color: "#E5484D" }}
-          >
-            {error}
-          </p>
-        )}
-        <GhostBtn
-          onClick={() => {
-            setPaying(null);
-            setStep("choice");
-          }}
-        >
-          {tr("Annuler", "إلغاء")}
-        </GhostBtn>
-      </Sheet>
+      {/* Feuille de paiement partagée (confirm / moyens / succès). */}
+      <SubscribeSheet
+        offer={
+          paying
+            ? {
+                title: paying.title,
+                priceDa: paying.price_da,
+                durationDays: paying.duration_days,
+                advantages: paying.advantages.length
+                  ? paying.advantages
+                  : [
+                      isAr
+                        ? `عمولة ${pct(paying.commission_rate)}`
+                        : `Commission ${pct(paying.commission_rate)}`,
+                    ],
+              }
+            : null
+        }
+        step={step}
+        balance={walletBal}
+        busy={busy}
+        error={error}
+        rechargeBase="/chauffeur/recharger"
+        onConfirm={() => void payWallet()}
+        onCard={() => void payCard()}
+        onClose={closeSheet}
+      />
     </div>
   );
 }
 
-/** Carte de plan dans le style « Pass Prioritaire » (en-tête dégradé + avantages). */
+/**
+ * Carte de plan ACCORDÉON : l'en-tête (dégradé) replie/déplie la carte.
+ * Offre en cours → repliée par défaut (badge « Actuel » visible) ; autres
+ * offres → dépliées par défaut (découverte). UN seul bouton « S'abonner ».
+ */
 function PlanCard({
   current,
   title,
@@ -447,8 +389,7 @@ function PlanCard({
   icon: Icon,
   header,
   badgeLabel,
-  price,
-  per,
+  subscribeLabel,
   advantages,
   onChoose,
 }: {
@@ -458,66 +399,72 @@ function PlanCard({
   icon: typeof Crown;
   header: string;
   badgeLabel?: string | null;
-  price?: string;
-  per?: string;
+  /** Libellé complet du bouton unique (« S'abonner · 2 000 DA / mois »). */
+  subscribeLabel?: string;
   advantages: string[];
   onChoose?: () => void;
 }) {
   const isAr = useLocale() === "ar";
+  // null = état automatique (replié si offre en cours) ; un tap le fige.
+  const [userOpen, setUserOpen] = useState<boolean | null>(null);
+  const open = userOpen ?? !current;
   return (
     <div className="overflow-hidden rounded-2xl border border-[var(--d-line)] bg-[var(--d-surface)]">
-      <div
-        className="flex items-center gap-2 px-4 py-3 text-white"
+      <button
+        type="button"
+        onClick={() => setUserOpen(!open)}
+        aria-expanded={open}
+        className="flex w-full items-center gap-2 px-4 py-3 text-start text-white"
         style={{ background: header }}
       >
-        <Icon className="size-5" />
-        <span className="drive-sora font-extrabold">{title}</span>
+        <Icon className="size-5 shrink-0" />
+        <span className="drive-sora min-w-0 flex-1 truncate font-extrabold">
+          {title}
+        </span>
         {current ? (
-          <span className="ms-auto rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
+          <span className="rounded-full bg-white/20 px-2 py-0.5 text-xs font-bold">
             {isAr ? "الحالي" : "Actuel"}
           </span>
         ) : (
           badgeLabel && (
-            <span className="ms-auto rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">
+            <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-bold">
               {badgeLabel}
             </span>
           )
         )}
-      </div>
-      <div className="space-y-3 p-4">
-        {subtitle && (
-          <p className="text-sm text-[var(--d-muted)]">{subtitle}</p>
-        )}
-        <ul className="space-y-2 text-sm">
-          {advantages.map((a, i) => (
-            <li key={i} className="flex items-start gap-2">
-              <Check
-                className="mt-0.5 size-4 shrink-0"
-                style={{ color: VIOLET }}
-              />
-              <span>{a}</span>
-            </li>
-          ))}
-        </ul>
-        {!current && onChoose && (
-          <div>
-            {price && (
-              <p className="text-sm">
-                <b className="drive-sora text-lg tracking-[-0.3px]">{price}</b>{" "}
-                <span className="text-[var(--d-muted)]">{per}</span>
-              </p>
-            )}
+        <ChevronDown
+          className="size-4 shrink-0 text-white/80 transition-transform"
+          style={{ transform: open ? "rotate(180deg)" : "none" }}
+        />
+      </button>
+      {open && (
+        <div className="space-y-3 p-4">
+          {subtitle && (
+            <p className="text-sm text-[var(--d-muted)]">{subtitle}</p>
+          )}
+          <ul className="space-y-2 text-sm">
+            {advantages.map((a, i) => (
+              <li key={i} className="flex items-start gap-2">
+                <Check
+                  className="mt-0.5 size-4 shrink-0"
+                  style={{ color: VIOLET }}
+                />
+                <span>{a}</span>
+              </li>
+            ))}
+          </ul>
+          {!current && onChoose && subscribeLabel && (
             <button
               type="button"
               onClick={onChoose}
-              className="drive-sora mt-2 w-full rounded-[14px] py-3 text-sm font-bold text-white active:scale-[0.99]"
+              className="drive-sora w-full rounded-[14px] py-3 text-sm font-bold text-white active:scale-[0.99]"
               style={{ background: VIOLET }}
             >
-              {isAr ? `اختيار ${title}` : `Choisir ${title}`}
+              {subscribeLabel}
             </button>
-          </div>
-        )}
-      </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

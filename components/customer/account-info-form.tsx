@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Check, Loader2, Mail, Phone, User as UserIcon } from "lucide-react";
 import { isValidContactPhone, normalizeContactPhone } from "@/lib/dz/phone";
@@ -109,6 +110,18 @@ export function AccountInfoForm({
         {/* Déconnexion — juste sous la section « Adresse email ». */}
         <div className="mt-5">
           <CustomerLogoutButton />
+        </div>
+
+        {/* Suppression de compte (exigence Google Play) — SEUL emplacement
+            (brief « Reste a faire Coligo » §2) : lien discret vers l'écran
+            dédié, qui exige de taper « supprimer » pour valider. */}
+        <div className="pt-4 text-center">
+          <Link
+            href="/compte/supprimer"
+            className="text-muted hover:text-danger-700 text-xs font-semibold underline-offset-2 hover:underline"
+          >
+            {t("deleteAccount")}
+          </Link>
         </div>
       </div>
 

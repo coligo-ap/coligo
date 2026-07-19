@@ -9,7 +9,6 @@ import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import { useCustomerLocation } from "@/lib/customer/location-store";
-import { WILAYAS } from "@/lib/config/wilayas";
 import { categoryLabelFrom, useCategories } from "@/lib/hooks/use-categories";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -19,6 +18,7 @@ import {
 } from "@/app/(customer)/actions";
 import { MerchantCard } from "@/components/customer/merchant-card";
 import { MerchantCardCompact } from "@/components/customer/merchant-card-compact";
+import { LocationPicker } from "@/components/customer/location-picker";
 import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
@@ -134,36 +134,29 @@ export function MarketplaceGrid({
         category: filters.category || null,
         sort: serverSort,
       });
-      // Zone choisie mais vide ET pas de filtre serveur → on bascule sur le reste
-      // de l'Algérie (fallback, lu au rendu). Avec un filtre, on respecte le vide.
-      if (res.length === 0 && loc?.wilaya_code && !hasServerFilter) {
-        return {
-          items: [] as PublicMerchant[],
-          emptyZone: true,
-          promos: {} as Record<string, PromoLabel>,
-        };
-      }
-      const promos = await fetchPromoLabels(res.map((m) => m.id));
-      return { items: res, emptyZone: false, promos };
+      // Zone vide → liste vide assumée : la grille affiche « Aucun commerçant
+      // disponible dans votre zone » + le sélecteur de position (brief §3) —
+      // plus de bascule silencieuse sur le reste de l'Algérie.
+      const promos = res.length
+        ? await fetchPromoLabels(res.map((m) => m.id))
+        : ({} as Record<string, PromoLabel>);
+      return { items: res, promos };
     },
     enabled: shouldFetch,
     placeholderData: keepPreviousData,
     staleTime: 60_000,
   });
 
-  // État dérivé du cache (aucun re-fetch au montage si la clé est encore fraîche).
-  const emptyZone = shouldFetch ? (zoneQuery.data?.emptyZone ?? false) : false;
   // PREMIER chargement de la zone (aucune donnée encore, pas d'erreur) : on ne
   // montre JAMAIS le fallback à la place — il liste d'AUTRES villes (ex. un
   // commerce à 123 km sous « Commerces près de toi ») pendant que la vraie
   // liste charge → l'utilisateur croit que SA ville n'a aucun commerce.
   // → squelettes le temps du fetch ; le fallback ne sert qu'en cas d'ÉCHEC
-  // réseau avéré (mieux que rien) ou de zone réellement vide (bandeau dédié).
+  // réseau avéré (mieux que rien).
   const zoneLoading = shouldFetch && !zoneQuery.data && !zoneQuery.isError;
-  const items =
-    !shouldFetch || emptyZone
-      ? fallback
-      : (zoneQuery.data?.items ?? (zoneQuery.isError ? fallback : []));
+  const items = !shouldFetch
+    ? fallback
+    : (zoneQuery.data?.items ?? (zoneQuery.isError ? fallback : []));
   const pending = shouldFetch && zoneQuery.isFetching;
   // Promos : celles du SSR + celles ramenées par le fetch de zone.
   const promos = useMemo<Record<string, PromoLabel>>(
@@ -253,10 +246,6 @@ export function MarketplaceGrid({
     unified,
   ]);
 
-  const wilayaLabel = loc?.wilaya_code
-    ? WILAYAS.find((w) => w.code === loc.wilaya_code)?.name
-    : null;
-
   const hasActiveFilter =
     !!filters.q ||
     !!filters.category ||
@@ -266,15 +255,13 @@ export function MarketplaceGrid({
     filters.promoOnly ||
     filters.sort !== "name";
 
-  const heading = emptyZone
-    ? t("allMerchantsAlgeria")
-    : filters.q
-      ? t("resultsFor", { query: filters.q })
-      : filters.category
-        ? categoryLabelFrom(dbCategories, filters.category, locale)
-        : filters.promoOnly
-          ? t("promosOfTheMoment")
-          : t("merchantsNearYou");
+  const heading = filters.q
+    ? t("resultsFor", { query: filters.q })
+    : filters.category
+      ? categoryLabelFrom(dbCategories, filters.category, locale)
+      : filters.promoOnly
+        ? t("promosOfTheMoment")
+        : t("merchantsNearYou");
 
   function resetFilters() {
     // Efface TOUS les filtres via le store (history.replaceState) — sinon
@@ -298,18 +285,6 @@ export function MarketplaceGrid({
           </span>
         </div>
       </div>
-
-      {emptyZone && wilayaLabel && !filters.q && !filters.category && (
-        <div className="border-warning-100 bg-warning-50 text-warning-800 flex items-start gap-2 rounded-[14px] border px-3 py-2 text-xs">
-          <MapPin className="text-warning-600 mt-0.5 size-3.5 shrink-0" />
-          <span>
-            {t.rich("noMerchantsInZone", {
-              wilaya: wilayaLabel,
-              strong: (chunks) => <strong>{chunks}</strong>,
-            })}
-          </span>
-        </div>
-      )}
 
       {hasActiveFilter && (
         <div className="text-muted flex items-center justify-between text-xs">
@@ -337,27 +312,45 @@ export function MarketplaceGrid({
           ))}
         </div>
       ) : visible.length === 0 ? (
-        <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
-          {hasActiveFilter ? (
-            <>
-              {t("noResults")}
-              <p className="mt-3">
-                <button
-                  type="button"
-                  onClick={resetFilters}
-                  className="text-primary-700 font-medium hover:underline"
-                >
-                  {t("clearFiltersArrow")}
-                </button>
-              </p>
-            </>
-          ) : (
-            <>
+        hasActiveFilter ? (
+          <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
+            {t("noResults")}
+            <p className="mt-3">
+              <button
+                type="button"
+                onClick={resetFilters}
+                className="text-primary-700 font-medium hover:underline"
+              >
+                {t("clearFiltersArrow")}
+              </button>
+            </p>
+          </div>
+        ) : loc && (loc.latitude != null || loc.wilaya_code) ? (
+          /* Position connue mais AUCUN commerce dans le rayon (brief « Reste a
+             faire Coligo » §3) : message clair + la carte « Où veux-tu
+             commander ? » enchaînée immédiatement pour choisir une autre
+             position (le refetch efface cet état dès qu'une zone servie est
+             choisie). */
+          <div className="space-y-3">
+            <div className="border-border bg-surface rounded-[16px] border px-6 py-8 text-center text-sm">
               <MapPin className="text-subtle mx-auto mb-2 size-6" />
-              {t("noActiveMerchants")}
-            </>
-          )}
-        </div>
+              <p className="text-foreground font-extrabold">
+                {t("noMerchantsYourZone")}
+              </p>
+              <p className="text-muted mt-1 text-xs">
+                {t("noMerchantsYourZoneSub")}
+              </p>
+            </div>
+            <div className="border-border bg-surface rounded-[20px] border p-5">
+              <LocationPicker initial={loc} />
+            </div>
+          </div>
+        ) : (
+          <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
+            <MapPin className="text-subtle mx-auto mb-2 size-6" />
+            {t("noActiveMerchants")}
+          </div>
+        )
       ) : filters.promoOnly || !!filters.q ? (
         // Listes à PARCOURIR (Promos, résultats de recherche) : cartes COMPACTES
         // (vignette + ligne promo / modes), façon Uber Eats / Glovo. La grande

@@ -25,10 +25,16 @@ export function DeleteAccountScreen({
   topupDa: number;
 }) {
   const t = useTranslations("account");
-  const [confirmed, setConfirmed] = useState(false);
+  // Type-to-confirm (brief « Reste a faire Coligo » §2) : le bouton reste
+  // inactif tant que le mot exact (« supprimer ») n'est pas saisi.
+  const [confirmText, setConfirmText] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [done, setDone] = useState(false);
+
+  const confirmWord = t("delConfirmWord");
+  const confirmed =
+    confirmText.trim().toLowerCase() === confirmWord.toLowerCase();
 
   const balance = (cashbackDa ?? 0) + (topupDa ?? 0);
 
@@ -101,17 +107,25 @@ export function DeleteAccountScreen({
         </section>
       ) : (
         <section className="border-border bg-surface space-y-4 rounded-[16px] border p-4">
-          <label className="flex cursor-pointer items-start gap-3">
+          <div>
+            <label
+              htmlFor="delete-confirm-word"
+              className="block text-[13px] leading-snug font-medium"
+            >
+              {t("delTypeToConfirm", { word: confirmWord })}
+            </label>
             <input
-              type="checkbox"
-              checked={confirmed}
-              onChange={(e) => setConfirmed(e.target.checked)}
-              className="accent-danger-600 mt-0.5 size-4 shrink-0"
+              id="delete-confirm-word"
+              type="text"
+              value={confirmText}
+              onChange={(e) => setConfirmText(e.target.value)}
+              placeholder={confirmWord}
+              autoComplete="off"
+              autoCapitalize="none"
+              spellCheck={false}
+              className="border-border bg-surface-2 focus:border-danger-500 focus:ring-danger-500/15 mt-2 w-full rounded-[12px] border px-3.5 py-3 text-sm font-bold outline-none focus:ring-2"
             />
-            <span className="text-[13px] leading-snug font-medium">
-              {t("delConfirmLabel")}
-            </span>
-          </label>
+          </div>
 
           {/* Erreur INLINE au-dessus du bouton (jamais de toast). */}
           {error && (

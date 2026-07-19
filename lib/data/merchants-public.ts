@@ -194,8 +194,11 @@ async function rankedMerchantIds(
  * proche au plus loin (RPC merchants_nearby, mig 0181). On hydrate la vitrine
  * via merchants_public puis on réordonne par distance. Les filtres
  * catégorie/livraison restent appliqués ; la wilaya/commune est ignorée car le
- * GPS est le critère géographique. Expansion auto si rien dans le rayon
- * configuré → on ne montre JAMAIS une page vide quand des commerces existent.
+ * GPS est le critère géographique. Rayon STRICT (brief « Reste a faire
+ * Coligo » §3) : rien dans le rayon configuré → liste VIDE, la grille affiche
+ * « Aucun commerçant disponible dans votre zone » + le choix d'une autre
+ * position (fini l'expansion 300 km qui montrait un commerce à l'autre bout du
+ * pays sous « Commerces près de toi »).
  */
 async function listNearbyMerchants(
   supabase: Awaited<ReturnType<typeof createClient>>,
@@ -205,12 +208,7 @@ async function listNearbyMerchants(
   const lng = filters.longitude as number;
   const limit = filters.limit ?? 60;
 
-  let near = await nearbyMerchantIds(supabase, lat, lng, limit, null);
-  if (near.length === 0) {
-    // Rien dans le rayon configuré → on élargit (300 km ≈ toute la zone) pour
-    // toujours proposer le plus proche disponible, trié par distance.
-    near = await nearbyMerchantIds(supabase, lat, lng, limit, 300);
-  }
+  const near = await nearbyMerchantIds(supabase, lat, lng, limit, null);
   if (near.length === 0) return [];
 
   const ids = near.map((n) => n.id);
