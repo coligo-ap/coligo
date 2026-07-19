@@ -672,10 +672,11 @@ export async function notifyChauffeursNewRide(input: {
       ride.status !== "searching" ||
       ride.chauffeur_id != null ||
       ride.pickup_lat == null ||
-      ride.pickup_lng == null ||
-      // Carte : payer AVANT la diffusion — le webhook rappellera ce trigger.
-      (ride.payment_method === "card" && ride.online_paid_at == null)
+      ride.pickup_lng == null
     ) {
+      // Carte (mig 0386) : plus de prépaiement — une course carte en recherche
+      // se diffuse comme une course espèces ; le paiement du prix exact a lieu
+      // À L'ACCEPTATION. On ne bloque donc plus la diffusion sur online_paid_at.
       return;
     }
     const rpc = admin.rpc.bind(admin) as unknown as (

@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, type Dispatch, type SetStateAction } from "react";
+import type { Dispatch, SetStateAction } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import {
   CalendarClock,
-  Check,
   ChevronLeft,
-  ChevronRight,
   Clock,
   CreditCard,
   Globe,
@@ -152,10 +150,6 @@ export function DrivePriceScreen({
 }) {
   const t = useTranslations("drive");
   const router = useRouter();
-
-  // Feuille de choix du RAIL carte (CIB/Edahabia par défaut · internationale
-  // en option) — pur état d'UI local, aucune logique de course.
-  const [railSheet, setRailSheet] = useState(false);
 
   // Itinéraire de SECOURS : si l'estimation de DriveView est arrivée sans
   // géométrie (OSRM en disjoncteur), on re-demande ici le tracé réel (retry
@@ -418,55 +412,52 @@ export function DrivePriceScreen({
           })}
         </div>
 
-        {/* CARTE : CIB / EDAHABIA (DA) est le rail PAR DÉFAUT. La carte
-            internationale (€, Visa/MC/Apple Pay/Google Pay) — quand elle est
-            proposable — ne prend jamais la place du défaut : elle se choisit
-            dans une FEUILLE dédiée (« Changer »). */}
-        {payMode === "card" && (
-          <button
-            type="button"
-            onClick={() => intlAvailable && setRailSheet(true)}
-            disabled={!intlAvailable}
-            className="mb-3 flex w-full items-center gap-2.5 rounded-[14px] border-[1.5px] px-3 py-2.5 text-start disabled:cursor-default"
-            style={{
-              borderColor: "var(--d-violet)",
-              background: "var(--d-accent)",
-            }}
-          >
-            <span
-              className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]"
-              style={{ color: "var(--d-violet)" }}
-            >
-              {cardRail === "eur" ? (
-                <Globe className="size-4" />
-              ) : (
-                <CreditCard className="size-4" />
-              )}
-            </span>
-            <span className="min-w-0 flex-1">
-              <b
-                className="block text-[13px]"
-                style={{ color: "var(--d-violet)" }}
-              >
-                {cardRail === "eur" ? t("pay.cardEur") : t("pay.cardDzd")}
-              </b>
-              <span
-                className="block text-[10.5px] leading-snug font-semibold"
-                style={{ color: "var(--d-muted)" }}
-              >
-                {cardRail === "eur" ? t("pay.cardEurSub") : t("pay.cardDzdSub")}
-              </span>
-            </span>
-            {intlAvailable && (
-              <span
-                className="flex shrink-0 items-center gap-0.5 text-[11.5px] font-extrabold"
-                style={{ color: "var(--d-violet)" }}
-              >
-                {t("pay.cardChange")}
-                <ChevronRight className="size-3.5 rtl:rotate-180" />
-              </span>
-            )}
-          </button>
+        {/* CARTE : sous-choix du RAIL sur UNE LIGNE — CIB/Edahabia (DA, par
+            DÉFAUT) et carte internationale (€). Les deux boutons côte à côte
+            n'apparaissent que si l'option € est proposable ; sinon la carte
+            reste silencieusement CIB/Edahabia. */}
+        {payMode === "card" && intlAvailable && (
+          <div className="mb-3 flex gap-2">
+            {(
+              [
+                ["dzd", CreditCard, t("pay.cardDzd"), t("pay.cardDzdSub")],
+                ["eur", Globe, t("pay.cardEur"), t("pay.cardEurSub")],
+              ] as const
+            ).map(([r, Icon, label, sub]) => {
+              const on = cardRail === r;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setCardRail(r)}
+                  className="flex-1 rounded-[12px] border-[1.5px] px-2.5 py-2 text-start"
+                  style={
+                    on
+                      ? {
+                          borderColor: "var(--d-violet)",
+                          background: "var(--d-accent)",
+                          color: "var(--d-violet)",
+                        }
+                      : {
+                          borderColor: "var(--d-line)",
+                          color: "var(--d-muted)",
+                        }
+                  }
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Icon className="size-3.5 shrink-0" />
+                    <b className="text-[12px]">{label}</b>
+                  </span>
+                  <span
+                    className="mt-0.5 block text-[10px] leading-snug font-semibold"
+                    style={{ color: "var(--d-muted)" }}
+                  >
+                    {sub}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
         )}
 
         {/* Solde Coligo Pay partiel : le complément ira en ESPÈCES au
@@ -736,70 +727,6 @@ export function DrivePriceScreen({
           setProxOpen(false);
         }}
       />
-
-      {/* Feuille « Choisir la carte » — CIB/Edahabia (défaut) vs internationale.
-          Ancrée en bas (style Bolt), safe-area, fermeture au voile. */}
-      {railSheet && (
-        <div
-          className="fixed inset-0 z-[120] flex flex-col justify-end bg-black/45"
-          onClick={() => setRailSheet(false)}
-        >
-          <div
-            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <span className="mx-auto mb-3 block h-1 w-10 rounded-full bg-[var(--d-line)]" />
-            <b className="drive-sora block text-[16px] font-extrabold">
-              {t("pay.cardChooseTitle")}
-            </b>
-            <p className="mt-0.5 mb-3 text-[12px] text-[var(--d-muted)]">
-              {t("pay.cardChooseSub")}
-            </p>
-            {(
-              [
-                ["dzd", CreditCard, t("pay.cardDzd"), t("pay.cardDzdSub")],
-                ["eur", Globe, t("pay.cardEur"), t("pay.cardEurSub")],
-              ] as const
-            ).map(([r, Icon, label, sub]) => {
-              const on = cardRail === r;
-              return (
-                <button
-                  key={r}
-                  type="button"
-                  onClick={() => {
-                    setCardRail(r);
-                    setRailSheet(false);
-                  }}
-                  className="mb-2 flex w-full items-center gap-3 rounded-[14px] border-[1.5px] px-3 py-3 text-start last:mb-0"
-                  style={{
-                    borderColor: on ? "var(--d-violet)" : "var(--d-line)",
-                    background: on ? "var(--d-accent)" : "var(--d-surface)",
-                  }}
-                >
-                  <span
-                    className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]"
-                    style={{ color: "var(--d-violet)" }}
-                  >
-                    <Icon className="size-4" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <b className="block text-[13.5px]">{label}</b>
-                    <span className="block text-[11px] font-semibold text-[var(--d-muted)]">
-                      {sub}
-                    </span>
-                  </span>
-                  {on && (
-                    <Check
-                      className="size-5 shrink-0"
-                      style={{ color: "var(--d-violet)" }}
-                    />
-                  )}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
