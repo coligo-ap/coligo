@@ -13,6 +13,7 @@ import {
   X,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import { openCheckoutKeepPage } from "@/lib/payments/open-checkout";
 import { subscribePriorityCard } from "@/components/partner/priority-actions";
 import {
   SubscribeSheet,
@@ -131,7 +132,9 @@ export function PriorityCard() {
       setSheetErr(prioErr(res.error));
       return;
     }
-    window.open(res.url, "_blank");
+    // Navigateur intégré en APK, nouvel onglet sur le web : l'app reste montée
+    // et le poll ci-dessous détecte l'activation (webhook).
+    await openCheckoutKeepPage(res.url);
     setSheetOpen(false);
     setMsg(tr("Confirmation bancaire en cours…", "التأكيد البنكي جارٍ…"));
     setPolling(true);

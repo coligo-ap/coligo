@@ -6,6 +6,7 @@ import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA, cn } from "@/lib/utils";
+import { openCheckout } from "@/lib/payments/open-checkout";
 import { createTopup } from "@/app/(customer)/cashback/actions";
 
 // =============================================================================
@@ -88,7 +89,11 @@ export function TopupModal({
         setNote({ ok: false, text: res.error });
         return;
       }
-      window.location.href = res.checkout_url;
+      // Navigateur intégré en APK (l'app reste montée → le solde se rafraîchit
+      // au retour de focus), redirection sur le web. Sur natif on ferme la
+      // modale pour laisser la page portefeuille se réactualiser.
+      const opened = await openCheckout(res.checkout_url);
+      if (opened === "inapp") onClose();
     });
   }
 

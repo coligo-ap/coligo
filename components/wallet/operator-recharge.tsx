@@ -15,6 +15,7 @@ import {
   type TopupConfig,
 } from "@/app/wallet/recharge-actions";
 import { RECHARGE_STYLE } from "@/components/wallet/operator-recharge.style";
+import { openCheckout } from "@/lib/payments/open-checkout";
 import {
   isSupportConfigured,
   openSupportChat,
@@ -170,9 +171,40 @@ export function OperatorRecharge({
     void getMyTopupConfig().then(setConfig);
   }, [refresh]);
 
-  // Retour Chargily : on NE croit JAMAIS la redirection ?topup=success (forgeable).
-  // La SEULE preuve est l'écriture topup_chargily posée par le webhook (HMAC,
-  // idempotente). On attend qu'elle apparaisse après le clic « Payer ».
+  // Attente de la CONFIRMATION réelle (écriture topup_chargily du webhook depuis
+  // `sinceMs`) — partagée entre le retour WEB (?topup=success) et le paiement
+  // NATIF dans le navigateur intégré (l'app reste montée dessous). On ne croit
+  // JAMAIS la redirection (forgeable) : seule l'écriture HMAC fait foi.
+  const beginTopupPoll = useCallback(
+    (sinceMs: number) => {
+      setTopupReturn("checking");
+      const credited = (en: MyWalletEntry[]) =>
+        en.some(
+          (e) =>
+            e.type === "topup_chargily" &&
+            new Date(e.createdAt).getTime() >= sinceMs
+        );
+      let tries = 0;
+      const tick = async () => {
+        tries += 1;
+        const { en } = await refresh();
+        if (credited(en)) {
+          setTopupReturn("confirmed");
+          if (pollRef.current) clearInterval(pollRef.current);
+        } else if (tries >= 40) {
+          if (pollRef.current) clearInterval(pollRef.current);
+          setTopupReturn(null);
+        }
+      };
+      void tick();
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => void tick(), 3000);
+    },
+    [refresh]
+  );
+
+  // Retour Chargily WEB (redirection ?topup=). En natif il n'y a pas de retour :
+  // le poll est lancé directement après l'ouverture (voir payCard).
   useEffect(() => {
     const flag = search.get("topup");
     if (!flag) return;
@@ -190,28 +222,7 @@ export function OperatorRecharge({
       return;
     }
     if (flag !== "success") return;
-    setTopupReturn("checking");
-    const since = startedAt > 0 ? startedAt - 90_000 : Date.now() - 600_000;
-    const credited = (en: MyWalletEntry[]) =>
-      en.some(
-        (e) =>
-          e.type === "topup_chargily" &&
-          new Date(e.createdAt).getTime() >= since
-      );
-    let tries = 0;
-    const tick = async () => {
-      tries += 1;
-      const { en } = await refresh();
-      if (credited(en)) {
-        setTopupReturn("confirmed");
-        if (pollRef.current) clearInterval(pollRef.current);
-      } else if (tries >= 20) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        setTopupReturn(null);
-      }
-    };
-    void tick();
-    pollRef.current = setInterval(() => void tick(), 3000);
+    beginTopupPoll(startedAt > 0 ? startedAt - 90_000 : Date.now() - 600_000);
     return () => {
       if (pollRef.current) clearInterval(pollRef.current);
     };
@@ -233,15 +244,16 @@ export function OperatorRecharge({
         setErr(res.error ?? t.payUnavailable);
         return;
       }
+      const started = Date.now();
       try {
-        window.localStorage.setItem(
-          "coligo_op_topup_started",
-          String(Date.now())
-        );
+        window.localStorage.setItem("coligo_op_topup_started", String(started));
       } catch {
         /* localStorage indisponible */
       }
-      window.location.href = res.url;
+      // Navigateur intégré en APK (l'app reste montée → on polle la
+      // confirmation ici même), redirection sur le web (retour via ?topup=).
+      const opened = await openCheckout(res.url);
+      if (opened === "inapp") beginTopupPoll(started - 90_000);
     } finally {
       submittingRef.current = false;
       setBusy(false);

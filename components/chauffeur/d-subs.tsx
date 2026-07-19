@@ -6,6 +6,7 @@ import { useLocale } from "next-intl";
 import { Check, ChevronDown, Crown, Loader2, Sparkles, X } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 import { createClient } from "@/lib/supabase/client";
+import { openCheckoutKeepPage } from "@/lib/payments/open-checkout";
 import { PriorityCard } from "@/components/partner/priority-card";
 import {
   SubscribeSheet,
@@ -177,7 +178,10 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     const res = await subscribeDrivePlan(paying.code, "card");
     setBusy(false);
     if (!res.ok || !res.url) return setError(subErr(res.error));
-    window.open(res.url, "_blank");
+    // Navigateur intégré en APK, nouvel onglet sur le web : l'app reste montée
+    // et `load()` ci-dessous polle l'activation (webhook) — jamais de sortie
+    // vers un navigateur externe.
+    await openCheckoutKeepPage(res.url);
     closeSheet();
     setMsg(
       tr(

@@ -23,13 +23,42 @@ export function isNativeApp(): boolean {
   }
 }
 
-/** Ouvre l'URL de paiement. `"inapp"` = l'app reste montée (poller ici). */
+/**
+ * Ouvre l'URL de paiement pour un flux « REDIRECT-ET-RETOUR » (checkout,
+ * recharge portefeuille) :
+ *   - natif  → navigateur intégré, l'app RESTE montée (`"inapp"` → poller ici) ;
+ *   - web    → redirection classique (`"redirect"`) ; Chargily revient via son
+ *     successUrl et le gestionnaire de retour de la page prend le relais.
+ */
 export async function openCheckout(url: string): Promise<"inapp" | "redirect"> {
   if (isNativeApp()) {
     const { Browser } = await import("@capacitor/browser");
     await Browser.open({ url });
     return "inapp";
   }
+  window.location.href = url;
+  return "redirect";
+}
+
+/**
+ * Ouvre l'URL de paiement pour un flux « RESTER-ET-POLLER » (abonnements,
+ * Pass) : l'app RESTE montée DANS LES DEUX cas, l'appelant polle l'activation
+ * (webhook) puis met à jour l'écran.
+ *   - natif  → navigateur intégré (`"inapp"`) ;
+ *   - web    → nouvel onglet (`"newtab"`) — la page courante n'est pas quittée.
+ * Repli redirection si le navigateur bloque le nouvel onglet (pop-up).
+ */
+export async function openCheckoutKeepPage(
+  url: string
+): Promise<"inapp" | "newtab" | "redirect"> {
+  if (isNativeApp()) {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url });
+    return "inapp";
+  }
+  const win = window.open(url, "_blank", "noopener");
+  if (win) return "newtab";
+  // Pop-up bloquée → on ne laisse pas l'utilisateur sans page de paiement.
   window.location.href = url;
   return "redirect";
 }

@@ -27,6 +27,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import CheckoutLoading from "@/app/(customer)/checkout/loading";
 import { clearCart, useCart, useOtherCarts } from "@/lib/customer/cart-store";
+import { openCheckout } from "@/lib/payments/open-checkout";
 import { useCustomerLocation } from "@/lib/customer/location-store";
 import { CartConflictModal } from "@/components/customer/cart-conflict-modal";
 import { generateSlotsForRange, type Slot } from "@/lib/customer/pickup-slots";
@@ -562,7 +563,14 @@ export function CheckoutView({
       }
       if (payment === "online" && res.checkout_url) {
         setIsRedirecting(true);
-        window.location.href = res.checkout_url;
+        // APK : navigateur intégré (l'app reste montée) → on va suivre la
+        // commande, qui bascule « payée » via le webhook + rafraîchissement au
+        // retour de focus. Web : redirection classique (retour via successUrl).
+        const opened = await openCheckout(res.checkout_url);
+        if (opened === "inapp") {
+          clearCart();
+          router.push(`/commandes/${res.order_id}`);
+        }
         return;
       }
       setIsRedirecting(true);

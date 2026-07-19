@@ -7,6 +7,7 @@ import { Loader2, RefreshCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { retryOnlineOrderPayment } from "@/app/(customer)/checkout/actions";
+import { openCheckout } from "@/lib/payments/open-checkout";
 import {
   IntlPaymentSheet,
   type StripeIntentPayload,
@@ -45,7 +46,9 @@ export function CheckoutRetryButton({ orderId }: { orderId: string }) {
               return;
             }
             if (res.checkout_url) {
-              window.location.href = res.checkout_url;
+              // Navigateur intégré en APK (on reste sur le suivi de commande,
+              // qui se réactualise au retour), redirection sur le web.
+              await openCheckout(res.checkout_url);
             }
           })
         }
