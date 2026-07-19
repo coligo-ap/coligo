@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useLocale } from "next-intl";
-import { FileDown } from "lucide-react";
+import { FileDown, Loader2 } from "lucide-react";
 import { MoneyTabs } from "@/components/shared/money-tabs";
 import { SORA } from "@/components/shared/partner-ui";
 
@@ -74,6 +74,37 @@ export function GainsReleveView({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const DA = tr("DA", "دج");
   const [filter, setFilter] = useState<PayFilter>("all");
+  const [pdfBusy, setPdfBusy] = useState(false);
+
+  // Relevé PDF : on le RÉCUPÈRE avec la session (fetch same-origin → cookies
+  // inclus) puis on le remet au navigateur en blob. Corrige le « bouton qui ne
+  // fait rien » : en app Capacitor `target="_blank"` est inerte, et un onglet
+  // intégré (Custom Tab) n'a PAS la session → 401. Ici le PDF se télécharge
+  // vraiment, web comme mobile. Repli : ouverture directe.
+  const downloadReleve = async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const res = await fetch(pdfHref, { credentials: "include" });
+      if (!res.ok) throw new Error(String(res.status));
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download =
+        base === "/chauffeur"
+          ? "releve-chauffeur-coligo.pdf"
+          : "releve-livreur-coligo.pdf";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 15000);
+    } catch {
+      window.open(pdfHref, "_blank", "noopener");
+    } finally {
+      setPdfBusy(false);
+    }
+  };
 
   const s = slices[filter];
   const brutDa = s.netDa + s.coligoDa;
@@ -85,7 +116,7 @@ export function GainsReleveView({
 
   const verdictLabel =
     verdict.direction === "receive"
-      ? tr("Coligo vous doit", "كوليغو مدينة لك")
+      ? tr("À recevoir de Coligo", "لك من كوليغو")
       : verdict.direction === "reverse"
         ? tr("À reverser à Coligo", "للتسديد إلى كوليغو")
         : tr("À jour avec Coligo", "على ما يرام مع كوليغو");
@@ -198,15 +229,20 @@ export function GainsReleveView({
           )}
         </div>
 
-        {/* Relevé PDF — action simple, même bloc. */}
-        <a
-          href={pdfHref}
-          target="_blank"
-          rel="noopener"
-          className="flex items-center justify-center gap-2 border-t border-[var(--d-line)] py-3.5 text-[13.5px] font-bold text-[var(--d-ink)]"
+        {/* Relevé PDF — action simple, même bloc (téléchargement authentifié). */}
+        <button
+          type="button"
+          onClick={() => void downloadReleve()}
+          disabled={pdfBusy}
+          className="flex w-full items-center justify-center gap-2 border-t border-[var(--d-line)] py-3.5 text-[13.5px] font-bold text-[var(--d-ink)] disabled:opacity-60"
         >
-          <FileDown className="size-4" /> {tr("Relevé PDF", "كشف PDF")}
-        </a>
+          {pdfBusy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <FileDown className="size-4" />
+          )}
+          {tr("Relevé PDF", "كشف PDF")}
+        </button>
       </div>
 
       {children}

@@ -26,6 +26,25 @@ function grp(n: number) {
   return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
+/**
+ * Helvetica (StandardFont) n'encode que le jeu WinAnsi (~Latin-1). Un nom de
+ * partenaire EN ARABE (fréquent en Algérie), un emoji ou une apostrophe
+ * typographique font LEVER une exception à pdf-lib (drawText / widthOfText) →
+ * la route renvoyait 500 et « le PDF ne se télécharge pas ». On neutralise donc
+ * tout caractère non encodable AVANT de dessiner : le relevé s'imprime toujours
+ * (les caractères illisibles pour Helvetica sont simplement omis, jamais un
+ * crash). Les guillemets/​tirets typographiques sont ramenés à leur équivalent
+ * ASCII pour rester lisibles.
+ */
+function pdfSafe(s: string): string {
+  return (s ?? "")
+    .replace(/[‘’‛]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, "");
+}
+
 export async function GET(req: NextRequest) {
   const driver = await getCurrentDriver();
   if (!driver) {
@@ -59,8 +78,9 @@ export async function GET(req: NextRequest) {
     } = {}
   ) => {
     const f = opts.bold ? bold : font;
-    const tx = opts.right ? x - f.widthOfTextAtSize(s, size) : x;
-    page.drawText(s, {
+    const str = pdfSafe(s);
+    const tx = opts.right ? x - f.widthOfTextAtSize(str, size) : x;
+    page.drawText(str, {
       x: tx,
       y,
       size,

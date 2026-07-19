@@ -25,6 +25,23 @@ function grp(n: number) {
   return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 }
 
+/**
+ * Helvetica (StandardFont) n'encode que le jeu WinAnsi (~Latin-1). Un nom de
+ * chauffeur EN ARABE (fréquent en Algérie), un emoji ou une apostrophe
+ * typographique font LEVER une exception à pdf-lib → 500 et « le PDF ne se
+ * télécharge pas ». On neutralise tout caractère non encodable AVANT de
+ * dessiner : le relevé s'imprime toujours (caractères illisibles omis, jamais
+ * un crash).
+ */
+function pdfSafe(s: string): string {
+  return (s ?? "")
+    .replace(/[‘’‛]/g, "'")
+    .replace(/[“”]/g, '"')
+    .replace(/[–—]/g, "-")
+    .replace(/…/g, "...")
+    .replace(/[^\x20-\x7E\xA0-\xFF]/g, "");
+}
+
 export async function GET(req: NextRequest) {
   const ch = await getCurrentChauffeur();
   if (!ch) {
@@ -58,8 +75,9 @@ export async function GET(req: NextRequest) {
     } = {}
   ) => {
     const f = opts.bold ? bold : font;
-    const tx = opts.right ? x - f.widthOfTextAtSize(s, size) : x;
-    page.drawText(s, { x: tx, y, size, font: f, color: opts.color ?? INK });
+    const str = pdfSafe(s);
+    const tx = opts.right ? x - f.widthOfTextAtSize(str, size) : x;
+    page.drawText(str, { x: tx, y, size, font: f, color: opts.color ?? INK });
   };
   const hr = (yy: number) =>
     page.drawLine({

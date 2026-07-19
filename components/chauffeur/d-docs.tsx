@@ -320,7 +320,7 @@ export function DDocs({
            un seul message. Toute modification passe par l'équipe Coligo
            (rejet avec motif), qui ré-affiche la liste. */
         <div
-          className="mt-4 rounded-[18px] border-[1.5px] px-4 py-8 text-center"
+          className="mt-3 rounded-[18px] border-[1.5px] px-4 py-6 text-center"
           style={{ borderColor: GO, background: "rgba(22,179,100,.08)" }}
         >
           <span
@@ -356,10 +356,10 @@ export function DDocs({
             {selfieSection}
           </IdvVerifyStep>
 
-          <p className="mt-4 mb-2 text-[13px] font-bold">
+          <p className="mt-3 mb-1.5 text-[13px] font-bold">
             {tr("Documents du véhicule", "وثائق المركبة")}
           </p>
-          <p className="mb-3 text-[12px] text-[var(--d-muted)]">
+          <p className="mb-2.5 text-[12px] text-[var(--d-muted)]">
             {tr(
               "Photos nettes et lisibles, documents en cours de validité.",
               "صور واضحة ومقروءة، ووثائق سارية الصلاحية."

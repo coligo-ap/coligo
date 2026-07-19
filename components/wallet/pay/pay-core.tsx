@@ -312,11 +312,31 @@ export const KIND_LABEL: Record<OpsKind, [string, string]> = {
   autre: ["Autres", "أخرى"],
 };
 
-/** Libellé humain d'une écriture (recharge / commission / vente…). */
+/** Libellé humain d'une écriture (recharge / commission / vente / abonnement…). */
 export function entryLabel(e: MyWalletEntry, lang: Lang): string {
   if (e.type === "finance_mirror")
     return FINANCE_LABEL[lang][e.note ?? ""] ?? e.note ?? e.type;
+  // `fee_debit` sert À LA FOIS les commissions ET les frais d'ABONNEMENT / de
+  // PASS (même type SQL, mig 0382 / 0210 / 0309). Le `note` porte le vrai
+  // libellé (« Abonnement Drive … », « Abonnement Prioritaire ») → on l'affiche
+  // pour ne JAMAIS étiqueter un abonnement / un pass comme « Commission »
+  // (malentendu partenaire signalé). Repli générique si aucune note.
+  if (e.type === "fee_debit" && e.note && e.note.trim())
+    return feeDebitLabel(e.note, lang);
   return ENTRY_LABEL[lang][e.type] ?? e.type;
+}
+
+/** Précise la nature d'un débit `fee_debit` à partir de sa note (stockée en FR).
+ *  Pass Prioritaire, abonnement Drive et vraie commission portent le MÊME type
+ *  SQL — seule la note les distingue. */
+function feeDebitLabel(note: string, lang: Lang): string {
+  const n = note.trim();
+  if (/prioritaire/i.test(n))
+    return lang === "ar" ? "الممر الأولوي" : "Pass Prioritaire";
+  if (/^abonnement\s+drive/i.test(n))
+    return lang === "ar" ? n.replace(/^abonnement/i, "اشتراك") : n;
+  if (/commission/i.test(n)) return lang === "ar" ? "عمولة" : "Commission";
+  return n;
 }
 
 /* ───────────────────────── cache mémoire (par onglet) ─────────────────────────

@@ -46,7 +46,7 @@ export function DriverInfoManager({
       {!verified && (
         <div
           className="card"
-          style={{ borderColor: "var(--violet)", marginBottom: 14 }}
+          style={{ borderColor: "var(--violet)", marginBottom: 10 }}
         >
           <b style={{ color: "var(--violet)" }}>
             {isAr ? "أكمل ملفك الشخصي" : "Complétez votre profil"}

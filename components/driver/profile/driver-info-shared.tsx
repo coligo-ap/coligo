@@ -206,7 +206,7 @@ export function Section({
   return (
     <div
       className="card"
-      style={{ marginBottom: 14, padding: 0, overflow: "hidden" }}
+      style={{ marginBottom: 10, padding: 0, overflow: "hidden" }}
     >
       <button
         type="button"
@@ -218,7 +218,7 @@ export function Section({
           gap: 8,
           background: "none",
           border: 0,
-          padding: "15px 16px",
+          padding: "13px 14px",
           cursor: "pointer",
           color: "var(--ink)",
         }}
@@ -248,7 +248,7 @@ export function Section({
           <path d="M6 9l6 6 6-6" />
         </svg>
       </button>
-      {open && <div style={{ padding: "0 16px 16px" }}>{children}</div>}
+      {open && <div style={{ padding: "0 14px 14px" }}>{children}</div>}
     </div>
   );
 }
