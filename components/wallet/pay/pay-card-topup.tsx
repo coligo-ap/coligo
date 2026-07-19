@@ -1,8 +1,13 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import {
+  closeCheckout,
+  isNativeApp,
+  openCheckout,
+} from "@/lib/payments/open-checkout";
 import {
   CheckCircle2,
   CreditCard,
@@ -63,8 +68,56 @@ export function PayCardTopup({ base }: { base: PayBase }) {
   const amtValid = Number.isFinite(amt) && amt >= 100;
   const presets = config?.presets ?? [500, 1000, 2000, 5000];
 
-  // Retour Chargily : ?topup=success → attendre l'écriture webhook ;
-  // ?topup=failed → écran d'échec.
+  // Attente de la CONFIRMATION réelle (écriture webhook `topup_chargily`
+  // depuis `since`) — partagée entre le retour web (`?topup=success`) et le
+  // paiement NATIF dans le navigateur intégré (l'app reste montée dessous).
+  const startConfirmationPolling = useCallback(
+    (since: number) => {
+      setMode("checking");
+      const credited = (en: MyWalletEntry[]) =>
+        en.some(
+          (e) =>
+            e.type === "topup_chargily" &&
+            new Date(e.createdAt).getTime() >= since
+        );
+      let tries = 0;
+      const tick = async () => {
+        tries += 1;
+        let en: MyWalletEntry[] = [];
+        try {
+          en = await getMyWalletEntries();
+        } catch {
+          /* réseau — on retentera au tick suivant */
+        }
+        if (credited(en)) {
+          if (pollRef.current) clearInterval(pollRef.current);
+          invalidatePayCache();
+          void refresh();
+          // Referme l'onglet de paiement intégré (iOS ; no-op Android).
+          void closeCheckout();
+          setMode("confirmed");
+        } else if (tries >= 60) {
+          // ~3 min : en natif l'utilisateur peut rester un moment sur la page
+          // de paiement — au-delà, écran « délai » (le webhook créditera).
+          if (pollRef.current) clearInterval(pollRef.current);
+          setMode("slow");
+        }
+      };
+      void tick();
+      if (pollRef.current) clearInterval(pollRef.current);
+      pollRef.current = setInterval(() => void tick(), 3000);
+    },
+    [refresh]
+  );
+  useEffect(
+    () => () => {
+      if (pollRef.current) clearInterval(pollRef.current);
+    },
+    []
+  );
+
+  // Retour Chargily WEB : ?topup=success → attendre l'écriture webhook ;
+  // ?topup=failed → écran d'échec. (En natif, pas de retour : on polle direct.)
   useEffect(() => {
     const flag = search.get("topup");
     if (!flag) return;
@@ -82,38 +135,9 @@ export function PayCardTopup({ base }: { base: PayBase }) {
       return;
     }
     if (flag !== "success") return;
-    setMode("checking");
-    const since = startedAt > 0 ? startedAt - 90_000 : Date.now() - 600_000;
-    const credited = (en: MyWalletEntry[]) =>
-      en.some(
-        (e) =>
-          e.type === "topup_chargily" &&
-          new Date(e.createdAt).getTime() >= since
-      );
-    let tries = 0;
-    const tick = async () => {
-      tries += 1;
-      let en: MyWalletEntry[] = [];
-      try {
-        en = await getMyWalletEntries();
-      } catch {
-        /* réseau — on retentera au tick suivant */
-      }
-      if (credited(en)) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        invalidatePayCache();
-        void refresh();
-        setMode("confirmed");
-      } else if (tries >= 20) {
-        if (pollRef.current) clearInterval(pollRef.current);
-        setMode("slow");
-      }
-    };
-    void tick();
-    pollRef.current = setInterval(() => void tick(), 3000);
-    return () => {
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
+    startConfirmationPolling(
+      startedAt > 0 ? startedAt - 90_000 : Date.now() - 600_000
+    );
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -123,23 +147,28 @@ export function PayCardTopup({ base }: { base: PayBase }) {
     setBusy(true);
     setErr(null);
     try {
+      // NATIF : retour Chargily sur la page publique minimale (l'onglet
+      // intégré n'a pas la session app) — le résultat s'affiche ICI, dans
+      // l'app, via le polling. WEB : retour classique sur cette page.
       const res = await createOperatorTopupCheckout(
         amt,
-        payHref(base, "/carte")
+        isNativeApp() ? "/paiement/retour" : payHref(base, "/carte")
       );
       if (!res.ok || !res.url) {
         setErr(res.error ?? tr.payUnavailable);
         return;
       }
+      const started = Date.now();
       try {
-        window.localStorage.setItem(
-          "coligo_op_topup_started",
-          String(Date.now())
-        );
+        window.localStorage.setItem("coligo_op_topup_started", String(started));
       } catch {
         /* localStorage indisponible */
       }
-      window.location.href = res.url;
+      const opened = await openCheckout(res.url);
+      if (opened === "inapp") {
+        // L'app reste montée sous l'onglet de paiement : on attend le webhook.
+        startConfirmationPolling(started - 90_000);
+      }
     } finally {
       submittingRef.current = false;
       setBusy(false);
