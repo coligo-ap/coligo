@@ -8,7 +8,10 @@ import {
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
 import { ArrowRight, Loader2, MapPin } from "lucide-react";
-import { useCustomerLocation } from "@/lib/customer/location-store";
+import {
+  openLocationPicker,
+  useCustomerLocation,
+} from "@/lib/customer/location-store";
 import { categoryLabelFrom, useCategories } from "@/lib/hooks/use-categories";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
 import { haversineKm } from "@/lib/delivery/distance";
@@ -18,7 +21,6 @@ import {
 } from "@/app/(customer)/actions";
 import { MerchantCard } from "@/components/customer/merchant-card";
 import { MerchantCardCompact } from "@/components/customer/merchant-card-compact";
-import { LocationPicker } from "@/components/customer/location-picker";
 import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
@@ -326,24 +328,23 @@ export function MarketplaceGrid({
             </p>
           </div>
         ) : loc && (loc.latitude != null || loc.wilaya_code) ? (
-          /* Position connue mais AUCUN commerce dans le rayon (brief « Reste a
-             faire Coligo » §3) : message clair + la carte « Où veux-tu
-             commander ? » enchaînée immédiatement pour choisir une autre
-             position (le refetch efface cet état dès qu'une zone servie est
-             choisie). */
-          <div className="space-y-3">
-            <div className="border-border bg-surface rounded-[16px] border px-6 py-8 text-center text-sm">
-              <MapPin className="text-subtle mx-auto mb-2 size-6" />
-              <p className="text-foreground font-extrabold">
-                {t("noMerchantsYourZone")}
-              </p>
-              <p className="text-muted mt-1 text-xs">
-                {t("noMerchantsYourZoneSub")}
-              </p>
-            </div>
-            <div className="border-border bg-surface rounded-[20px] border p-5">
-              <LocationPicker initial={loc} />
-            </div>
+          /* Position connue mais AUCUN commerce dans le rayon : message clair +
+             BOUTON qui ouvre la MÊME feuille de position que le header (jamais
+             de LocationPicker incrusté ici — une seule UX de changement de
+             zone). Le refetch efface cet état dès qu'une zone servie est
+             choisie. */
+          <div className="border-border bg-surface rounded-[16px] border px-6 py-8 text-center text-sm">
+            <MapPin className="text-subtle mx-auto mb-2 size-6" />
+            <p className="text-foreground font-extrabold">
+              {t("noMerchantsYourZone")}
+            </p>
+            <button
+              type="button"
+              onClick={openLocationPicker}
+              className="text-primary-700 mt-2 text-xs font-semibold hover:underline"
+            >
+              {t("noMerchantsYourZoneSub")}
+            </button>
           </div>
         ) : (
           <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">

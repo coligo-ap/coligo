@@ -198,7 +198,7 @@ export function SubscribeSheet({
                 "Rechargez Coligo Pay puis confirmez en un tap",
                 "عبّئ كوليڨو باي ثم أكّد بلمسة"
               )}
-              href={`${rechargeBase}?method=ccp`}
+              href={`${rechargeBase}/ccp`}
             />
             <MethodRow
               icon={HandCoins}
@@ -207,7 +207,7 @@ export function SubscribeSheet({
                 "Points de recharge Coligo Pay près de chez vous",
                 "نقاط تعبئة كوليڨو باي قريبة منك"
               )}
-              href={`${rechargeBase}?method=cash`}
+              href={`${rechargeBase}/especes`}
             />
             {inlineErr}
             <GhostBtn onClick={onClose}>{tr("Annuler", "إلغاء")}</GhostBtn>

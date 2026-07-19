@@ -2947,9 +2947,21 @@ export type Database = {
       my_operator_wallet_entries: {
         Args: { p_limit?: number };
         Returns: {
+          id: string;
           type: string;
           amount_da: number;
           note: string | null;
+          created_at: string;
+        }[];
+      };
+      my_operator_wallet_entry: {
+        Args: { p_id: string };
+        Returns: {
+          id: string;
+          type: string;
+          amount_da: number;
+          note: string | null;
+          ref_id: string | null;
           created_at: string;
         }[];
       };

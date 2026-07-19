@@ -25,10 +25,16 @@ export type TopupConfig = {
 };
 
 export type MyWalletEntry = {
+  id: string;
   type: string;
   amountDa: number;
   note: string | null;
   createdAt: string;
+};
+
+/** Détail d'une écriture (page « reçu ») — inclut la référence liée. */
+export type MyWalletEntryDetail = MyWalletEntry & {
+  refId: string | null;
 };
 
 /** État du portefeuille opérateur de l'utilisateur connecté. */
@@ -80,17 +86,39 @@ export async function getMyWalletEntries(limit = 20): Promise<MyWalletEntry[]> {
     p_limit: Math.min(200, Math.max(1, Math.round(limit))),
   });
   const rows = (data ?? []) as {
+    id: string;
     type: string;
     amount_da: number;
     note: string | null;
     created_at: string;
   }[];
   return rows.map((e) => ({
+    id: e.id,
     type: e.type,
     amountDa: e.amount_da,
     note: e.note,
     createdAt: e.created_at,
   }));
+}
+
+/** Une écriture précise (page détail « reçu ») — self-only via la RPC. */
+export async function getMyWalletEntry(
+  id: string
+): Promise<MyWalletEntryDetail | null> {
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_operator_wallet_entry", {
+    p_id: id,
+  });
+  const r = Array.isArray(data) ? data[0] : null;
+  if (!r) return null;
+  return {
+    id: r.id,
+    type: r.type,
+    amountDa: r.amount_da,
+    note: r.note,
+    refId: r.ref_id ?? null,
+    createdAt: r.created_at,
+  };
 }
 
 /** Crée un checkout Chargily pour recharger le portefeuille (carte). */

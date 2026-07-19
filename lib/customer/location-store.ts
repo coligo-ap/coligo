@@ -35,6 +35,21 @@ export type CustomerLocation = {
 
 const STORAGE_KEY = "coligo:customer:location";
 
+// -----------------------------------------------------------------------------
+// Feuille « Où veux-tu commander ? » — il n'en existe QU'UNE, rendue par le
+// header (`CustomerHeader`). Tout autre écran qui veut changer la position
+// (ex. état vide « Aucun commerçant dans votre zone ») déclenche CETTE feuille
+// via cet événement, au lieu de rendre son propre LocationPicker inline.
+// -----------------------------------------------------------------------------
+
+export const LOCATION_PICKER_OPEN_EVENT = "coligo:location:open-picker";
+
+/** Ouvre la feuille de changement de position du header (même UX partout). */
+export function openLocationPicker(): void {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new CustomEvent(LOCATION_PICKER_OPEN_EVENT));
+}
+
 export function readStoredLocation(): CustomerLocation | null {
   if (typeof window === "undefined") return null;
   try {

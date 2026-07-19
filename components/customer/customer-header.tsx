@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { WILAYAS } from "@/lib/config/wilayas";
-import { useCustomerLocation } from "@/lib/customer/location-store";
+import {
+  LOCATION_PICKER_OPEN_EVENT,
+  useCustomerLocation,
+} from "@/lib/customer/location-store";
 import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
@@ -31,6 +34,15 @@ export function CustomerHeader({
   const cart = useCart();
   const cartCount = totalUnits(cart);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // D'autres écrans (état vide de la home…) ouvrent LA MÊME feuille de
+  // position que le header via cet événement — une seule UX de changement
+  // de zone dans toute l'app.
+  useEffect(() => {
+    const onOpen = () => setPickerOpen(true);
+    window.addEventListener(LOCATION_PICKER_OPEN_EVENT, onOpen);
+    return () => window.removeEventListener(LOCATION_PICKER_OPEN_EVENT, onOpen);
+  }, []);
 
   const wilayaLabel = loc?.wilaya_code
     ? (WILAYAS.find((w) => w.code === loc.wilaya_code)?.name ??

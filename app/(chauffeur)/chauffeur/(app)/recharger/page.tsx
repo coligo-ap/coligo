@@ -1,14 +1,11 @@
-﻿import { Suspense } from "react";
-import { OperatorRecharge } from "@/components/wallet/operator-recharge";
+import { Suspense } from "react";
+import { PayHome } from "@/components/wallet/pay/pay-home";
 import { MoneyTabs } from "@/components/shared/money-tabs";
 
 /**
- * Recharge portefeuille opérateur. L'auth est garantie par la coque `(app)`
- * (ChauffeurGateGuard) → pas d'`await` ici, rendu instantané.
- *
- * Un SEUL bouton retour : celui intégré à l'en-tête d'OperatorRecharge (sur la
- * ligne du titre « Mon portefeuille »). On ne remet plus de <DBack /> au-dessus
- * (doublon).
+ * Coligo Pay chauffeur — HOME du portefeuille (refonte workflow-oriented).
+ * L'auth est garantie par la coque `(app)` (ChauffeurGateGuard) → pas
+ * d'`await` ici, rendu instantané ; chaque action ouvre SA page dédiée.
  */
 export default function ChauffeurRechargerPage() {
   return (
@@ -16,7 +13,7 @@ export default function ChauffeurRechargerPage() {
       {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
       <MoneyTabs base="/chauffeur" />
       <Suspense fallback={null}>
-        <OperatorRecharge inHub />
+        <PayHome base="/chauffeur" />
       </Suspense>
     </div>
   );

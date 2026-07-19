@@ -32,9 +32,13 @@ import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 //      (jamais de prompt) si la permission est "granted", et on met à jour la
 //      zone si le client a bougé. Throttlé pour ne pas marteler le GPS/géocodage.
 //
-// Une position CHOISIE manuellement (source "manual") n'est JAMAIS écrasée : le
-// client a explicitement décidé de sa zone. Les entrées legacy (source null) ne
-// sont pas rafraîchies non plus, par prudence.
+// Une position CHOISIE manuellement (source "manual") n'est jamais écrasée EN
+// COURS DE SESSION : le client vient de décider, on ne lui reprend pas la main.
+// MAIS à l'OUVERTURE de l'app/du site (nouvelle session navigateur), la règle
+// produit est « par défaut = position ACTUELLE » : si la permission est déjà
+// accordée, on repart du GPS réel, même si la session précédente s'était
+// terminée sur une zone choisie manuellement. Les entrées legacy (source null)
+// suivent la même logique.
 //
 // Tout écrit via `writeStoredLocation` émet `coligo:location:change` → la home
 // (`MarketplaceGrid` via TanStack Query) re-classe par proximité et le header se
@@ -42,6 +46,10 @@ import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 // =============================================================================
 
 const AUTO_SKIP_KEY = "coligo:geo:auto-skip";
+// Marqueur « boot de session » (sessionStorage, par onglet) : posé après le
+// premier passage → les montages suivants ne re-forcent plus le GPS sur un
+// choix manuel fait PENDANT la session.
+const BOOT_DONE_KEY = "coligo:geo:boot-done";
 // Ne pas rafraîchir plus d'une fois par fenêtre (reprises groupées au focus).
 const REFRESH_THROTTLE_MS = 45_000;
 // En deçà de ce déplacement, on NE réécrit PAS (évite un refetch inutile).
@@ -120,11 +128,23 @@ export function LocationAutoDetect() {
 
     const current = readStoredLocation();
 
-    // Une zone choisie manuellement (ou une entrée legacy) ne se rafraîchit pas
-    // automatiquement : le client a décidé, on ne lui reprend pas la main.
     const hasPosition =
       !!current && (current.latitude != null || !!current.wilaya_code);
-    if (hasPosition && current?.source !== "gps") return;
+
+    // Boot de session (ouverture de l'app/du site dans cet onglet) ?
+    let isBoot = false;
+    try {
+      isBoot = window.sessionStorage.getItem(BOOT_DONE_KEY) !== "1";
+      if (isBoot) window.sessionStorage.setItem(BOOT_DONE_KEY, "1");
+    } catch {
+      /* sessionStorage indispo — on reste sur le comportement de session */
+    }
+
+    // Une zone choisie manuellement (ou legacy) ne se rafraîchit pas EN COURS
+    // DE SESSION. À l'OUVERTURE en revanche, la position par défaut redevient
+    // la position ACTUELLE (silencieux, uniquement si permission déjà accordée
+    // — jamais de prompt par-dessus un choix manuel).
+    if (hasPosition && current?.source !== "gps" && !isBoot) return;
 
     const permission = await readPermission();
 
