@@ -4,12 +4,7 @@ import { useState } from "react";
 import { useLocale } from "next-intl";
 import { MoneyTabs } from "@/components/shared/money-tabs";
 import { SettlementVerdict } from "@/components/partner/money-overview";
-import {
-  BRAND_GO,
-  BRAND_VIOLET,
-  PartnerHeroCard,
-  SORA,
-} from "@/components/shared/partner-ui";
+import { PartnerHeroCard, SORA } from "@/components/shared/partner-ui";
 
 /**
  * PAGE UNIQUE « Gains et Relevés » (livreur ET chauffeur) — style Bolt :
@@ -123,7 +118,10 @@ export function GainsReleveView({
         ))}
       </div>
 
-      {/* 1. NET — LE chiffre que le partenaire vient chercher. */}
+      {/* NET — LE chiffre que le partenaire vient chercher, avec son détail
+          (brut → commission) DANS la même carte. Zéro doublon : le Net
+          n'apparaît qu'UNE fois (le grand chiffre) ; les lignes l'expliquent.
+          Une seule carte au lieu de deux → plus compact, lu d'un coup d'œil. */}
       <PartnerHeroCard
         label={`${tr("Net", "الصافي")} · ${periodLabel}${
           filter === "cash"
@@ -134,34 +132,26 @@ export function GainsReleveView({
         }`}
         value={`${grp(s.netDa)} ${tr("DA", "دج")}`}
         sub={`${s.count} ${tr(s.count > 1 ? "courses" : "course", "توصيلة")}`}
-      />
-
-      {/* 2. Détail MINIMAL : brut → commission → net. Rien d'interne. */}
-      <div className="mt-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-1">
-        <Line
-          k={tr("Brut", "الإجمالي")}
-          v={`+${grp(brutDa)} DA`}
-          tone={BRAND_GO}
-        />
-        <Line
-          k={tr("Commission Coligo", "عمولة كوليغو")}
-          v={`−${grp(s.coligoDa)} DA`}
-        />
-        {filter === "all" && subFeesDa > 0 && (
-          <Line
-            k={tr("Abonnements", "الاشتراكات")}
-            v={`−${grp(subFeesDa)} DA`}
+      >
+        <div className="mt-4 rounded-[14px] bg-white/12 px-3.5">
+          <HeroLine
+            k={tr("Brut", "الإجمالي")}
+            v={`+${grp(brutDa)} ${tr("DA", "دج")}`}
           />
-        )}
-        <Line
-          k={tr("Net", "الصافي")}
-          v={`${grp(s.netDa)} DA`}
-          tone={BRAND_VIOLET}
-          strong
-        />
-      </div>
+          <HeroLine
+            k={tr("Commission Coligo", "عمولة كوليغو")}
+            v={`−${grp(s.coligoDa)} ${tr("DA", "دج")}`}
+          />
+          {filter === "all" && subFeesDa > 0 && (
+            <HeroLine
+              k={tr("Abonnements", "الاشتراكات")}
+              v={`−${grp(subFeesDa)} ${tr("DA", "دج")}`}
+            />
+          )}
+        </div>
+      </PartnerHeroCard>
 
-      {/* 3. VERSEMENT — où j'en suis avec Coligo (global) + PDF. */}
+      {/* VERSEMENT — où j'en suis avec Coligo (global) + PDF. */}
       <SettlementVerdict
         direction={verdict.direction}
         amountDa={verdict.amountDa}
@@ -174,35 +164,13 @@ export function GainsReleveView({
   );
 }
 
-/** Ligne de détail (parité d-gains). */
-function Line({
-  k,
-  v,
-  tone,
-  strong,
-}: {
-  k: string;
-  v: string;
-  tone?: string;
-  strong?: boolean;
-}) {
+/** Ligne de détail SUR la carte héro (blanc sur violet) — explique le Net
+ *  sans le répéter : brut, commission Coligo, (abonnements). */
+function HeroLine({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-[var(--d-line)] py-3 text-[13.5px] last:border-b-0">
-      <span
-        className={strong ? "font-bold" : ""}
-        style={{ color: strong ? "var(--d-ink)" : "var(--d-muted)" }}
-      >
-        {k}
-      </span>
-      <b
-        style={{
-          fontFamily: SORA,
-          color: tone ?? "var(--d-ink)",
-          fontSize: strong ? 16 : undefined,
-        }}
-      >
-        {v}
-      </b>
+    <div className="flex items-center justify-between border-b border-white/15 py-2.5 text-[13px] text-white last:border-b-0">
+      <span className="opacity-85">{k}</span>
+      <b style={{ fontFamily: SORA }}>{v}</b>
     </div>
   );
 }
