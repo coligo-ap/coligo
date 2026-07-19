@@ -58,6 +58,14 @@ export async function signInWithGoogleNative(input: {
   });
   if (error) {
     console.error("signInWithIdToken (google, natif) :", error.message);
+    // Compte supprimé/banni : message HUMAIN avec la sortie (autre compte ou
+    // email) — plus jamais un « user is banned » brut à l'écran.
+    if (/banned/i.test(error.message)) {
+      return {
+        error:
+          "Ce compte a été supprimé. Choisis un autre compte Google, ou crée un nouveau compte avec ton email.",
+      };
+    }
     // Cause technique COURTE entre crochets : indispensable pour diagnostiquer
     // à distance sur un téléphone de testeur (pas de console accessible).
     return {

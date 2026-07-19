@@ -105,6 +105,17 @@ export async function nativeGoogleIdToken(): Promise<{
     },
   });
 
+  // TOUJOURS montrer le SÉLECTEUR de comptes : sans ce logout préalable, le
+  // SDK réutilise silencieusement la dernière session Google — un client qui
+  // veut changer de compte (ou qui vient de supprimer le sien) se retrouvait
+  // reconnecté d'office au même compte, sans choix (bug vécu iOS). Un compte
+  // unique = un tap de plus, le prix du contrôle. Best-effort : jamais bloquant.
+  try {
+    await SocialLogin.logout({ provider: "google" });
+  } catch {
+    /* pas de session à fermer — normal au premier passage */
+  }
+
   let result;
   try {
     result = await SocialLogin.login({

@@ -1,8 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { NATIVE_COOKIE } from "@/lib/config/native";
 import {
   computeCart,
   isPromotionActive,
@@ -77,6 +79,8 @@ export type CreateOrderInput = {
    * base dans les deux cas : aucun trigger financier ne change.
    */
   online_rail?: "chargily" | "stripe_eur" | null;
+  /** Identifiant d'appareil (anti-fraude promos — lib/customer/device-id). */
+  device_id?: string | null;
   customer_note?: string | null;
   promo_code?: string | null;
   /**
@@ -203,6 +207,10 @@ function intlRefusalMessage(reason: IntlRefusal): string {
  *  la RPC `validate_platform_promo`. */
 function platformPromoErrorMessage(reason: string): string {
   switch (reason) {
+    case "app_only":
+      return "Ce code est réservé à l'application mobile Coligo — télécharge l'app pour en profiter.";
+    case "device_used":
+      return "Vous avez déjà bénéficié de cette promotion sur cet appareil.";
     case "online_only":
       return "Ce code n'est valable qu'avec un paiement en ligne (Coligo Pay ou carte).";
     case "min_subtotal":
@@ -699,6 +707,10 @@ export async function createOrder(
       // La RPC tranche (fenêtre, plafonds, éligibilité, online_only) et renvoie
       // la remise. On lui passe le total APRÈS réductions produit (settled.totalDa
       // == subtotal ici, aucun code commerçant appliqué).
+      // Anti-fraude (mig 0381) : app installée = cookie natif posé par
+      // /api/start (jamais une valeur envoyée par le client) + identifiant
+      // d'appareil pour la mémoire « déjà bénéficié ».
+      const isApp = (await cookies()).get(NATIVE_COOKIE)?.value === "1";
       const { data: vpRaw } = await supabase.rpc(
         "validate_platform_promo" as never,
         {
@@ -706,6 +718,8 @@ export async function createOrder(
           p_customer_id: customer.id,
           p_subtotal_da: settled.totalDa,
           p_payment_method: input.payment_method,
+          p_is_app: isApp,
+          p_device_id: input.device_id ?? null,
         } as never
       );
       const vp = (Array.isArray(vpRaw) ? vpRaw[0] : vpRaw) as {
@@ -1397,6 +1411,34 @@ export async function createOrder(
     };
   }
 
+  // MÉMOIRE D'APPAREIL anti-fraude (mig 0381) : ce couple (promo, appareil)
+  // est marqué — un AUTRE compte sur le même appareil ne pourra plus utiliser
+  // ce code (« Vous avez déjà bénéficié de cette promotion »). Best-effort,
+  // idempotent (PK), service_role.
+  if (platformPromo && input.device_id) {
+    void (
+      writeDb.from("platform_promo_device_marks" as never) as unknown as {
+        upsert: (
+          row: Record<string, unknown>,
+          opts: { onConflict: string; ignoreDuplicates: boolean }
+        ) => PromiseLike<{ error: { message: string } | null }>;
+      }
+    )
+      .upsert(
+        {
+          promotion_id: platformPromo.id,
+          device_id: input.device_id,
+          customer_id: customer.id,
+        },
+        { onConflict: "promotion_id,device_id", ignoreDuplicates: true }
+      )
+      .then(({ error: markErr }) => {
+        if (markErr) {
+          console.warn("[createOrder] promo device mark:", markErr.message);
+        }
+      });
+  }
+
   // Lignes (snapshot prix unitaire effectif + ligne + unité + nom AR). L'ordre
   // de settled.lines suit input.items → même index que lineOptions.
   const itemsRows = settled.lines.map((l) => {
@@ -1946,6 +1988,8 @@ export async function previewPromoCode(input: {
     options?: { option_id: string }[];
   }[];
   code: string;
+  /** Identifiant d'appareil (anti-fraude — même valeur qu'à createOrder). */
+  device_id?: string | null;
 }): Promise<PromoPreview> {
   try {
     const code = (input.code ?? "").trim();
@@ -2065,6 +2109,8 @@ export async function previewPromoCode(input: {
           p_customer_id: customer.id,
           p_subtotal_da: settled.totalDa,
           p_payment_method: "online",
+          p_is_app: (await cookies()).get(NATIVE_COOKIE)?.value === "1",
+          p_device_id: input.device_id ?? null,
         } as never
       );
       const vp = (Array.isArray(vpRaw) ? vpRaw[0] : vpRaw) as {

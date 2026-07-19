@@ -336,6 +336,39 @@ export async function deleteMyCustomerAccount(): Promise<DeleteAccountState> {
       ban_duration: "876000h", // ~100 ans
     });
     if (authErr) throw authErr;
+
+    // 4bis) DÉTACHE les identités OAuth (Google…) du compte banni : sans ça,
+    // le compte Google resterait « lié » à un utilisateur banni pour toujours
+    // → « user is banned » à toute re-connexion, même pour créer un NOUVEAU
+    // compte (bug vécu iOS). Identités supprimées ⇒ une future connexion
+    // Google crée un utilisateur TOUT NEUF (l'anti-abus des avantages de
+    // bienvenue est géré par la mémoire d'appareil des promos, pas par un
+    // blocage définitif du compte Google). API admin GoTrue (pas encore
+    // couverte par supabase-js) → REST direct, best-effort tracé.
+    try {
+      const base = process.env.NEXT_PUBLIC_SUPABASE_URL!.replace(/\/+$/, "");
+      const srk = process.env.SUPABASE_SERVICE_ROLE_KEY!;
+      const headers = { apikey: srk, Authorization: `Bearer ${srk}` };
+      const ures = await fetch(`${base}/auth/v1/admin/users/${user.id}`, {
+        headers,
+        cache: "no-store",
+      });
+      const ujson = (await ures.json()) as {
+        identities?: { identity_id?: string; id?: string; provider: string }[];
+      };
+      for (const ident of ujson.identities ?? []) {
+        if (ident.provider === "email") continue;
+        const iid = ident.identity_id ?? ident.id;
+        if (!iid) continue;
+        await fetch(
+          `${base}/auth/v1/admin/users/${user.id}/identities/${iid}`,
+          { method: "DELETE", headers }
+        );
+      }
+    } catch (identErr) {
+      // Non bloquant : le ban protège déjà — mais on trace pour réconcilier.
+      console.error("[compte] détachement identités OAuth :", identErr);
+    }
   } catch (err) {
     console.error("[compte] deleteMyCustomerAccount failed:", err);
     return {

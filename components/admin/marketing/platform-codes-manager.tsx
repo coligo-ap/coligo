@@ -34,6 +34,7 @@ export type AdminPlatformCode = {
   max_uses_per_customer: number | null;
   uses_count: number;
   online_only: boolean;
+  app_only: boolean;
   audience: "public" | "targeted" | "all";
   is_listed: boolean;
   active: boolean;
@@ -73,6 +74,7 @@ function emptyForm(): CodeInput {
     max_uses: null,
     max_uses_per_customer: 1,
     online_only: true,
+    app_only: false,
     audience: "public",
     is_listed: true,
     active: true,
@@ -164,6 +166,7 @@ export function PlatformCodesManager({
                         : `-${formatDA(c.discount_value)}`}
                       {" · "}
                       {AUDIENCE_LABEL[c.audience]}
+                      {c.app_only ? " · Appli uniquement" : ""}
                       {" · "}
                       {c.uses_count}
                       {c.max_uses != null ? `/${c.max_uses}` : ""} usage(s)
@@ -314,6 +317,7 @@ function toFormState(c: AdminPlatformCode | CodeInput): CodeInput {
     max_uses: c.max_uses ?? null,
     max_uses_per_customer: c.max_uses_per_customer ?? null,
     online_only: c.online_only,
+    app_only: c.app_only,
     audience: c.audience,
     is_listed: c.is_listed,
     active: c.active,
@@ -539,6 +543,11 @@ function CodeForm({
               checked={form.online_only}
               onChange={(v) => set("online_only", v)}
               label="Paiement en ligne uniquement"
+            />
+            <Toggle
+              checked={form.app_only}
+              onChange={(v) => set("app_only", v)}
+              label="Application installée uniquement (Android/iOS, pas le site web)"
             />
             <Toggle
               checked={form.is_listed}

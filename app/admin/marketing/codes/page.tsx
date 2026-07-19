@@ -29,7 +29,7 @@ export default async function MarketingCodesTab() {
     }
   )("platform_promotions")
     .select(
-      "id, code, title_fr, title_ar, description_fr, description_ar, discount_kind, discount_value, max_discount_da, min_subtotal_da, starts_at, ends_at, max_uses, max_uses_per_customer, uses_count, online_only, audience, is_listed, active, created_at"
+      "id, code, title_fr, title_ar, description_fr, description_ar, discount_kind, discount_value, max_discount_da, min_subtotal_da, starts_at, ends_at, max_uses, max_uses_per_customer, uses_count, online_only, app_only, audience, is_listed, active, created_at"
     )
     .order("created_at", { ascending: false });
 
