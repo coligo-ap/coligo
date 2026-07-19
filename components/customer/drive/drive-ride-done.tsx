@@ -83,20 +83,20 @@ export function DoneScreen({
   return (
     <div className="drive-jakarta drive-screen z-40 overflow-y-auto bg-[var(--d-page)] pb-8">
       {/* ── Héro : succès + prix (l'info d'un coup d'œil, façon Bolt) ── */}
-      <div className="rounded-b-[28px] bg-[var(--d-surface)] px-5 pt-9 pb-6 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
+      <div className="rounded-b-[28px] bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
         <span
-          className="drive-pop mx-auto mb-3 grid size-16 place-items-center rounded-full"
+          className="drive-pop mx-auto mb-2.5 grid size-14 place-items-center rounded-full"
           style={{ background: "rgba(22,179,100,.12)" }}
         >
-          <Check className="size-7" style={{ color: GO }} />
+          <Check className="size-6" style={{ color: GO }} />
         </span>
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
           {t("title")}
         </h1>
-        <p className="drive-sora mt-1 text-[36px] leading-none font-extrabold tracking-[-1px]">
+        <p className="drive-sora mt-1 text-[32px] leading-none font-extrabold tracking-[-1px]">
           {formatDA(ride.price_da)}
         </p>
-        <span className="mt-2.5 inline-flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[11.5px] font-bold text-[var(--d-muted)]">
+        <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[11.5px] font-bold text-[var(--d-muted)]">
           <BadgeCheck className="size-3.5" style={{ color: GO }} />
           {payLabel}
         </span>
@@ -112,7 +112,7 @@ export function DoneScreen({
 
       <div className="px-5">
         {/* ── Trajet (rail A → B) + commission ── */}
-        <div className="drive-rise mt-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
+        <div className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
           <div className="flex gap-2.5">
             <div className="flex w-3 shrink-0 flex-col items-center pt-1.5">
               <span

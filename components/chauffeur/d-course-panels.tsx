@@ -164,18 +164,18 @@ export function DoneScreen({
   return (
     <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-page)] pb-8">
       {/* ── Héro : gain net d'un coup d'œil ── */}
-      <div className="rounded-b-[28px] bg-[var(--d-surface)] px-5 pt-9 pb-6 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
+      <div className="rounded-b-[28px] bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
         <span
-          className="drive-pop mx-auto mb-3 grid size-16 place-items-center rounded-full"
+          className="drive-pop mx-auto mb-2.5 grid size-14 place-items-center rounded-full"
           style={{ background: "rgba(22,179,100,.12)" }}
         >
-          <Check className="size-7" style={{ color: GO }} />
+          <Check className="size-6" style={{ color: GO }} />
         </span>
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
           {tr("Course terminée", "انتهى المشوار")}
         </h1>
         <p
-          className="drive-sora mt-1 text-[36px] leading-none font-extrabold tracking-[-1px]"
+          className="drive-sora mt-1 text-[32px] leading-none font-extrabold tracking-[-1px]"
           style={{ color: GO }}
         >
           +{formatDA(done.net_da + tip)}
@@ -189,7 +189,7 @@ export function DoneScreen({
         {/* ── Pourboire reçu (apparaît en DIRECT si le client en laisse un) ── */}
         {tip > 0 && (
           <div
-            className="drive-up mt-3 flex items-center gap-3 rounded-[16px] p-3"
+            className="drive-up mt-2.5 flex items-center gap-3 rounded-[16px] p-3"
             style={{ background: "rgba(22,179,100,.12)" }}
           >
             <span className="drive-pop grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
@@ -203,7 +203,7 @@ export function DoneScreen({
         )}
 
         {/* ── Détail du gain ── */}
-        <div className="drive-rise mt-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-1.5">
+        <div className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-1.5">
           <div className="flex items-center justify-between py-2 text-[13.5px]">
             <span className="text-[var(--d-muted)]">
               {tr("Prix de la course", "ثمن المشوار")}

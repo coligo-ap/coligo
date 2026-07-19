@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import {
@@ -10,6 +11,7 @@ import {
   type DriveContext,
   type DriveLastRide,
 } from "@/app/(customer)/drive/actions";
+import { VIOLET } from "./drive-modals";
 import { SearchScreen } from "./drive-ride-search";
 import { EnrouteScreen } from "./drive-ride-enroute";
 import { DoneScreen, CancelledScreen } from "./drive-ride-done";
@@ -45,6 +47,19 @@ export function DriveRide({
     refunded: boolean;
   } | null>(null);
   const lastStatus = useRef<string | null>(active?.status ?? null);
+
+  // Une course « en course » = assignée à un chauffeur (accepted → in_progress),
+  // ni recherche ni terminée/annulée.
+  const isProgressed = (s?: string | null) =>
+    !!s && s !== "searching" && s !== "completed" && s !== "cancelled";
+  // Garde ANTI-FLASH : une fois un chauffeur assigné, si la course « disparaît »
+  // (my_active_ride → null quand elle passe terminée), on NE DOIT PAS retomber
+  // sur l'écran des propositions. On mémorise qu'on a dépassé la recherche → au
+  // rendu on TIENT l'écran (bref spinner) le temps que « terminée / annulée » se
+  // pose (instantané via le Realtime), au lieu de flasher les propositions.
+  const progressedRef = useRef(isProgressed(active?.status));
+  if (isProgressed(active?.status)) progressedRef.current = true;
+
   // Carte en attente de paiement : id de la course à surveiller (échec
   // Chargily → le webhook annule la demande, on revient au choix de gamme).
   const waitingCardRef = useRef<string | null>(null);
@@ -67,59 +82,78 @@ export function DriveRide({
   const [resyncNonce, setResyncNonce] = useState(0);
   useResumeResync(() => setResyncNonce((n) => n + 1));
 
-  // Poll de la course active + détection de transition (terminée / annulée).
-  useEffect(() => {
-    let stop = false;
-    const tick = async () => {
-      // Échec du paiement carte (webhook seul fait foi, mig 0163) : retour
-      // direct à l'écran de choix de gamme — PAS l'écran « course annulée ».
-      if (waitingCardRef.current) {
-        const st = await getRideCardState(waitingCardRef.current);
-        if (stop) return;
-        if (st?.failed) {
-          onCardFailed();
-          return;
-        }
-      }
-      const ride = await refreshActive();
-      if (stop) return;
-      if (!ride && lastStatus.current && !cancelled) {
-        const last = await getDriveLastRide();
-        if (stop) return;
-        if (last?.status === "completed") setDone(last);
-        else if (waitingCardRef.current) {
-          // Disparue pendant l'attente carte = annulée pour échec de
-          // paiement → choix de gamme, pas l'écran « course annulée ».
-          onCardFailed();
-          return;
-        } else if (last)
-          setCancelled({
-            reason: null,
-            mine: false,
-            refunded: last.payment_method !== "cash",
-          });
-        lastStatus.current = null;
+  // SYNCHRONISATION UNIQUE de la course + détection de transition (terminée /
+  // annulée / échec carte). Un SEUL point de vérité, appelé À LA FOIS par le
+  // Realtime (instantané, façon Bolt) ET par le poll de rattrapage. AVANT, le
+  // Realtime appelait refreshActive() « nu » : dès que le chauffeur terminait,
+  // `active` passait à null et le rendu FLASHAIT l'écran des propositions — le
+  // setDone n'arrivait qu'au poll suivant (jusqu'à 20 s après). Maintenant la
+  // détection se fait au même endroit → bascule « Course terminée » immédiate.
+  const syncRide = async (): Promise<void> => {
+    // Échec du paiement carte (webhook seul fait foi, mig 0163) : retour direct
+    // au choix de gamme — PAS l'écran « course annulée ».
+    if (waitingCardRef.current) {
+      const st = await getRideCardState(waitingCardRef.current);
+      if (st?.failed) {
+        onCardFailed();
         return;
       }
-      if (ride) lastStatus.current = ride.status;
+    }
+    const ride = await refreshActive();
+    if (ride) {
+      lastStatus.current = ride.status;
+      if (isProgressed(ride.status)) progressedRef.current = true;
+      return;
+    }
+    // Course DISPARUE (plus active) : elle vient d'être terminée ou annulée.
+    if (!lastStatus.current) return;
+    const last = await getDriveLastRide();
+    if (last?.status === "completed") setDone(last);
+    else if (waitingCardRef.current) {
+      // Disparue pendant l'attente carte = annulée pour échec de paiement →
+      // choix de gamme, pas l'écran « course annulée ».
+      onCardFailed();
+      return;
+    } else if (last)
+      setCancelled({
+        reason: null,
+        mine: false,
+        refunded: last.payment_method !== "cash",
+      });
+    else {
+      // Course disparue sans trace terminée/annulée récente (cas limite) : on ne
+      // reste pas bloqué sur le spinner — retour propre à l'accueil Drive.
+      onExit();
+      return;
+    }
+    lastStatus.current = null;
+  };
+  // Ref « toujours à jour » : les effets appellent syncRef.current(), donc le
+  // Realtime NE se ré-abonne PAS à chaque changement de callback inline du parent
+  // (aucun churn de canal — cf. piège topic Realtime dupliqué).
+  const syncRef = useRef(syncRide);
+  syncRef.current = syncRide;
+
+  // Poll = FILET LENT (20 s) : la sync course est INSTANTANÉE via le Realtime
+  // ci-dessous (postgres_changes sur `rides`). On ne martèle pas le serveur.
+  useEffect(() => {
+    let stop = false;
+    const tick = () => {
+      if (!stop) void syncRef.current();
     };
-    // Poll = FILET LENT seulement : la sync course (statut/terminée/annulée) est
-    // INSTANTANÉE via le Realtime ci-dessous (postgres_changes sur `rides`). On
-    // ne martèle PAS le serveur — façon Uber/Google : push DB temps réel + poll
-    // de rattrapage uniquement (avant : 4 s → 20 s). Cas spécial paiement carte
-    // (webhook) : le filet 20 s suffit le temps de la confirmation.
     const id = setInterval(tick, 20000);
-    void tick();
+    tick();
     return () => {
       stop = true;
       clearInterval(id);
     };
     // resyncNonce : un retour d'arrière-plan relance un tick immédiat.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [refreshActive, resyncNonce]);
+     
+  }, [resyncNonce]);
 
   // Temps réel : tout changement de la course (acceptation, statut, prix
-  // convenu) rafraîchit instantanément — le poll 4 s reste en filet.
+  // convenu, FIN) déclenche la MÊME sync → détection « terminée / annulée »
+  // instantanée (plus seulement un refresh).
   const activeId = active?.id ?? null;
   useEffect(() => {
     if (!activeId) return;
@@ -134,14 +168,15 @@ export function DriveRide({
           table: "rides",
           filter: `id=eq.${activeId}`,
         },
-        () => void refreshActive()
+        () => void syncRef.current()
       )
       .subscribe();
     return () => {
       void supabase.removeChannel(ch);
     };
     // resyncNonce : ré-abonnement au retour d'arrière-plan (le canal a pu tomber).
-  }, [activeId, refreshActive, resyncNonce]);
+     
+  }, [activeId, resyncNonce]);
 
   if (done) return <DoneScreen ride={done} onExit={onExit} />;
   if (cancelled)
@@ -153,28 +188,46 @@ export function DriveRide({
         onExit={onExit}
       />
     );
-  if (!active || active.status === "searching")
+  if (active && isProgressed(active.status))
     return (
-      <SearchScreen
+      <EnrouteScreen
         ctx={ctx}
         ride={active}
-        offlineQueued={offlineQueued}
-        refreshActive={refreshActive}
-        onBackToPrice={onBackToPrice}
+        onCancelled={(reason) =>
+          setCancelled({
+            reason,
+            mine: true,
+            refunded: (active?.payment_method ?? "cash") !== "cash",
+          })
+        }
       />
     );
+  // `active` null ou « searching ».
+  if (progressedRef.current) {
+    // Course assignée puis disparue (terminée/annulée) : la détection est EN VOL
+    // → on tient l'écran (bref spinner) plutôt que de flasher les propositions.
+    // syncRide pose done/cancelled juste après (instantané via le Realtime).
+    return <FinishingHold />;
+  }
   return (
-    <EnrouteScreen
+    <SearchScreen
       ctx={ctx}
       ride={active}
-      onCancelled={(reason) =>
-        setCancelled({
-          reason,
-          mine: true,
-          refunded: (active?.payment_method ?? "cash") !== "cash",
-        })
-      }
+      offlineQueued={offlineQueued}
+      refreshActive={refreshActive}
+      onBackToPrice={onBackToPrice}
     />
+  );
+}
+
+/** Transition brève « la course se termine » — évite tout flash de l'écran des
+ *  propositions entre la disparition de la course active et la bascule sur
+ *  « Course terminée / annulée » (posée juste après par syncRide). */
+function FinishingHold() {
+  return (
+    <div className="grid min-h-[70vh] place-items-center px-6">
+      <Loader2 className="size-7 animate-spin" style={{ color: VIOLET }} />
+    </div>
   );
 }
 

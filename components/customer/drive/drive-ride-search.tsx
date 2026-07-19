@@ -331,40 +331,25 @@ export function SearchScreen({
             offres est longue (plus besoin de scroller jusqu'en bas pour annuler). */}
         <div className="sticky top-0 z-30 -mx-5 -mt-3.5 mb-3 rounded-t-[28px] bg-[var(--d-surface)] px-5 pt-3.5 pb-3">
           <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-          <div className="flex items-center gap-3">
-            <div
-              className="flex min-w-0 flex-1 items-center gap-2 text-[13px] font-bold"
-              style={{ color: VIOLET }}
-            >
-              {!offlineQueued && (
-                <span
-                  className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--d-accent)]"
-                  style={{ borderTopColor: VIOLET }}
-                />
-              )}
-              <span className="truncate">
-                {offlineQueued
-                  ? t("offlineTitle")
-                  : offers.length > 0
-                    ? t("responded", { count: offers.length })
-                    : t("incoming")}
-              </span>
-            </div>
-            <button
-              type="button"
-              onClick={handleCancel}
-              disabled={busy}
-              aria-label={t("cancelSearch")}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-[13px] px-4 py-2.5 text-[13px] font-extrabold text-white shadow-md transition-transform active:scale-95 disabled:opacity-60"
-              style={{ background: RED }}
-            >
-              {busy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <X className="size-4" />
-              )}
-              {t("cancelSearch")}
-            </button>
+          {/* Statut seul (le bouton « Annuler » vit désormais sur la carte, en
+              haut à droite — demande produit). */}
+          <div
+            className="flex min-w-0 items-center gap-2 text-[13px] font-bold"
+            style={{ color: VIOLET }}
+          >
+            {!offlineQueued && (
+              <span
+                className="size-3.5 shrink-0 animate-spin rounded-full border-2 border-[var(--d-accent)]"
+                style={{ borderTopColor: VIOLET }}
+              />
+            )}
+            <span className="truncate">
+              {offlineQueued
+                ? t("offlineTitle")
+                : offers.length > 0
+                  ? t("responded", { count: offers.length })
+                  : t("incoming")}
+            </span>
           </div>
           {error && (
             <p
@@ -650,7 +635,28 @@ export function SearchScreen({
           })}
         </div>
       </div>
-      {/* Retour arrière vers l'écran prix tant qu'aucune offre */}
+      {/* Annuler la recherche — épinglé sur la CARTE, en HAUT À DROITE (demande
+          produit). Visible tant qu'une course est en recherche ; annule la
+          course (séquestre recrédité serveur) et revient à l'écran prix. */}
+      {ride && (
+        <button
+          type="button"
+          onClick={handleCancel}
+          disabled={busy}
+          aria-label={t("cancelSearch")}
+          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 z-20 inline-flex items-center gap-1.5 rounded-[14px] px-4 py-2.5 text-[13px] font-extrabold text-white shadow-lg transition-transform active:scale-95 disabled:opacity-60"
+          style={{ background: RED }}
+        >
+          {busy ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <X className="size-4" />
+          )}
+          {t("cancelSearch")}
+        </button>
+      )}
+
+      {/* Retour arrière vers l'écran prix tant qu'aucune course (file hors-ligne). */}
       {!ride && !offlineQueued && (
         <button
           type="button"
