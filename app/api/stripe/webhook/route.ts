@@ -262,12 +262,15 @@ export async function POST(req: NextRequest) {
         ride_id?: string;
       };
       if (row?.ok && row.ride_id) {
-        const [{ notifyChauffeursRideGone }, { notifyRideEvent }] =
-          await Promise.all([
-            import("@/lib/fcm/triggers"),
-            import("@/lib/notifications/notify"),
-          ]);
+        const [
+          { notifyChauffeursRideGone, notifyChauffeurRideWon },
+          { notifyRideEvent },
+        ] = await Promise.all([
+          import("@/lib/fcm/triggers"),
+          import("@/lib/notifications/notify"),
+        ]);
         void notifyRideEvent(row.ride_id, "ride_accepted");
+        void notifyChauffeurRideWon({ rideId: row.ride_id });
         void notifyChauffeursRideGone({ rideId: row.ride_id });
       }
       await recordEvent(offSess.id);

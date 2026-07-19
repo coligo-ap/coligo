@@ -6,6 +6,7 @@ import { chauffeurAvatarUrls } from "@/lib/drive/avatar-server";
 import {
   notifyChauffeursNewRide,
   notifyChauffeursRideGone,
+  notifyChauffeurRideWon,
   notifyRideMessage,
 } from "@/lib/fcm/triggers";
 import { notifyRideEvent } from "@/lib/notifications/notify";
@@ -253,10 +254,10 @@ export async function fetchMyActiveRideLite(): Promise<ActiveRideLite | null> {
       status: ride.status,
       dest_text: ride.dest_text,
       chauffeur_name: ch ? (ch.first_name ?? ch.full_name.split(" ")[0]) : null,
-      awaiting_payment:
-        ride.payment_method === "card" &&
-        ride.online_paid_at == null &&
-        ride.status === "searching",
+      // Paiement carte À L'ACCEPTATION (mig 0386) : une course carte en
+      // recherche n'est plus « en attente de paiement » (le paiement se fait au
+      // choix d'un chauffeur) → bandeau comme une recherche normale.
+      awaiting_payment: false,
     };
   } catch {
     return null;
@@ -810,11 +811,13 @@ export async function acceptDriveOffer(
     ride_id?: string;
   };
   if (row?.ok && row.ride_id) {
-    // Cloche + push chauffeur : le client vient de confirmer SA proposition.
+    // Cloche + push client : le client vient de confirmer SA proposition.
     void notifyRideEvent(row.ride_id, "ride_accepted");
+    // Le chauffeur RETENU reçoit une notification VISIBLE (sonne même s'il a
+    // fermé l'app entre sa proposition et le choix du client).
+    void notifyChauffeurRideWon({ rideId: row.ride_id });
     // Et la demande DISPARAÎT immédiatement chez tous les autres chauffeurs
-    // (retrait temps réel `ride_gone`, sans attendre leur poll) ; le retenu,
-    // lui, bascule sur sa course à réception du même message.
+    // (retrait temps réel `ride_gone`, sans attendre leur poll).
     void notifyChauffeursRideGone({ rideId: row.ride_id });
     return { ok: true, rideId: row.ride_id };
   }

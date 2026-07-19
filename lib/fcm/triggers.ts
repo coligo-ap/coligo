@@ -947,6 +947,58 @@ export async function notifyChauffeursRideGone(input: {
 }
 
 /**
+ * Le chauffeur RETENU (sa proposition vient d'être acceptée) reçoit une
+ * NOTIFICATION VISIBLE qui le réveille/fait sonner MÊME déconnecté ou app
+ * fermée. Le broadcast `ride_gone` est un message DATA silencieux (bascule
+ * d'écran au premier plan) : insuffisant si le chauffeur a fermé l'app entre sa
+ * proposition et le choix du client. Ce push comble ce trou. Idempotent côté
+ * push (au pire une notif de plus au rejeu du webhook). Fire-and-forget.
+ */
+export async function notifyChauffeurRideWon(input: {
+  rideId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("chauffeur_id, status, dest_text")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (
+      !ride ||
+      !ride.chauffeur_id ||
+      !["accepted", "arriving"].includes(ride.status)
+    ) {
+      return;
+    }
+    const { data: ch } = await admin
+      .from("chauffeurs")
+      .select("user_id")
+      .eq("id", ride.chauffeur_id)
+      .maybeSingle();
+    if (!ch?.user_id) return;
+    const tokens = await tokensFor(ch.user_id, "chauffeur");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Course confirmée 🚗",
+        body: ride.dest_text
+          ? `Un client a choisi votre offre · ${ride.dest_text}`
+          : "Un client a choisi votre offre",
+      },
+      {
+        route: "/chauffeur/course",
+        kind: "ride_won",
+        rideId: input.rideId,
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyChauffeurRideWon failed:", err);
+  }
+}
+
+/**
  * APPEL IN-APP Drive (Agora) — fait « sonner » le pair même APP FERMÉE / en
  * arrière-plan. Le signaling temps réel (Supabase broadcast) ne marche qu'au
  * premier plan ; ce push réveille l'appelé et, au clic, l'ouvre sur l'écran de
