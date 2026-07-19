@@ -60,6 +60,44 @@ export async function rejectTopup(
   return { ok: true };
 }
 
+/** Payer une demande de RETRAIT Coligo Pay → débit `payout` (RPC self-guard). */
+export async function payWithdrawal(requestId: string): Promise<Res> {
+  if (!(await adminCan("finances"))) return DENIED;
+  const supabase = await createClient(); // session admin → auth.uid() ok
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ error: { message: string } | null }>;
+  const { error } = await rpc("pay_withdrawal_request", {
+    p_request_id: requestId,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/admin/recharges");
+  revalidatePath("/admin/coligo-pay/recharges");
+  return { ok: true };
+}
+
+/** Refuser une demande de retrait Coligo Pay (motif visible par le partenaire). */
+export async function rejectWithdrawal(
+  requestId: string,
+  note: string
+): Promise<Res> {
+  if (!(await adminCan("finances"))) return DENIED;
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ error: { message: string } | null }>;
+  const { error } = await rpc("reject_withdrawal_request", {
+    p_request_id: requestId,
+    p_note: note,
+  });
+  if (error) return { error: error.message };
+  revalidatePath("/admin/recharges");
+  revalidatePath("/admin/coligo-pay/recharges");
+  return { ok: true };
+}
+
 /** Activer / désactiver l'enforcement global (operator_gating). */
 export async function setOperatorGating(active: boolean): Promise<Res> {
   if (!(await adminCan("finances"))) return DENIED;

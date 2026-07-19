@@ -3,10 +3,7 @@
 import { useState } from "react";
 import { useLocale } from "next-intl";
 import { MoneyTabs } from "@/components/shared/money-tabs";
-import {
-  SettlementVerdict,
-  WalletGlance,
-} from "@/components/partner/money-overview";
+import { SettlementVerdict } from "@/components/partner/money-overview";
 import {
   BRAND_GO,
   BRAND_VIOLET,
@@ -173,11 +170,6 @@ export function GainsReleveView({
       />
 
       {children}
-
-      {/* 4. Solde Coligo Pay en un coup d'œil. */}
-      <div className="mb-4">
-        <WalletGlance rechargeHref={`${base}/recharger`} />
-      </div>
     </>
   );
 }

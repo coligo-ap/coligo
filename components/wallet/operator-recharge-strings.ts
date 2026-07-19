@@ -54,6 +54,7 @@ export const ENTRY_LABEL: Record<Lang, Record<string, string>> = {
     service_fee: "Frais de service",
     cod_settle: "Régularisation",
     adjustment: "Ajustement",
+    payout: "Retrait versé",
   },
   ar: {
     topup_chargily: "شحن بالبطاقة",
@@ -65,6 +66,7 @@ export const ENTRY_LABEL: Record<Lang, Record<string, string>> = {
     service_fee: "رسوم الخدمة",
     cod_settle: "تسوية",
     adjustment: "تعديل",
+    payout: "سحب مدفوع",
   },
 };
 

@@ -10,7 +10,6 @@ import {
   EyeOff,
   Gift,
   Info,
-  LineChart,
   Percent,
   Plus,
   Settings2,
@@ -23,8 +22,6 @@ import {
   BRAND_RED,
   BRAND_VIOLET,
   BRAND_VIOLET_D,
-  PartnerMenuGroup,
-  PartnerMenuRow,
   SORA,
 } from "@/components/shared/partner-ui";
 import {
@@ -34,7 +31,6 @@ import {
 import {
   PayAmount,
   PayCard,
-  PayEntryRow,
   PayLoadError,
   PayScreen,
   PaySkeleton,
@@ -141,8 +137,6 @@ export function PayHome({ base }: { base: PayBase }) {
     );
   }
 
-  const recent = entries.slice(0, 4);
-
   return (
     <PayScreen dir={dir}>
       {/* HERO portefeuille */}
@@ -163,6 +157,16 @@ export function PayHome({ base }: { base: PayBase }) {
           <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10.5px] font-bold">
             {OWNER_BADGE[lang][owner]}
           </span>
+          {/* Paramètres financiers — action contextuelle du portefeuille
+              (pas un raccourci de plus en bas de page). */}
+          <Link
+            href={payHref(base, "/parametres")}
+            prefetch
+            aria-label={t.settings}
+            className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15"
+          >
+            <Settings2 className="size-4" />
+          </Link>
         </div>
         <div className="mt-3 flex items-center gap-2.5">
           <span
@@ -243,18 +247,12 @@ export function PayHome({ base }: { base: PayBase }) {
       {/* APERÇU CE MOIS — seulement si les données couvrent le mois entier */}
       {month && (
         <PayCard className="mt-3">
-          <div className="flex items-center justify-between px-3.5 pt-3 pb-1">
+          {/* Un seul chemin vers l'historique : l'action « Historique »
+              ci-dessus (pas de « Voir tout » doublon). */}
+          <div className="px-3.5 pt-3 pb-1">
             <p className="text-[12px] font-bold text-[var(--d-muted)]">
               {t.monthOverview}
             </p>
-            <Link
-              href={payHref(base, "/historique")}
-              prefetch
-              className="text-[11.5px] font-bold"
-              style={{ color: "var(--d-violet)" }}
-            >
-              {t.seeAll}
-            </Link>
           </div>
           {month.rows.map((r) => (
             <div
@@ -290,54 +288,9 @@ export function PayHome({ base }: { base: PayBase }) {
         </PayCard>
       )}
 
-      {/* DERNIÈRES OPÉRATIONS (4) → détail ; « Voir tout » → historique */}
-      <PayCard className="mt-3">
-        <div className="flex items-center justify-between px-3.5 pt-3 pb-1">
-          <p className="text-[12px] font-bold text-[var(--d-muted)]">
-            {t.recentOps}
-          </p>
-          {recent.length > 0 && (
-            <Link
-              href={payHref(base, "/historique")}
-              prefetch
-              className="text-[11.5px] font-bold"
-              style={{ color: "var(--d-violet)" }}
-            >
-              {t.seeAll}
-            </Link>
-          )}
-        </div>
-        {recent.length === 0 ? (
-          <p className="px-3.5 pt-1 pb-4 text-[12.5px] font-medium text-[var(--d-muted)]">
-            {t.noOpsSub}
-          </p>
-        ) : (
-          recent.map((e) => (
-            <PayEntryRow
-              key={e.id}
-              entry={e}
-              lang={lang}
-              href={payHref(base, `/historique/${e.id}`)}
-            />
-          ))
-        )}
-      </PayCard>
-
-      {/* RACCOURCIS — le reste de l'argent du rôle + paramètres */}
-      <div className="mt-3">
-        <PartnerMenuGroup>
-          <PartnerMenuRow
-            icon={<LineChart className="size-4" />}
-            label={roleMoneyLabel(base, lang)}
-            href={withdrawHref(base)}
-          />
-          <PartnerMenuRow
-            icon={<Settings2 className="size-4" />}
-            label={t.settings}
-            href={payHref(base, "/parametres")}
-          />
-        </PartnerMenuGroup>
-      </div>
+      {/* RÈGLE zéro doublon : la LISTE des opérations vit UNIQUEMENT sur la
+          page Historique (action ci-dessus) — l'accueil s'arrête au résumé.
+          Aucun raccourci de plus : chaque page reste sur son thème. */}
     </PayScreen>
   );
 }
@@ -351,10 +304,4 @@ function kindLabelShort(kind: OpsKind, lang: "fr" | "ar"): string {
     autre: ["Autres", "أخرى"],
   };
   return L[kind][lang === "ar" ? 1 : 0];
-}
-
-function roleMoneyLabel(base: PayBase, lang: "fr" | "ar"): string {
-  if (base === "")
-    return lang === "ar" ? "المالية والتحويلات" : "Finances & versements";
-  return lang === "ar" ? "الأرباح والكشوف" : "Gains et relevés";
 }

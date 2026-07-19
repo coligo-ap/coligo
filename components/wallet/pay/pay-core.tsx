@@ -47,12 +47,12 @@ export function payHref(base: PayBase, sub = ""): string {
   return `${base}/recharger${sub}`;
 }
 
-/** « Retirer » : chaque rôle a DÉJÀ son flux de règlement sécurisé — on y
- *  route (aucun retrait direct inventé côté portefeuille). */
+/** « Retirer » : chauffeur/livreur → parcours de retrait Coligo Pay dédié
+ *  (demande CCP/BaridiMob, mig 0384) ; commerçant → son canal de versement
+ *  EXISTANT (Finances / payout_requests) — pas de doublon de flux. */
 export function withdrawHref(base: PayBase): string {
-  if (base === "/chauffeur") return "/chauffeur/gains";
-  if (base === "/driver") return "/driver/gains";
-  return "/finances";
+  if (base === "") return "/finances";
+  return payHref(base, "/retirer");
 }
 
 /* ───────────────────────── i18n locale (FR / AR) ─────────────────────────
@@ -131,6 +131,24 @@ export const PAY_STR = {
     account: "Compte",
     help: "Aide",
     shortcuts: "Raccourcis",
+    withdrawTitle: "Retirer mon argent",
+    wMethodLabel: "Méthode de retrait",
+    wDestCcp: "N° CCP (avec clé)",
+    wDestRip: "RIP BaridiMob",
+    wDestName: "Titulaire du compte (optionnel)",
+    wDestination: "Destination",
+    wAmountLabel: "Montant à retirer",
+    wAmountMax: "Max.",
+    wReview: "Vérifiez votre demande",
+    wReviewNote:
+      "Le montant sera débité de votre Coligo Pay au moment du paiement par l'équipe Coligo.",
+    wConfirm: "Confirmer le retrait",
+    wEdit: "Modifier",
+    wPendingTitle: "Retrait en cours",
+    wPendingSub: "Votre demande est en traitement par l'équipe Coligo.",
+    wPast: "Demandes précédentes",
+    wPaid: "Payée",
+    wRejected: "Refusée",
   },
   ar: {
     walletTitle: "Coligo Pay",
@@ -201,6 +219,23 @@ export const PAY_STR = {
     account: "الحساب",
     help: "مساعدة",
     shortcuts: "اختصارات",
+    withdrawTitle: "سحب أموالي",
+    wMethodLabel: "طريقة السحب",
+    wDestCcp: "رقم CCP (مع المفتاح)",
+    wDestRip: "RIP بريدي موب",
+    wDestName: "صاحب الحساب (اختياري)",
+    wDestination: "الوجهة",
+    wAmountLabel: "المبلغ المراد سحبه",
+    wAmountMax: "الحد الأقصى",
+    wReview: "راجع طلبك",
+    wReviewNote: "يُخصم المبلغ من محفظتك عند الدفع من طرف فريق Coligo.",
+    wConfirm: "تأكيد السحب",
+    wEdit: "تعديل",
+    wPendingTitle: "سحب قيد المعالجة",
+    wPendingSub: "طلبك قيد المعالجة من طرف فريق Coligo.",
+    wPast: "الطلبات السابقة",
+    wPaid: "مدفوعة",
+    wRejected: "مرفوضة",
   },
 } as const;
 

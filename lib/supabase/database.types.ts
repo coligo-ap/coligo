@@ -2954,6 +2954,27 @@ export type Database = {
           created_at: string;
         }[];
       };
+      request_operator_withdrawal: {
+        Args: {
+          p_method: string;
+          p_amount_da: number;
+          p_destination: string;
+          p_destination_name?: string | null;
+        };
+        Returns: string;
+      };
+      my_operator_withdrawals: {
+        Args: { p_limit?: number };
+        Returns: {
+          id: string;
+          method: string;
+          amount_da: number;
+          destination: string;
+          status: string;
+          review_note: string | null;
+          created_at: string;
+        }[];
+      };
       my_operator_wallet_entry: {
         Args: { p_id: string };
         Returns: {

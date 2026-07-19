@@ -1,7 +1,5 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
-import { ChevronRight, Crown } from "lucide-react";
 import { getCurrentChauffeur } from "@/lib/auth/chauffeur";
 import { parseSettlementPeriod } from "@/lib/driver/settlement-data";
 import {
@@ -22,21 +20,6 @@ export const dynamic = "force-dynamic";
  * + PDF. Sommes = snapshots figés (getChauffeurReleve, source partagée avec
  * le PDF). Le gain du jour vit sur l'accueil (zéro doublon).
  */
-
-// Libellés de plans (local : d-ui est un module client, non importable ici
-// pour de simples données). Violet de marque : constante (stable clair/sombre),
-// même pattern que BRAND_VIOLET de partner-ui (module client, non importable).
-const PLAN_LABEL: Record<string, string> = {
-  free: "Gratuit",
-  pro: "Pro",
-  premium: "Premium",
-};
-const PLAN_LABEL_AR: Record<string, string> = {
-  free: "مجاني",
-  pro: "Pro",
-  premium: "Premium",
-};
-const BRAND_VIOLET = "#6C2BD9";
 
 export default async function ChauffeurGainsPage({
   searchParams,
@@ -105,30 +88,10 @@ export default async function ChauffeurGainsPage({
               customTo={params.to ?? null}
             />
           }
-        >
-          {/* Abonnement — ADAPTATIF, une ligne, le détail vit sur sa page. */}
-          <Link
-            href="/chauffeur/abonnement"
-            className="mb-3 flex w-full items-center gap-2.5 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
-          >
-            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-accent)] text-[var(--d-ink)]">
-              <Crown className="size-[18px]" style={{ color: BRAND_VIOLET }} />
-            </span>
-            <span className="min-w-0 flex-1">
-              <b className="block text-[13.5px] text-[var(--d-ink)]">
-                {tr("Abonnement :", "الاشتراك:")}{" "}
-                {(isAr ? PLAN_LABEL_AR : PLAN_LABEL)[fin?.plan ?? "free"] ??
-                  tr("Gratuit", "مجاني")}
-              </b>
-              <span className="text-[11px] text-[var(--d-muted)]">
-                {(fin?.planRate ?? 0) <= 0
-                  ? tr("0 % de commission", "عمولة 0 %")
-                  : tr("Réduire ma commission", "خفض عمولتي")}
-              </span>
-            </span>
-            <ChevronRight className="size-4 shrink-0 text-[var(--d-muted)] rtl:rotate-180" />
-          </Link>
-        </GainsReleveView>
+        />
+        {/* Page 100 % revenus (règle « zéro doublon ») : le raccourci
+            Abonnement et le solde Coligo Pay vivent sur LEURS pages
+            (Compte → Abonnement · onglet Coligo Pay). */}
       </div>
     </div>
   );

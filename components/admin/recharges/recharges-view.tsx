@@ -6,6 +6,10 @@ import {
   type PendingTopup,
 } from "@/components/admin/recharges/recharges-manager";
 import { PaymentAccountsEditor } from "@/components/admin/payment-accounts-editor";
+import {
+  WithdrawalsManager,
+  type PendingWithdrawal,
+} from "@/components/admin/recharges/withdrawals-manager";
 import { getPaymentAccounts } from "@/app/admin/recharges/actions";
 
 // =============================================================================
@@ -33,7 +37,7 @@ export async function RechargesView() {
       }
     )(t);
 
-  const [flagRes, setRes, pendRes, partnersRes] = await Promise.all([
+  const [flagRes, setRes, pendRes, partnersRes, wdRes] = await Promise.all([
     sel("feature_flags").select("status").eq("key", "operator_gating"),
     sel("platform_settings")
       .select(
@@ -48,6 +52,12 @@ export async function RechargesView() {
         "id, display_name, owner_name, registre_commerce, address, phone, hours, lat, lng, status, owner_type"
       )
       .eq("is_partner", true),
+    // Demandes de RETRAIT Coligo Pay en attente (mig 0384).
+    sel("wallet_withdrawal_requests")
+      .select(
+        "id, wallet_id, method, amount_da, destination, destination_name, created_at"
+      )
+      .eq("status", "pending"),
   ]);
 
   const flag = (flagRes.data as { status: string }[] | null)?.[0];
@@ -172,11 +182,24 @@ export async function RechargesView() {
     .filter((m) => m.latitude != null && m.longitude != null)
     .map((m) => ({ id: m.id, name: m.name, address: m.address }));
 
+  const wdRaw =
+    (wdRes.data as
+      | {
+          id: string;
+          wallet_id: string;
+          method: string;
+          amount_da: number;
+          destination: string;
+          destination_name: string | null;
+          created_at: string;
+        }[]
+      | null) ?? [];
+
   // Libellé propriétaire des demandes en attente (nom si livreur/chauffeur/merchant).
-  const ownerLabel = await resolveOwnerLabels(
-    admin,
-    pendRaw.map((r) => r.wallet_id)
-  );
+  const ownerLabel = await resolveOwnerLabels(admin, [
+    ...pendRaw.map((r) => r.wallet_id),
+    ...wdRaw.map((r) => r.wallet_id),
+  ]);
   const pending: PendingTopup[] = pendRaw.map((r) => ({
     id: r.id,
     walletId: r.wallet_id,
@@ -186,6 +209,42 @@ export async function RechargesView() {
     proofUrl: r.proof_url,
     createdAt: r.created_at,
   }));
+
+  // Retraits : type de profil + solde courant (contexte de décision).
+  const withdrawals: PendingWithdrawal[] = [];
+  if (wdRaw.length > 0) {
+    const ids = [...new Set(wdRaw.map((r) => r.wallet_id))];
+    const [{ data: wOwners }, { data: wEntries }] = await Promise.all([
+      sel("operator_wallets").select("id, owner_type").in("id", ids),
+      sel("operator_wallet_entries")
+        .select("wallet_id, amount_da")
+        .in("wallet_id", ids),
+    ]);
+    const typeById = new Map(
+      ((wOwners as { id: string; owner_type: string }[] | null) ?? []).map(
+        (w) => [w.id, w.owner_type]
+      )
+    );
+    const balById = new Map<string, number>();
+    for (const e of (wEntries as
+      | { wallet_id: string; amount_da: number }[]
+      | null) ?? []) {
+      balById.set(e.wallet_id, (balById.get(e.wallet_id) ?? 0) + e.amount_da);
+    }
+    for (const r of wdRaw) {
+      withdrawals.push({
+        id: r.id,
+        ownerLabel: ownerLabel.get(r.wallet_id) ?? "Opérateur",
+        ownerType: typeById.get(r.wallet_id) ?? "driver",
+        method: r.method,
+        amountDa: r.amount_da,
+        destination: r.destination,
+        destinationName: r.destination_name,
+        balanceDa: balById.get(r.wallet_id) ?? 0,
+        createdAt: r.created_at,
+      });
+    }
+  }
 
   const paymentAccounts = await getPaymentAccounts();
 
@@ -207,6 +266,9 @@ export async function RechargesView() {
         partners={partners}
         merchants={promotableMerchants}
       />
+
+      {/* Retraits Coligo Pay en attente (chauffeur / livreur, mig 0384). */}
+      <WithdrawalsManager rows={withdrawals} />
 
       <section
         data-alert-focus="payment_accounts_missing"

@@ -5,10 +5,7 @@ import {
   EyeOff,
   HelpCircle,
   Landmark,
-  LineChart,
   MessageCircle,
-  ReceiptText,
-  Ticket,
   Wallet,
 } from "lucide-react";
 import {
@@ -112,44 +109,18 @@ export function PaySettings({ base }: { base: PayBase }) {
         </PartnerMenuGroup>
       </div>
 
-      {/* Raccourcis argent du rôle — chaque chose se gère là où elle vit */}
-      <PartnerMenuGroup title={t.shortcuts}>
-        {base === "" ? (
-          <>
-            <PartnerMenuRow
-              icon={<ReceiptText className="size-4" />}
-              label={t.finances}
-              href="/finances"
-            />
-            <PartnerMenuRow
-              icon={<LineChart className="size-4" />}
-              label={t.stats}
-              href="/stats"
-            />
-          </>
-        ) : (
-          <>
-            <PartnerMenuRow
-              icon={<LineChart className="size-4" />}
-              label={t.gains}
-              href={`${base}/gains`}
-            />
-            <PartnerMenuRow
-              icon={<Ticket className="size-4" />}
-              label={t.subscription}
-              href={`${base}/abonnement`}
-            />
-            {base === "/chauffeur" && (
-              <PartnerMenuRow
-                icon={<Landmark className="size-4" />}
-                label={t.ccpPayoutRow}
-                sublabel={t.ccpPayoutSub}
-                href="/chauffeur/compte"
-              />
-            )}
-          </>
-        )}
-      </PartnerMenuGroup>
+      {/* Un seul RÉGLAGE financier réel par rôle — aucun raccourci de
+          navigation dupliqué (les Gains, Stats, Abonnement ont leurs pages). */}
+      {base === "/chauffeur" && (
+        <PartnerMenuGroup>
+          <PartnerMenuRow
+            icon={<Landmark className="size-4" />}
+            label={t.ccpPayoutRow}
+            sublabel={t.ccpPayoutSub}
+            href="/chauffeur/compte"
+          />
+        </PartnerMenuGroup>
+      )}
 
       {/* Aide */}
       <PartnerMenuGroup title={t.help}>

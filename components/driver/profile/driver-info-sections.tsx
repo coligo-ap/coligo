@@ -258,248 +258,284 @@ export function DocsSection({ documents }: { documents: SelfDoc[] }) {
       }
       badge={headBadge}
     >
-      {documents.length === 0 && (
-        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
-          {tr("Aucune pièce envoyée.", "لم تُرسل أي وثيقة.")}
-        </p>
-      )}
-      {documents.map((d) => {
-        const b = docBadge(d.status, isAr);
-        return (
-          <div
-            key={d.id}
-            style={{
-              padding: "10px 0",
-              borderBottom: "1px solid var(--line)",
-              fontSize: 13.5,
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                gap: 8,
-              }}
-            >
-              <b>{lbl(DOC_TYPES, d.doc_type, isAr)}</b>
-              <span
-                style={{
-                  color: b.c,
-                  background: b.bg,
-                  fontWeight: 700,
-                  fontSize: 11,
-                  borderRadius: 20,
-                  padding: "2px 9px",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {b.t}
-              </span>
-            </div>
-            <div style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}>
-              {d.number ?? tr("N° —", "الرقم —")}
-              {d.expires_at ? ` · ${tr("exp.", "تنتهي")} ${d.expires_at}` : ""}
-            </div>
-            {d.status === "rejected" && d.review_note && (
-              <div style={{ color: "var(--red)", fontSize: 12, marginTop: 2 }}>
-                {tr("Motif :", "السبب:")} {d.review_note}
-              </div>
-            )}
-            {d.scanUrl && (
-              <a
-                href={d.scanUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                style={{
-                  color: "var(--violet)",
-                  fontSize: 12,
-                  fontWeight: 700,
-                }}
-              >
-                {tr("Revoir le document", "إعادة عرض الوثيقة")}
-              </a>
-            )}
-          </div>
-        );
-      })}
-
-      {adding ? (
-        <form
-          action={action}
-          style={{ display: "grid", gap: 10, marginTop: 12 }}
+      {allApproved ? (
+        /* ANTI-FRAUDE : dossier entièrement validé → AUCUNE liste ni envoi.
+           Un seul message ; la liste ne réapparaît que si l'équipe Coligo
+           rejette une pièce (demande de modification, motif affiché). */
+        <div
+          style={{
+            border: "1.5px solid var(--go)",
+            background: "var(--go-soft)",
+            borderRadius: 16,
+            padding: "24px 14px",
+            textAlign: "center",
+          }}
         >
-          <div>
-            <label style={lab}>{tr("Type *", "النوع *")}</label>
-            <select name="doc_type" required style={inp} defaultValue="cni">
-              {DOC_TYPES.map(([val, l, lar]) => (
-                <option key={val} value={val}>
-                  {isAr ? lar : l}
-                </option>
-              ))}
-            </select>
-          </div>
-          <Field name="number" label={tr("Numéro", "الرقم")} />
-          <Row>
-            <Field
-              name="issued_at"
-              label={tr("Émission", "تاريخ الإصدار")}
-              type="date"
-            />
-            <Field
-              name="expires_at"
-              label={tr("Expiration", "تاريخ الانتهاء")}
-              type="date"
-            />
-          </Row>
-
-          {/* Sélection + APERÇU avant envoi */}
-          <div>
-            <label style={lab}>
-              {tr(
-                "Scan / photo * (JPG, PNG, WEBP ou PDF)",
-                "مسح / صورة * (JPG, PNG, WEBP أو PDF)"
-              )}
-            </label>
-            <input
-              id="doc-file"
-              name="file"
-              type="file"
-              required
-              accept="image/jpeg,image/png,image/webp,application/pdf"
-              onChange={onPick}
-              style={{
-                display: preview ? "none" : "block",
-                ...inp,
-                height: "auto",
-                padding: 8,
-              }}
-            />
-            {preview && (
+          <p style={{ fontSize: 14.5, fontWeight: 800 }}>
+            {tr(
+              "Tous vos documents sont validés et à jour",
+              "جميع وثائقك مصادَق عليها ومحدَّثة"
+            )}
+          </p>
+          <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
+            {tr(
+              "Rien à faire de votre côté. Si une pièce doit être mise à jour, l'équipe Coligo vous enverra une demande de modification.",
+              "لا شيء مطلوب منك. إذا لزم تحديث وثيقة، سيرسل لك فريق Coligo طلب تعديل."
+            )}
+          </p>
+        </div>
+      ) : (
+        <>
+          {documents.length === 0 && (
+            <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 8 }}>
+              {tr("Aucune pièce envoyée.", "لم تُرسل أي وثيقة.")}
+            </p>
+          )}
+          {documents.map((d) => {
+            const b = docBadge(d.status, isAr);
+            return (
               <div
+                key={d.id}
                 style={{
-                  border: "1px solid var(--line)",
-                  borderRadius: 12,
-                  padding: 10,
-                  display: "flex",
-                  gap: 10,
-                  alignItems: "center",
+                  padding: "10px 0",
+                  borderBottom: "1px solid var(--line)",
+                  fontSize: 13.5,
                 }}
               >
-                {preview.isImage && preview.url ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={preview.url}
-                    alt={tr("Aperçu", "معاينة")}
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    gap: 8,
+                  }}
+                >
+                  <b>{lbl(DOC_TYPES, d.doc_type, isAr)}</b>
+                  <span
                     style={{
-                      width: 56,
-                      height: 56,
-                      objectFit: "cover",
-                      borderRadius: 8,
-                      flex: "none",
-                    }}
-                  />
-                ) : (
-                  <div
-                    style={{
-                      width: 56,
-                      height: 56,
-                      borderRadius: 8,
-                      background: "var(--soft)",
-                      display: "flex",
-                      alignItems: "center",
-                      justifyContent: "center",
-                      fontSize: 11,
+                      color: b.c,
+                      background: b.bg,
                       fontWeight: 700,
-                      color: "var(--muted)",
-                      flex: "none",
-                    }}
-                  >
-                    PDF
-                  </div>
-                )}
-                <div style={{ minWidth: 0, flex: 1 }}>
-                  <div
-                    style={{
-                      fontSize: 12.5,
-                      fontWeight: 600,
-                      overflow: "hidden",
-                      textOverflow: "ellipsis",
+                      fontSize: 11,
+                      borderRadius: 20,
+                      padding: "2px 9px",
                       whiteSpace: "nowrap",
                     }}
                   >
-                    {preview.name}
-                  </div>
-                  <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
-                    <label
-                      htmlFor="doc-file"
-                      style={{
-                        color: "var(--violet)",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        cursor: "pointer",
-                      }}
-                    >
-                      {tr("Remplacer", "استبدال")}
-                    </label>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        const el = document.getElementById(
-                          "doc-file"
-                        ) as HTMLInputElement | null;
-                        if (el) el.value = "";
-                        clearPreview();
-                      }}
-                      style={{
-                        color: "var(--red)",
-                        fontSize: 12,
-                        fontWeight: 700,
-                        background: "none",
-                        border: 0,
-                      }}
-                    >
-                      {tr("Retirer", "إزالة")}
-                    </button>
-                  </div>
+                    {b.t}
+                  </span>
                 </div>
+                <div
+                  style={{ color: "var(--muted)", fontSize: 12, marginTop: 2 }}
+                >
+                  {d.number ?? tr("N° —", "الرقم —")}
+                  {d.expires_at
+                    ? ` · ${tr("exp.", "تنتهي")} ${d.expires_at}`
+                    : ""}
+                </div>
+                {d.status === "rejected" && d.review_note && (
+                  <div
+                    style={{ color: "var(--red)", fontSize: 12, marginTop: 2 }}
+                  >
+                    {tr("Motif :", "السبب:")} {d.review_note}
+                  </div>
+                )}
+                {d.scanUrl && (
+                  <a
+                    href={d.scanUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      color: "var(--violet)",
+                      fontSize: 12,
+                      fontWeight: 700,
+                    }}
+                  >
+                    {tr("Revoir le document", "إعادة عرض الوثيقة")}
+                  </a>
+                )}
               </div>
-            )}
-          </div>
+            );
+          })}
 
-          <p style={{ fontSize: 11.5, color: "var(--muted)" }}>
-            {tr(
-              "Une fois envoyée, la pièce passe « en vérification » et ne peut plus être modifiée ni supprimée.",
-              "بمجرد الإرسال، تصبح الوثيقة «قيد التحقق» ولا يمكن تعديلها أو حذفها."
-            )}
-          </p>
-          <PartnerInlineError>{state.error}</PartnerInlineError>
-          <div style={{ display: "flex", gap: 8 }}>
-            <SubmitBtn
-              idle={tr("Envoyer", "إرسال")}
-              success={ok}
-              successLabel={tr("Envoyée", "أُرسلت")}
-            />
+          {adding ? (
+            <form
+              action={action}
+              style={{ display: "grid", gap: 10, marginTop: 12 }}
+            >
+              <div>
+                <label style={lab}>{tr("Type *", "النوع *")}</label>
+                <select name="doc_type" required style={inp} defaultValue="cni">
+                  {DOC_TYPES.map(([val, l, lar]) => (
+                    <option key={val} value={val}>
+                      {isAr ? lar : l}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <Field name="number" label={tr("Numéro", "الرقم")} />
+              <Row>
+                <Field
+                  name="issued_at"
+                  label={tr("Émission", "تاريخ الإصدار")}
+                  type="date"
+                />
+                <Field
+                  name="expires_at"
+                  label={tr("Expiration", "تاريخ الانتهاء")}
+                  type="date"
+                />
+              </Row>
+
+              {/* Sélection + APERÇU avant envoi */}
+              <div>
+                <label style={lab}>
+                  {tr(
+                    "Scan / photo * (JPG, PNG, WEBP ou PDF)",
+                    "مسح / صورة * (JPG, PNG, WEBP أو PDF)"
+                  )}
+                </label>
+                <input
+                  id="doc-file"
+                  name="file"
+                  type="file"
+                  required
+                  accept="image/jpeg,image/png,image/webp,application/pdf"
+                  onChange={onPick}
+                  style={{
+                    display: preview ? "none" : "block",
+                    ...inp,
+                    height: "auto",
+                    padding: 8,
+                  }}
+                />
+                {preview && (
+                  <div
+                    style={{
+                      border: "1px solid var(--line)",
+                      borderRadius: 12,
+                      padding: 10,
+                      display: "flex",
+                      gap: 10,
+                      alignItems: "center",
+                    }}
+                  >
+                    {preview.isImage && preview.url ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={preview.url}
+                        alt={tr("Aperçu", "معاينة")}
+                        style={{
+                          width: 56,
+                          height: 56,
+                          objectFit: "cover",
+                          borderRadius: 8,
+                          flex: "none",
+                        }}
+                      />
+                    ) : (
+                      <div
+                        style={{
+                          width: 56,
+                          height: 56,
+                          borderRadius: 8,
+                          background: "var(--soft)",
+                          display: "flex",
+                          alignItems: "center",
+                          justifyContent: "center",
+                          fontSize: 11,
+                          fontWeight: 700,
+                          color: "var(--muted)",
+                          flex: "none",
+                        }}
+                      >
+                        PDF
+                      </div>
+                    )}
+                    <div style={{ minWidth: 0, flex: 1 }}>
+                      <div
+                        style={{
+                          fontSize: 12.5,
+                          fontWeight: 600,
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          whiteSpace: "nowrap",
+                        }}
+                      >
+                        {preview.name}
+                      </div>
+                      <div style={{ display: "flex", gap: 12, marginTop: 4 }}>
+                        <label
+                          htmlFor="doc-file"
+                          style={{
+                            color: "var(--violet)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            cursor: "pointer",
+                          }}
+                        >
+                          {tr("Remplacer", "استبدال")}
+                        </label>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const el = document.getElementById(
+                              "doc-file"
+                            ) as HTMLInputElement | null;
+                            if (el) el.value = "";
+                            clearPreview();
+                          }}
+                          style={{
+                            color: "var(--red)",
+                            fontSize: 12,
+                            fontWeight: 700,
+                            background: "none",
+                            border: 0,
+                          }}
+                        >
+                          {tr("Retirer", "إزالة")}
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <p style={{ fontSize: 11.5, color: "var(--muted)" }}>
+                {tr(
+                  "Une fois envoyée, la pièce passe « en vérification » et ne peut plus être modifiée ni supprimée.",
+                  "بمجرد الإرسال، تصبح الوثيقة «قيد التحقق» ولا يمكن تعديلها أو حذفها."
+                )}
+              </p>
+              <PartnerInlineError>{state.error}</PartnerInlineError>
+              <div style={{ display: "flex", gap: 8 }}>
+                <SubmitBtn
+                  idle={tr("Envoyer", "إرسال")}
+                  success={ok}
+                  successLabel={tr("Envoyée", "أُرسلت")}
+                />
+                <button
+                  type="button"
+                  className="btnlink"
+                  onClick={() => {
+                    clearPreview();
+                    setAdding(false);
+                  }}
+                >
+                  {tr("Annuler", "إلغاء")}
+                </button>
+              </div>
+            </form>
+          ) : (
             <button
               type="button"
               className="btnlink"
-              onClick={() => {
-                clearPreview();
-                setAdding(false);
-              }}
+              style={{ textAlign: "left", marginTop: 10 }}
+              onClick={() => setAdding(true)}
             >
-              {tr("Annuler", "إلغاء")}
+              {tr("+ Envoyer une pièce", "+ إرسال وثيقة")}
             </button>
-          </div>
-        </form>
-      ) : (
-        <button
-          type="button"
-          className="btnlink"
-          style={{ textAlign: "left", marginTop: 10 }}
-          onClick={() => setAdding(true)}
-        >
-          {tr("+ Envoyer une pièce", "+ إرسال وثيقة")}
-        </button>
+          )}
+        </>
       )}
     </Section>
   );

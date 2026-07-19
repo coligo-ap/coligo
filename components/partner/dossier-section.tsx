@@ -77,32 +77,51 @@ export function DossierSection({ walletId }: { walletId: string }) {
   const latest = (kind: Kind): PartnerDoc | null =>
     docs.find((d) => d.kind === kind) ?? null;
 
+  // ANTI-FRAUDE : dossier entièrement validé → plus de liste ni d'upload,
+  // un seul message. La liste ne réapparaît que si l'équipe Coligo rejette
+  // une pièce (demande de modification, motif affiché).
+  const allApproved = REQUIRED.every(
+    (r) => latest(r.kind)?.status === "approved"
+  );
+
   return (
     <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
       <h2 className="text-foreground mb-1 text-sm font-bold">Mon dossier</h2>
-      <p className="text-muted mb-3 text-xs">
-        Ajoutez les pièces demandées. Coligo les vérifie avant d&apos;activer
-        votre point.
-      </p>
-
       {loading ? (
         <div className="text-muted flex items-center gap-2 py-3 text-sm">
           <Loader2 className="size-4 animate-spin" /> Chargement…
         </div>
-      ) : (
-        <div className="space-y-2.5">
-          {REQUIRED.map((r) => (
-            <DocRow
-              key={r.kind}
-              walletId={walletId}
-              kind={r.kind}
-              label={r.label}
-              icon={r.icon}
-              doc={latest(r.kind)}
-              onDone={refresh}
-            />
-          ))}
+      ) : allApproved ? (
+        <div className="border-success-200 bg-success-50 mt-2 rounded-[12px] border px-4 py-6 text-center">
+          <CheckCircle2 className="text-success-600 mx-auto mb-2 size-6" />
+          <p className="text-foreground text-sm font-bold">
+            Tous vos documents sont validés et à jour
+          </p>
+          <p className="text-muted mt-1 text-xs">
+            Rien à faire de votre côté. Si une pièce doit être mise à jour,
+            l&apos;équipe Coligo vous enverra une demande de modification.
+          </p>
         </div>
+      ) : (
+        <>
+          <p className="text-muted mb-3 text-xs">
+            Ajoutez les pièces demandées. Coligo les vérifie avant
+            d&apos;activer votre point.
+          </p>
+          <div className="space-y-2.5">
+            {REQUIRED.map((r) => (
+              <DocRow
+                key={r.kind}
+                walletId={walletId}
+                kind={r.kind}
+                label={r.label}
+                icon={r.icon}
+                doc={latest(r.kind)}
+                onDone={refresh}
+              />
+            ))}
+          </div>
+        </>
       )}
     </div>
   );

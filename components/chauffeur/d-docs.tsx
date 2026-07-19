@@ -193,6 +193,23 @@ export function DDocs({
 
   const selfie = docs.selfie;
 
+  // ── Dossier ENTIÈREMENT validé ? ──
+  // Anti-fraude : une pièce validée ne se remplace ni ne se supprime côté
+  // chauffeur. Et si TOUT le dossier est validé (véhicule + identité, sans
+  // refus en attente), on n'affiche plus la liste : un simple message
+  // « documents à jour ». Le seul chemin de modification redevient la
+  // « demande de modification » de l'équipe Coligo (rejet avec motif), qui
+  // ré-affiche la liste.
+  const identityOk = idv.verified || selfie?.status === "approved";
+  const vehicleDocsApproved = DOCS.every((d) => {
+    const info = docs[d.kind];
+    if (!info) return !d.required; // optionnel absent = OK
+    return info.status === "approved";
+  });
+  const allValidated = Boolean(
+    vehicleDocsApproved && identityOk && !rejectedReason
+  );
+
   /** Voie MANUELLE : le selfie en direct (caméra seule, aucun import possible).
    *  Passé en enfant de l'étape de vérification partagée — il ne s'affiche que
    *  si c'est bien le chemin retenu. */
@@ -228,28 +245,32 @@ export function DDocs({
         )}
       </div>
       {selfie && <StatusChip info={selfie} center />}
-      <div className="mt-2 flex gap-2">
-        <button
-          type="button"
-          onClick={() => setCameraOpen(true)}
-          className="drive-sora h-[46px] flex-1 rounded-[17px] bg-[var(--d-soft)] text-sm font-bold"
-        >
-          {selfie
-            ? tr("Reprendre la photo", "إعادة التقاط الصورة")
-            : tr("Ouvrir la caméra · capturer", "فتح الكاميرا · التقاط")}
-        </button>
-        {selfie && (
+      {/* ANTI-FRAUDE : selfie VALIDÉ = verrouillé (ni reprise ni suppression
+          côté chauffeur) — seule l'équipe Coligo peut demander une reprise. */}
+      {selfie?.status !== "approved" && (
+        <div className="mt-2 flex gap-2">
           <button
             type="button"
-            onClick={() => void remove("selfie")}
-            aria-label={tr("Supprimer le selfie", "حذف السيلفي")}
-            className="grid size-[46px] shrink-0 place-items-center rounded-[17px] border-[1.5px] border-[var(--d-line)]"
-            style={{ color: RED }}
+            onClick={() => setCameraOpen(true)}
+            className="drive-sora h-[46px] flex-1 rounded-[17px] bg-[var(--d-soft)] text-sm font-bold"
           >
-            <Trash2 className="size-4.5" />
+            {selfie
+              ? tr("Reprendre la photo", "إعادة التقاط الصورة")
+              : tr("Ouvrir la caméra · capturer", "فتح الكاميرا · التقاط")}
           </button>
-        )}
-      </div>
+          {selfie && (
+            <button
+              type="button"
+              onClick={() => void remove("selfie")}
+              aria-label={tr("Supprimer le selfie", "حذف السيلفي")}
+              className="grid size-[46px] shrink-0 place-items-center rounded-[17px] border-[1.5px] border-[var(--d-line)]"
+              style={{ color: RED }}
+            >
+              <Trash2 className="size-4.5" />
+            </button>
+          )}
+        </div>
+      )}
       <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
         {isAr ? (
           <>
@@ -294,59 +315,92 @@ export function DDocs({
             : `Dossier refusé : ${rejectedReason} — corrigez puis renvoyez votre dossier.`}
         </p>
       )}
-      {/* ÉTAPE IDENTITÉ — système partagé. Si la vérification automatique n'est
-          pas publiée pour les chauffeurs, le composant rend directement le
-          selfie en direct : l'écran d'avant, à l'identique. */}
-      <IdvVerifyStep
-        idv={idv}
-        method={method}
-        onMethod={setMethod}
-        saveMethod={setChauffeurKycMethod}
-      >
-        {selfieSection}
-      </IdvVerifyStep>
-
-      <p className="mt-4 mb-2 text-[13px] font-bold">
-        {tr("Documents du véhicule", "وثائق المركبة")}
-      </p>
-      <p className="mb-3 text-[12px] text-[var(--d-muted)]">
-        {tr(
-          "Photos nettes et lisibles, documents en cours de validité.",
-          "صور واضحة ومقروءة، ووثائق سارية الصلاحية."
-        )}
-      </p>
-
-      {DOCS.map((d) => (
-        <DocRow
-          key={d.kind}
-          doc={d}
-          isAr={isAr}
-          info={docs[d.kind] ?? null}
-          busy={busy === d.kind}
-          onFile={(f) => void upload(d.kind, f)}
-          onDelete={() => void remove(d.kind)}
-        />
-      ))}
-
-      {error && (
-        <p
-          className="mt-3 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
-          style={{ background: "rgba(229,72,77,.1)", color: RED }}
+      {allValidated ? (
+        /* Dossier complet et validé : AUCUNE liste, aucun bouton d'édition —
+           un seul message. Toute modification passe par l'équipe Coligo
+           (rejet avec motif), qui ré-affiche la liste. */
+        <div
+          className="mt-4 rounded-[18px] border-[1.5px] px-4 py-8 text-center"
+          style={{ borderColor: GO, background: "rgba(22,179,100,.08)" }}
         >
-          {error}
-        </p>
+          <span
+            className="mx-auto mb-2.5 grid size-12 place-items-center rounded-full"
+            style={{ background: "rgba(22,179,100,.14)", color: GO }}
+          >
+            <FileText className="size-5" />
+          </span>
+          <p className="drive-sora text-[15.5px] font-extrabold">
+            {tr(
+              "Tous vos documents sont validés et à jour",
+              "جميع وثائقك مصادَق عليها ومحدَّثة"
+            )}
+          </p>
+          <p className="mt-1 text-[12px] text-[var(--d-muted)]">
+            {tr(
+              "Rien à faire de votre côté. Si une pièce doit être mise à jour, l'équipe Coligo vous enverra une demande de modification.",
+              "لا شيء مطلوب منك. إذا لزم تحديث وثيقة، سيرسل لك فريق Coligo طلب تعديل."
+            )}
+          </p>
+        </div>
+      ) : (
+        <>
+          {/* ÉTAPE IDENTITÉ — système partagé. Si la vérification automatique
+              n'est pas publiée pour les chauffeurs, le composant rend
+              directement le selfie en direct : l'écran d'avant, à l'identique. */}
+          <IdvVerifyStep
+            idv={idv}
+            method={method}
+            onMethod={setMethod}
+            saveMethod={setChauffeurKycMethod}
+          >
+            {selfieSection}
+          </IdvVerifyStep>
+
+          <p className="mt-4 mb-2 text-[13px] font-bold">
+            {tr("Documents du véhicule", "وثائق المركبة")}
+          </p>
+          <p className="mb-3 text-[12px] text-[var(--d-muted)]">
+            {tr(
+              "Photos nettes et lisibles, documents en cours de validité.",
+              "صور واضحة ومقروءة، ووثائق سارية الصلاحية."
+            )}
+          </p>
+
+          {DOCS.map((d) => (
+            <DocRow
+              key={d.kind}
+              doc={d}
+              isAr={isAr}
+              info={docs[d.kind] ?? null}
+              busy={busy === d.kind}
+              onFile={(f) => void upload(d.kind, f)}
+              onDelete={() => void remove(d.kind)}
+            />
+          ))}
+
+          {error && (
+            <p
+              className="mt-3 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+              style={{ background: "rgba(229,72,77,.1)", color: RED }}
+            >
+              {error}
+            </p>
+          )}
+          {/* UN SEUL bouton : « Vérifier mon identité » (ou « Actualiser »
+              pendant l'examen) tant que la vérification bloque, « Envoyer mon
+              dossier » seulement une fois l'identité prouvée. */}
+          <div className="mt-4">
+            <IdvPrimaryButton idv={idv} method={method} busy={submitting}>
+              <PrimaryBtn onClick={() => void submit()} disabled={submitting}>
+                {submitting ? (
+                  <Loader2 className="size-5 animate-spin" />
+                ) : null}
+                {tr("Envoyer mon dossier", "إرسال ملفي")}
+              </PrimaryBtn>
+            </IdvPrimaryButton>
+          </div>
+        </>
       )}
-      {/* UN SEUL bouton : « Vérifier mon identité » (ou « Actualiser » pendant
-          l'examen) tant que la vérification bloque, « Envoyer mon dossier »
-          seulement une fois l'identité prouvée. */}
-      <div className="mt-4">
-        <IdvPrimaryButton idv={idv} method={method} busy={submitting}>
-          <PrimaryBtn onClick={() => void submit()} disabled={submitting}>
-            {submitting ? <Loader2 className="size-5 animate-spin" /> : null}
-            {tr("Envoyer mon dossier", "إرسال ملفي")}
-          </PrimaryBtn>
-        </IdvPrimaryButton>
-      </div>
 
       {cameraOpen && (
         <SelfieCamera
@@ -528,7 +582,10 @@ function DocRow({
         )}
       </div>
 
-      {/* Actions : ajouter / voir / remplacer / supprimer */}
+      {/* Actions : ajouter / voir / remplacer / supprimer.
+          ANTI-FRAUDE : une pièce VALIDÉE est verrouillée — consultation
+          seule, ni remplacement ni suppression. Elle ne redevient modifiable
+          que si l'équipe Coligo la rejette (demande de modification). */}
       <div className="mt-2 flex gap-1.5">
         {!info ? (
           <ActionBtn
@@ -538,6 +595,15 @@ function DocRow({
           >
             <Camera className="size-3.5" />{" "}
             {tr("Ajouter la photo", "إضافة الصورة")}
+          </ActionBtn>
+        ) : info.status === "approved" ? (
+          <ActionBtn
+            onClick={() =>
+              info.view_url && window.open(info.view_url, "_blank")
+            }
+            disabled={busy || !info.view_url}
+          >
+            <Eye className="size-3.5" /> {tr("Voir", "عرض")}
           </ActionBtn>
         ) : (
           <>
