@@ -24,6 +24,25 @@ export function isNativeApp(): boolean {
 }
 
 /**
+ * Ouvre l'URL dans le navigateur INTÉGRÉ (Custom Tabs / SFSafariViewController).
+ * ROBUSTE : si le plugin n'est pas lié dans ce binaire (ex. build iOS sans le
+ * plugin Browser) `Browser.open` rejette — on ne laisse JAMAIS l'utilisateur
+ * sans page de paiement : repli redirection classique. Retourne true si
+ * l'onglet intégré s'est ouvert (l'app reste montée), false si on a redirigé.
+ */
+async function openInAppBrowser(url: string): Promise<boolean> {
+  try {
+    const { Browser } = await import("@capacitor/browser");
+    await Browser.open({ url });
+    return true;
+  } catch {
+    // Plugin absent / erreur native → redirection (le paiement passe quand même).
+    window.location.href = url;
+    return false;
+  }
+}
+
+/**
  * Ouvre l'URL de paiement pour un flux « REDIRECT-ET-RETOUR » (checkout,
  * recharge portefeuille) :
  *   - natif  → navigateur intégré, l'app RESTE montée (`"inapp"` → poller ici) ;
@@ -32,9 +51,7 @@ export function isNativeApp(): boolean {
  */
 export async function openCheckout(url: string): Promise<"inapp" | "redirect"> {
   if (isNativeApp()) {
-    const { Browser } = await import("@capacitor/browser");
-    await Browser.open({ url });
-    return "inapp";
+    return (await openInAppBrowser(url)) ? "inapp" : "redirect";
   }
   window.location.href = url;
   return "redirect";
@@ -52,9 +69,7 @@ export async function openCheckoutKeepPage(
   url: string
 ): Promise<"inapp" | "newtab" | "redirect"> {
   if (isNativeApp()) {
-    const { Browser } = await import("@capacitor/browser");
-    await Browser.open({ url });
-    return "inapp";
+    return (await openInAppBrowser(url)) ? "inapp" : "redirect";
   }
   const win = window.open(url, "_blank", "noopener");
   if (win) return "newtab";

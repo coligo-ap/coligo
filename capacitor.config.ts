@@ -85,6 +85,13 @@ const config: CapacitorConfig = {
       // capacitor-swift-pm ≥ 8, compatible avec social-login (vérifié).
       "@capacitor-community/stripe",
       "@capacitor/app",
+      // Navigateur INTÉGRÉ pour le paiement (Chargily/Stripe DANS l'app,
+      // brief « paiement in-app ») — Package.swift exige capacitor-swift-pm
+      // ≥ 8, compatible avec la plage 8.x des autres (stripe, social-login,
+      // app-update). Sans lui, le code retombe sur la redirection (repli
+      // robuste dans lib/payments/open-checkout), mais on VEUT l'onglet
+      // intégré aussi sur iOS.
+      "@capacitor/browser",
       "@capacitor/geolocation",
       "@capacitor/preferences",
       "@capacitor/push-notifications",
