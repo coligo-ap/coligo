@@ -40,6 +40,8 @@ export async function updateIntlSettings(
   const email = user?.email ?? "admin";
 
   const enabled = formData.get("enabled") === "on";
+  const enabledDrive = formData.get("enabled_drive") === "on";
+  const enabledMarketplace = formData.get("enabled_marketplace") === "on";
   const paypal = formData.get("paypal_enabled") === "on";
   const rateMode = formData.get("rate_mode") === "manual" ? "manual" : "auto";
 
@@ -120,6 +122,8 @@ export async function updateIntlSettings(
   )
     .update({
       enabled,
+      enabled_drive: enabledDrive,
+      enabled_marketplace: enabledMarketplace,
       allowed_countries: countries,
       rate_mode: rateMode,
       manual_rate_da: rateMode === "manual" ? manualRate : null,
@@ -142,7 +146,8 @@ export async function updateIntlSettings(
   await auditIntl(
     admin,
     "intl_settings_update",
-    `${email} : enabled=${enabled}, pays=[${countries.join(",")}], taux=${rateMode}` +
+    `${email} : enabled=${enabled} (drive=${enabledDrive}, marketplace=${enabledMarketplace}), ` +
+      `pays=[${countries.join(",")}], taux=${rateMode}` +
       (rateMode === "manual"
         ? ` (${manualRate} DA/€)`
         : ` (parallèle − ${marginDa} DA, borné ${floorDa}–${ceilDa})`) +

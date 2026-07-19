@@ -32,6 +32,7 @@ export async function estimateIntlEur(totalDa: number): Promise<number | null> {
     const elig = await checkIntlEligibility({
       customerId: customer.id,
       totalDa: Math.round(totalDa),
+      domain: "marketplace",
       mode: "visibility",
     });
     return elig.ok ? elig.eur_cents : null;

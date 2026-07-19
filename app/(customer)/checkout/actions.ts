@@ -1605,6 +1605,7 @@ export async function createOrder(
         const elig = await checkIntlEligibility({
           customerId: customer.id,
           totalDa: totalWithDelivery,
+          domain: "marketplace",
           mode: "authoritative",
         });
         if (!elig.ok) {
@@ -1864,6 +1865,7 @@ export async function retryOnlineOrderPayment(
       const elig = await checkIntlEligibility({
         customerId: customer.id,
         totalDa: order.total_da,
+        domain: "marketplace",
         mode: "authoritative",
       });
       if (!elig.ok) {

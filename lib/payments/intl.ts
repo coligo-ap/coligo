@@ -25,8 +25,13 @@ import { stripeAnyKeyPresent } from "@/lib/payments/stripe";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
+export type IntlDomain = "drive" | "marketplace";
+
 export type IntlSettings = {
   enabled: boolean;
+  /** Sous-drapeaux par domaine (mig 0385) — le global `enabled` reste maître. */
+  enabled_drive: boolean;
+  enabled_marketplace: boolean;
   allowed_countries: string[];
   rate_mode: "auto" | "manual";
   manual_rate_da: number | null;
@@ -47,7 +52,8 @@ export type IntlSettings = {
 export type EffectiveRate = { rate_da: number; source: string };
 
 export type IntlRefusal =
-  | "off" // coupé (kill-switch, clés absentes, flag online)
+  | "off" // coupé (kill-switch global, clés absentes, flag online)
+  | "domain_off" // rail € coupé POUR CE domaine (drive / marketplace)
   | "country" // pays non autorisé
   | "rate" // aucun taux résolvable
   | "order_min"
@@ -113,6 +119,10 @@ export async function getIntlSettings(admin: Admin): Promise<IntlSettings> {
   const d = (data ?? {}) as Record<string, unknown>;
   return {
     enabled: d.enabled === true,
+    // Défaut TRUE (colonnes NOT NULL DEFAULT true) : un réglage absent n'a pas
+    // pour effet de couper un domaine par surprise.
+    enabled_drive: d.enabled_drive !== false,
+    enabled_marketplace: d.enabled_marketplace !== false,
     allowed_countries: Array.isArray(d.allowed_countries)
       ? (d.allowed_countries as string[])
       : [],
@@ -376,6 +386,9 @@ export async function auditIntl(
 export async function checkIntlEligibility(opts: {
   customerId: string;
   totalDa?: number;
+  /** Domaine appelant (mig 0385) : le rail € peut être coupé indépendamment
+   *  pour Drive ou le Marketplace. Absent = pas de gating par domaine. */
+  domain?: IntlDomain;
   /** 'visibility' (défaut si totalDa absent) = chemin chaud : pas de fetch
    *  réseau du taux, pas d'audit capacité. 'authoritative' = création de
    *  session : taux rafraîchi si périmé, capacité auditée. */
@@ -389,9 +402,15 @@ export async function checkIntlEligibility(opts: {
   // 1. Clés Stripe présentes ? (sans elles, rien n'est proposable)
   if (!stripeAnyKeyPresent()) return { ok: false, reason: "off" };
 
-  // 2. Réglages + kill-switch
+  // 2. Réglages + kill-switch GLOBAL, puis sous-drapeau du DOMAINE appelant.
   const settings = await getIntlSettings(admin);
   if (!settings.enabled) return { ok: false, reason: "off" };
+  if (opts.domain === "drive" && !settings.enabled_drive) {
+    return { ok: false, reason: "domain_off" };
+  }
+  if (opts.domain === "marketplace" && !settings.enabled_marketplace) {
+    return { ok: false, reason: "domain_off" };
+  }
 
   // 3. Pays (fail-closed si inconnu, '*' = monde entier)
   const country = await getRequestCountry();

@@ -1284,6 +1284,7 @@ export async function rideIntlAvailability(): Promise<boolean> {
     const { checkIntlEligibility } = await import("@/lib/payments/intl");
     const elig = await checkIntlEligibility({
       customerId: cust.id,
+      domain: "drive",
       mode: "visibility",
     });
     return elig.ok;
@@ -1347,6 +1348,7 @@ export async function createRideIntlPayment(rideId: string): Promise<
     const elig = await checkIntlEligibility({
       customerId: cust.id,
       totalDa: amount,
+      domain: "drive",
       mode: "authoritative",
     });
     if (!elig.ok) return { ok: false, error: `intl_${elig.reason}` };

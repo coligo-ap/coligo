@@ -299,6 +299,43 @@ export function IntlPaymentsManager({
               className="accent-primary-600 size-5"
             />
           </label>
+
+          {/* Activation PAR DOMAINE (mig 0385) — le kill-switch global reste
+              maître : un domaine n'est proposé que si « Paiements € activés »
+              ET son propre interrupteur sont ON. */}
+          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+            <span>
+              <span className="text-foreground block text-[13px] font-bold">
+                € sur Coligo Drive
+              </span>
+              <span className="text-muted block text-[11px] font-medium">
+                Carte internationale pour les courses Drive.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              name="enabled_drive"
+              defaultChecked={settings.enabled_drive}
+              className="accent-primary-600 size-5"
+            />
+          </label>
+
+          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+            <span>
+              <span className="text-foreground block text-[13px] font-bold">
+                € sur le Marketplace
+              </span>
+              <span className="text-muted block text-[11px] font-medium">
+                Carte internationale au checkout des commandes.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              name="enabled_marketplace"
+              defaultChecked={settings.enabled_marketplace}
+              className="accent-primary-600 size-5"
+            />
+          </label>
         </div>
 
         <div className="mt-4">

@@ -374,6 +374,7 @@ export async function fetchCheckoutContext(
         if (!customer) return { available: false, capacity_blocked: false };
         const elig = await checkIntlEligibility({
           customerId: customer.id,
+          domain: "marketplace",
           mode: "visibility",
         });
         if (elig.ok) return { available: true, capacity_blocked: false };
