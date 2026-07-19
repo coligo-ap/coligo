@@ -215,7 +215,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
     // cartes (bg-white → surface sombre) via globals.css — PriorityCard incluse.
     // Le padding bas est fourni par la PAGE (l'historique des abonnements est
     // rendu APRÈS cette liste).
-    <div className="drive-jakarta mx-auto max-w-[560px] space-y-3 px-4">
+    <div className="drive-jakarta mx-auto max-w-[560px] space-y-2.5 px-4">
       {/* Intro masquée quand la page fournit déjà le héro partagé (SubsHero). */}
       {!hideIntro && (
         <div>
@@ -444,11 +444,11 @@ function PlanCard({
         />
       </button>
       {open && (
-        <div className="space-y-3 p-4">
+        <div className="space-y-2.5 p-3.5">
           {subtitle && (
             <p className="text-sm text-[var(--d-muted)]">{subtitle}</p>
           )}
-          <ul className="space-y-2 text-sm">
+          <ul className="space-y-1.5 text-sm">
             {advantages.map((a, i) => (
               <li key={i} className="flex items-start gap-2">
                 <Check
