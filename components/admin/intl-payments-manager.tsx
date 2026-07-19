@@ -336,6 +336,24 @@ export function IntlPaymentsManager({
               className="accent-primary-600 size-5"
             />
           </label>
+
+          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+            <span>
+              <span className="text-foreground block text-[13px] font-bold">
+                € pour recharger Coligo Pay
+              </span>
+              <span className="text-muted block text-[11px] font-medium">
+                Carte internationale pour recharger le portefeuille
+                (partenaires). Montant borné par le plafond de recharge.
+              </span>
+            </span>
+            <input
+              type="checkbox"
+              name="enabled_wallet"
+              defaultChecked={settings.enabled_wallet}
+              className="accent-primary-600 size-5"
+            />
+          </label>
         </div>
 
         <div className="mt-4">

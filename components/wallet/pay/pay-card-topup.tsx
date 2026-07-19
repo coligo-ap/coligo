@@ -11,15 +11,22 @@ import {
 import {
   CheckCircle2,
   CreditCard,
+  Globe,
   Loader2,
   ShieldCheck,
   XCircle,
 } from "lucide-react";
 import {
   createOperatorTopupCheckout,
+  createOperatorTopupIntlPayment,
   getMyWalletEntries,
+  walletIntlAvailability,
   type MyWalletEntry,
 } from "@/app/wallet/recharge-actions";
+import {
+  IntlPaymentSheet,
+  type StripeIntentPayload,
+} from "@/components/customer/intl-payment-sheet";
 import {
   BRAND_GO,
   BRAND_RED,
@@ -55,7 +62,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
   const router = useRouter();
   const pathname = usePathname();
   const search = useSearchParams();
-  const { t, tr, dir } = usePayLang();
+  const { lang, t, tr, dir } = usePayLang();
   const { config, refresh } = usePayWallet({ withConfig: true });
 
   const [mode, setMode] = useState<Mode>("form");
@@ -64,6 +71,16 @@ export function PayCardTopup({ base }: { base: PayBase }) {
     if (mode === "confirmed") haptic("success");
     else if (mode === "failed") haptic("error");
   }, [mode]);
+  // Rail carte : CIB/Edahabia (DA, Chargily, défaut) ou carte internationale
+  // (€, Stripe — si le super-admin l'a activée, mig 0389).
+  const [rail, setRail] = useState<"dzd" | "eur">("dzd");
+  const [intlAvailable, setIntlAvailable] = useState(false);
+  const [intlIntent, setIntlIntent] = useState<StripeIntentPayload | null>(
+    null
+  );
+  useEffect(() => {
+    void walletIntlAvailability().then(setIntlAvailable);
+  }, []);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -153,9 +170,28 @@ export function PayCardTopup({ base }: { base: PayBase }) {
     setBusy(true);
     setErr(null);
     try {
-      // NATIF : retour Chargily sur la page publique minimale (l'onglet
-      // intégré n'a pas la session app) — le résultat s'affiche ICI, dans
-      // l'app, via le polling. WEB : retour classique sur cette page.
+      // Rail INTERNATIONAL (€) : feuille de paiement Stripe EMBARQUÉE ; le
+      // webhook crédite le portefeuille, on polle la confirmation ensuite.
+      if (rail === "eur") {
+        const res = await createOperatorTopupIntlPayment(amt);
+        if (!res.ok) {
+          setErr(
+            res.error?.startsWith("intl_")
+              ? tr.payUnavailable
+              : (res.error ?? tr.payUnavailable)
+          );
+          return;
+        }
+        setIntlIntent({
+          client_secret: res.client_secret,
+          publishable_key: res.publishable_key,
+          eur_cents: res.eur_cents,
+          total_da: res.total_da,
+        });
+        return;
+      }
+      // Rail CIB/Edahabia — Chargily. NATIF : retour sur la page publique
+      // minimale (l'onglet intégré n'a pas la session app). WEB : retour ici.
       const res = await createOperatorTopupCheckout(
         amt,
         isNativeApp() ? "/paiement/retour" : payHref(base, "/carte")
@@ -275,6 +311,54 @@ export function PayCardTopup({ base }: { base: PayBase }) {
       />
 
       <PayCard className="p-3.5">
+        {/* Rail carte sur UNE ligne — CIB/Edahabia (défaut) + internationale
+            (€), affiché seulement si le super-admin a activé la carte € pour la
+            recharge du portefeuille (mig 0389). */}
+        {intlAvailable && (
+          <div className="mb-3 flex gap-2">
+            {(
+              [
+                ["dzd", CreditCard, tr.mCard, tr.mCardDelay],
+                [
+                  "eur",
+                  Globe,
+                  lang === "ar" ? "دولية (€)" : "Internationale (€)",
+                  "Visa · Mastercard",
+                ],
+              ] as const
+            ).map(([r, Icon, label, sub]) => {
+              const on = rail === r;
+              return (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => setRail(r)}
+                  className="flex-1 rounded-[12px] border-[1.5px] px-2.5 py-2 text-start"
+                  style={
+                    on
+                      ? {
+                          borderColor: "var(--d-violet)",
+                          background: "var(--d-accent)",
+                          color: "var(--d-violet)",
+                        }
+                      : {
+                          borderColor: "var(--d-line)",
+                          color: "var(--d-muted)",
+                        }
+                  }
+                >
+                  <span className="flex items-center gap-1.5">
+                    <Icon className="size-3.5 shrink-0" />
+                    <b className="text-[12px]">{label}</b>
+                  </span>
+                  <span className="mt-0.5 block text-[10px] font-semibold text-[var(--d-muted)]">
+                    {sub}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        )}
         <p className="mb-2 text-[12.5px] font-bold text-[var(--d-muted)]">
           {tr.amountLabel}
         </p>
@@ -320,6 +404,8 @@ export function PayCardTopup({ base }: { base: PayBase }) {
           >
             {busy ? (
               <Loader2 className="size-4 animate-spin" />
+            ) : rail === "eur" ? (
+              <Globe className="size-4" />
             ) : (
               <CreditCard className="size-4" />
             )}
@@ -340,6 +426,21 @@ export function PayCardTopup({ base }: { base: PayBase }) {
         />
         {tr.cardNote}
       </p>
+
+      {/* Rail € : feuille de paiement Stripe embarquée. Succès → le webhook
+          crédite le portefeuille ; on polle la confirmation puis écran confirmé. */}
+      {intlIntent && (
+        <IntlPaymentSheet
+          intent={intlIntent}
+          onSuccess={() => {
+            setIntlIntent(null);
+            invalidatePayCache();
+            void refresh();
+            startConfirmationPolling(Date.now() - 90_000);
+          }}
+          onClose={() => setIntlIntent(null)}
+        />
+      )}
     </PayScreen>
   );
 }

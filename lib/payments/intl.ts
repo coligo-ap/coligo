@@ -25,13 +25,14 @@ import { stripeAnyKeyPresent } from "@/lib/payments/stripe";
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
 // ─────────────────────────────────────────────────────────────────────────────
-export type IntlDomain = "drive" | "marketplace";
+export type IntlDomain = "drive" | "marketplace" | "wallet";
 
 export type IntlSettings = {
   enabled: boolean;
-  /** Sous-drapeaux par domaine (mig 0385) — le global `enabled` reste maître. */
+  /** Sous-drapeaux par domaine (mig 0385/0389) — le global `enabled` maître. */
   enabled_drive: boolean;
   enabled_marketplace: boolean;
+  enabled_wallet: boolean;
   allowed_countries: string[];
   rate_mode: "auto" | "manual";
   manual_rate_da: number | null;
@@ -123,6 +124,8 @@ export async function getIntlSettings(admin: Admin): Promise<IntlSettings> {
     // pour effet de couper un domaine par surprise.
     enabled_drive: d.enabled_drive !== false,
     enabled_marketplace: d.enabled_marketplace !== false,
+    // Nouveauté OFF par défaut (colonne DEFAULT false).
+    enabled_wallet: d.enabled_wallet === true,
     allowed_countries: Array.isArray(d.allowed_countries)
       ? (d.allowed_countries as string[])
       : [],
@@ -505,5 +508,64 @@ export async function checkIntlEligibility(opts: {
     rate,
     eur_cents: eurCents,
     paypal_enabled: settings.paypal_enabled,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Éligibilité RECHARGE PORTEFEUILLE (Coligo Pay) par carte internationale €.
+// Centrée sur le PARTENAIRE (pas un client) : pas de plafonds par-client/
+// plateforme (anti-fraude diaspora), seulement clés + kill-switch global +
+// `enabled_wallet` + pays + taux + borne montant (operator_topup_max_da, DA).
+// `totalDa` absent = simple visibilité (pas de fetch réseau du taux).
+// ─────────────────────────────────────────────────────────────────────────────
+export async function checkWalletIntlEligibility(opts: {
+  totalDa?: number;
+  mode?: "visibility" | "authoritative";
+}): Promise<IntlEligibility> {
+  const admin = createAdminClient();
+  const authoritative =
+    opts.mode === "authoritative" ||
+    (opts.mode == null && opts.totalDa != null);
+
+  if (!stripeAnyKeyPresent()) return { ok: false, reason: "off" };
+  const settings = await getIntlSettings(admin);
+  if (!settings.enabled) return { ok: false, reason: "off" };
+  if (!settings.enabled_wallet) return { ok: false, reason: "domain_off" };
+
+  const country = await getRequestCountry();
+  const allowAll = settings.allowed_countries.includes("*");
+  if (
+    !allowAll &&
+    (!country || !settings.allowed_countries.includes(country))
+  ) {
+    return { ok: false, reason: "country" };
+  }
+
+  const rate = await resolveEffectiveRate(admin, settings, {
+    networkFetch: authoritative,
+  });
+  if (!rate) return { ok: false, reason: "rate" };
+
+  if (opts.totalDa == null) {
+    return { ok: true, rate, eur_cents: null, paypal_enabled: false };
+  }
+
+  // Borne montant : min 100 DA, max = plafond de recharge portefeuille (admin).
+  const { data: ps } = await tbl(admin, "platform_settings")
+    .select("operator_topup_max_da")
+    .eq("id", true)
+    .maybeSingle();
+  const maxDa = Number(
+    (ps as { operator_topup_max_da?: number } | null)?.operator_topup_max_da ??
+      100000
+  );
+  if (opts.totalDa < 100) return { ok: false, reason: "order_min" };
+  if (opts.totalDa > maxDa) return { ok: false, reason: "order_max" };
+
+  return {
+    ok: true,
+    rate,
+    eur_cents: computeEurCents(opts.totalDa, rate.rate_da),
+    paypal_enabled: false,
   };
 }

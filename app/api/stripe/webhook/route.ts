@@ -274,6 +274,80 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // ── Recharge portefeuille Coligo Pay par carte € (type "op_topup_intl",
+    // mig 0389) : crédit via credit_operator_topup_chargily (idempotent sur
+    // l'id du paiement).
+    if (pi.metadata?.type === "op_topup_intl") {
+      const walletId =
+        typeof pi.metadata.wallet_id === "string"
+          ? pi.metadata.wallet_id
+          : null;
+      const { data: wSess } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          select: (cols: string) => {
+            eq: (
+              c: string,
+              v: unknown
+            ) => {
+              maybeSingle: () => Promise<{
+                data: {
+                  id: string;
+                  operator_wallet_id: string | null;
+                  eur_cents: number;
+                  total_da: number;
+                } | null;
+              }>;
+            };
+          };
+        }
+      )
+        .select("id, operator_wallet_id, eur_cents, total_da")
+        .eq("stripe_payment_intent", pi.id)
+        .maybeSingle();
+      if (!wSess || !walletId || wSess.operator_wallet_id !== walletId) {
+        await auditIntl(
+          admin,
+          "intl_session_mismatch",
+          `payment_intent.succeeded (op_topup_intl) intent inconnu ou croisé (${pi.id}).`
+        );
+        await recordEvent(null);
+        return NextResponse.json({ ok: true, unknown_intent: true });
+      }
+      if (pi.currency !== "eur" || pi.amount !== wSess.eur_cents) {
+        await auditIntl(
+          admin,
+          "intl_amount_mismatch",
+          `Intent op_topup_intl ${pi.id} : payé ${pi.amount} ≠ ${wSess.eur_cents} c€.`,
+          wSess.id
+        );
+        await recordEvent(wSess.id);
+        return NextResponse.json({ ok: false, amount_mismatch: true });
+      }
+      await sessions
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { error } = await rpc("credit_operator_topup_chargily", {
+        p_wallet_id: walletId,
+        p_amount_da: wSess.total_da,
+        p_checkout_id: pi.id,
+      });
+      if (error) {
+        console.error("[stripe/webhook] op_topup_intl credit failed:", error);
+        await recordEvent(wSess.id);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 500 }
+        );
+      }
+      await recordEvent(wSess.id);
+      return NextResponse.json({ ok: true });
+    }
+
     const orderId =
       typeof pi.metadata?.order_id === "string" ? pi.metadata.order_id : null;
 
@@ -520,6 +594,16 @@ export async function POST(req: NextRequest) {
           console.error("[stripe/webhook] ride_offer release:", error.message);
       }
       await recordEvent(offSess?.id ?? null);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Recharge portefeuille € échouée/annulée → session expirée, aucun crédit.
+    if (pi.metadata?.type === "op_topup_intl") {
+      await sessions
+        .update({ status: "expired" })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      await recordEvent(null);
       return NextResponse.json({ ok: true });
     }
 

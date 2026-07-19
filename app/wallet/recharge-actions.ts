@@ -161,6 +161,99 @@ export async function createOperatorTopupCheckout(
   }
 }
 
+/* ───────── Recharge portefeuille par CARTE INTERNATIONALE € (Stripe) ─────────
+   Nouveau moyen, piloté super-admin (enabled_wallet, mig 0389). Le webhook
+   payment_intent.succeeded (type "op_topup_intl") crédite le portefeuille via
+   credit_operator_topup_chargily (idempotent sur l'id du paiement). */
+
+/** L'option « Carte internationale (€) » est-elle proposable pour recharger le
+ *  portefeuille ? (clés + kill-switch + enabled_wallet + pays — visibilité). */
+export async function walletIntlAvailability(): Promise<boolean> {
+  try {
+    const { checkWalletIntlEligibility } = await import("@/lib/payments/intl");
+    const elig = await checkWalletIntlEligibility({ mode: "visibility" });
+    return elig.ok;
+  } catch {
+    return false;
+  }
+}
+
+export type WalletIntlPayment =
+  | {
+      ok: true;
+      client_secret: string;
+      publishable_key: string;
+      eur_cents: number;
+      total_da: number;
+    }
+  | { ok: false; error: string };
+
+/** Crée un PaymentIntent Stripe pour recharger le portefeuille (feuille €). */
+export async function createOperatorTopupIntlPayment(
+  amountDa: number
+): Promise<WalletIntlPayment> {
+  if (!Number.isFinite(amountDa) || amountDa < 100)
+    return { ok: false, error: "Montant minimum : 100 DA." };
+  const supabase = await createClient();
+  const { data } = await supabase.rpc("my_operator_wallet_state");
+  const wallet = Array.isArray(data) ? data[0] : null;
+  if (!wallet) return { ok: false, error: "Aucun portefeuille." };
+
+  try {
+    const [{ checkWalletIntlEligibility, getRequestCountry }, stripeMod] =
+      await Promise.all([
+        import("@/lib/payments/intl"),
+        import("@/lib/payments/stripe"),
+      ]);
+    const elig = await checkWalletIntlEligibility({
+      totalDa: Math.round(amountDa),
+      mode: "authoritative",
+    });
+    if (!elig.ok) return { ok: false, error: `intl_${elig.reason}` };
+    const publishableKey = await stripeMod.getPublishableKey();
+    if (!publishableKey) return { ok: false, error: "intl_off" };
+
+    const intent = await stripeMod.createIntlPaymentIntent({
+      orderId: wallet.wallet_id,
+      eurCents: elig.eur_cents!,
+      description: "Recharge portefeuille Coligo",
+      metadata: { type: "op_topup_intl", wallet_id: wallet.wallet_id },
+    });
+
+    const { createAdminClient } = await import("@/lib/supabase/admin");
+    const admin = createAdminClient();
+    const { error: sessErr } = await (
+      admin.from("intl_payment_sessions" as never) as unknown as {
+        insert: (row: Record<string, unknown>) => Promise<{
+          error: { message: string } | null;
+        }>;
+      }
+    ).insert({
+      operator_wallet_id: wallet.wallet_id,
+      stripe_payment_intent: intent.id,
+      eur_cents: elig.eur_cents!,
+      total_da: Math.round(amountDa),
+      rate_da: elig.rate.rate_da,
+      rate_source: elig.rate.source,
+      ip_country: await getRequestCountry(),
+    });
+    if (sessErr) return { ok: false, error: "intl_session" };
+
+    return {
+      ok: true,
+      client_secret: intent.clientSecret,
+      publishable_key: publishableKey,
+      eur_cents: elig.eur_cents!,
+      total_da: Math.round(amountDa),
+    };
+  } catch (err) {
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "stripe_error",
+    };
+  }
+}
+
 /** Crée une demande de recharge manuelle (preuve déjà téléversée → chemin). */
 export async function requestOperatorManualTopup(input: {
   method: "ccp" | "virement";
