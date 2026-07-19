@@ -7,6 +7,7 @@ import { Check, ChevronDown, Crown, Loader2, Sparkles, X } from "lucide-react";
 import { VIOLET } from "@/components/customer/drive/drive-modals";
 import { createClient } from "@/lib/supabase/client";
 import { openCheckoutKeepPage } from "@/lib/payments/open-checkout";
+import { haptic } from "@/lib/native/haptics";
 import { PriorityCard } from "@/components/partner/priority-card";
 import {
   SubscribeSheet,
@@ -168,6 +169,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
       return;
     }
     setStep("success");
+    haptic("success");
     load();
   };
 

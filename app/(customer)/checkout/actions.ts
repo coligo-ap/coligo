@@ -228,6 +228,24 @@ function platformPromoErrorMessage(reason: string): string {
   }
 }
 
+/**
+ * La commande est-elle PAYÉE (preuve = webhook → payment_status='paid') ?
+ * Sondée par l'overlay de résultat natif du checkout — on ne croit jamais la
+ * redirection, seulement le webhook. Scopée au client connecté (RLS).
+ */
+export async function isOrderPaid(orderId: string): Promise<boolean> {
+  if (!orderId) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("orders")
+    .select("payment_status")
+    .eq("id", orderId)
+    .maybeSingle();
+  return (
+    (data as { payment_status?: string } | null)?.payment_status === "paid"
+  );
+}
+
 export async function createOrder(
   input: CreateOrderInput
 ): Promise<CreateOrderResult> {

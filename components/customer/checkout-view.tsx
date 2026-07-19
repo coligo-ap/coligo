@@ -50,9 +50,15 @@ import {
 } from "@/app/(customer)/checkout/context";
 import {
   createOrder,
+  isOrderPaid,
   issueDeliveryQuote,
   previewPromoCode,
 } from "@/app/(customer)/checkout/actions";
+import { useInappPayment } from "@/lib/payments/use-inapp-payment";
+import {
+  PaymentResultOverlay,
+  type PaymentResultState,
+} from "@/components/payments/payment-result-overlay";
 import { trackBeginCheckout } from "@/lib/analytics/ecommerce";
 import { getDeviceId } from "@/lib/customer/device-id";
 import {
@@ -137,6 +143,11 @@ export function CheckoutView({
   const [intlIntent, setIntlIntent] = useState<
     (StripeIntentPayload & { order_id: string }) | null
   >(null);
+  // Paiement Chargily DANS l'app (natif) + overlay de résultat premium
+  // (traitement → réussi / échoué / annulé / expiré). L'order id payé sert à
+  // router vers le suivi de commande.
+  const paidOrderRef = useRef<string | null>(null);
+  const pay = useInappPayment();
   // Points de pagination du carrousel paiement (affichés seulement si les
   // cartes débordent réellement de l'écran).
   const payScrollRef = useRef<HTMLDivElement>(null);
@@ -562,15 +573,16 @@ export function CheckoutView({
         return;
       }
       if (payment === "online" && res.checkout_url) {
-        setIsRedirecting(true);
-        // APK : navigateur intégré (l'app reste montée) → on va suivre la
-        // commande, qui bascule « payée » via le webhook + rafraîchissement au
-        // retour de focus. Web : redirection classique (retour via successUrl).
-        const opened = await openCheckout(res.checkout_url);
-        if (opened === "inapp") {
-          clearCart();
-          router.push(`/commandes/${res.order_id}`);
-        }
+        // APK : navigateur intégré + overlay de résultat (l'app reste montée,
+        // on sonde le webhook). Web : redirection classique (retour successUrl).
+        const orderId = res.order_id;
+        const url = res.checkout_url;
+        paidOrderRef.current = orderId;
+        const opened = await pay.start(
+          async () => url,
+          async () => isOrderPaid(orderId)
+        );
+        if (opened === "redirect") setIsRedirecting(true);
         return;
       }
       setIsRedirecting(true);
@@ -1570,6 +1582,64 @@ export function CheckoutView({
           }}
         />
       )}
+
+      {/* Overlay de résultat NATIF (Chargily dans l'app). Succès → page de
+          confirmation ; échec/annulation → suivi de commande (réessai possible). */}
+      {pay.state && (
+        <PaymentResultOverlay
+          state={pay.state}
+          title={t(resKey(pay.state).title)}
+          sub={
+            pay.state === "processing" ? undefined : t(resKey(pay.state).sub)
+          }
+          primaryLabel={
+            pay.state === "success" ? t("resViewOrder") : t("resRetry")
+          }
+          onPrimary={() => {
+            const oid = paidOrderRef.current;
+            const success = pay.state === "success";
+            pay.reset();
+            if (success) {
+              setIsRedirecting(true);
+              router.push(`/checkout/success?order_id=${oid}`);
+            } else if (oid) {
+              setIsRedirecting(true);
+              router.push(`/commandes/${oid}`);
+            }
+          }}
+          secondaryLabel={
+            pay.state !== "success" ? t("resViewOrder") : undefined
+          }
+          onSecondary={
+            pay.state !== "success"
+              ? () => {
+                  const oid = paidOrderRef.current;
+                  pay.reset();
+                  if (oid) {
+                    setIsRedirecting(true);
+                    router.push(`/commandes/${oid}`);
+                  }
+                }
+              : undefined
+          }
+        />
+      )}
     </div>
   );
+}
+
+/** Clés i18n (namespace checkout) du texte de résultat selon l'état. */
+function resKey(s: PaymentResultState): { title: string; sub: string } {
+  switch (s) {
+    case "processing":
+      return { title: "resProcessing", sub: "resProcessing" };
+    case "success":
+      return { title: "resSuccess", sub: "resSuccessSub" };
+    case "failed":
+      return { title: "resFailed", sub: "resFailedSub" };
+    case "cancelled":
+      return { title: "resCancelled", sub: "resCancelledSub" };
+    case "expired":
+      return { title: "resExpired", sub: "resExpiredSub" };
+  }
 }

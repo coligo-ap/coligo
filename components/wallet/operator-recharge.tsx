@@ -16,6 +16,7 @@ import {
 } from "@/app/wallet/recharge-actions";
 import { RECHARGE_STYLE } from "@/components/wallet/operator-recharge.style";
 import { openCheckout } from "@/lib/payments/open-checkout";
+import { haptic } from "@/lib/native/haptics";
 import {
   isSupportConfigured,
   openSupportChat,
@@ -92,6 +93,11 @@ export function OperatorRecharge({
   const [topupReturn, setTopupReturn] = useState<
     "checking" | "confirmed" | "failed" | null
   >(null);
+  // Retour haptique à l'entrée d'un état terminal (recharge confirmée / échouée).
+  useEffect(() => {
+    if (topupReturn === "confirmed") haptic("success");
+    else if (topupReturn === "failed") haptic("error");
+  }, [topupReturn]);
 
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);

@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { openCheckoutKeepPage } from "@/lib/payments/open-checkout";
+import { haptic } from "@/lib/native/haptics";
 import { subscribePriorityCard } from "@/components/partner/priority-actions";
 import {
   SubscribeSheet,
@@ -149,6 +150,7 @@ export function PriorityCard() {
         clearInterval(pollRef.current);
         setPolling(false);
         setMsg(null);
+        haptic("success");
       } else if (tries >= 15 && pollRef.current) {
         clearInterval(pollRef.current);
         setPolling(false);
