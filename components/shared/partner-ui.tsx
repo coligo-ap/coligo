@@ -261,9 +261,9 @@ export function PartnerMenuGroup({
   children: React.ReactNode;
 }) {
   return (
-    <div className="mb-3">
+    <div className="mb-2.5">
       {title != null && (
-        <p className="mb-1.5 px-1 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+        <p className="mb-1 px-1 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
           {title}
         </p>
       )}
@@ -337,7 +337,7 @@ export function PartnerMenuRow({
     </>
   );
   const cls =
-    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3.5 text-start text-[13.5px] font-semibold last:border-b-0";
+    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3 text-start text-[13.5px] font-semibold last:border-b-0";
   if (href) {
     return (
       <Link href={href} className={cls} onClick={onClick}>

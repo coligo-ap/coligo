@@ -95,14 +95,14 @@ export function CompteView({
   return (
     <>
       <h1
-        className="mb-3.5 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+        className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
         style={{ fontFamily: SORA }}
       >
         {tr("Compte", "الحساب")}
       </h1>
 
       {/* Profil (parité d-compte : avatar + nom + note · courses · depuis) */}
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-2.5 flex items-center gap-3">
         <span
           className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-full text-[21px] font-extrabold text-white"
           style={{
@@ -144,7 +144,7 @@ export function CompteView({
       </div>
 
       {/* Chips de statut */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="mb-2.5 flex flex-wrap gap-1.5">
         {data.verified ? (
           <PartnerStatusChip tone="ok" icon={<BadgeCheck className="size-3" />}>
             {tr("Compte vérifié", "حساب موثّق")}
@@ -332,7 +332,8 @@ export function CompteView({
         }}
       />
 
-      {/* Application : une ligne discrète (le détail vit sur /driver/telecharger). */}
+      {/* Application : une ligne discrète (le détail vit sur /driver/telecharger)
+          + bouton d'installation PWA. */}
       <div className="mt-3">
         <PartnerMenuGroup>
           <PartnerMenuRow
@@ -342,8 +343,6 @@ export function CompteView({
             href="/driver/telecharger"
           />
         </PartnerMenuGroup>
-      </div>
-      <div className="mt-3">
         <InstallAppButton className="border-[var(--d-line)] bg-[var(--d-soft)] text-[var(--d-ink)] hover:bg-[var(--d-surface)]" />
       </div>
     </>

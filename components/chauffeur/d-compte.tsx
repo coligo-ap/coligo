@@ -1,7 +1,6 @@
 ﻿"use client";
 
 import { useEffect, useState, useTransition } from "react";
-import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
 import { setLocale } from "@/i18n/actions";
@@ -9,7 +8,6 @@ import { LocaleFlag } from "@/components/i18n/locale-flag";
 import {
   BadgeCheck,
   Car,
-  ChevronRight,
   Clock,
   CreditCard,
   FileCheck,
@@ -179,7 +177,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
 
   return (
     <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
-      <h1 className="drive-sora mb-3.5 text-[21px] font-extrabold tracking-[-0.5px]">
+      <h1 className="drive-sora mb-3 text-[21px] font-extrabold tracking-[-0.5px]">
         {tr("Compte", "الحساب")}
       </h1>
 
@@ -187,7 +185,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       <IdvCalloutClient profile="chauffeur" />
 
       {/* Profil — l'avatar porte l'anneau de couleur du badge (toujours visible). */}
-      <div className="mb-3 flex items-center gap-3">
+      <div className="mb-2.5 flex items-center gap-3">
         <span
           className="inline-block shrink-0 rounded-full p-[2.5px]"
           style={{ background: badge.gradient }}
@@ -228,7 +226,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
       </div>
 
       {/* Statuts (remontés en haut) : vérification + dossier */}
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div className="mb-2.5 flex flex-wrap gap-1.5">
         {gate.isVerified ? (
           <PartnerStatusChip tone="ok" icon={<BadgeCheck className="size-3" />}>
             {tr("Compte vérifié", "حساب موثَّق")}
@@ -356,29 +354,17 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         }}
       />
 
-      {/* Télécharger l'app Android « Coligo Drive » */}
-      <Link
-        href="/chauffeur/telecharger"
-        className="mt-4 flex items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] p-4 text-[var(--d-ink)] transition-colors hover:bg-[var(--d-surface)]"
-      >
-        <span className="grid size-9 shrink-0 place-items-center rounded-full bg-[var(--d-surface)]">
-          <Smartphone className="size-5" style={{ color: VIOLET }} />
-        </span>
-        <span className="min-w-0 flex-1">
-          <span className="block text-sm font-semibold">
-            {tr("Télécharger l’application Android", "تحميل تطبيق أندرويد")}
-          </span>
-          <span className="block text-xs opacity-70">
-            {tr(
-              "Notifications fiables et plein écran.",
-              "إشعارات موثوقة وشاشة كاملة."
-            )}
-          </span>
-        </span>
-        <ChevronRight className="size-5 shrink-0 opacity-50 rtl:rotate-180" />
-      </Link>
-
-      <div className="mt-4">
+      {/* Application : une ligne discrète (le détail vit sur
+          /chauffeur/telecharger) + bouton d'installation PWA. */}
+      <div className="mt-3">
+        <PartnerMenuGroup>
+          <PartnerMenuRow
+            icon={<Smartphone className="size-4" />}
+            label={tr("Application Android", "تطبيق أندرويد")}
+            value={tr("Notifications fiables", "إشعارات موثوقة")}
+            href="/chauffeur/telecharger"
+          />
+        </PartnerMenuGroup>
         <InstallAppButton className="border-[var(--d-line)] bg-[var(--d-soft)] text-[var(--d-ink)] hover:bg-[var(--d-surface)]" />
       </div>
 
