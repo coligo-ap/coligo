@@ -1093,7 +1093,10 @@
       "cardDzd": "CIB / EDAHABIA",
       "cardDzdSub": "بالدينار (دج)",
       "cardEur": "دولية (€، $، £…)",
-      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay"
+      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay",
+      "cardChange": "تغيير",
+      "cardChooseTitle": "اختر البطاقة",
+      "cardChooseSub": "CIB / الذهبية افتراضيًا. لديك بطاقة أجنبية؟ اختر الخيار الدولي."
     },
     "boost": {
       "title": "تعزيز طلبي",

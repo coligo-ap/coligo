@@ -1093,7 +1093,10 @@
       "cardDzd": "CIB / EDAHABIA",
       "cardDzdSub": "En dinars (DA)",
       "cardEur": "Internationale (€, $, £…)",
-      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay"
+      "cardEurSub": "Visa · Mastercard · Apple Pay · Google Pay",
+      "cardChange": "Changer",
+      "cardChooseTitle": "Choisir la carte",
+      "cardChooseSub": "CIB / Edahabia par défaut. Une carte étrangère ? Choisissez l'option internationale."
     },
     "boost": {
       "title": "Booster ma demande",

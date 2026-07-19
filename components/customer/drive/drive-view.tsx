@@ -52,6 +52,7 @@ import {
 } from "@/components/customer/intl-payment-sheet";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
 import { withTimeout } from "@/lib/async/with-timeout";
+import { openCheckout } from "@/lib/payments/open-checkout";
 import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
 
 /**
@@ -858,6 +859,9 @@ export function DriveView({ userId }: { userId: string }) {
             15000
           );
           if (!intl.ok) {
+            // Rail € indisponible (coupé par domaine, pays, capacité, taux…) :
+            // message clair qui renvoie vers CIB/Edahabia, et la course est
+            // annulée proprement (aucun débit).
             setRequestError(t("intlPayUnavailable"));
             await cancelDriveRide(res.rideId, "Paiement € indisponible");
             return;
@@ -876,7 +880,10 @@ export function DriveView({ userId }: { userId: string }) {
           15000
         );
         if (checkout.ok && checkout.url) {
-          window.open(checkout.url, "_blank");
+          // In-app (Custom Tabs / SFSafariViewController) en APK, redirection
+          // sur le web : le client ne quitte jamais l'application (brief
+          // « paiement embarqué, standard tout l'écosystème »).
+          await openCheckout(checkout.url);
         } else {
           setRequestError(checkout.error ?? t("requestFailed"));
           await cancelDriveRide(res.rideId, "Paiement carte indisponible");
