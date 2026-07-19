@@ -87,7 +87,16 @@ export const viewport: Viewport = {
   themeColor: APP_CONFIG.brand.primary,
   width: "device-width",
   initialScale: 1,
-  maximumScale: 5,
+  // maximumScale: 1 = LE correctif du zoom iOS au focus d'un input : dès
+  // qu'un champ a une police < 16px, iOS zoome la page au tap et, en
+  // plein écran (viewport-fit=cover), ce zoom RESTE COINCÉ — app
+  // inutilisable jusqu'au kill (bug vécu iPhone build 25, tous les inputs).
+  // Comportement app native façon Uber : aucun zoom de PAGE. Le pincement
+  // reste possible dans Safari web (iOS ignore cette limite pour le geste
+  // utilisateur — accessibilité préservée sur le site) et les CARTES
+  // gardent leur propre zoom (canvas MapLibre, indépendant du zoom de page).
+  maximumScale: 1,
+  userScalable: false,
   viewportFit: "cover",
 };
 
