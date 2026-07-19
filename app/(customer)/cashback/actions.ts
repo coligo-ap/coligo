@@ -28,7 +28,7 @@ import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { MIN_TOPUP_DA } from "@/lib/config/payment-limits";
 
 export type CreateTopupResult =
-  | { ok: true; checkout_url: string }
+  | { ok: true; checkout_url: string; checkout_id: string }
   | { ok: false; error: string; code?: "limit_reached" | "below_min" };
 
 /**
@@ -39,6 +39,23 @@ export type CreateTopupResult =
  */
 export async function fetchCashbackHistory(): Promise<CustomerWalletEntry[]> {
   return getMyCashbackHistory(100);
+}
+
+/**
+ * La recharge de ce checkout a-t-elle été CRÉDITÉE (preuve = écriture webhook
+ * customer_wallet_entries.chargily_checkout_id) ? Sondé par l'overlay de
+ * résultat natif — on ne croit jamais la redirection, seulement le webhook.
+ * Scopé au client connecté (RLS).
+ */
+export async function isTopupPaid(checkoutId: string): Promise<boolean> {
+  if (!checkoutId) return false;
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("customer_wallet_entries")
+    .select("id")
+    .eq("chargily_checkout_id", checkoutId)
+    .maybeSingle();
+  return !!data;
 }
 
 export async function createTopup(
@@ -130,7 +147,11 @@ export async function createTopup(
         reservation_id: reservationId,
       },
     });
-    return { ok: true, checkout_url: checkout.checkout_url };
+    return {
+      ok: true,
+      checkout_url: checkout.checkout_url,
+      checkout_id: checkout.id,
+    };
   } catch (e) {
     // Checkout non créé → on libère la réservation pour ne pas geler le quota.
     if (reservationId) {

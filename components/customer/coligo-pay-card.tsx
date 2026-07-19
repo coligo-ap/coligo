@@ -1,13 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA, cn } from "@/lib/utils";
-import { openCheckout } from "@/lib/payments/open-checkout";
-import { createTopup } from "@/app/(customer)/cashback/actions";
+import { useInappPayment } from "@/lib/payments/use-inapp-payment";
+import {
+  PaymentResultOverlay,
+  type PaymentResultState,
+} from "@/components/payments/payment-result-overlay";
+import { createTopup, isTopupPaid } from "@/app/(customer)/cashback/actions";
 
 // =============================================================================
 // ColigoPayCard — bouton « Recharger » + modale (montants prédéfinis + libre).
@@ -74,7 +79,12 @@ export function TopupModal({
   const [pending, start] = useTransition();
   const [note, setNote] = useActionNote();
   const t = useTranslations("wallet");
+  const router = useRouter();
   const cap = Math.min(maxPerRecharge, remaining30d);
+  const checkoutIdRef = useRef<string | null>(null);
+  // Paiement DANS l'app + overlay de résultat natif (traitement → réussi /
+  // échoué / annulé / expiré). Succès → on rafraîchit le portefeuille.
+  const pay = useInappPayment({ onPaid: () => router.refresh() });
 
   function submit() {
     const value = custom ? Number(custom) : amount;
@@ -84,17 +94,77 @@ export function TopupModal({
     }
     start(async () => {
       setNote(null);
-      const res = await createTopup(value);
-      if (!res.ok) {
-        setNote({ ok: false, text: res.error });
-        return;
-      }
-      // Navigateur intégré en APK (l'app reste montée → le solde se rafraîchit
-      // au retour de focus), redirection sur le web. Sur natif on ferme la
-      // modale pour laisser la page portefeuille se réactualiser.
-      const opened = await openCheckout(res.checkout_url);
-      if (opened === "inapp") onClose();
+      await pay.start(
+        async () => {
+          const res = await createTopup(value);
+          if (!res.ok) {
+            setNote({ ok: false, text: res.error });
+            return null;
+          }
+          checkoutIdRef.current = res.checkout_id;
+          return res.checkout_url;
+        },
+        async () =>
+          checkoutIdRef.current ? isTopupPaid(checkoutIdRef.current) : false
+      );
     });
+  }
+
+  const resultText = (
+    s: PaymentResultState
+  ): { title: string; sub?: string } => {
+    switch (s) {
+      case "processing":
+        return { title: t("payProcessing") };
+      case "success":
+        return { title: t("paySuccess"), sub: t("paySuccessSub") };
+      case "failed":
+        return { title: t("payFailed"), sub: t("payFailedSub") };
+      case "cancelled":
+        return { title: t("payCancelled"), sub: t("payCancelledSub") };
+      case "expired":
+        return { title: t("payExpired"), sub: t("payExpiredSub") };
+    }
+  };
+
+  if (pay.state) {
+    const rt = resultText(pay.state);
+    const terminalBad =
+      pay.state === "failed" ||
+      pay.state === "cancelled" ||
+      pay.state === "expired";
+    return (
+      <PaymentResultOverlay
+        state={pay.state}
+        title={rt.title}
+        sub={rt.sub}
+        primaryLabel={
+          pay.state === "success" ? t("backToWallet") : t("payRetry")
+        }
+        onPrimary={
+          pay.state === "success"
+            ? () => {
+                pay.reset();
+                onClose();
+              }
+            : terminalBad
+              ? () => {
+                  pay.reset();
+                  submit();
+                }
+              : undefined
+        }
+        secondaryLabel={terminalBad ? t("close") : undefined}
+        onSecondary={
+          terminalBad
+            ? () => {
+                pay.reset();
+                onClose();
+              }
+            : undefined
+        }
+      />
+    );
   }
 
   return (

@@ -38,6 +38,7 @@ import {
   usePayWallet,
   type PayBase,
 } from "./pay-core";
+import { haptic } from "@/lib/native/haptics";
 
 type Mode = "form" | "checking" | "confirmed" | "failed" | "slow";
 
@@ -58,6 +59,11 @@ export function PayCardTopup({ base }: { base: PayBase }) {
   const { config, refresh } = usePayWallet({ withConfig: true });
 
   const [mode, setMode] = useState<Mode>("form");
+  // Retour haptique à l'entrée d'un état terminal (confirmé / échoué).
+  useEffect(() => {
+    if (mode === "confirmed") haptic("success");
+    else if (mode === "failed") haptic("error");
+  }, [mode]);
   const [amount, setAmount] = useState("");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
