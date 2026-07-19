@@ -31,8 +31,6 @@ import {
 } from "@/lib/drive/offline-db";
 import {
   cancelDriveRide,
-  createRideCardCheckout,
-  createRideIntlPayment,
   getDriveActiveRide,
   getDriveContext,
   getDriveQuotes,
@@ -46,13 +44,8 @@ import {
   type DriveActiveRide,
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
-import {
-  IntlPaymentSheet,
-  type StripeIntentPayload,
-} from "@/components/customer/intl-payment-sheet";
 import { joinZoneWaitlist } from "@/lib/zones/actions";
 import { withTimeout } from "@/lib/async/with-timeout";
-import { openCheckout } from "@/lib/payments/open-checkout";
 import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
 
 /**
@@ -159,9 +152,6 @@ export function DriveView({ userId }: { userId: string }) {
   // que si le serveur juge l'option € proposable (flag+pays+capacité).
   const [cardRail, setCardRail] = useState<"dzd" | "eur">("dzd");
   const [intlAvailable, setIntlAvailable] = useState(false);
-  const [rideIntlIntent, setRideIntlIntent] = useState<
-    (StripeIntentPayload & { ride_id: string }) | null
-  >(null);
   useEffect(() => {
     void rideIntlAvailability().then(setIntlAvailable);
   }, []);
@@ -849,45 +839,15 @@ export function DriveView({ userId }: { userId: string }) {
         setRequestError(res.error ?? t("requestFailed"));
         return;
       }
-      // CARTE : payer AVANT que la demande soit diffusée.
+      // CARTE : plus de prépaiement (mig 0386). La course est diffusée
+      // immédiatement (comme espèces) ; le paiement du prix EXACT se fait à
+      // l'ACCEPTATION d'un chauffeur, dans l'écran de recherche. On mémorise
+      // le rail choisi (CIB/Edahabia ou internationale) pour ce moment-là.
       if (payMode === "card" && res.rideId) {
-        if (cardRail === "eur") {
-          // Rail INTERNATIONAL (€) : feuille de paiement EMBARQUÉE — la
-          // diffusion partira du webhook payment_intent.succeeded.
-          const intl = await withTimeout(
-            createRideIntlPayment(res.rideId),
-            15000
-          );
-          if (!intl.ok) {
-            // Rail € indisponible (coupé par domaine, pays, capacité, taux…) :
-            // message clair qui renvoie vers CIB/Edahabia, et la course est
-            // annulée proprement (aucun débit).
-            setRequestError(t("intlPayUnavailable"));
-            await cancelDriveRide(res.rideId, "Paiement € indisponible");
-            return;
-          }
-          setRideIntlIntent({
-            client_secret: intl.client_secret,
-            publishable_key: intl.publishable_key,
-            eur_cents: intl.eur_cents,
-            total_da: intl.total_da,
-            ride_id: res.rideId,
-          });
-          return; // la feuille prend la main (succès → écran course)
-        }
-        const checkout = await withTimeout(
-          createRideCardCheckout(res.rideId),
-          15000
-        );
-        if (checkout.ok && checkout.url) {
-          // In-app (Custom Tabs / SFSafariViewController) en APK, redirection
-          // sur le web : le client ne quitte jamais l'application (brief
-          // « paiement embarqué, standard tout l'écosystème »).
-          await openCheckout(checkout.url);
-        } else {
-          setRequestError(checkout.error ?? t("requestFailed"));
-          await cancelDriveRide(res.rideId, "Paiement carte indisponible");
-          return;
+        try {
+          window.sessionStorage.setItem("coligo:drive:card_rail", cardRail);
+        } catch {
+          /* sessionStorage indisponible — défaut CIB au paiement */
         }
       }
       await refreshActive();
@@ -1101,23 +1061,6 @@ export function DriveView({ userId }: { userId: string }) {
   if (screen === "price" && pickup && dest) {
     return (
       <>
-        {/* Feuille de paiement € EMBARQUÉE (carte + Apple Pay + Google Pay).
-            Succès → écran course (le webhook diffusera aux chauffeurs) ;
-            abandon → la demande est annulée proprement. */}
-        {rideIntlIntent && (
-          <IntlPaymentSheet
-            intent={rideIntlIntent}
-            onSuccess={() => {
-              setRideIntlIntent(null);
-              void refreshActive().then(() => setScreen("ride"));
-            }}
-            onClose={() => {
-              const rid = rideIntlIntent.ride_id;
-              setRideIntlIntent(null);
-              void cancelDriveRide(rid, "Paiement € abandonné");
-            }}
-          />
-        )}
         <DrivePriceScreen
           pickup={pickup}
           dest={dest}

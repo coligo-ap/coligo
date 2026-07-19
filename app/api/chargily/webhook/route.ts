@@ -58,6 +58,7 @@ export async function POST(req: NextRequest) {
     | "topup"
     | "op_topup"
     | "ride"
+    | "ride_offer"
     | "drive_sub"
     | "priority_sub"
     | null;
@@ -464,6 +465,67 @@ export async function POST(req: NextRequest) {
       const { error } = await rpc("drive_card_failed", { p_ride_id: rideId });
       if (error)
         console.error("[chargily/webhook] ride card failed:", error.message);
+    }
+    return NextResponse.json({ ok: true });
+  }
+
+  // -------------------------------------------------------------------------
+  // ÉTAPE C' — course Drive : paiement À L'ACCEPTATION (metadata.type ===
+  // "ride_offer", mig 0386). Le client a réservé une offre puis payé le prix
+  // EXACT ; le webhook FINALISE l'acceptation (drive_card_accept_reserved) au
+  // prix convenu. Chauffeur pris entre-temps → la RPC recrédite le Coligo Pay.
+  // Échec/abandon → on relâche la réservation (course toujours en recherche).
+  // -------------------------------------------------------------------------
+  if (type === "ride_offer") {
+    const offerId =
+      meta && typeof meta.offer_id === "string" ? meta.offer_id : null;
+    if (!offerId) {
+      return NextResponse.json(
+        { error: "metadata.offer_id manquant." },
+        { status: 400 }
+      );
+    }
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    if (event.type === "checkout.paid") {
+      const { data, error } = await rpc("drive_card_accept_reserved", {
+        p_offer_id: offerId,
+        p_amount_da: Math.round(event.data.amount),
+        p_checkout_id: event.data.id ?? null,
+      });
+      if (error) {
+        console.error("[chargily/webhook] ride_offer accept failed:", error);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 200 }
+        );
+      }
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        ok?: boolean;
+        ride_id?: string;
+      };
+      if (row?.ok && row.ride_id) {
+        const [{ notifyChauffeursRideGone }, { notifyRideEvent }] =
+          await Promise.all([
+            import("@/lib/fcm/triggers"),
+            import("@/lib/notifications/notify"),
+          ]);
+        void notifyRideEvent(row.ride_id, "ride_accepted");
+        void notifyChauffeursRideGone({ rideId: row.ride_id });
+      }
+    }
+    if (
+      event.type === "checkout.failed" ||
+      event.type === "checkout.canceled" ||
+      event.type === "checkout.expired"
+    ) {
+      const { error } = await rpc("drive_card_release_offer", {
+        p_offer_id: offerId,
+      });
+      if (error)
+        console.error("[chargily/webhook] ride_offer release:", error.message);
     }
     return NextResponse.json({ ok: true });
   }

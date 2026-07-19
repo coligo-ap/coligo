@@ -1143,7 +1143,9 @@
       "choose": "Choisir",
       "cancelSearch": "Annuler la recherche",
       "driverBusy": "Ce chauffeur vient d'être pris — choisissez une autre offre.",
+      "offerExpired": "Cette offre a expiré — choisissez-en une autre.",
       "genericError": "Une erreur s’est produite. Réessayez.",
+      "cardPayOnAccept": "Choisissez un chauffeur : vous paierez par carte le prix exact de son offre. En cas d'échec, rien n'est débité.",
       "waitingCard": "En attente du paiement carte…",
       "waitingCardSub": "Votre demande ne sera envoyée aux chauffeurs qu'une fois le paiement confirmé (CIB / Edahabia via Chargily Pay). Annulation = remboursement intégral sur Coligo Pay.",
       "payNow": "Payer maintenant (CIB / Edahabia)"

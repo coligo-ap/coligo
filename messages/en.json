@@ -1143,7 +1143,9 @@
       "choose": "Choose",
       "cancelSearch": "Cancel the search",
       "driverBusy": "This driver was just taken — choose another offer.",
+      "offerExpired": "This offer has expired — choose another one.",
       "genericError": "Something went wrong. Try again.",
+      "cardPayOnAccept": "Pick a driver: you'll pay the exact price of their offer by card. If it fails, nothing is charged.",
       "waitingCard": "Waiting for the card payment…",
       "waitingCardSub": "Your request will only be sent to drivers once the payment is confirmed (CIB / Edahabia via Chargily Pay). Cancellation = full refund to Coligo Pay.",
       "payNow": "Pay now (CIB / Edahabia)"

@@ -190,6 +190,90 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // ── Course Drive : paiement À L'ACCEPTATION (metadata.type ===
+    // "ride_offer", mig 0386). Finalise l'acceptation au prix EXACT convenu.
+    if (pi.metadata?.type === "ride_offer") {
+      const offerId =
+        typeof pi.metadata.offer_id === "string" ? pi.metadata.offer_id : null;
+      const { data: offSess } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          select: (cols: string) => {
+            eq: (
+              c: string,
+              v: unknown
+            ) => {
+              maybeSingle: () => Promise<{
+                data: {
+                  id: string;
+                  offer_id: string | null;
+                  eur_cents: number;
+                  total_da: number;
+                } | null;
+              }>;
+            };
+          };
+        }
+      )
+        .select("id, offer_id, eur_cents, total_da")
+        .eq("stripe_payment_intent", pi.id)
+        .maybeSingle();
+      if (!offSess || !offerId || offSess.offer_id !== offerId) {
+        await auditIntl(
+          admin,
+          "intl_session_mismatch",
+          `payment_intent.succeeded (ride_offer) sur intent inconnu ou croisé (${pi.id}).`
+        );
+        await recordEvent(null);
+        return NextResponse.json({ ok: true, unknown_intent: true });
+      }
+      if (pi.currency !== "eur" || pi.amount !== offSess.eur_cents) {
+        await auditIntl(
+          admin,
+          "intl_amount_mismatch",
+          `Intent ride_offer ${pi.id} : payé ${pi.amount} ${pi.currency} ≠ attendu ${offSess.eur_cents} c€.`,
+          offSess.id
+        );
+        await recordEvent(offSess.id);
+        return NextResponse.json({ ok: false, amount_mismatch: true });
+      }
+      await sessions
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      const rpc = admin.rpc.bind(admin) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{ data: unknown; error: { message: string } | null }>;
+      const { data, error } = await rpc("drive_card_accept_reserved", {
+        p_offer_id: offerId,
+        p_amount_da: offSess.total_da,
+        p_checkout_id: pi.id,
+      });
+      if (error) {
+        console.error("[stripe/webhook] ride_offer accept failed:", error);
+        await recordEvent(offSess.id);
+        return NextResponse.json(
+          { ok: false, error: error.message },
+          { status: 500 }
+        );
+      }
+      const row = (Array.isArray(data) ? data[0] : data) as {
+        ok?: boolean;
+        ride_id?: string;
+      };
+      if (row?.ok && row.ride_id) {
+        const [{ notifyChauffeursRideGone }, { notifyRideEvent }] =
+          await Promise.all([
+            import("@/lib/fcm/triggers"),
+            import("@/lib/notifications/notify"),
+          ]);
+        void notifyRideEvent(row.ride_id, "ride_accepted");
+        void notifyChauffeursRideGone({ rideId: row.ride_id });
+      }
+      await recordEvent(offSess.id);
+      return NextResponse.json({ ok: true });
+    }
+
     const orderId =
       typeof pi.metadata?.order_id === "string" ? pi.metadata.order_id : null;
 
@@ -393,6 +477,49 @@ export async function POST(req: NextRequest) {
         }
       }
       await recordEvent(rideSess?.id ?? null);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Paiement À L'ACCEPTATION échoué/annulé → on relâche la réservation
+    // (course toujours en recherche, offre re-disponible). Aucune course
+    // n'est annulée : « comme si rien n'était » (mig 0386).
+    if (pi.metadata?.type === "ride_offer") {
+      const offerId =
+        typeof pi.metadata.offer_id === "string" ? pi.metadata.offer_id : null;
+      const { data: offSess } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          select: (cols: string) => {
+            eq: (
+              c: string,
+              v: unknown
+            ) => {
+              maybeSingle: () => Promise<{
+                data: { id: string; status: string } | null;
+              }>;
+            };
+          };
+        }
+      )
+        .select("id, status")
+        .eq("stripe_payment_intent", pi.id)
+        .maybeSingle();
+      const wasLive = offSess?.status === "created";
+      await sessions
+        .update({ status: "expired" })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      if (offerId && wasLive) {
+        const rpc = admin.rpc.bind(admin) as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => Promise<{ error: { message: string } | null }>;
+        const { error } = await rpc("drive_card_release_offer", {
+          p_offer_id: offerId,
+        });
+        if (error)
+          console.error("[stripe/webhook] ride_offer release:", error.message);
+      }
+      await recordEvent(offSess?.id ?? null);
       return NextResponse.json({ ok: true });
     }
 

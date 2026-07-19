@@ -26,15 +26,21 @@ import {
   acceptDriveOffer,
   boostRide,
   cancelDriveRide,
-  createRideCardCheckout,
   escalateDispatch,
   getDriveOffers,
+  releaseCardOffer,
+  reserveAndPayCardOffer,
   type DriveActiveRide,
   type DriveContext,
   type DriveOffer,
 } from "@/app/(customer)/drive/actions";
 import { clearPendingRide } from "@/lib/drive/offline-db";
 import { withTimeout } from "@/lib/async/with-timeout";
+import { openCheckout } from "@/lib/payments/open-checkout";
+import {
+  IntlPaymentSheet,
+  type StripeIntentPayload,
+} from "@/components/customer/intl-payment-sheet";
 
 export function SearchScreen({
   ctx,
@@ -55,12 +61,13 @@ export function SearchScreen({
   const [busy, setBusy] = useState(false);
   const [boosting, setBoosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [cardBusy, setCardBusy] = useState(false);
-  const [cardErr, setCardErr] = useState<string | null>(null);
   const rideId = ride?.id ?? null;
-  // Carte : tant que le webhook n'a pas confirmé, la demande n'est pas diffusée.
-  const waitingCard =
-    !!ride && ride.payment_method === "card" && !ride.online_paid;
+  // Paiement carte À L'ACCEPTATION (mig 0386) : feuille € embarquée éventuelle,
+  // et l'offre en cours de paiement (pour la relâcher si le client renonce).
+  const [rideIntlIntent, setRideIntlIntent] =
+    useState<StripeIntentPayload | null>(null);
+  const payingOfferRef = useRef<string | null>(null);
+  const isCard = ride?.payment_method === "card";
 
   // Trajet A → B sur la carte pendant la recherche : itinéraire ROUTIER réel
   // (OSRM, retry après le cooldown du disjoncteur), repli ligne droite en
@@ -213,11 +220,71 @@ export function SearchScreen({
     Math.round(((ride?.proposed_price_da ?? 0) * ctx.boostDefaultRate) / 5) * 5
   );
 
+  // Poll de rattrapage : après un paiement carte, le webhook accepte la course
+  // de façon asynchrone → on sonde l'état ~3 min jusqu'à ce qu'elle ne soit
+  // plus « searching » (le parent bascule alors sur l'écran course).
+  const pollUntilAccepted = useCallback(async () => {
+    for (let i = 0; i < 60; i++) {
+      if (stopRef.current) return;
+      const r = await refreshActive();
+      if (!r || r.status !== "searching") return;
+      await new Promise((res) => setTimeout(res, 3000));
+    }
+  }, [refreshActive]);
+
   const choose = async (offerId: string) => {
     if (busy) return;
     setBusy(true);
     setError(null);
     try {
+      // CARTE non prépayée : paiement du prix EXACT de l'offre À L'ACCEPTATION
+      // (mig 0386). Une course carte DÉJÀ prépayée (ancien flux, fenêtre de
+      // déploiement) tombe dans l'acceptation normale ci-dessous.
+      if (isCard && !ride?.online_paid) {
+        let rail: "dzd" | "eur" = "dzd";
+        try {
+          rail =
+            window.sessionStorage.getItem("coligo:drive:card_rail") === "eur"
+              ? "eur"
+              : "dzd";
+        } catch {
+          /* sessionStorage indisponible → CIB */
+        }
+        const pay = await reserveAndPayCardOffer(offerId, rail);
+        if (!pay.ok) {
+          setError(
+            pay.error === "chauffeur_busy"
+              ? t("driverBusy")
+              : pay.error === "offer_expired"
+                ? t("offerExpired")
+                : pay.error?.startsWith("intl_")
+                  ? t("intlPayUnavailable")
+                  : (pay.error ?? t("genericError"))
+          );
+          return;
+        }
+        if (pay.mode === "sheet") {
+          // Rail € : feuille embarquée. `busy` retombe pour laisser la feuille
+          // prendre la main (poignée, 3DS…). L'offre reste réservée jusqu'au
+          // succès (webhook) ou à la fermeture (releaseCardOffer).
+          payingOfferRef.current = offerId;
+          setRideIntlIntent({
+            client_secret: pay.client_secret,
+            publishable_key: pay.publishable_key,
+            eur_cents: pay.eur_cents,
+            total_da: pay.total_da,
+          });
+          setBusy(false);
+          return;
+        }
+        // Rail CIB/Edahabia : paiement dans le navigateur intégré, l'app reste
+        // montée ; on sonde jusqu'à l'acceptation par le webhook.
+        await openCheckout(pay.url);
+        void pollUntilAccepted();
+        return;
+      }
+
+      // Espèces / Coligo Pay : acceptation directe (inchangé).
       const res = await acceptDriveOffer(offerId, `acc-${offerId}`);
       if (!res.ok)
         setError(
@@ -278,11 +345,9 @@ export function SearchScreen({
               <span className="truncate">
                 {offlineQueued
                   ? t("offlineTitle")
-                  : waitingCard
-                    ? t("waitingCard")
-                    : offers.length > 0
-                      ? t("responded", { count: offers.length })
-                      : t("incoming")}
+                  : offers.length > 0
+                    ? t("responded", { count: offers.length })
+                    : t("incoming")}
               </span>
             </div>
             <button
@@ -311,45 +376,18 @@ export function SearchScreen({
           )}
         </div>
 
-        {/* CARTE : payer AVANT diffusion — la demande ne part aux chauffeurs
-            qu'une fois le paiement Chargily confirmé (webhook, mig 0145). */}
-        {waitingCard && ride && (
+        {/* CARTE (mig 0386) : plus de bandeau « payer avant diffusion ». La
+            course carte reçoit les offres comme une course espèces ; le
+            paiement du prix EXACT se fait au TAP sur un chauffeur (choose). */}
+        {isCard && !ride?.online_paid && offers.length > 0 && (
           <div
-            className="mb-3 rounded-[15px] border-[1.5px] border-dashed p-3"
-            style={{ borderColor: GO }}
+            className="mb-3 flex items-center gap-2 rounded-[13px] border-[1.5px] border-dashed px-3 py-2"
+            style={{ borderColor: VIOLET }}
           >
-            <b className="block text-[13px]" style={{ color: GO }}>
-              {t("waitingCard")}
-            </b>
-            <span className="text-[11px] leading-snug text-[var(--d-muted)]">
-              {t("waitingCardSub")}
+            <CreditCard className="size-4 shrink-0" style={{ color: VIOLET }} />
+            <span className="text-[11.5px] leading-snug font-semibold text-[var(--d-muted)]">
+              {t("cardPayOnAccept")}
             </span>
-            <button
-              type="button"
-              disabled={cardBusy}
-              onClick={async () => {
-                setCardBusy(true);
-                setCardErr(null);
-                const res = await createRideCardCheckout(ride.id);
-                setCardBusy(false);
-                if (res.ok && res.url) window.open(res.url, "_blank");
-                else setCardErr(res.error ?? "error");
-              }}
-              className="mt-2 flex w-full items-center justify-center gap-2 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
-              style={{ background: GO }}
-            >
-              {cardBusy ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <CreditCard className="size-4" />
-              )}
-              {t("payNow")}
-            </button>
-            {cardErr && (
-              <span className="mt-1 block text-[11px]" style={{ color: RED }}>
-                {cardErr}
-              </span>
-            )}
           </div>
         )}
 
@@ -621,6 +659,26 @@ export function SearchScreen({
         >
           <X className="size-5" />
         </button>
+      )}
+
+      {/* Rail € : feuille de paiement embarquée du prix EXACT de l'offre.
+          Succès → le webhook accepte, on sonde jusqu'à la bascule. Fermeture
+          → on relâche la réservation (offre re-disponible, rien n'a changé). */}
+      {rideIntlIntent && (
+        <IntlPaymentSheet
+          intent={rideIntlIntent}
+          onSuccess={() => {
+            setRideIntlIntent(null);
+            payingOfferRef.current = null;
+            void pollUntilAccepted();
+          }}
+          onClose={() => {
+            const oid = payingOfferRef.current;
+            setRideIntlIntent(null);
+            payingOfferRef.current = null;
+            if (oid) void releaseCardOffer(oid);
+          }}
+        />
       )}
     </div>
   );

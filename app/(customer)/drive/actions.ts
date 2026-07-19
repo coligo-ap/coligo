@@ -1401,6 +1401,199 @@ export async function createRideIntlPayment(rideId: string): Promise<
   }
 }
 
+/* ───────── Paiement carte À L'ACCEPTATION (prix EXACT convenu, mig 0386) ─────────
+   Le client choisit un chauffeur → on RÉSERVE l'offre (verrou 3 min) puis on
+   crée le paiement du prix EXACT de cette offre. Le webhook finalise
+   l'acceptation (drive_card_accept_reserved). Échec/abandon → l'offre est
+   relâchée, la course reste en recherche (« comme si rien n'était »). */
+
+export type CardOfferPayment =
+  | {
+      ok: true;
+      mode: "redirect";
+      url: string;
+      offerId: string;
+      priceDa: number;
+    }
+  | {
+      ok: true;
+      mode: "sheet";
+      client_secret: string;
+      publishable_key: string;
+      eur_cents: number;
+      total_da: number;
+      offerId: string;
+      priceDa: number;
+    }
+  | { ok: false; error: string };
+
+/**
+ * Réserve l'offre choisie puis ouvre le paiement du prix EXACT :
+ *   rail 'dzd' → checkout Chargily (navigateur intégré) ;
+ *   rail 'eur' → PaymentIntent Stripe (feuille embarquée).
+ * Métadonnées {type:'ride_offer', ride_id, offer_id} : le webhook accepte au
+ * paiement. Aucun débit n'engage la course tant que le webhook n'a pas confirmé.
+ */
+export async function reserveAndPayCardOffer(
+  offerId: string,
+  rail: "dzd" | "eur"
+): Promise<CardOfferPayment> {
+  const supabase = await createClient();
+  const admin = createAdminClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "auth" };
+
+  // 1) Réservation (self-guard : la RPC vérifie que la course est bien celle du
+  //    client, carte, non payée, en recherche, et le chauffeur libre).
+  const rpc = admin.rpc.bind(admin) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const supaRpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data: rez, error: rezErr } = await supaRpc(
+    "drive_card_reserve_offer",
+    { p_offer_id: offerId }
+  );
+  if (rezErr) return { ok: false, error: rezErr.message };
+  const r = (Array.isArray(rez) ? rez[0] : rez) as {
+    ok?: boolean;
+    reason?: string;
+    price_da?: number;
+    ride_id?: string;
+  } | null;
+  if (!r?.ok || !r.ride_id || !r.price_da) {
+    return { ok: false, error: r?.reason ?? "reserve_failed" };
+  }
+  const rideId = r.ride_id;
+  const priceDa = r.price_da;
+
+  // Toute sortie en échec après réservation RELÂCHE l'offre (jamais de chauffeur
+  // bloqué si la création du paiement échoue).
+  const release = async () => {
+    await rpc("drive_card_release_offer", { p_offer_id: offerId }).catch(
+      () => {}
+    );
+  };
+
+  try {
+    if (rail === "eur") {
+      const [{ checkIntlEligibility, getRequestCountry }, stripeMod] =
+        await Promise.all([
+          import("@/lib/payments/intl"),
+          import("@/lib/payments/stripe"),
+        ]);
+      const { data: cust } = await supabase
+        .from("customers")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle();
+      if (!cust) {
+        await release();
+        return { ok: false, error: "no_customer" };
+      }
+      const elig = await checkIntlEligibility({
+        customerId: cust.id,
+        totalDa: priceDa,
+        domain: "drive",
+        mode: "authoritative",
+      });
+      if (!elig.ok) {
+        await release();
+        return { ok: false, error: `intl_${elig.reason}` };
+      }
+      const publishableKey = await stripeMod.getPublishableKey();
+      if (!publishableKey) {
+        await release();
+        return { ok: false, error: "intl_off" };
+      }
+      const intent = await stripeMod.createIntlPaymentIntent({
+        orderId: rideId,
+        eurCents: elig.eur_cents!,
+        description: "Course Coligo Drive",
+        metadata: { type: "ride_offer", ride_id: rideId, offer_id: offerId },
+      });
+      const { error: sessErr } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<{
+            error: { message: string } | null;
+          }>;
+        }
+      ).insert({
+        ride_id: rideId,
+        offer_id: offerId,
+        customer_id: cust.id,
+        stripe_payment_intent: intent.id,
+        eur_cents: elig.eur_cents!,
+        total_da: priceDa,
+        rate_da: elig.rate.rate_da,
+        rate_source: elig.rate.source,
+        ip_country: await getRequestCountry(),
+      });
+      if (sessErr) {
+        await release();
+        return { ok: false, error: "intl_session" };
+      }
+      return {
+        ok: true,
+        mode: "sheet",
+        client_secret: intent.clientSecret,
+        publishable_key: publishableKey,
+        eur_cents: elig.eur_cents!,
+        total_da: priceDa,
+        offerId,
+        priceDa,
+      };
+    }
+
+    // Rail DZD (CIB/Edahabia) — Chargily.
+    const { createCheckout } = await import("@/lib/payments/chargily");
+    const base = (process.env.NEXT_PUBLIC_APP_URL ?? "").replace(/\/+$/, "");
+    if (!base) {
+      await release();
+      return { ok: false, error: "app_url_missing" };
+    }
+    const checkout = await createCheckout({
+      amount: priceDa,
+      successUrl: `${base}/drive?card=success`,
+      failureUrl: `${base}/drive?card=failed`,
+      webhookEndpoint: `${base}/api/chargily/webhook`,
+      metadata: { type: "ride_offer", ride_id: rideId, offer_id: offerId },
+      description: "Course Coligo Drive",
+      locale: "fr",
+    });
+    return {
+      ok: true,
+      mode: "redirect",
+      url: checkout.checkout_url,
+      offerId,
+      priceDa,
+    };
+  } catch (err) {
+    await release();
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "pay_error",
+    };
+  }
+}
+
+/** Le client renonce (ferme la feuille / annule) → relâche la réservation. */
+export async function releaseCardOffer(offerId: string): Promise<void> {
+  const supabase = await createClient();
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ error: { message: string } | null }>;
+  await rpc("drive_card_release_offer", { p_offer_id: offerId }).catch(
+    () => {}
+  );
+}
+
 /**
  * État du paiement carte d'une course (sondé pendant « En attente du paiement
  * carte… ») : failed = checkout Chargily échoué/abandonné → la demande a été
