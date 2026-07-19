@@ -2,22 +2,26 @@
 
 import { useState } from "react";
 import { useLocale } from "next-intl";
+import { FileDown } from "lucide-react";
 import { MoneyTabs } from "@/components/shared/money-tabs";
-import { SettlementVerdict } from "@/components/partner/money-overview";
-import { PartnerHeroCard, SORA } from "@/components/shared/partner-ui";
+import { SORA } from "@/components/shared/partner-ui";
 
 /**
- * PAGE UNIQUE « Gains et Relevés » (livreur ET chauffeur) — style Bolt :
- * gains + relevé + versement en UNE page à sections, copy minimale. Le
- * partenaire lit d'abord son NET et la commission Coligo ; les composantes
- * internes (commissions commerçants, frais de service…) ne sont PAS montrées
- * — le verdict « à reverser / à recevoir » suffit. Le gain du jour vit sur
- * l'ACCUEIL (zéro doublon ici).
+ * PAGE UNIQUE « Gains et Relevés » (livreur ET chauffeur) — RELEVÉ SIMPLE.
  *
- * Filtre paiement (Tous · Espèces · En ligne) 100 % CLIENT : les agrégats par
- * méthode arrivent pré-calculés du serveur, la bascule est instantanée (cf.
- * CLAUDE.md « zéro round-trip serveur »). Le verdict, lui, reste GLOBAL : le
- * solde avec Coligo ne dépend pas du filtre d'affichage.
+ * Choix produit (demande explicite) : UN SEUL bloc, en LISTE claire façon reçu,
+ * SANS aucun fond coloré de carte. Chaque ligne = un libellé à gauche, un
+ * montant à droite. Objectif : compréhension immédiate, même pour un livreur /
+ * chauffeur peu à l'aise avec le numérique. Pas de séparateurs « · » ni « : »
+ * qui alourdissent la lecture.
+ *
+ * Ordre de lecture, de haut en bas, dans le MÊME bloc :
+ *   période → Net (le grand chiffre) → nombre de courses → Brut → Commission
+ *   Coligo → (Abonnements) → verdict de versement (à reverser / Coligo vous
+ *   doit / à jour) → Relevé PDF.
+ *
+ * Filtre paiement (Tous · Espèces · En ligne) 100 % CLIENT : agrégats
+ * pré-calculés serveur, bascule instantanée. Le verdict reste GLOBAL.
  */
 
 export type GainsSlice = {
@@ -68,6 +72,7 @@ export function GainsReleveView({
 }) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const DA = tr("DA", "دج");
   const [filter, setFilter] = useState<PayFilter>("all");
 
   const s = slices[filter];
@@ -78,9 +83,15 @@ export function GainsReleveView({
     { id: "online", label: tr("En ligne", "عبر الإنترنت") },
   ];
 
+  const verdictLabel =
+    verdict.direction === "receive"
+      ? tr("Coligo vous doit", "كوليغو مدينة لك")
+      : verdict.direction === "reverse"
+        ? tr("À reverser à Coligo", "للتسديد إلى كوليغو")
+        : tr("À jour avec Coligo", "على ما يرام مع كوليغو");
+
   return (
     <>
-      {/* Titre demandé produit : « Gains et Relevés » (une seule page). */}
       <h1
         className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
         style={{ fontFamily: SORA }}
@@ -90,10 +101,9 @@ export function GainsReleveView({
 
       <MoneyTabs base={base} />
 
-      {/* Période (mois / dates) — pilote la page ET le PDF. */}
+      {/* Filtres (période + moyen de paiement) — au-dessus du bloc unique. */}
       {periodPicker}
 
-      {/* Filtre paiement — état local, bascule instantanée. */}
       <div className="mb-3 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
         {filters.map((f) => (
           <button
@@ -118,59 +128,103 @@ export function GainsReleveView({
         ))}
       </div>
 
-      {/* NET — LE chiffre que le partenaire vient chercher, avec son détail
-          (brut → commission) DANS la même carte. Zéro doublon : le Net
-          n'apparaît qu'UNE fois (le grand chiffre) ; les lignes l'expliquent.
-          Une seule carte au lieu de deux → plus compact, lu d'un coup d'œil. */}
-      <PartnerHeroCard
-        label={`${tr("Net", "الصافي")} · ${periodLabel}${
-          filter === "cash"
-            ? ` · ${tr("espèces", "نقداً")}`
-            : filter === "online"
-              ? ` · ${tr("en ligne", "عبر الإنترنت")}`
-              : ""
-        }`}
-        value={`${grp(s.netDa)} ${tr("DA", "دج")}`}
-        sub={`${s.count} ${tr(s.count > 1 ? "courses" : "course", "توصيلة")}`}
-      >
-        <div className="mt-4 rounded-[14px] bg-white/12 px-3.5">
-          <HeroLine
-            k={tr("Brut", "الإجمالي")}
-            v={`+${grp(brutDa)} ${tr("DA", "دج")}`}
+      {/* UN SEUL BLOC — relevé simple, aucun fond coloré, tout en lignes
+          claires. Se lit d'un coup d'œil, de haut en bas. */}
+      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+        {/* Net — le chiffre principal. */}
+        <div className="px-4 pt-4 pb-3.5">
+          <div className="text-[12px] font-medium text-[var(--d-muted)] capitalize">
+            {periodLabel}
+          </div>
+          <div
+            className="mt-0.5 text-[30px] leading-none font-extrabold tracking-[-1px] text-[var(--d-ink)]"
+            style={{ fontFamily: SORA }}
+          >
+            {grp(s.netDa)} {DA}
+          </div>
+          <div className="mt-1.5 text-[12.5px] text-[var(--d-muted)]">
+            {s.count} {tr(s.count > 1 ? "courses" : "course", "توصيلة")}
+            {filter === "cash"
+              ? ` ${tr("en espèces", "نقداً")}`
+              : filter === "online"
+                ? ` ${tr("en ligne", "عبر الإنترنت")}`
+                : ""}
+          </div>
+        </div>
+
+        {/* Détail — lignes simples (libellé à gauche, montant à droite). */}
+        <Row k={tr("Brut", "الإجمالي")} v={`${grp(brutDa)} ${DA}`} />
+        <Row
+          k={tr("Commission Coligo", "عمولة كوليغو")}
+          v={`− ${grp(s.coligoDa)} ${DA}`}
+        />
+        {filter === "all" && subFeesDa > 0 && (
+          <Row
+            k={tr("Abonnements", "الاشتراكات")}
+            v={`− ${grp(subFeesDa)} ${DA}`}
           />
-          <HeroLine
-            k={tr("Commission Coligo", "عمولة كوليغو")}
-            v={`−${grp(s.coligoDa)} ${tr("DA", "دج")}`}
-          />
-          {filter === "all" && subFeesDa > 0 && (
-            <HeroLine
-              k={tr("Abonnements", "الاشتراكات")}
-              v={`−${grp(subFeesDa)} ${tr("DA", "دج")}`}
-            />
+        )}
+
+        {/* Verdict de versement — même bloc, ligne mise en avant. */}
+        <div className="border-t border-[var(--d-line)] px-4 py-3.5">
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-[14px] font-bold text-[var(--d-ink)]">
+              {verdictLabel}
+            </span>
+            {verdict.direction !== "settled" && (
+              <span
+                className="shrink-0 text-[17px] font-extrabold text-[var(--d-ink)]"
+                style={{ fontFamily: SORA }}
+              >
+                {grp(verdict.amountDa)} {DA}
+              </span>
+            )}
+          </div>
+          {verdict.direction === "settled" ? (
+            <p className="mt-1 text-[12px] text-[var(--d-muted)]">
+              {tr("Rien à régler.", "لا شيء للتسوية.")}
+            </p>
+          ) : (
+            verdict.dueLabel &&
+            verdict.dueLabel
+              .split("·")
+              .map((part) => part.trim())
+              .filter(Boolean)
+              .map((part, i) => (
+                <p key={i} className="mt-1 text-[12px] text-[var(--d-muted)]">
+                  {part}
+                </p>
+              ))
           )}
         </div>
-      </PartnerHeroCard>
 
-      {/* VERSEMENT — où j'en suis avec Coligo (global) + PDF. */}
-      <SettlementVerdict
-        direction={verdict.direction}
-        amountDa={verdict.amountDa}
-        dueLabel={verdict.dueLabel}
-        pdfHref={pdfHref}
-      />
+        {/* Relevé PDF — action simple, même bloc. */}
+        <a
+          href={pdfHref}
+          target="_blank"
+          rel="noopener"
+          className="flex items-center justify-center gap-2 border-t border-[var(--d-line)] py-3.5 text-[13.5px] font-bold text-[var(--d-ink)]"
+        >
+          <FileDown className="size-4" /> {tr("Relevé PDF", "كشف PDF")}
+        </a>
+      </div>
 
       {children}
     </>
   );
 }
 
-/** Ligne de détail SUR la carte héro (blanc sur violet) — explique le Net
- *  sans le répéter : brut, commission Coligo, (abonnements). */
-function HeroLine({ k, v }: { k: string; v: string }) {
+/** Ligne de relevé (libellé à gauche, montant à droite) — neutre, sans fond. */
+function Row({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-center justify-between border-b border-white/15 py-2.5 text-[13px] text-white last:border-b-0">
-      <span className="opacity-85">{k}</span>
-      <b style={{ fontFamily: SORA }}>{v}</b>
+    <div className="flex items-center justify-between gap-3 border-t border-[var(--d-line)] px-4 py-3 text-[13.5px]">
+      <span className="text-[var(--d-muted)]">{k}</span>
+      <span
+        className="shrink-0 font-semibold text-[var(--d-ink)]"
+        style={{ fontFamily: SORA }}
+      >
+        {v}
+      </span>
     </div>
   );
 }
