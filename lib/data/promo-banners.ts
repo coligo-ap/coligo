@@ -12,6 +12,15 @@ import { createClient } from "@/lib/supabase/server";
  * UNIQUEMENT quand la bannière est visible (promo vivante + client à portée) →
  * jamais exposé hors zone / hors validité. Sert à alimenter la pop-up.
  */
+/** Produit concerné par une promo (affiché sur la card si show_products). */
+export type BannerProduct = {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  image_url: string | null;
+  price_da: number;
+};
+
 export type BannerOffer = {
   promotion_id: string;
   type:
@@ -35,6 +44,8 @@ export type BannerOffer = {
   merchant_id: string;
   merchant_name: string;
   merchant_slug: string;
+  /** Produits concernés (mig 0391) — présents seulement si show_products. */
+  products: BannerProduct[] | null;
 };
 
 export type PromoBanner = {
@@ -48,6 +59,12 @@ export type PromoBanner = {
   overlay_opacity: number;
   link: string | null;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
+  /** Modèle de card choisi (mig 0391) — NULL / "auto" = déduit du type. */
+  template: string | null;
+  /** Dégradé forcé (mig 0391) — NULL = celui du modèle. */
+  palette: string | null;
+  /** Afficher les produits concernés sur la card (mig 0391). */
+  show_products: boolean;
   position: number;
   /** Mode « offre commerçant » : bannière reliée à une promo. NULL = éditoriale. */
   merchant_slug: string | null;
@@ -93,7 +110,10 @@ export async function getActiveBanners(
       image_fit: (b.image_fit ?? "overlay") as PromoBanner["image_fit"],
       overlay_opacity:
         b.overlay_opacity != null ? Number(b.overlay_opacity) : 30,
-      // discount_value / min_subtotal arrivent en NUMERIC → number sûr.
+      template: b.template ?? null,
+      palette: b.palette ?? null,
+      show_products: b.show_products === true,
+      // discount_value / min_subtotal / prix produits arrivent en NUMERIC.
       offer: offer
         ? {
             ...offer,
@@ -105,6 +125,12 @@ export async function getActiveBanners(
               offer.min_subtotal_da != null
                 ? Number(offer.min_subtotal_da)
                 : null,
+            products: Array.isArray(offer.products)
+              ? offer.products.map((p) => ({
+                  ...p,
+                  price_da: Number(p.price_da),
+                }))
+              : null,
           }
         : null,
     };

@@ -4,7 +4,6 @@ import { useEffect, useState } from "react";
 import {
   Plus,
   Trash2,
-  ArrowRight,
   Loader2,
   ImagePlus,
   MapPin,
@@ -20,15 +19,16 @@ import {
   uploadBannerImage,
   searchOfferMerchants,
   listMerchantOffers,
+  listPromotionProducts,
   type BannerInput,
   type BannerZone,
   type OfferMerchantOption,
   type OfferOption,
+  type OfferProductLite,
 } from "@/app/admin/bannieres/actions";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import {
   ACCENTS,
-  ACCENT_CLASSES,
   ACCENT_LABELS,
   FIT_OPTIONS,
   resizeImage,
@@ -40,62 +40,78 @@ import {
   type AdminBanner,
   type Draft,
 } from "./banners-shared";
+import {
+  BannerCard,
+  PromoStyles,
+} from "@/components/customer/promo-banner-templates";
+import {
+  AUTO_MODEL,
+  PROMO_MODELS,
+  PALETTE_LABELS,
+  type PromoPalette,
+} from "@/lib/data/promo-banner-models";
+import type { PromoBanner } from "@/lib/data/promo-banners";
 
-function PreviewCard({ d }: { d: Draft }) {
-  const hasImg = !!d.image_url;
-  const scrim = hasImg && d.image_fit !== "overlay";
-  return (
-    <article
-      className={cn(
-        "relative flex flex-col justify-between overflow-hidden rounded-[20px] bg-gradient-to-br px-5 py-5 shadow-md",
-        ACCENT_CLASSES[d.accent]
-      )}
-      style={{ minHeight: 140 }}
-    >
-      {hasImg && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={d.image_url}
-          alt=""
-          className={cn(
-            "absolute inset-0 h-full w-full",
-            d.image_fit === "cover"
-              ? "object-cover"
-              : d.image_fit === "contain"
-                ? "object-contain"
-                : "object-cover mix-blend-overlay"
-          )}
-          style={
-            d.image_fit === "overlay"
-              ? { opacity: (d.overlay_opacity ?? 30) / 100 }
-              : undefined
+/** Reconstruit une PromoBanner « comme sur l'accueil » à partir du brouillon —
+ *  pour un APERÇU LIVE avec le VRAI rendu (modèle, palette, produits). */
+function draftToPreview(d: Draft, products: OfferProductLite[]): PromoBanner {
+  const isOffer = d.mode === "offer";
+  return {
+    id: "preview",
+    title: d.title || "Titre de la bannière",
+    subtitle: d.subtitle || null,
+    cta_label: d.cta_label || null,
+    image_url: d.image_url || null,
+    image_fit: d.image_fit,
+    overlay_opacity: d.overlay_opacity,
+    link: d.link || null,
+    accent: d.accent,
+    template: d.template && d.template !== "auto" ? d.template : null,
+    palette: d.palette || null,
+    show_products: isOffer ? d.show_products : false,
+    position: 0,
+    merchant_slug: null,
+    offer:
+      isOffer && d.promotion_id
+        ? {
+            promotion_id: d.promotion_id,
+            // L'aperçu s'appuie sur le MODÈLE choisi (le type réel n'est pas
+            // dans le brouillon) — placeholder neutre pour le mode « auto ».
+            type: "product_discount",
+            discount_kind: null,
+            discount_value: null,
+            code: null,
+            buy_qty: null,
+            get_qty: null,
+            gift_label: null,
+            min_subtotal_da: null,
+            title_fr: d.title || "",
+            title_ar: null,
+            ends_at:
+              d.ends_at && !isNaN(new Date(d.ends_at).getTime())
+                ? new Date(d.ends_at).toISOString()
+                : null,
+            merchant_id: d.merchant_id,
+            merchant_name: d.merchant_label,
+            merchant_slug: "",
+            products: d.show_products ? products : null,
           }
-        />
-      )}
-      {scrim && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-      )}
-      <div className="relative">
-        {d.mode === "offer" && d.offer_summary && (
-          <span className="mb-1.5 inline-flex items-center gap-1 rounded-full bg-white/20 px-2 py-0.5 text-[11px] font-bold backdrop-blur">
-            <Ticket className="size-3" />
-            {d.offer_summary}
-          </span>
-        )}
-        <h3 className="font-display text-lg leading-tight font-bold">
-          {d.title || "Titre de la bannière"}
-        </h3>
-        {d.subtitle && <p className="mt-1 text-sm opacity-90">{d.subtitle}</p>}
-      </div>
-      {d.cta_label && (
-        <div className="relative mt-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur">
-            {d.cta_label}
-            <ArrowRight className="size-3.5" />
-          </span>
-        </div>
-      )}
-    </article>
+        : null,
+  };
+}
+
+function PreviewCard({
+  d,
+  products,
+}: {
+  d: Draft;
+  products: OfferProductLite[];
+}) {
+  return (
+    <>
+      <PromoStyles />
+      <BannerCard banner={draftToPreview(d, products)} />
+    </>
   );
 }
 
@@ -483,6 +499,23 @@ export function BannerForm({
     setD((prev) => ({ ...prev, [k]: v }));
   const [uploading, setUploading] = useState(false);
   const [uploadErr, setUploadErr] = useState<string | null>(null);
+  // Produits de l'offre — pour l'aperçu « afficher les produits » (fetch léger).
+  const [previewProducts, setPreviewProducts] = useState<OfferProductLite[]>(
+    []
+  );
+  useEffect(() => {
+    if (d.mode !== "offer" || !d.show_products || !d.promotion_id) {
+      setPreviewProducts([]);
+      return;
+    }
+    let cancelled = false;
+    void listPromotionProducts(d.promotion_id).then((ps) => {
+      if (!cancelled) setPreviewProducts(ps);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [d.mode, d.show_products, d.promotion_id]);
 
   const onPickImage = async (file: File | undefined) => {
     if (!file) return;
@@ -535,7 +568,7 @@ export function BannerForm({
       {/* Aperçu live */}
       <div>
         <span className={LABEL}>Aperçu</span>
-        <PreviewCard d={d} />
+        <PreviewCard d={d} products={previewProducts} />
       </div>
 
       {/* Type de bannière */}
@@ -639,6 +672,61 @@ export function BannerForm({
             ))}
           </select>
         </div>
+      </div>
+
+      {/* Design de la card : modèle + palette + produits (aperçu live). */}
+      <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+        <div>
+          <span className={LABEL}>Design de la card</span>
+          <p className="text-muted text-[11px] leading-snug">
+            Choisis un <b>modèle</b> (avec illustration 3D) et, si besoin, force
+            une <b>palette</b>. « Automatique » = modèle selon le type de promo.
+            L&apos;aperçu ci-dessus se met à jour en direct.
+          </p>
+        </div>
+        <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+          <div>
+            <label className={LABEL}>Modèle</label>
+            <select
+              className={INPUT}
+              value={d.template}
+              onChange={(e) => set("template", e.target.value)}
+            >
+              <option value="auto">{AUTO_MODEL.label}</option>
+              {PROMO_MODELS.map((m) => (
+                <option key={m.key} value={m.key}>
+                  {m.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className={LABEL}>Dégradé</label>
+            <select
+              className={INPUT}
+              value={d.palette}
+              onChange={(e) => set("palette", e.target.value)}
+            >
+              <option value="">Automatique (celui du modèle)</option>
+              {(Object.keys(PALETTE_LABELS) as PromoPalette[]).map((p) => (
+                <option key={p} value={p}>
+                  {PALETTE_LABELS[p]}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+        {d.mode === "offer" && (
+          <label className="flex items-center gap-2 text-sm font-semibold">
+            <input
+              type="checkbox"
+              checked={d.show_products}
+              onChange={(e) => set("show_products", e.target.checked)}
+              className="size-4"
+            />
+            Afficher les produits concernés sur la card
+          </label>
+        )}
       </div>
 
       {/* Lien libre : uniquement en mode éditorial. En mode offre, le clic

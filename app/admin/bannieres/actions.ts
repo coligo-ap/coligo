@@ -36,6 +36,12 @@ export type BannerInput = {
   overlay_opacity: number;
   link: string;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
+  /** Modèle de card (mig 0391) — null / "auto" = déduit du type. */
+  template: string | null;
+  /** Dégradé forcé (mig 0391) — null = celui du modèle. */
+  palette: string | null;
+  /** Afficher les produits concernés sur la card (mig 0391). */
+  show_products: boolean;
   position: number;
   active: boolean;
   starts_at: string | null;
@@ -157,6 +163,9 @@ const bannerSchema = z.object({
     .default(30),
   link: z.string().trim().max(500),
   accent: z.enum(["violet", "coral", "mint", "amber", "dark"]),
+  template: z.string().trim().max(24).nullable().optional().default(null),
+  palette: z.string().trim().max(24).nullable().optional().default(null),
+  show_products: z.boolean().optional().default(false),
   position: z.coerce.number().int().min(0).max(9999),
   active: z.boolean(),
   starts_at: z.string().nullable(),
@@ -237,6 +246,10 @@ function toRow(
     // le lien libre est ignoré (redirection dérivée du slug commerçant).
     link: isOffer ? null : v.link || null,
     accent: v.accent,
+    template: v.template ?? null,
+    palette: v.palette ?? null,
+    // L'affichage des produits n'a de sens que pour une offre.
+    show_products: isOffer ? (v.show_products ?? false) : false,
     position: v.position,
     active: v.active,
     starts_at: v.starts_at || null,
@@ -464,6 +477,48 @@ export type OfferOption = {
   min_subtotal_da: number | null;
   ends_at: string | null;
 };
+
+export type OfferProductLite = {
+  id: string;
+  name_fr: string;
+  name_ar: string | null;
+  image_url: string | null;
+  price_da: number;
+};
+
+/** Produits concernés par une promo — pour l'APERÇU « afficher les produits ». */
+export async function listPromotionProducts(
+  promotionId: string
+): Promise<OfferProductLite[]> {
+  if (!(await adminCan("marketing"))) return [];
+  if (!promotionId) return [];
+  try {
+    const admin = createAdminClient();
+    const { data: links } = await admin
+      .from("promotion_products")
+      .select("product_id")
+      .eq("promotion_id", promotionId)
+      .limit(12);
+    const ids = ((links ?? []) as { product_id: string }[]).map(
+      (x) => x.product_id
+    );
+    if (!ids.length) return [];
+    const { data } = await admin
+      .from("products")
+      .select("id, name_fr, name_ar, image_url, price_da")
+      .in("id", ids)
+      .eq("is_available", true)
+      .order("price_da", { ascending: true })
+      .limit(8);
+    return ((data ?? []) as OfferProductLite[]).map((p) => ({
+      ...p,
+      price_da: Number(p.price_da),
+    }));
+  } catch (e) {
+    console.error("[listPromotionProducts] failed:", e);
+    return [];
+  }
+}
 
 /** Offres ACTIVES d'un commerçant, sélectionnables pour la bannière. */
 export async function listMerchantOffers(

@@ -70,7 +70,7 @@ export async function BannersView() {
     "promo_banners"
   )
     .select(
-      "id, title, subtitle, cta_label, image_url, image_fit, overlay_opacity, link, accent, position, active, starts_at, ends_at, promotion_id, merchant_id, geo_radius_km"
+      "id, title, subtitle, cta_label, image_url, image_fit, overlay_opacity, link, accent, template, palette, show_products, position, active, starts_at, ends_at, promotion_id, merchant_id, geo_radius_km"
     )
     .order("position", { ascending: true });
 
@@ -151,6 +151,9 @@ export async function BannersView() {
       geo_radius_km: b.geo_radius_km != null ? Number(b.geo_radius_km) : null,
       overlay_opacity:
         b.overlay_opacity != null ? Number(b.overlay_opacity) : 30,
+      template: b.template ?? null,
+      palette: b.palette ?? null,
+      show_products: b.show_products === true,
       zones: zonesByBanner.get(b.id) ?? [],
       merchant_name: m?.name ?? null,
       merchant_slug: m?.slug ?? null,

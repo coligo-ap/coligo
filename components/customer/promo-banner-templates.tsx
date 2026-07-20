@@ -3,68 +3,22 @@
 import { useEffect, useState } from "react";
 import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { PromoBanner } from "@/lib/data/promo-banners";
+import type { BannerProduct, PromoBanner } from "@/lib/data/promo-banners";
+import { resolveModel } from "@/lib/data/promo-banner-models";
 
 // =============================================================================
-// Templates de bannière promo — Lot 1 (rendu client, AUTO-mappé par type de
-// promo, ZÉRO migration). Portage des modèles de « coligo-collection-finale »
-// (ratio LARGE fixe 64/26 → même hauteur partout), fondus de marque + une
-// illustration 3D auto-hébergée par type (public/promo/*.png, extraites du
-// HTML de référence → licences maison, jamais de CDN externe).
+// Templates de bannière promo — carte LARGE à ratio FIXE 64/26 (même hauteur
+// partout), fondu de marque + illustration 3D auto-hébergée (public/promo/*.png)
+// OU bande de PRODUITS concernés. Modèle/palette/produits pilotés par le
+// super-admin (mig 0391), avec repli AUTO selon le type de promo (Lot 1).
 //
 // Le clic (détails, MerchantOfferSheet) reste géré par le carrousel — ici on ne
-// rend QUE le visuel de la carte. Le super-admin pourra surcharger modèle /
-// couleurs / image / produits au Lot 2.
+// rend QUE le visuel. Rendu sous un arbre « use client » → les nombres sont
+// groupés à la main (jamais Intl) pour rester SSR-safe.
 // =============================================================================
 
-/** Dégradés doux repris de la maquette (fondus de marque). */
-const GRAD = {
-  deliv: "linear-gradient(120deg,#7C3AED,#9B5CF0 35%,#BE93F2 65%,#DCC5F8)",
-  brand: "linear-gradient(120deg,#6D2FD8,#8B4BE8 35%,#C86BD9 65%,#F0619A)",
-  mint: "linear-gradient(120deg,#3F8D6C,#6AB08D 40%,#9FD3B6 75%,#5FA383)",
-  sky: "linear-gradient(120deg,#8B93E8,#A6B4EE 30%,#BCD0F2 55%,#8E9AE4)",
-  dusk: "linear-gradient(120deg,#1E3A5C,#33567F 30%,#6D7FA6 55%,#C9A24E 88%,#E4BE6A)",
-  slate: "linear-gradient(120deg,#16161e,#2a2340 60%,#3a2c5e)",
-} as const;
-
-type Art =
-  | "scooter"
-  | "percent"
-  | "megaphone"
-  | "confetti"
-  | "emoji-stars"
-  | "cashback";
-
-type Tpl = { grad: string; art?: Art; ride?: boolean; countdown?: boolean };
-
-/** Modèle AUTOMATIQUE selon le type de promo (offre) ou l'accent (éditoriale). */
-function templateFor(banner: PromoBanner): Tpl {
-  switch (banner.offer?.type) {
-    case "free_delivery":
-      return { grad: GRAD.deliv, art: "scooter", ride: true };
-    case "product_discount":
-      return { grad: GRAD.brand, art: "percent" };
-    case "promo_code":
-      return { grad: GRAD.brand, art: "megaphone" };
-    case "free_gift":
-      return { grad: GRAD.brand, art: "confetti" };
-    case "quantity_offer":
-      return { grad: GRAD.sky, art: "emoji-stars" };
-    case "anti_gaspillage":
-      return { grad: GRAD.mint, art: "emoji-stars" };
-    case "flash_sale":
-      return { grad: GRAD.dusk, art: "confetti", countdown: true };
-  }
-  // Bannière éditoriale (sans offre) : mappée sur l'accent existant.
-  const byAccent: Record<PromoBanner["accent"], Tpl> = {
-    violet: { grad: GRAD.brand, art: "megaphone" },
-    coral: { grad: GRAD.brand, art: "confetti" },
-    mint: { grad: GRAD.mint, art: "emoji-stars" },
-    amber: { grad: GRAD.dusk, art: "cashback" },
-    dark: { grad: GRAD.slate, art: "cashback" },
-  };
-  return byAccent[banner.accent] ?? { grad: GRAD.brand };
-}
+const grp = (n: number) =>
+  String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
 
 /** Styles d'animation injectés UNE fois (évite une dépendance globale). */
 export function PromoStyles() {
@@ -78,6 +32,56 @@ export function PromoStyles() {
       .promo-blink{animation:promoBlink 1s steps(1) infinite}
       @media (prefers-reduced-motion:reduce){.promo-bob,.promo-ride,.promo-blink{animation:none}}
     `}</style>
+  );
+}
+
+/** Prix promo d'un produit selon l'offre (percent / amount) — sinon null. */
+function promoPrice(price: number, offer: PromoBanner["offer"]): number | null {
+  if (!offer || offer.discount_value == null) return null;
+  if (offer.discount_kind === "percent")
+    return Math.max(0, Math.round(price * (1 - offer.discount_value / 100)));
+  if (offer.discount_kind === "amount")
+    return Math.max(0, price - offer.discount_value);
+  return null;
+}
+
+/** Mini-carte produit (affichage SEUL — le clic ouvre le détail de la card). */
+function MiniProduct({
+  p,
+  offer,
+}: {
+  p: BannerProduct;
+  offer: PromoBanner["offer"];
+}) {
+  const promo = promoPrice(p.price_da, offer);
+  return (
+    <div className="flex w-[62px] shrink-0 flex-col overflow-hidden rounded-[7px] border border-black/10 bg-white shadow-[0_6px_12px_-7px_rgba(0,0,0,.4)]">
+      <div className="grid h-9 place-items-center overflow-hidden bg-neutral-100">
+        {p.image_url && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={p.image_url}
+            alt=""
+            loading="lazy"
+            decoding="async"
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
+      <div className="px-1 pt-0.5 pb-1">
+        <div className="truncate text-[7px] font-semibold text-neutral-600">
+          {p.name_fr}
+        </div>
+        <div className="font-display text-[9.5px] leading-none font-extrabold text-[#C81428]">
+          {grp(promo ?? p.price_da)}
+          {promo != null && (
+            <span className="ms-0.5 text-[6.5px] font-medium text-neutral-400 line-through">
+              {grp(p.price_da)}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
   );
 }
 
@@ -109,18 +113,22 @@ function Countdown({ endsAt }: { endsAt: string }) {
 
 /** Carte visuelle d'une bannière (SANS le wrapper de clic). */
 export function BannerCard({ banner }: { banner: PromoBanner }) {
-  const tpl = templateFor(banner);
+  const { model, grad } = resolveModel(banner);
   const fit = banner.image_fit ?? "overlay";
   const hasImg = !!banner.image_url;
-  // Image PLEINE (cover) = la photo EST le héros → on masque l'illustration 3D
-  // pour ne pas surcharger. Sinon : dégradé de marque + illustration.
+  // Image PLEINE (cover) = la photo EST le héros → pas d'illustration ni de
+  // produits par-dessus.
   const coverImg = hasImg && fit === "cover";
-  const showArt = !!tpl.art && !coverImg;
+
+  const products = banner.offer?.products ?? [];
+  const showProducts = banner.show_products && products.length > 0 && !coverImg;
+  const art = model.art !== "none" ? model.art : null;
+  const showArt = !!art && !coverImg && !showProducts;
 
   return (
     <article
       className="relative aspect-[64/26] w-full overflow-hidden rounded-[16px] shadow-md"
-      style={{ background: tpl.grad }}
+      style={{ background: grad }}
     >
       {/* Image de fond optionnelle (fondu de marque + image derrière). */}
       {hasImg && (
@@ -146,8 +154,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
         />
       )}
 
-      {/* Voile GAUCHE : garantit un texte lisible sur n'importe quel dégradé /
-          image (jamais de texte pâle illisible). */}
+      {/* Voile GAUCHE : texte lisible sur n'importe quel dégradé / image. */}
       <div
         className="absolute inset-0"
         style={{
@@ -157,22 +164,28 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
         }}
       />
 
-      {/* Illustration 3D à droite. */}
-      {showArt && (
+      {/* Produits concernés (bande, affichage seul) OU illustration 3D. */}
+      {showProducts ? (
+        <div className="pointer-events-none absolute inset-y-0 right-0 z-[5] flex w-[46%] items-center gap-1.5 overflow-hidden pe-2.5">
+          {products.slice(0, 3).map((p) => (
+            <MiniProduct key={p.id} p={p} offer={banner.offer} />
+          ))}
+        </div>
+      ) : showArt ? (
         <div className="pointer-events-none absolute inset-y-0 right-[3%] z-[5] flex w-[40%] items-center justify-center">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={`/promo/${tpl.art}.png`}
+            src={`/promo/${art}.png`}
             alt=""
             loading="lazy"
             decoding="async"
             className={cn(
               "max-h-[86%] w-auto max-w-full object-contain drop-shadow-[0_12px_16px_rgba(20,10,50,.42)]",
-              tpl.ride ? "promo-ride" : "promo-bob"
+              model.ride ? "promo-ride" : "promo-bob"
             )}
           />
         </div>
-      )}
+      ) : null}
 
       {/* Texte à gauche. */}
       <div className="absolute inset-y-0 left-0 z-10 flex w-[62%] flex-col justify-center px-5 text-white">
@@ -184,7 +197,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
             {banner.subtitle}
           </p>
         )}
-        {tpl.countdown && banner.offer?.ends_at && (
+        {model.countdown && banner.offer?.ends_at && (
           <Countdown endsAt={banner.offer.ends_at} />
         )}
         {banner.cta_label && (

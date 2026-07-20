@@ -14,6 +14,12 @@ export type AdminBanner = {
   overlay_opacity: number;
   link: string | null;
   accent: "violet" | "coral" | "mint" | "amber" | "dark";
+  /** Modèle de card (mig 0391) — NULL / "auto" = déduit du type. */
+  template: string | null;
+  /** Dégradé forcé (mig 0391) — NULL = celui du modèle. */
+  palette: string | null;
+  /** Afficher les produits concernés sur la card (mig 0391). */
+  show_products: boolean;
   position: number;
   active: boolean;
   starts_at: string | null;
@@ -95,6 +101,9 @@ export function emptyDraft(): Draft {
     overlay_opacity: 30,
     link: "",
     accent: "violet",
+    template: "auto",
+    palette: "",
+    show_products: false,
     position: 0,
     active: true,
     starts_at: "",
@@ -120,6 +129,12 @@ export type Draft = {
   overlay_opacity: number;
   link: string;
   accent: AdminBanner["accent"];
+  /** Modèle de card ("auto" = selon le type). */
+  template: string;
+  /** Palette forcée ("" = celle du modèle). */
+  palette: string;
+  /** Afficher les produits concernés (offres). */
+  show_products: boolean;
   position: number;
   active: boolean;
   starts_at: string;
@@ -146,6 +161,9 @@ export function bannerToDraft(b: AdminBanner): Draft {
     overlay_opacity: b.overlay_opacity ?? 30,
     link: b.link ?? "",
     accent: b.accent,
+    template: b.template ?? "auto",
+    palette: b.palette ?? "",
+    show_products: b.show_products ?? false,
     position: b.position,
     active: b.active,
     starts_at: isoToLocalInput(b.starts_at),
@@ -171,6 +189,10 @@ export function draftToInput(d: Draft): BannerInput {
     overlay_opacity: d.overlay_opacity,
     link: isOffer ? "" : d.link,
     accent: d.accent,
+    template: d.template && d.template !== "auto" ? d.template : null,
+    palette: d.palette || null,
+    // L'affichage des produits n'a de sens que pour une offre commerçant.
+    show_products: isOffer ? d.show_products : false,
     position: Number(d.position) || 0,
     active: d.active,
     starts_at: localInputToIso(d.starts_at),
