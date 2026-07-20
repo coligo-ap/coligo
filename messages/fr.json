@@ -784,6 +784,7 @@
     "password": "Mot de passe",
     "forgotShort": "Oublié ?",
     "googleAuthFailed": "La connexion avec Google a échoué. Réessaie.",
+    "appleAuthFailed": "La connexion avec Apple a échoué. Réessaie.",
     "googleNativeUnavailable": "Connexion Google bientôt disponible dans l'app — utilise ton email en attendant.",
     "signingIn": "Connexion…",
     "notRegisteredYet": "Pas encore inscrit ?",
@@ -810,6 +811,7 @@
     "googleUnavailable": "Connexion Google indisponible.",
     "or": "ou",
     "continueWithGoogle": "Continuer avec Google",
+    "continueWithApple": "Continuer avec Apple",
     "modeLogin": "J'ai déjà un compte",
     "modeSignup": "Je crée mon compte"
   },

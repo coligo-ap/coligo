@@ -80,3 +80,67 @@ export async function signInWithGoogleNative(input: {
   );
   redirect(to);
 }
+
+export type NativeAppleState = { error?: string };
+
+/**
+ * Connexion « Sign in with Apple » depuis l'APK iOS, à partir de l'identityToken
+ * rendu par ASAuthorization (natif). Miroir de `signInWithGoogleNative` :
+ * `signInWithIdToken` côté serveur pose les cookies httpOnly. Pas de nonce (le
+ * natif n'en demande pas → aucun claim `nonce` à faire correspondre).
+ *
+ * Requis App Store 4.8 (login tiers équivalent à Google). Le provider Apple
+ * doit être activé dans Supabase (Client IDs = Service ID + bundle app).
+ */
+export async function signInWithAppleNative(input: {
+  idToken: string;
+  next?: string;
+  intent?: SocialIntent;
+}): Promise<NativeAppleState> {
+  const idToken = input.idToken?.trim();
+  if (!idToken) return { error: "Jeton Apple manquant." };
+
+  // Cohérence nonce (comme Google) : on ne transmet un nonce QUE si le jeton en
+  // porte un. Ici on n'en génère pas → le jeton n'en a pas → nonce omis.
+  let tokenHasNonce = false;
+  try {
+    const payload = JSON.parse(
+      Buffer.from(idToken.split(".")[1], "base64url").toString("utf8")
+    ) as { nonce?: string };
+    tokenHasNonce = typeof payload.nonce === "string" && payload.nonce !== "";
+  } catch {
+    /* payload illisible : Supabase tranchera */
+  }
+  if (tokenHasNonce) {
+    // Cas inattendu (le natif a mis un nonce alors qu'on n'en demande pas) : on
+    // ne peut pas le faire correspondre sans le nonce brut → échec propre.
+    return {
+      error: "La connexion avec Apple a échoué (nonce). Réessaie.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.auth.signInWithIdToken({
+    provider: "apple",
+    token: idToken,
+  });
+  if (error) {
+    console.error("signInWithIdToken (apple, natif) :", error.message);
+    if (/banned/i.test(error.message)) {
+      return {
+        error:
+          "Ce compte a été supprimé. Réessaie avec un autre compte, ou crée un nouveau compte avec ton email.",
+      };
+    }
+    return {
+      error: `La connexion avec Apple a échoué. Réessaie. [${error.message.slice(0, 90)}]`,
+    };
+  }
+
+  const to = await provisionSocialUser(
+    supabase,
+    safeNext(input.next),
+    input.intent === "merchant" ? "merchant" : "customer"
+  );
+  redirect(to);
+}

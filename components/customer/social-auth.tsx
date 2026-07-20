@@ -8,27 +8,28 @@ import {
   canUseNativeGoogle,
   NativeGoogleError,
 } from "@/lib/native/google-signin";
+import { canUseNativeApple, NativeAppleError } from "@/lib/native/apple-signin";
 import { isNative as isNativeApp } from "@/lib/native/context";
-import { signInWithGoogleNative } from "@/app/auth/actions";
+import {
+  signInWithGoogleNative,
+  signInWithAppleNative,
+} from "@/app/auth/actions";
 
 /**
- * Connexion Google du client. DEUX chemins, selon l'environnement :
+ * Connexions sociales du client — Apple ET Google. Deux chemins par provider :
  *
- *  • APK (Capacitor) → Sign-In Google NATIF. La WebView a son propre magasin de
- *    cookies, isolé de Chrome, et Google refuse l'OAuth dans une WebView
- *    embarquée : passer par le navigateur poserait la session au mauvais
- *    endroit. Le natif rend un `id_token`, échangé côté serveur.
- *  • Web (PWA / navigateur) → OAuth classique, redirection vers Google puis
- *    retour sur `/auth/callback`.
+ *  • APK (Capacitor) → feuille NATIVE (WebView à cookies isolés ; Google et
+ *    Apple refusent l'OAuth en WebView embarquée). Le natif rend un `id_token`
+ *    échangé côté serveur (`signInWith*Native`).
+ *  • Web (PWA/navigateur) → OAuth classique, retour sur `/auth/callback`.
+ *
+ * Apple (App Store 4.8) DOIT être proposé partout où Google l'est, sur iOS. Il
+ * est masqué sur Android NATIF (Google Play ne l'impose pas ; l'Apple natif n'y
+ * est pas pertinent) mais reste dispo sur le web.
  *
  * Les deux provisionnent le profil par `provisionSocialUser`, jamais deux fois.
- * Le provider doit être activé dans le Dashboard Supabase + les URLs de
- * redirection allowlistées.
- *
- * `intent="merchant"` (portail commerçant /login + /signup) : la même porte
- * Google, mais le provisioning cible l'espace COMMERÇANT — boutique existante
- * → /dashboard, sinon complétion de la boutique sur /signup/boutique. Les
- * `labels` FR figés gardent l'espace commerçant hors i18n (client seul traduit).
+ * Les providers doivent être activés dans Supabase + URLs de redirection
+ * allowlistées. `intent="merchant"` cible l'espace COMMERÇANT (libellés FR figés).
  */
 export function SocialAuth({
   next,
@@ -40,94 +41,124 @@ export function SocialAuth({
   labels?: { or: string; button: string; error: string };
 }) {
   const t = useTranslations("auth");
-  // Espace commerçant non traduit (client seul) → libellés FR figés par défaut.
   const merchantDefaults =
     intent === "merchant"
       ? {
           or: "ou",
-          button: "Continuer avec Google",
-          error: "La connexion Google a échoué. Réessayez.",
+          google: "Continuer avec Google",
+          apple: "Continuer avec Apple",
+          error: "La connexion a échoué. Réessayez.",
         }
       : null;
   const or = labels?.or ?? merchantDefaults?.or ?? t("or");
-  const buttonLabel =
-    labels?.button ?? merchantDefaults?.button ?? t("continueWithGoogle");
-  const errorLabel =
+  const googleLabel =
+    labels?.button ?? merchantDefaults?.google ?? t("continueWithGoogle");
+  const appleLabel = merchantDefaults?.apple ?? t("continueWithApple");
+  const googleError =
     labels?.error ?? merchantDefaults?.error ?? t("googleAuthFailed");
-  // App native sans config Google (iOS sans client OAuth iOS) : message
-  // dédié — surtout PAS le repli OAuth web (éjection Safari).
+  const appleError = merchantDefaults?.error ?? t("appleAuthFailed");
   const nativeUnavailableLabel =
     intent === "merchant"
       ? "Connexion Google bientôt disponible dans l'app — utilisez votre email."
       : t("googleNativeUnavailable");
-  const [loading, setLoading] = useState(false);
-  // Erreur INLINE sous le bouton (cf. CLAUDE.md : pas de toast sur une action
-  // de bouton). L'utilisateur regarde le bouton, pas le coin de l'écran.
+
+  const [loading, setLoading] = useState<"google" | "apple" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  /** APK : feuille Google native → jeton → session posée par l'action serveur. */
-  async function signInNative() {
-    const { nativeGoogleIdToken } = await import("@/lib/native/google-signin");
-    const { idToken, nonce } = await nativeGoogleIdToken();
-    // En cas de succès l'action `redirect()` : la promesse ne revient jamais.
-    const res = await signInWithGoogleNative({ idToken, nonce, next, intent });
-    if (res?.error) setError(res.error);
-  }
+  // Apple : iOS natif (feuille native) OU web (OAuth). Masqué sur Android natif.
+  const showApple = canUseNativeApple() || !isNativeApp();
 
-  /** Web : redirection vers Google, retour sur /auth/callback. */
-  async function signInWeb() {
-    const supabase = createClient();
+  const oauthRedirect = () => {
     const qs = new URLSearchParams();
     if (next && next !== "/") qs.set("next", next);
     if (intent !== "customer") qs.set("intent", intent);
     const params = qs.size > 0 ? `?${qs.toString()}` : "";
-    const { error: err } = await supabase.auth.signInWithOAuth({
-      provider: "google",
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback${params}`,
-      },
-    });
-    // Succès → le navigateur part vers Google, ce code ne reprend pas la main.
-    if (err) throw new Error(err.message);
-  }
+    return `${window.location.origin}/auth/callback${params}`;
+  };
 
+  /* ─────────────── Google ─────────────── */
   async function signInGoogle() {
-    setLoading(true);
+    setLoading("google");
     setError(null);
     try {
       if (canUseNativeGoogle()) {
-        await signInNative();
+        const { nativeGoogleIdToken } =
+          await import("@/lib/native/google-signin");
+        const { idToken, nonce } = await nativeGoogleIdToken();
+        const res = await signInWithGoogleNative({
+          idToken,
+          nonce,
+          next,
+          intent,
+        });
+        if (res?.error) setError(res.error);
       } else if (isNativeApp()) {
-        // App SANS config Google native (ex. iOS sans client OAuth iOS) :
-        // ne JAMAIS basculer sur l'OAuth web — dans la WebView, Google est
-        // un hôte externe → éjection vers Safari et session perdue hors de
-        // l'app. Message inline, connexion email toujours possible.
         setError(nativeUnavailableLabel);
-        setLoading(false);
+        setLoading(null);
         return;
       } else {
-        await signInWeb();
+        const supabase = createClient();
+        const { error: err } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: { redirectTo: oauthRedirect() },
+        });
+        if (err) throw new Error(err.message);
       }
     } catch (e) {
-      // Fermer la feuille Google n'est pas une erreur : on se tait.
       if (e instanceof NativeGoogleError && e.cancelled) {
-        setLoading(false);
+        setLoading(null);
         return;
       }
       console.error("connexion Google :", e);
-      // En APP : la cause native exacte est ajoutée entre parenthèses —
-      // sans elle, impossible de diagnostiquer à distance (pas de console
-      // accessible sur un iPhone de testeur).
       const detail =
         isNativeApp() && e instanceof Error && e.message
           ? ` (${e.message.slice(0, 140)})`
           : "";
-      setError(errorLabel + detail);
-      setLoading(false);
+      setError(googleError + detail);
+      setLoading(null);
       return;
     }
-    setLoading(false);
+    setLoading(null);
   }
+
+  /* ─────────────── Apple ─────────────── */
+  async function signInApple() {
+    setLoading("apple");
+    setError(null);
+    try {
+      if (canUseNativeApple()) {
+        const { nativeAppleIdToken } =
+          await import("@/lib/native/apple-signin");
+        const { idToken } = await nativeAppleIdToken();
+        const res = await signInWithAppleNative({ idToken, next, intent });
+        if (res?.error) setError(res.error);
+      } else {
+        // Web : OAuth Apple classique, retour sur /auth/callback.
+        const supabase = createClient();
+        const { error: err } = await supabase.auth.signInWithOAuth({
+          provider: "apple",
+          options: { redirectTo: oauthRedirect() },
+        });
+        if (err) throw new Error(err.message);
+      }
+    } catch (e) {
+      if (e instanceof NativeAppleError && e.cancelled) {
+        setLoading(null);
+        return;
+      }
+      console.error("connexion Apple :", e);
+      const detail =
+        isNativeApp() && e instanceof Error && e.message
+          ? ` (${e.message.slice(0, 140)})`
+          : "";
+      setError(appleError + detail);
+      setLoading(null);
+      return;
+    }
+    setLoading(null);
+  }
+
+  const busy = loading !== null;
 
   return (
     <div className="space-y-3">
@@ -137,18 +168,35 @@ export function SocialAuth({
         <span className="border-border h-px flex-1 border-t" />
       </div>
 
+      {/* Apple d'abord (recommandation HIG) — masqué sur Android natif. */}
+      {showApple && (
+        <button
+          type="button"
+          onClick={signInApple}
+          disabled={busy}
+          className="flex h-12 w-full items-center justify-center gap-2.5 rounded-[12px] bg-black text-sm font-bold text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
+        >
+          {loading === "apple" ? (
+            <Loader2 className="size-4 animate-spin" />
+          ) : (
+            <AppleIcon className="size-[18px]" />
+          )}
+          {appleLabel}
+        </button>
+      )}
+
       <button
         type="button"
         onClick={signInGoogle}
-        disabled={loading}
+        disabled={busy}
         className="border-border bg-surface hover:bg-surface-2 flex h-12 w-full items-center justify-center gap-3 rounded-[12px] border text-sm font-bold transition-colors disabled:opacity-60"
       >
-        {loading ? (
+        {loading === "google" ? (
           <Loader2 className="size-4 animate-spin" />
         ) : (
           <GoogleIcon className="size-5" />
         )}
-        {buttonLabel}
+        {googleLabel}
       </button>
 
       {error && (
@@ -160,6 +208,19 @@ export function SocialAuth({
         </p>
       )}
     </div>
+  );
+}
+
+function AppleIcon({ className }: { className?: string }) {
+  return (
+    <svg
+      className={className}
+      viewBox="0 0 24 24"
+      fill="currentColor"
+      aria-hidden
+    >
+      <path d="M16.365 1.43c0 1.14-.493 2.27-1.177 3.08-.744.9-1.99 1.57-2.987 1.57-.12 0-.23-.02-.3-.03-.01-.06-.04-.22-.04-.39 0-1.15.572-2.27 1.206-2.98.804-.94 2.142-1.64 3.248-1.68.03.13.05.28.05.43zm4.565 15.71c-.03.07-.463 1.58-1.518 3.12-.945 1.34-1.94 2.71-3.43 2.71-1.517 0-1.9-.88-3.63-.88-1.698 0-2.302.91-3.67.91-1.377 0-2.332-1.26-3.428-2.8-1.287-1.82-2.323-4.63-2.323-7.28 0-4.28 2.797-6.55 5.552-6.55 1.448 0 2.675.95 3.6.95.865 0 2.222-1.01 3.902-1.01.613 0 2.886.06 4.374 2.19-.13.09-2.383 1.37-2.383 4.19 0 3.26 2.854 4.42 2.955 4.45z" />
+    </svg>
   );
 }
 

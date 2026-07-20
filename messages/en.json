@@ -784,6 +784,7 @@
     "password": "Password",
     "forgotShort": "Forgot?",
     "googleAuthFailed": "Signing in with Google failed. Try again.",
+    "appleAuthFailed": "Signing in with Apple failed. Try again.",
     "googleNativeUnavailable": "Google sign-in is coming to the app soon — use your email for now.",
     "signingIn": "Signing in…",
     "notRegisteredYet": "Not registered yet?",
@@ -810,6 +811,7 @@
     "googleUnavailable": "Google sign-in unavailable.",
     "or": "or",
     "continueWithGoogle": "Continue with Google",
+    "continueWithApple": "Continue with Apple",
     "modeLogin": "I already have an account",
     "modeSignup": "Create my account"
   },

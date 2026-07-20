@@ -784,6 +784,7 @@
     "password": "كلمة المرور",
     "forgotShort": "نسيتها؟",
     "googleAuthFailed": "فشل تسجيل الدخول عبر غوغل. أعد المحاولة.",
+    "appleAuthFailed": "فشل تسجيل الدخول عبر Apple. أعد المحاولة.",
     "googleNativeUnavailable": "تسجيل الدخول عبر غوغل سيتوفر قريبًا في التطبيق — استعمل بريدك الإلكتروني حاليًا.",
     "signingIn": "جارٍ تسجيل الدخول…",
     "notRegisteredYet": "ليس لديك حساب بعد؟",
@@ -810,6 +811,7 @@
     "googleUnavailable": "تسجيل الدخول عبر غوغل غير متاح.",
     "or": "أو",
     "continueWithGoogle": "المتابعة عبر غوغل",
+    "continueWithApple": "المتابعة عبر Apple",
     "modeLogin": "لدي حساب بالفعل",
     "modeSignup": "أُنشئ حسابي"
   },
