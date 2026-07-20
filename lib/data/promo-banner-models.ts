@@ -39,6 +39,31 @@ export type PromoArt =
   | "cashback"
   | "none";
 
+export const ART_LABELS: Record<PromoArt, string> = {
+  scooter: "Scooter Coligo",
+  percent: "Réduction 3D « % »",
+  megaphone: "Mégaphone",
+  confetti: "Confettis",
+  "emoji-stars": "Étoiles",
+  cashback: "Cashback 3D",
+  none: "Aucune illustration",
+};
+
+/**
+ * Illustrations 3D proposables au super-admin. Pour ENRICHIR le pack : déposer
+ * un PNG dans `public/promo/<clé>.png`, l'ajouter à `PromoArt` + `ART_LABELS`
+ * + ici. Tout est auto-hébergé (aucun CDN externe).
+ */
+export const ILLUSTRATIONS: PromoArt[] = [
+  "scooter",
+  "percent",
+  "megaphone",
+  "confetti",
+  "emoji-stars",
+  "cashback",
+  "none",
+];
+
 export type PromoModel = {
   /** Clé stockée (`promo_banners.template`). */
   key: string;
@@ -160,7 +185,13 @@ export function resolveModel(banner: PromoBanner): {
     banner.template && banner.template !== "auto"
       ? modelByKey(banner.template)
       : null;
-  const model = chosen ?? autoModel(banner);
-  const palette = (banner.palette as PromoPalette) || model.palette;
+  const base = chosen ?? autoModel(banner);
+  const palette = (banner.palette as PromoPalette) || base.palette;
+  // Illustration FORCÉE (mig 0392) : "auto" / null = celle du modèle.
+  const artOverride =
+    banner.illustration && banner.illustration !== "auto"
+      ? (banner.illustration as PromoArt)
+      : null;
+  const model = artOverride ? { ...base, art: artOverride } : base;
   return { model, grad: PROMO_GRAD[palette] ?? PROMO_GRAD.brand };
 }

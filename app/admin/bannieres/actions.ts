@@ -40,6 +40,8 @@ export type BannerInput = {
   template: string | null;
   /** Dégradé forcé (mig 0391) — null = celui du modèle. */
   palette: string | null;
+  /** Illustration 3D forcée (mig 0392) — null / "auto" = celle du modèle. */
+  illustration: string | null;
   /** Afficher les produits concernés sur la card (mig 0391). */
   show_products: boolean;
   position: number;
@@ -165,6 +167,7 @@ const bannerSchema = z.object({
   accent: z.enum(["violet", "coral", "mint", "amber", "dark"]),
   template: z.string().trim().max(24).nullable().optional().default(null),
   palette: z.string().trim().max(24).nullable().optional().default(null),
+  illustration: z.string().trim().max(24).nullable().optional().default(null),
   show_products: z.boolean().optional().default(false),
   position: z.coerce.number().int().min(0).max(9999),
   active: z.boolean(),
@@ -248,6 +251,7 @@ function toRow(
     accent: v.accent,
     template: v.template ?? null,
     palette: v.palette ?? null,
+    illustration: v.illustration ?? null,
     // L'affichage des produits n'a de sens que pour une offre.
     show_products: isOffer ? (v.show_products ?? false) : false,
     position: v.position,

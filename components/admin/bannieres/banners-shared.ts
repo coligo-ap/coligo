@@ -18,6 +18,8 @@ export type AdminBanner = {
   template: string | null;
   /** Dégradé forcé (mig 0391) — NULL = celui du modèle. */
   palette: string | null;
+  /** Illustration 3D forcée (mig 0392) — NULL / "auto" = celle du modèle. */
+  illustration: string | null;
   /** Afficher les produits concernés sur la card (mig 0391). */
   show_products: boolean;
   position: number;
@@ -103,6 +105,7 @@ export function emptyDraft(): Draft {
     accent: "violet",
     template: "auto",
     palette: "",
+    illustration: "auto",
     show_products: false,
     position: 0,
     active: true,
@@ -133,6 +136,8 @@ export type Draft = {
   template: string;
   /** Palette forcée ("" = celle du modèle). */
   palette: string;
+  /** Illustration forcée ("auto" = celle du modèle). */
+  illustration: string;
   /** Afficher les produits concernés (offres). */
   show_products: boolean;
   position: number;
@@ -163,6 +168,7 @@ export function bannerToDraft(b: AdminBanner): Draft {
     accent: b.accent,
     template: b.template ?? "auto",
     palette: b.palette ?? "",
+    illustration: b.illustration ?? "auto",
     show_products: b.show_products ?? false,
     position: b.position,
     active: b.active,
@@ -191,6 +197,8 @@ export function draftToInput(d: Draft): BannerInput {
     accent: d.accent,
     template: d.template && d.template !== "auto" ? d.template : null,
     palette: d.palette || null,
+    illustration:
+      d.illustration && d.illustration !== "auto" ? d.illustration : null,
     // L'affichage des produits n'a de sens que pour une offre commerçant.
     show_products: isOffer ? d.show_products : false,
     position: Number(d.position) || 0,

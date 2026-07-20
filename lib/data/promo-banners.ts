@@ -63,6 +63,8 @@ export type PromoBanner = {
   template: string | null;
   /** Dégradé forcé (mig 0391) — NULL = celui du modèle. */
   palette: string | null;
+  /** Illustration 3D forcée (mig 0392) — NULL / "auto" = celle du modèle. */
+  illustration: string | null;
   /** Afficher les produits concernés sur la card (mig 0391). */
   show_products: boolean;
   position: number;
@@ -112,6 +114,7 @@ export async function getActiveBanners(
         b.overlay_opacity != null ? Number(b.overlay_opacity) : 30,
       template: b.template ?? null,
       palette: b.palette ?? null,
+      illustration: b.illustration ?? null,
       show_products: b.show_products === true,
       // discount_value / min_subtotal / prix produits arrivent en NUMERIC.
       offer: offer

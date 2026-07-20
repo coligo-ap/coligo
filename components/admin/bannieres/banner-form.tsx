@@ -48,6 +48,8 @@ import {
   AUTO_MODEL,
   PROMO_MODELS,
   PALETTE_LABELS,
+  ILLUSTRATIONS,
+  ART_LABELS,
   type PromoPalette,
 } from "@/lib/data/promo-banner-models";
 import type { PromoBanner } from "@/lib/data/promo-banners";
@@ -68,6 +70,8 @@ function draftToPreview(d: Draft, products: OfferProductLite[]): PromoBanner {
     accent: d.accent,
     template: d.template && d.template !== "auto" ? d.template : null,
     palette: d.palette || null,
+    illustration:
+      d.illustration && d.illustration !== "auto" ? d.illustration : null,
     show_products: isOffer ? d.show_products : false,
     position: 0,
     merchant_slug: null,
@@ -715,6 +719,25 @@ export function BannerForm({
               ))}
             </select>
           </div>
+        </div>
+        <div>
+          <label className={LABEL}>Illustration 3D</label>
+          <select
+            className={INPUT}
+            value={d.illustration}
+            onChange={(e) => set("illustration", e.target.value)}
+          >
+            <option value="auto">Automatique (celle du modèle)</option>
+            {ILLUSTRATIONS.map((a) => (
+              <option key={a} value={a}>
+                {ART_LABELS[a]}
+              </option>
+            ))}
+          </select>
+          <p className="text-muted mt-1 text-[11px]">
+            Force n&apos;importe quelle illustration 3D, indépendamment du
+            modèle (ou « Aucune »).
+          </p>
         </div>
         {d.mode === "offer" && (
           <label className="flex items-center gap-2 text-sm font-semibold">
