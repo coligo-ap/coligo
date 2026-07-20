@@ -3,31 +3,46 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import "maplibre-gl/dist/maplibre-gl.css";
-import { Clock, ExternalLink, MapPin } from "lucide-react";
+import { ExternalLink, Navigation } from "lucide-react";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
- * Carte montrant la position du livreur (live via watchPosition) et sa cible.
- * Trace le VRAI itinéraire routier (OSRM) + affiche l'ETA « ~X min · Y km ».
- *
- * DEUX JAMBES quand `via` est fourni : livreur → commerçant (trait plein) puis
- * commerçant → client (trait clair). C'est ce que le livreur doit voir AVANT
- * d'accepter une course : où il va chercher, et où il livre ensuite.
- *
- * - Itinéraire le long des rues via lib/delivery/routing.ts ; repli sur une
- *   ligne droite (en pointillés) si le routage est indisponible.
- * - Bouton « Ouvrir dans Google Maps » pour le guidage virage-par-virage.
+ * Carte de TRAÇAGE de la course (avant / pendant l'offre). Elle montre d'un coup
+ * d'œil, avec un CODE COULEUR net :
+ *   • MOI (livreur) — pastille VIOLETTE qui pulse (position live).
+ *   • Commerçant (RETRAIT) — pin AMBRE 🏪.
+ *   • Client (LIVRAISON) — pin VERT 🏠.
+ *   • Jambe 1 (moi → commerçant) — trait VIOLET plein.
+ *   • Jambe 2 (commerçant → client) — trait VERT plein.
+ * Le tracé suit les VRAIES rues (OSRM, lib/delivery/routing.ts) et l'ETA est
+ * calculée façon SCOOTER (lib/delivery/scooter.ts). Badges de distance par jambe
+ * en surimpression. Repli ligne droite pointillée si le routage est indispo.
  */
 
 type LatLng = { lat: number; lng: number };
+
+const VIOLET = "#6c2bd9";
+const GREEN = "#16b364";
+const AMBER = "#f59e0b";
+
+const fmtKm = (km: number | null | undefined) =>
+  km == null ? "—" : km.toFixed(1).replace(".", ",");
+
+/** Pin plat (cercle coloré + anneau blanc + ombre légère, PAS de 3D). */
+function pinHtml(color: string, iconPath: string) {
+  return `<div style="width:30px;height:30px;border-radius:50%;background:${color};display:grid;place-items:center;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(11,12,18,.28)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg></div>`;
+}
+const STORE_PATH = '<path d="M3 9l1-5h16l1 5M5 9v11h14V9M9 13h6"/>';
+const HOME_PATH = '<path d="M3 11l9-8 9 8M5 10v10h14V10"/>';
 
 export function DeliveryRouteMap({
   target,
   via,
   label,
+  targetKind = "drop",
   height = 220,
   fill = false,
 }: {
@@ -36,6 +51,8 @@ export function DeliveryRouteMap({
   via?: LatLng | null;
   /** Libellé optionnel au-dessus de la carte (ex. « Vers le client »). */
   label?: string;
+  /** Nature de la cible en mode 1 jambe : retrait (violet) ou livraison (vert). */
+  targetKind?: "pickup" | "drop";
   /** Hauteur en px ou string CSS. Inline pour échapper à la purge Tailwind. */
   height?: number | string;
   /** Remplit son parent : ni cadre, ni libellé, ni bouton Google Maps. */
@@ -47,9 +64,13 @@ export function DeliveryRouteMap({
   const coords = useDriverPosition();
   const [mapReady, setMapReady] = useState(false);
   const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [mapError, setMapError] = useState<string | null>(null);
 
   const from = coords ? { lat: coords.latitude, lng: coords.longitude } : null;
+  // Couleur de la jambe 1 : violet si elle mène au commerçant (retrait), sinon
+  // la nature de la cible (une tournée mène directement au client = vert).
+  const leg1Color = via ? VIOLET : targetKind === "pickup" ? VIOLET : GREEN;
   // Jambe 1 : du livreur vers son PREMIER arrêt (le commerçant s'il y en a un).
   const { path } = useRoute(from, via ?? target, true);
   // Jambe 2 : du commerçant vers le client. Le hook s'auto-désactive sans `via`.
@@ -73,20 +94,21 @@ export function DeliveryRouteMap({
         });
         mapRef.current = map;
 
-        // Marqueur du commerçant (étape intermédiaire) — pastille violette.
+        // Marqueur du commerçant (étape RETRAIT) — pin ambre 🏪.
         if (via) {
           const viaEl = document.createElement("div");
-          viaEl.innerHTML =
-            '<div style="background:#6c2bd9;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:13px;">🏪</div>';
+          viaEl.innerHTML = pinHtml(AMBER, STORE_PATH);
           new Marker({ element: viaEl })
             .setLngLat([via.lng, via.lat])
             .addTo(map);
         }
 
-        // Marqueur cible — rouge vif.
+        // Marqueur cible — vert 🏠 (livraison) ou ambre 🏪 (retrait direct).
         const targetEl = document.createElement("div");
         targetEl.innerHTML =
-          '<div style="background:#dc2626;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:14px;">●</div>';
+          via || targetKind === "drop"
+            ? pinHtml(GREEN, HOME_PATH)
+            : pinHtml(AMBER, STORE_PATH);
         new Marker({ element: targetEl })
           .setLngLat([target.lng, target.lat])
           .addTo(map);
@@ -112,9 +134,9 @@ export function DeliveryRouteMap({
             type: "line",
             source: "route",
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": "#6c2bd9", "line-width": 5 },
+            paint: { "line-color": leg1Color, "line-width": 5 },
           });
-          // Seconde jambe, dessinée SOUS la première : plus claire, plus fine.
+          // Seconde jambe (commerçant → client) : VERTE, dessinée sous la 1re.
           map.addSource("route-2", {
             type: "geojson",
             data: {
@@ -129,11 +151,7 @@ export function DeliveryRouteMap({
               type: "line",
               source: "route-2",
               layout: { "line-cap": "round", "line-join": "round" },
-              paint: {
-                "line-color": "#a78bfa",
-                "line-width": 4,
-                "line-dasharray": [1.5, 1.2],
-              },
+              paint: { "line-color": GREEN, "line-width": 4.5 },
             },
             "route-line"
           );
@@ -161,11 +179,14 @@ export function DeliveryRouteMap({
       disposed = true;
       mapRef.current?.remove();
       mapRef.current = null;
+      // Carte recréée si la cible/étape change : on oublie le marqueur livreur
+      // de l'ancienne carte pour qu'il soit recréé sur la nouvelle.
+      driverMarkerRef.current = null;
     };
     // `via` est lu à l'init (marqueur du commerçant) : il en est une dépendance.
   }, [target.lat, target.lng, via?.lat, via?.lng]);
 
-  // Met à jour le marqueur livreur + recadre quand la position change.
+  // Met à jour le marqueur livreur (pastille violette qui pulse) + recadre.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !coords) return;
@@ -174,9 +195,11 @@ export function DeliveryRouteMap({
       const { Marker, LngLatBounds } = mod;
       if (!driverMarkerRef.current) {
         const el = document.createElement("div");
-        el.innerHTML =
-          '<div style="background:#6c2bd9;color:#fff;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-weight:bold;font-size:11px;">🚗</div>';
-        driverMarkerRef.current = new Marker({ element: el })
+        el.style.cssText = "position:relative;width:20px;height:20px";
+        el.innerHTML = `
+          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.22);animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:${VIOLET};border:3px solid #fff;box-shadow:0 1px 4px rgba(11,12,18,.3)"></div>`;
+        driverMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);
       } else {
@@ -188,14 +211,20 @@ export function DeliveryRouteMap({
           .extend([coords.longitude, coords.latitude])
           .extend([target.lng, target.lat]);
         if (via) bounds.extend([via.lng, via.lat]);
-        map.fitBounds(bounds, { padding: 60, duration: 600, maxZoom: 15 });
+        map.fitBounds(bounds, {
+          // En mode `fill` (offre), la carte d'offre couvre le bas : gros padding
+          // bas pour remonter le tracé + les marqueurs dans la bande VISIBLE.
+          padding: fill ? { top: 84, bottom: 280, left: 48, right: 48 } : 56,
+          duration: 600,
+          maxZoom: 15,
+        });
       } catch {
         /* fallback : reste sur le marqueur cible */
       }
     });
-  }, [coords, target.lat, target.lng, via?.lat, via?.lng]);
+  }, [coords, target.lat, target.lng, via?.lat, via?.lng, fill]);
 
-  // Trace l'itinéraire routier (ou la ligne droite de repli) dès qu'on l'a.
+  // Trace la jambe 1 (routier ou ligne droite de repli) dès qu'on l'a.
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !path) return;
@@ -209,8 +238,6 @@ export function DeliveryRouteMap({
         properties: {},
         geometry: { type: "LineString", coordinates: path.coordinates },
       });
-      // Pointillés si on est sur le repli (trajet approximatif), plein sinon
-      // (undefined = on retire l'override → ligne pleine par défaut).
       map.setPaintProperty(
         "route-line",
         "line-dasharray",
@@ -235,19 +262,19 @@ export function DeliveryRouteMap({
         properties: {},
         geometry: { type: "LineString", coordinates: path2.coordinates },
       });
+      map.setPaintProperty(
+        "route-line-2",
+        "line-dasharray",
+        path2.source === "fallback" ? [2, 2] : undefined
+      );
     };
     if (map.isStyleLoaded()) apply();
     else map.once("idle", apply);
   }, [path2]);
 
-  const distanceKm =
-    path?.distanceKm ??
-    (coords
-      ? haversineKm(
-          { lat: coords.latitude, lng: coords.longitude },
-          { lat: target.lat, lng: target.lng }
-        )
-      : null);
+  const leg1Km =
+    path?.distanceKm ?? (from ? haversineKm(from, via ?? target) : null);
+  const leg2Km = via ? (path2?.distanceKm ?? null) : null;
 
   const gmapsUrl = `https://www.google.com/maps/dir/?api=1&destination=${target.lat},${target.lng}&travelmode=driving`;
 
@@ -262,7 +289,7 @@ export function DeliveryRouteMap({
         className={
           fill
             ? "bg-surface-2 absolute inset-0 overflow-hidden"
-            : "bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
+            : "bg-surface-2 relative w-full overflow-hidden rounded-[14px]"
         }
         style={
           fill
@@ -278,8 +305,8 @@ export function DeliveryRouteMap({
 
         {!mapReady && !mapError && (
           <div className="text-muted pointer-events-none absolute inset-0 flex items-center justify-center gap-2 bg-white/60 text-sm">
-            <ExternalLink className="size-4 animate-pulse" />
-            Chargement de la carte…
+            <Navigation className="size-4 animate-pulse" />
+            {tr("Chargement de la carte…", "جارٍ تحميل الخريطة…")}
           </div>
         )}
         {mapError && (
@@ -290,23 +317,37 @@ export function DeliveryRouteMap({
 
         {mapReady && !coords && (
           <div className="bg-surface/90 absolute top-2 left-1/2 -translate-x-1/2 rounded-full border px-3 py-1 text-xs">
-            Activation GPS…
+            {tr("Activation GPS…", "تفعيل GPS…")}
           </div>
         )}
-        {(distanceKm != null || path != null) && (
-          <div className="bg-primary-600/95 absolute top-2 left-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold text-white">
-            {path != null ? (
-              <>
-                <Clock className="size-3" />~{path.durationMin} min
-                <span className="opacity-80">
-                  · {path.distanceKm.toFixed(1)} km
-                </span>
-              </>
-            ) : (
-              <>
-                <MapPin className="size-3" />
-                {distanceKm!.toFixed(1)} km
-              </>
+
+        {/* Badges de distance CODE COULEUR par jambe (retrait violet / livraison
+            vert), en surimpression haut-gauche. Distance = info « d'un coup
+            d'œil » ; le temps total vit dans la carte d'offre (pas de doublon). */}
+        {(leg1Km != null || leg2Km != null) && (
+          <div className="pointer-events-none absolute top-2.5 left-2.5 flex flex-col gap-1.5">
+            {leg1Km != null && (
+              <span
+                className="inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white shadow-sm backdrop-blur"
+                style={{ background: `${via ? VIOLET : leg1Color}ee` }}
+              >
+                <span className="size-2 rounded-full bg-white/90" />
+                {via
+                  ? tr("Retrait", "استلام")
+                  : targetKind === "pickup"
+                    ? tr("Retrait", "استلام")
+                    : tr("Livraison", "توصيل")}{" "}
+                · {fmtKm(leg1Km)} km
+              </span>
+            )}
+            {leg2Km != null && (
+              <span
+                className="inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white shadow-sm backdrop-blur"
+                style={{ background: `${GREEN}ee` }}
+              >
+                <span className="size-2 rounded-full bg-white/90" />
+                {tr("Livraison", "توصيل")} · {fmtKm(leg2Km)} km
+              </span>
             )}
           </div>
         )}
@@ -316,10 +357,10 @@ export function DeliveryRouteMap({
           href={gmapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="border-border bg-surface flex w-full items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-sm font-semibold"
+          className="border-border bg-surface flex w-full items-center justify-center gap-1.5 rounded-[12px] border px-3 py-2 text-sm font-semibold"
         >
           <ExternalLink className="size-4" />
-          Ouvrir l&apos;itinéraire dans Google Maps
+          {tr("Ouvrir dans Google Maps", "افتح في خرائط Google")}
         </a>
       )}
     </div>

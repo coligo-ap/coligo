@@ -12,7 +12,6 @@ import { getPosition } from "@/lib/native/geolocation";
 import { DeliveryValidationDialog } from "./delivery-validation-dialog";
 import { PostDeliveryFeedback } from "./post-delivery-feedback";
 import { DriverLocationBroadcaster } from "./driver-location-broadcaster";
-import { ChevronDown, LifeBuoy } from "lucide-react";
 import { openSupportChat } from "@/components/support/tawk-chat";
 import { ExpressOffer } from "./express-offer";
 import { ExpressRun } from "./course/express-run";
@@ -253,23 +252,11 @@ export function ExpressCard({
             onPickup={onPickup}
             onArrived={onArrived}
             onValidate={() => setShowValidate(true)}
-            actionError={actionError}
-          />
-          {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
-          {/* Réduire la navigation → revient sur un onglet ; le bandeau
-              « Course en cours » reste épinglé au-dessus de la tabbar. */}
-          <button
-            type="button"
-            onClick={() => router.push("/driver")}
-            className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
-          >
-            <ChevronDown className="size-4" />
-            {tr("Réduire", "تصغير")}
-          </button>
-          {/* Support en cours de course (Tawk.to) — n° commande injecté. */}
-          <button
-            type="button"
-            onClick={() =>
+            // Réduire → accueil ; la course reste épinglée en bandeau.
+            onMinimize={() => router.push("/driver")}
+            // Aide/support en cours de course (Tawk.to) — accessible depuis le
+            // tiroir (menu) de l'écran de commande, n° commande injecté.
+            onHelp={() =>
               openSupportChat({
                 orderRef: currentOrder.order_number,
                 // Course Express EN COURS → prioritaire (le livreur est bloqué
@@ -293,11 +280,9 @@ export function ExpressCard({
                 },
               })
             }
-            className="fixed top-[max(14px,calc(env(safe-area-inset-top)+10px))] left-3 z-[95] inline-flex items-center gap-1.5 rounded-full bg-black/55 px-3 py-1.5 text-[12px] font-semibold text-white backdrop-blur"
-          >
-            <LifeBuoy className="size-4" />
-            {tr("Aide", "مساعدة")}
-          </button>
+            actionError={actionError}
+          />
+          {pickedUp && <DriverLocationBroadcaster orderId={currentOrder.id} />}
         </>
       )}
 

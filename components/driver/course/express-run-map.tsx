@@ -10,19 +10,26 @@ import { useRoute } from "@/lib/delivery/use-route";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 
 /**
- * Carte PLEIN ÉCRAN de la course en cours (écran 3, style Uber Eats Driver).
+ * Carte PLEIN ÉCRAN de la course en cours (écran navigation, style Bolt Driver).
  *
  * - Trace le VRAI itinéraire routier (OSRM via useRoute) entre la position live
  *   du livreur et la cible (commerçant si récupération, client si livraison).
- * - Effet « néon Uber » : un trait noir 5px sous un trait violet 3px.
- * - Point « moi » violet qui pulse + pin de destination.
- * - Remonte l'ETA (min + km) au parent via `onEta` pour le bandeau d'étape.
+ * - CODE COULEUR par phase : trajet VIOLET vers le commerçant (retrait), VERT
+ *   vers le client (livraison). Le pin de destination prend la même couleur.
+ * - Point « moi » violet qui pulse + pin de destination plat (pas de 3D).
+ * - ETA façon SCOOTER remontée (min + km) au parent via `onEta`.
  *
  * Purement visuel : aucune logique métier. La géoloc réutilise `watchPosition`
  * déjà câblé ailleurs ; le routage réutilise lib/delivery/use-route.
  */
 
 type LatLng = { lat: number; lng: number };
+
+// Code couleur des deux phases (retrait / livraison).
+const PHASE = {
+  pickup: { main: "#6c2bd9", deep: "#4b1fa6", icon: "🏪" },
+  drop: { main: "#16b364", deep: "#0e8c4d", icon: "🏠" },
+} as const;
 
 export function ExpressRunMap({
   target,
@@ -36,6 +43,7 @@ export function ExpressRunMap({
 }) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const phase = PHASE[kind];
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<import("maplibre-gl").Map | null>(null);
   const meMarkerRef = useRef<import("maplibre-gl").Marker | null>(null);
@@ -72,21 +80,21 @@ export function ExpressRunMap({
             geometry: { type: "LineString", coordinates: [] },
           },
         });
-        // Couche basse : trait noir épais (le « contour »).
+        // Couche basse : contour épais (teinte foncée de la phase).
         map.addLayer({
           id: "run-route-base",
           type: "line",
           source: "run-route",
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#4b1fa6", "line-width": 6 },
+          paint: { "line-color": phase.deep, "line-width": 7 },
         });
-        // Couche haute : trait violet fin par-dessus (l'effet néon).
+        // Couche haute : trait fin par-dessus (effet « néon » Bolt).
         map.addLayer({
           id: "run-route-neon",
           type: "line",
           source: "run-route",
           layout: { "line-cap": "round", "line-join": "round" },
-          paint: { "line-color": "#6c2bd9", "line-width": 3 },
+          paint: { "line-color": phase.main, "line-width": 3.5 },
         });
       };
       if (map.loaded()) onLoad();
@@ -101,26 +109,36 @@ export function ExpressRunMap({
       disposed = true;
       mapRef.current?.remove();
       mapRef.current = null;
+      // La carte est recréée quand la cible change (retrait → livraison) : on
+      // oublie les marqueurs de l'ancienne carte pour qu'ils soient RECRÉÉS sur
+      // la nouvelle (sinon le pin de destination resterait détaché).
+      meMarkerRef.current = null;
+      targetMarkerRef.current = null;
+      followedOnce.current = false;
     };
   }, [target.lat, target.lng]);
 
-  // Pin de destination (goutte noire : 🏪 commerçant / 🏠 client).
+  // Pin de destination PLAT (cercle coloré + anneau blanc + ombre légère, PAS
+  // de 3D) : ambre-violet 🏪 pour le retrait, vert 🏠 pour la livraison.
   useEffect(() => {
     const map = mapRef.current;
     if (!map) return;
     void import("maplibre-gl").then(({ Marker }) => {
-      const emoji = kind === "pickup" ? "🏪" : "🏠";
+      const html = `<div style="width:34px;height:34px;border-radius:50%;background:${phase.main};display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(11,12,18,.22);font-size:15px">${phase.icon}</div>`;
       if (!targetMarkerRef.current) {
         const el = document.createElement("div");
-        el.innerHTML = `<div style="width:36px;height:36px;border-radius:50% 50% 50% 0;background:#6c2bd9;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.35)"><span style="transform:rotate(45deg);font-size:15px">${emoji}</span></div>`;
-        targetMarkerRef.current = new Marker({ element: el, anchor: "bottom" })
+        el.innerHTML = html;
+        targetMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([target.lng, target.lat])
           .addTo(map);
       } else {
         targetMarkerRef.current.setLngLat([target.lng, target.lat]);
+        const box = targetMarkerRef.current.getElement()
+          .firstElementChild as HTMLElement | null;
+        if (box) box.style.background = phase.main;
       }
     });
-  }, [target.lat, target.lng, kind]);
+  }, [target.lat, target.lng, kind, phase.main, phase.icon]);
 
   // Marqueur « moi » (point violet + halo qui pulse) + cadrage.
   useEffect(() => {
@@ -132,8 +150,8 @@ export function ExpressRunMap({
         el.style.cssText = "position:relative;width:20px;height:20px";
         // Pulse et point concentriques (même centre).
         el.innerHTML = `
-          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.25);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 0 0 2px rgba(108,43,217,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
+          <div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(108,43,217,.22);animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 1px 4px rgba(11,12,18,.3)"></div>`;
         meMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);
@@ -215,7 +233,7 @@ export function ExpressRunMap({
         type="button"
         onClick={recenter}
         aria-label={tr("Recentrer sur ma position", "إعادة التمركز على موقعي")}
-        className="absolute right-3.5 bottom-[calc(var(--run-sheet-h,300px)+16px)] z-[55] grid size-12 place-items-center rounded-full bg-white text-[#6c2bd9] shadow-[0_6px_16px_rgba(0,0,0,.15)] active:scale-95"
+        className="absolute right-3.5 bottom-[calc(var(--run-sheet-h,300px)+16px)] z-[55] grid size-12 place-items-center rounded-full border border-black/5 bg-white text-[color:var(--violet)] shadow-[0_2px_10px_rgba(11,12,18,.12)] active:scale-95"
       >
         <LocateFixed className="size-5" />
       </button>

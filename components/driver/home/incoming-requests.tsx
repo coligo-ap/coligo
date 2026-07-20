@@ -6,7 +6,7 @@ import { useLocale } from "next-intl";
 import { ChevronDown, MapPin, Package, Phone, Truck, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
-import { haversineKm } from "@/lib/delivery/distance";
+import { scooterCourseEta } from "@/lib/delivery/scooter";
 import {
   computeDriverNet,
   DEFAULT_DRIVER_FEE_CONFIG,
@@ -58,9 +58,14 @@ export type TourReq = {
   pending: number;
 };
 
-const KM_TO_MIN = 5;
 const fmtKm = (km: number | null) =>
   km == null ? "—" : km.toFixed(1).replace(".", ",");
+
+// Commandes déjà ouvertes automatiquement en plein écran cette session (évite
+// de re-basculer sur l'offre après un « Réduire »). Module-level : survit aux
+// remontages du composant tant que l'onglet vit.
+const autoOpened = new Set<string>();
+const ACCEPTED_KEY = "coligo_driver_accepted_orders";
 
 export function IncomingRequests({
   driverId,
@@ -181,6 +186,28 @@ export function IncomingRequests({
   // Reprise au premier plan (WebSocket a pu tomber en arrière-plan).
   useResumeResync(() => void load());
 
+  // RÉCEPTION → écran de commande DIRECT (façon Bolt). Toute course express
+  // reçue et pas encore traitée bascule d'elle-même sur son offre plein écran.
+  // `autoOpened` (module, survit aux remontages) empêche de ré-ouvrir après un
+  // « Réduire » ; ACCEPTED_KEY exclut celles déjà acceptées (en cours).
+  useEffect(() => {
+    if (!online || express.length === 0) return;
+    let accepted: string[] = [];
+    try {
+      accepted = JSON.parse(localStorage.getItem(ACCEPTED_KEY) ?? "[]");
+    } catch {
+      /* localStorage indispo → on se fie à autoOpened seul */
+    }
+    // La plus récente d'abord (liste triée par ancienneté croissante).
+    const target = [...express]
+      .reverse()
+      .find((o) => !autoOpened.has(o.id) && !accepted.includes(o.id));
+    if (target) {
+      autoOpened.add(target.id);
+      router.push(`/driver/course/${target.id}`);
+    }
+  }, [express, online, router]);
+
   const me = useMemo(
     () => (coords ? { lat: coords.latitude, lng: coords.longitude } : null),
     [coords]
@@ -196,18 +223,14 @@ export function IncomingRequests({
         o.delivery_lat != null && o.delivery_lng != null
           ? { lat: o.delivery_lat, lng: o.delivery_lng }
           : null;
-      const legPickup = me && pickup ? haversineKm(me, pickup) : null;
-      const legDrop = pickup && drop ? haversineKm(pickup, drop) : null;
-      const km =
-        legPickup != null || legDrop != null
-          ? (legPickup ?? 0) + (legDrop ?? 0)
-          : null;
+      // ETA scooter de la course complète (moi → commerçant → client).
+      const eta = scooterCourseEta(me, pickup, drop);
       return {
         kind: "express" as const,
         id: o.id,
         order: o,
-        km,
-        min: km != null ? Math.max(1, Math.round(km * KM_TO_MIN)) : null,
+        km: eta?.km ?? null,
+        min: eta?.min ?? null,
         net: computeDriverNet(o.delivery_fee_da ?? 0, driverFeeConfig),
       };
     });
@@ -257,7 +280,7 @@ export function IncomingRequests({
             return (
               <div
                 key={card.id}
-                className="overflow-hidden rounded-[16px] border shadow-lg"
+                className="overflow-hidden rounded-[18px] border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
                 style={{
                   borderColor: "var(--line)",
                   background: "var(--surface)",
@@ -308,7 +331,7 @@ export function IncomingRequests({
                     <button
                       type="button"
                       onClick={() => router.push("/driver/tournees")}
-                      className="w-full rounded-[12px] py-2.5 text-[13.5px] font-bold text-white"
+                      className="w-full rounded-[13px] py-2.5 text-[13.5px] font-bold text-white transition-transform active:scale-[.98]"
                       style={{ background: "#16b364" }}
                     >
                       {tr("Voir la tournée", "عرض الجولة")}
@@ -325,7 +348,7 @@ export function IncomingRequests({
           return (
             <div
               key={card.id}
-              className="overflow-hidden rounded-[16px] border shadow-lg"
+              className="overflow-hidden rounded-[18px] border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
               style={{
                 borderColor: "var(--line)",
                 background: "var(--surface)",
@@ -448,7 +471,7 @@ export function IncomingRequests({
                       type="button"
                       onClick={() => refuse(o.id)}
                       disabled={busyId === o.id}
-                      className="h-11 flex-1 rounded-[12px] border text-[13.5px] font-bold disabled:opacity-50"
+                      className="h-11 flex-1 rounded-[13px] border text-[13.5px] font-bold transition-transform active:scale-[.98] disabled:opacity-50"
                       style={{
                         borderColor: "var(--line)",
                         color: "var(--red)",
@@ -459,7 +482,7 @@ export function IncomingRequests({
                     <button
                       type="button"
                       onClick={() => accept(o.id)}
-                      className="h-11 flex-[1.6] rounded-[12px] text-[13.5px] font-bold text-white"
+                      className="h-11 flex-[1.6] rounded-[13px] text-[13.5px] font-bold text-white transition-transform active:scale-[.98]"
                       style={{ background: "var(--violet)" }}
                     >
                       {tr("Accepter", "قبول")}

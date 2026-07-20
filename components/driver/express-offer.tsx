@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from "react";
 import { useLocale } from "next-intl";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { DeliveryRouteMap } from "./delivery-route-map";
-import { haversineKm } from "@/lib/delivery/distance";
+import { DriverCourseDrawer } from "./course/driver-course-drawer";
+import { scooterCourseEta } from "@/lib/delivery/scooter";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 import { isDriverSoundOn } from "@/lib/driver/sound-store";
@@ -34,7 +35,6 @@ type OfferOrder = {
   delivery_lng: number | null;
 };
 
-const KM_TO_MIN = 5; // ~12 km/h en ville (scooter + arrêts).
 const OFFER_SECONDS = 30; // durée avant libération automatique.
 
 function fmtKm(km: number | null) {
@@ -124,14 +124,10 @@ export function ExpressOffer({
     order.delivery_lat != null && order.delivery_lng != null
       ? { lat: order.delivery_lat, lng: order.delivery_lng }
       : null;
-  const legPickup = me && pickup ? haversineKm(me, pickup) : null;
-  const legDrop = pickup && drop ? haversineKm(pickup, drop) : null;
-  const totalKm =
-    legPickup != null || legDrop != null
-      ? (legPickup ?? 0) + (legDrop ?? 0)
-      : null;
-  const totalMin =
-    totalKm != null ? Math.max(1, Math.round(totalKm * KM_TO_MIN)) : null;
+  // ETA de la course COMPLÈTE, calculée façon SCOOTER (source unique).
+  const eta = scooterCourseEta(me, pickup, drop);
+  const totalKm = eta?.km ?? null;
+  const totalMin = eta?.min ?? null;
 
   const fee = order.delivery_fee_da ?? 0;
   const driverNet = computeDriverNet(
@@ -174,10 +170,19 @@ export function ExpressOffer({
       ) : (
         <div className="mq-map" />
       )}
+      {/* Voile léger EN HAUT seulement (lisibilité du menu) — la carte reste
+          claire et lisible ailleurs (fini le voile sombre plein écran). */}
       <div
-        className="pointer-events-none absolute inset-0"
-        style={{ background: "rgba(8,9,16,.18)" }}
+        className="pointer-events-none absolute inset-x-0 top-0 h-28"
+        style={{
+          background:
+            "linear-gradient(to bottom, rgba(8,9,16,.28), transparent)",
+        }}
       />
+
+      {/* Menu (drawer) — la nav du bas et le menu restent accessibles pendant
+          la réception de la commande. */}
+      <DriverCourseDrawer />
 
       <div className="offer-card">
         {/* Minuteur — barre du haut. */}

@@ -2,8 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
-import { ArrowRight, MessageCircle, Phone, X } from "lucide-react";
+import {
+  ArrowRight,
+  Banknote,
+  CheckCircle2,
+  ChevronDown,
+  MessageCircle,
+  Phone,
+  Wallet,
+  X,
+} from "lucide-react";
 import { ExpressRunMap } from "./express-run-map";
+import { DriverCourseDrawer } from "./driver-course-drawer";
 import { OrderChat } from "@/components/chat/order-chat";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { createClient } from "@/lib/supabase/client";
@@ -47,6 +57,8 @@ export function ExpressRun({
   onPickup,
   onArrived,
   onValidate,
+  onMinimize,
+  onHelp,
   actionError,
 }: {
   order: RunOrder;
@@ -60,6 +72,10 @@ export function ExpressRun({
   onPickup: () => void;
   onArrived: () => void;
   onValidate: () => void;
+  /** Réduire la navigation → revient à l'accueil (course épinglée). */
+  onMinimize?: () => void;
+  /** Ouvre l'aide/support avec le contexte de la course. */
+  onHelp?: () => void;
   /** Erreur d'action (trop loin, GPS, pickup…) affichée EN LIGNE sous le CTA. */
   actionError?: string | null;
 }) {
@@ -135,7 +151,9 @@ export function ExpressRun({
       };
 
   return (
-    <div className="mq-screen fixed inset-0 z-[80]">
+    /* `over-nav` : la course s'arrête AU-DESSUS de la barre d'onglets, qui reste
+       visible et utilisable (la nav du bas ne disparaît jamais). */
+    <div className="mq-screen over-nav z-[80]">
       {target ? (
         <ExpressRunMap
           target={target}
@@ -147,15 +165,34 @@ export function ExpressRun({
           className="absolute inset-0 grid place-items-center px-8 text-center"
           style={{ background: "var(--block)", color: "var(--muted)" }}
         >
-          Position de destination indisponible — utilise l&apos;adresse
-          ci-dessous.
+          {tr(
+            "Position de destination indisponible — utilise l'adresse ci-dessous.",
+            "موقع الوجهة غير متاح — استعمل العنوان أدناه."
+          )}
         </div>
       )}
 
-      {/* Bandeau direction. */}
+      {/* Menu (drawer) en haut à gauche — mêmes accès que l'accueil pendant la
+          course (le menu reste disponible). */}
+      <DriverCourseDrawer onHelp={onHelp} />
+
+      {/* Réduire → revient à l'accueil, la course reste épinglée en bandeau. */}
+      {onMinimize && (
+        <button
+          type="button"
+          onClick={onMinimize}
+          aria-label={tr("Réduire", "تصغير")}
+          className="absolute top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[60] inline-flex items-center gap-1.5 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[12.5px] font-bold text-[var(--ink)] shadow-sm active:scale-95"
+        >
+          <ChevronDown className="size-4" />
+          {tr("Réduire", "تصغير")}
+        </button>
+      )}
+
+      {/* Bandeau direction (sous la rangée menu/réduire). */}
       <div
         className="navbanner"
-        style={{ top: "calc(14px + env(safe-area-inset-top))" }}
+        style={{ top: "calc(64px + env(safe-area-inset-top))" }}
       >
         <div className="ar">
           <svg
@@ -249,7 +286,8 @@ export function ExpressRun({
             }}
           >
             <div className="l" style={{ color: "var(--violet)" }}>
-              💰 À avancer au commerçant
+              <Wallet className="size-4" />
+              {tr("À avancer au commerçant", "تسبقه للتاجر")}
             </div>
             <div className="am" style={{ color: "var(--violet)" }}>
               {advanceDa} DA
@@ -261,7 +299,10 @@ export function ExpressRun({
         {!collapsed &&
           (prepaid ? (
             <div className="cash" style={{ marginTop: 0, marginBottom: 12 }}>
-              <div className="l">✅ Déjà payé en ligne</div>
+              <div className="l">
+                <CheckCircle2 className="size-4" />
+                {tr("Déjà payé en ligne", "مدفوع مسبقاً عبر الإنترنت")}
+              </div>
               <div className="am">0 DA</div>
             </div>
           ) : (
@@ -274,7 +315,8 @@ export function ExpressRun({
               }}
             >
               <div className="l" style={{ color: "#8b6500" }}>
-                💵 {tr("À encaisser à la livraison", "للتحصيل عند التسليم")}
+                <Banknote className="size-4" />
+                {tr("À encaisser à la livraison", "للتحصيل عند التسليم")}
               </div>
               <div className="am" style={{ color: "#8b6500" }}>
                 {toCollect} DA
