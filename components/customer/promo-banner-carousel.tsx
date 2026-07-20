@@ -3,10 +3,13 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ArrowRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { PromoBanner } from "@/lib/data/promo-banners";
 import { MerchantOfferSheet } from "@/components/customer/merchant-offer-sheet";
+import {
+  BannerCard,
+  PromoStyles,
+} from "@/components/customer/promo-banner-templates";
 
 // =============================================================================
 // PromoBannerCarousel — carrousel scroll-snap de bannières éditoriales.
@@ -22,18 +25,6 @@ type Props = {
   banners: PromoBanner[];
 };
 
-// Couleurs AUTO-PORTÉES (comme une photo) : une bannière garde exactement le
-// même rendu en mode sombre. PAS de tokens qui se remappent (`text-foreground`
-// devenait clair sur ambre clair, `from-foreground` devenait un fond clair) ni
-// de variant `dark:` (le sombre client est `.theme-dark`, pas le système).
-const ACCENT_CLASSES: Record<PromoBanner["accent"], string> = {
-  violet: "from-primary-700 via-primary-600 to-primary-500 text-white",
-  coral: "from-coral-700 via-coral-600 to-coral-500 text-white",
-  mint: "from-mint-700 via-mint-600 to-mint-500 text-white",
-  amber: "from-amber-600 via-amber-500 to-amber-400 text-[#2b1f05]",
-  dark: "from-[#16161e] via-[#16161e] to-[#26262e] text-white",
-};
-
 export function PromoBannerCarousel({ banners }: Props) {
   const [active, setActive] = useState(0);
   const t = useTranslations("browse");
@@ -47,6 +38,7 @@ export function PromoBannerCarousel({ banners }: Props) {
 
   return (
     <section className="space-y-2">
+      <PromoStyles />
       <div
         className="-mx-4 flex snap-x snap-mandatory [scrollbar-width:none] overflow-x-auto pb-2 lg:-mx-6 [&::-webkit-scrollbar]:hidden"
         onScroll={(e) => {
@@ -96,78 +88,25 @@ export function PromoBannerCarousel({ banners }: Props) {
 }
 
 function Banner({ banner }: { banner: PromoBanner }) {
-  const accentClass = ACCENT_CLASSES[banner.accent];
-  const hasImg = !!banner.image_url;
-  const fit = banner.image_fit ?? "overlay";
-  // En mode image PLEINE (cover) ou ENTIÈRE (contain), un voile dégradé bas→haut
-  // garde le texte lisible par-dessus n'importe quelle image.
-  const scrim = hasImg && fit !== "overlay";
-  const content = (
-    <article
-      className={cn(
-        "relative flex w-full flex-col justify-between overflow-hidden rounded-[20px] bg-gradient-to-br px-5 py-5 shadow-md",
-        accentClass
-      )}
-      style={{ minHeight: 140 }}
-    >
-      {hasImg && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={banner.image_url!}
-          alt=""
-          loading="lazy"
-          decoding="async"
-          className={cn(
-            "absolute inset-0 h-full w-full",
-            fit === "cover"
-              ? "object-cover"
-              : fit === "contain"
-                ? "object-contain"
-                : "object-cover mix-blend-overlay"
-          )}
-          // En mode « Texture de fond », l'opacité est réglable (0–100 %).
-          style={
-            fit === "overlay"
-              ? { opacity: (banner.overlay_opacity ?? 30) / 100 }
-              : undefined
-          }
-        />
-      )}
-      {scrim && (
-        <div className="absolute inset-0 bg-gradient-to-t from-black/65 via-black/20 to-transparent" />
-      )}
-      <div className="relative">
-        <h3 className="font-display text-lg leading-tight font-bold sm:text-xl">
-          {banner.title}
-        </h3>
-        {banner.subtitle && (
-          <p className="mt-1 text-sm opacity-90">{banner.subtitle}</p>
-        )}
-      </div>
-      {banner.cta_label && (
-        <div className="relative mt-4">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur transition-colors group-hover:bg-white/30">
-            {banner.cta_label}
-            <ArrowRight className="size-3.5 rtl:-scale-x-100" />
-          </span>
-        </div>
-      )}
-    </article>
-  );
-  // Offre commerçant : le clic ouvre la pop-up (détails de l'offre), pas une
-  // navigation. Toute la carte est UN SEUL bouton (aucun élément interactif
-  // imbriqué → pas de piège d'hydratation).
+  // Offre commerçant : le clic ouvre la pop-up (détails de l'offre) — INCHANGÉ.
+  // Toute la carte est UN SEUL bouton (aucun élément interactif imbriqué → pas
+  // de piège d'hydratation). Le visuel (modèle par type de promo) vit dans
+  // BannerCard.
   if (banner.offer) {
-    return <OfferBanner banner={banner}>{content}</OfferBanner>;
+    return (
+      <OfferBanner banner={banner}>
+        <BannerCard banner={banner} />
+      </OfferBanner>
+    );
   }
   if (banner.link) {
     return (
       <Link href={banner.link} className="group block">
-        {content}
+        <BannerCard banner={banner} />
       </Link>
     );
   }
-  return content;
+  return <BannerCard banner={banner} />;
 }
 
 function OfferBanner({
