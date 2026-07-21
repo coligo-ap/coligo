@@ -41,6 +41,7 @@ import {
   requestDriveRide,
   requestScheduledRide,
   rideIntlAvailability,
+  type RideIntlAvailability,
   type DriveActiveRide,
   type DriveQuote,
 } from "@/app/(customer)/drive/actions";
@@ -151,10 +152,15 @@ export function DriveView({ userId }: { userId: string }) {
   // internationale en € (Stripe, feuille embarquée). Le sous-choix n'existe
   // que si le serveur juge l'option € proposable (flag+pays+capacité).
   const [cardRail, setCardRail] = useState<"dzd" | "eur">("dzd");
-  const [intlAvailable, setIntlAvailable] = useState(false);
-  useEffect(() => {
-    void rideIntlAvailability().then(setIntlAvailable);
-  }, []);
+  // Disponibilité du rail € jugée SERVEUR **pour le montant courant** : bornes
+  // par course (min 5 €) et plafonds compris. Sans le montant, le client
+  // pouvait choisir « € » sur une course à 310 DA (≈1,22 €) et n'apprendre le
+  // refus qu'au paiement. Re-sondée à chaque changement de prix (débouncée).
+  const [intlInfo, setIntlInfo] = useState<RideIntlAvailability>({
+    available: false,
+    reason: null,
+    min_eur_cents: 500,
+  });
   const [boostOn, setBoostOn] = useState(false);
   const [boostAmt, setBoostAmt] = useState(10);
   const [femaleOnly, setFemaleOnly] = useState(false);
@@ -672,6 +678,28 @@ export function DriveView({ userId }: { userId: string }) {
     [ctx]
   );
   const offerPrice = price + (boostOn ? boostAmt : 0);
+
+  // Sonde € : au montage puis à chaque variation de prix (débounce 400 ms pour
+  // ne pas tirer un aller-retour à chaque cran du curseur). Si le rail € n'est
+  // plus proposable pour ce montant, on RETOMBE sur CIB/Edahabia — le client
+  // n'arrive jamais au paiement avec un rail impossible.
+  useEffect(() => {
+    let alive = true;
+    const id = setTimeout(() => {
+      void rideIntlAvailability(offerPrice > 0 ? offerPrice : undefined).then(
+        (info) => {
+          if (alive) setIntlInfo(info);
+        }
+      );
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(id);
+    };
+  }, [offerPrice]);
+  useEffect(() => {
+    if (cardRail === "eur" && !intlInfo.available) setCardRail("dzd");
+  }, [cardRail, intlInfo.available]);
   // Prix PÉRIMÉ : recalcul en cours OU les quotes ne correspondent plus au
   // trajet courant (adresse modifiée puis retour à l'écran prix) → on n'affiche
   // jamais l'ancien prix, on montre un loader.
@@ -1079,7 +1107,9 @@ export function DriveView({ userId }: { userId: string }) {
           prox={prox}
           payMode={payMode}
           cardRail={cardRail}
-          intlAvailable={intlAvailable}
+          intlAvailable={intlInfo.available}
+          intlBelowMin={intlInfo.reason === "order_min"}
+          intlMinEur={Math.round(intlInfo.min_eur_cents / 100)}
           welcome={welcome}
           ctx={ctx}
           zoneBlock={zoneBlock}

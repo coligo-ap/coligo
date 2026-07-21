@@ -68,6 +68,27 @@ export function SearchScreen({
     useState<StripeIntentPayload | null>(null);
   const payingOfferRef = useRef<string | null>(null);
   const isCard = ride?.payment_method === "card";
+  // Fenêtre de paiement (mig 0393) : au-delà, le serveur annule la course et
+  // libère le chauffeur. Le client doit VOIR le temps qu'il lui reste — sinon
+  // il découvre une course « disparue » sans explication.
+  const [payDeadline, setPayDeadline] = useState<number | null>(null);
+  const [payLeft, setPayLeft] = useState(0);
+  useEffect(() => {
+    if (!payDeadline) return;
+    const tick = () => {
+      const left = Math.max(0, Math.round((payDeadline - Date.now()) / 1000));
+      setPayLeft(left);
+      if (left === 0) {
+        setPayDeadline(null);
+        setError(t("payWindowExpired"));
+        // Le poll d'offres/course voit l'annulation serveur et bascule l'écran.
+        void refreshActive();
+      }
+    };
+    tick();
+    const id = setInterval(tick, 1000);
+    return () => clearInterval(id);
+  }, [payDeadline, t, refreshActive]);
 
   // Trajet A → B sur la carte pendant la recherche : itinéraire ROUTIER réel
   // (OSRM, retry après le cooldown du disjoncteur), repli ligne droite en
@@ -252,17 +273,33 @@ export function SearchScreen({
         }
         const pay = await reserveAndPayCardOffer(offerId, rail);
         if (!pay.ok) {
+          // Chaque refus a SON message : avant, tout le rail € tombait dans un
+          // « indisponible » vague — et un montant sous le minimum ressortait
+          // même en « Something went wrong ». Le motif technique est journalisé
+          // pour le diagnostic, jamais montré tel quel au client.
+          if (pay.error) console.warn("[drive-card] refus:", pay.error);
           setError(
             pay.error === "chauffeur_busy"
               ? t("driverBusy")
               : pay.error === "offer_expired"
                 ? t("offerExpired")
-                : pay.error?.startsWith("intl_")
-                  ? t("intlPayUnavailable")
-                  : (pay.error ?? t("genericError"))
+                : pay.error === "intl_order_min"
+                  ? t("intlTooSmall")
+                  : pay.error === "intl_order_max"
+                    ? t("intlTooLarge")
+                    : pay.error === "intl_user_day" ||
+                        pay.error === "intl_user_month" ||
+                        pay.error === "intl_capacity"
+                      ? t("intlLimitReached")
+                      : pay.error?.startsWith("intl_")
+                        ? t("intlPayUnavailable")
+                        : t("genericError")
           );
           return;
         }
+        setPayDeadline(
+          pay.reservedUntil ? Date.parse(pay.reservedUntil) : null
+        );
         if (pay.mode === "sheet") {
           // Rail € : feuille embarquée. `busy` retombe pour laisser la feuille
           // prendre la main (poignée, 3DS…). L'offre reste réservée jusqu'au
@@ -479,6 +516,22 @@ export function SearchScreen({
           </div>
         )}
 
+        {/* Compte à rebours de paiement : le chauffeur choisi est réservé le
+            temps affiché ; à 0 la course est annulée côté serveur. */}
+        {payDeadline !== null && payLeft > 0 && (
+          <p
+            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold tabular-nums"
+            style={{
+              background: "var(--d-accent)",
+              color: "var(--d-violet)",
+            }}
+          >
+            {t("payWindow", {
+              time: `${Math.floor(payLeft / 60)}:${String(payLeft % 60).padStart(2, "0")}`,
+            })}
+          </p>
+        )}
+
         {error && (
           <p
             className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
@@ -676,12 +729,15 @@ export function SearchScreen({
           onSuccess={() => {
             setRideIntlIntent(null);
             payingOfferRef.current = null;
+            // Payé : plus de fenêtre à décompter (le webhook accepte la course).
+            setPayDeadline(null);
             void pollUntilAccepted();
           }}
           onClose={() => {
             const oid = payingOfferRef.current;
             setRideIntlIntent(null);
             payingOfferRef.current = null;
+            setPayDeadline(null);
             if (oid) void releaseCardOffer(oid);
           }}
         />

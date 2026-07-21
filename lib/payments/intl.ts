@@ -52,6 +52,22 @@ export type IntlSettings = {
 
 export type EffectiveRate = { rate_da: number; source: string };
 
+/**
+ * Bornes par commande, EN EUROS — seule forme exposable au client : c'est une
+ * règle commerciale (« minimum 5 € »), pas le taux. Publier l'équivalent en DA
+ * révélerait le taux par division (règle produit : le taux ne sort JAMAIS).
+ */
+export async function getIntlOrderBoundsEur(): Promise<{
+  min_eur_cents: number;
+  max_eur_cents: number;
+}> {
+  const settings = await getIntlSettings(createAdminClient());
+  return {
+    min_eur_cents: settings.per_order_min_eur_cents,
+    max_eur_cents: settings.per_order_max_eur_cents,
+  };
+}
+
 export type IntlRefusal =
   | "off" // coupé (kill-switch global, clés absentes, flag online)
   | "domain_off" // rail € coupé POUR CE domaine (drive / marketplace)

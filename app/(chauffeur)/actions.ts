@@ -900,6 +900,14 @@ export async function getNearbyRides(
       undefined,
       () => undefined
     );
+    // Fenêtres de paiement carte dépassées (mig 0393) : la course est annulée
+    // et le chauffeur réservé est LIBÉRÉ + notifié. Passe par le helper JS (et
+    // non par le SQL de drive_expire_stale_searches) parce que la notification
+    // doit partir — une expiration muette laisserait le chauffeur bloqué.
+    void import("@/lib/drive/card-payment-window").then(
+      (m) => m.sweepExpiredCardPayments(),
+      () => undefined
+    );
 
     // REQUÊTE sur un client NEUF, SERVICE_ROLE + id chauffeur explicite (mig 0257).
     const admin = createAdminClient();

@@ -763,6 +763,14 @@ export type DriveOffer = {
 };
 
 export async function getDriveOffers(rideId: string): Promise<DriveOffer[]> {
+  // Fenêtres de paiement carte dépassées (mig 0393), en fire-and-forget : le
+  // poll d'offres du client tourne pendant toute la recherche, c'est le chemin
+  // le plus réactif. Le tick chauffeur fait le même balayage — l'un des deux
+  // suffit, et la fonction SQL est idempotente.
+  void import("@/lib/drive/card-payment-window").then(
+    (m) => m.sweepExpiredCardPayments(),
+    () => undefined
+  );
   const rpc = await rpcClient();
   const { data } = await rpc("my_ride_offers", { p_ride_id: rideId });
   const rows = (data as Record<string, unknown>[] | null) ?? [];
@@ -1271,28 +1279,60 @@ export async function createRideCardCheckout(
  * Appelée au montage de l'écran prix ; la création de paiement re-vérifie
  * TOUT en mode autoritaire de toute façon.
  */
-export async function rideIntlAvailability(): Promise<boolean> {
+export type RideIntlAvailability = {
+  /** Rail € proposable (flag + clés + pays + capacité). */
+  available: boolean;
+  /** Motif de refus quand `available` est faux (ex. 'order_min'). */
+  reason: string | null;
+  /** Minimum PAR COURSE en centimes d'euro — règle commerciale affichable
+   *  (« Minimum 5 € »). Jamais son équivalent DA : cela révélerait le taux. */
+  min_eur_cents: number;
+};
+
+export async function rideIntlAvailability(
+  /** Prix de la course : sans lui, seule la disponibilité GÉNÉRALE est jugée —
+   *  le client pouvait alors choisir « € » puis se heurter au minimum au
+   *  moment de payer (cause du « Something went wrong » vécu sur 310 DA). */
+  totalDa?: number
+): Promise<RideIntlAvailability> {
+  const fallback: RideIntlAvailability = {
+    available: false,
+    reason: "off",
+    min_eur_cents: 500,
+  };
   try {
     const supabase = await createClient();
     const {
       data: { user },
     } = await supabase.auth.getUser();
-    if (!user) return false;
+    if (!user) return fallback;
     const { data: cust } = await supabase
       .from("customers")
       .select("id")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (!cust) return false;
-    const { checkIntlEligibility } = await import("@/lib/payments/intl");
-    const elig = await checkIntlEligibility({
-      customerId: cust.id,
-      domain: "drive",
-      mode: "visibility",
-    });
-    return elig.ok;
+    if (!cust) return fallback;
+    const { checkIntlEligibility, getIntlOrderBoundsEur } =
+      await import("@/lib/payments/intl");
+    const [elig, bounds] = await Promise.all([
+      checkIntlEligibility({
+        customerId: cust.id,
+        domain: "drive",
+        // Montant inclus quand on le connaît : les bornes par course et les
+        // plafonds sont évalués DÈS l'écran prix, en mode 'visibility' (aucun
+        // fetch réseau du taux, aucun audit) — le mur disparaît.
+        ...(totalDa != null && totalDa > 0 ? { totalDa } : {}),
+        mode: "visibility",
+      }),
+      getIntlOrderBoundsEur(),
+    ]);
+    return {
+      available: elig.ok,
+      reason: elig.ok ? null : elig.reason,
+      min_eur_cents: bounds.min_eur_cents,
+    };
   } catch {
-    return false;
+    return fallback;
   }
 }
 
@@ -1417,6 +1457,9 @@ export type CardOfferPayment =
       url: string;
       offerId: string;
       priceDa: number;
+      /** Fin de la fenêtre de paiement (ISO, mig 0393) : au-delà, la course est
+       *  annulée et le chauffeur libéré. Sert au compte à rebours client. */
+      reservedUntil: string | null;
     }
   | {
       ok: true;
@@ -1427,6 +1470,7 @@ export type CardOfferPayment =
       total_da: number;
       offerId: string;
       priceDa: number;
+      reservedUntil: string | null;
     }
   | { ok: false; error: string };
 
@@ -1468,19 +1512,28 @@ export async function reserveAndPayCardOffer(
     reason?: string;
     price_da?: number;
     ride_id?: string;
+    reserved_until?: string;
   } | null;
   if (!r?.ok || !r.ride_id || !r.price_da) {
     return { ok: false, error: r?.reason ?? "reserve_failed" };
   }
   const rideId = r.ride_id;
   const priceDa = r.price_da;
+  const reservedUntil = r.reserved_until ?? null;
 
   // Toute sortie en échec après réservation RELÂCHE l'offre (jamais de chauffeur
   // bloqué si la création du paiement échoue).
+  // ⚠️ JAMAIS `.catch` sur un builder Supabase (PromiseLike sans `.catch`) :
+  // il lève « catch is not a function » DANS le catch d'échec ci-dessous, donc
+  // l'exception sort de la Server Action → le client n'affiche plus le vrai
+  // motif mais « Something went wrong », et l'offre reste RÉSERVÉE (chauffeur
+  // bloqué 3 min). Await direct : le rpc ne rejette pas, l'erreur est dans
+  // `{ error }`. Cf. app/(chauffeur)/actions.ts et la même règle plus bas.
   const release = async () => {
-    await rpc("drive_card_release_offer", { p_offer_id: offerId }).catch(
-      () => {}
-    );
+    const { error } = await rpc("drive_card_release_offer", {
+      p_offer_id: offerId,
+    });
+    if (error) console.error("[drive-card] release échouée:", error.message);
   };
 
   try {
@@ -1550,6 +1603,7 @@ export async function reserveAndPayCardOffer(
         total_da: priceDa,
         offerId,
         priceDa,
+        reservedUntil,
       };
     }
 
@@ -1575,6 +1629,7 @@ export async function reserveAndPayCardOffer(
       url: checkout.checkout_url,
       offerId,
       priceDa,
+      reservedUntil,
     };
   } catch (err) {
     await release();
@@ -1592,9 +1647,11 @@ export async function releaseCardOffer(offerId: string): Promise<void> {
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ error: { message: string } | null }>;
-  await rpc("drive_card_release_offer", { p_offer_id: offerId }).catch(
-    () => {}
-  );
+  // Même règle : await direct, jamais `.catch` sur un builder Supabase.
+  const { error } = await rpc("drive_card_release_offer", {
+    p_offer_id: offerId,
+  });
+  if (error) console.error("[drive-card] release échouée:", error.message);
 }
 
 /**

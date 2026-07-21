@@ -58,6 +58,8 @@ export function DrivePriceScreen({
   payMode,
   cardRail,
   intlAvailable,
+  intlBelowMin,
+  intlMinEur,
   welcome,
   ctx,
   zoneBlock,
@@ -108,8 +110,14 @@ export function DrivePriceScreen({
   payMode: "cash" | "card" | "coligo_pay";
   /** Rail carte : CIB/EDAHABIA (DA, Chargily) ou internationale (€, Stripe). */
   cardRail: "dzd" | "eur";
-  /** Option € proposable pour CE client (jugé serveur) ? */
+  /** Option € proposable pour CE client ET ce montant (jugé serveur) ? */
   intlAvailable: boolean;
+  /** Refusée UNIQUEMENT parce que la course est sous le minimum par course :
+   *  on montre quand même le bouton, désactivé, avec la raison (« Minimum
+   *  5 € ») — plus honnête que de le faire disparaître sans explication. */
+  intlBelowMin: boolean;
+  /** Minimum par course, en euros entiers (règle commerciale, pas le taux). */
+  intlMinEur: number;
   welcome: {
     isNew: boolean;
     anchor: number;
@@ -416,21 +424,32 @@ export function DrivePriceScreen({
             DÉFAUT) et carte internationale (€). Les deux boutons côte à côte
             n'apparaissent que si l'option € est proposable ; sinon la carte
             reste silencieusement CIB/Edahabia. */}
-        {payMode === "card" && intlAvailable && (
+        {payMode === "card" && (intlAvailable || intlBelowMin) && (
           <div className="mb-3 flex gap-2">
             {(
               [
                 ["dzd", CreditCard, t("pay.cardDzd"), t("pay.cardDzdSub")],
-                ["eur", Globe, t("pay.cardEur"), t("pay.cardEurSub")],
+                [
+                  "eur",
+                  Globe,
+                  t("pay.cardEur"),
+                  // Sous-titre remplacé par la RAISON quand le rail est hors
+                  // d'atteinte : le client comprend au lieu de buter au paiement.
+                  intlAvailable
+                    ? t("pay.cardEurSub")
+                    : t("pay.cardEurMin", { min: intlMinEur }),
+                ],
               ] as const
             ).map(([r, Icon, label, sub]) => {
               const on = cardRail === r;
+              const disabled = r === "eur" && !intlAvailable;
               return (
                 <button
                   key={r}
                   type="button"
+                  disabled={disabled}
                   onClick={() => setCardRail(r)}
-                  className="flex-1 rounded-[12px] border-[1.5px] px-2.5 py-2 text-start"
+                  className="flex-1 rounded-[12px] border-[1.5px] px-2.5 py-2 text-start disabled:opacity-55"
                   style={
                     on
                       ? {
