@@ -15,6 +15,7 @@
 // =============================================================================
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
@@ -169,5 +170,200 @@ export async function createTopup(
           ? `Recharge indisponible : ${e.message}`
           : "Recharge indisponible.",
     };
+  }
+}
+
+/* ───────────── Recharge Coligo Pay par CARTE INTERNATIONALE (€, Stripe) ─────────────
+   Même contrat d'argent que la recharge Chargily ci-dessus : plafond glissant
+   30 j RÉSERVÉ avant de créer le paiement, crédit posé UNIQUEMENT par le
+   webhook (idempotent). Seul le rail change — feuille de paiement embarquée
+   (carte, Apple Pay, Google Pay) au lieu du navigateur Chargily.
+   Coupable d'un seul geste par le super-admin : « € pour recharger Coligo Pay »
+   (intl_payment_settings.enabled_wallet, domaine 'wallet'). */
+
+export type CustomerTopupIntlResult =
+  | {
+      ok: true;
+      client_secret: string;
+      publishable_key: string;
+      eur_cents: number;
+      total_da: number;
+    }
+  | { ok: false; error: string; code?: "limit_reached" | "below_min" | "intl" };
+
+export async function createCustomerTopupIntlPayment(
+  amountDa: number
+): Promise<CustomerTopupIntlResult> {
+  const supabase = await createClient();
+  if (!(await getAuthUser()))
+    return { ok: false, error: "Tu dois te reconnecter." };
+  const customer = await getCurrentCustomerFull();
+  if (!customer) {
+    return { ok: false, error: "Profil client introuvable." };
+  }
+
+  const amount = Math.max(0, Math.floor(amountDa));
+  if (amount < MIN_TOPUP_DA) {
+    return {
+      ok: false,
+      error: `Le montant minimum de recharge est de ${MIN_TOPUP_DA} DA.`,
+      code: "below_min",
+    };
+  }
+  const { data: settings } = await supabase
+    .from("platform_settings")
+    .select("max_topup_da_per_30d")
+    .eq("id", true)
+    .maybeSingle();
+  const cap = settings?.max_topup_da_per_30d ?? 50000;
+  if (amount > cap) {
+    return {
+      ok: false,
+      error: `Le montant maximum par recharge est de ${cap.toLocaleString("fr-DZ")} DA.`,
+      code: "limit_reached",
+    };
+  }
+
+  // Réservation ATOMIQUE du quota 30 j (mig 0241) — identique au rail Chargily :
+  // sans elle, deux recharges parallèles passeraient toutes les deux.
+  const { data: resvRows, error: resvErr } = await supabase.rpc(
+    "reserve_topup_quota" as never,
+    { p_amount_da: amount } as never
+  );
+  const resv = (Array.isArray(resvRows) ? resvRows[0] : resvRows) as {
+    ok: boolean;
+    reason: string | null;
+    reservation_id: string | null;
+    remaining: number | null;
+  } | null;
+  if (resvErr || !resv || !resv.ok) {
+    const remaining = resv?.remaining ?? 0;
+    return {
+      ok: false,
+      error:
+        remaining > 0
+          ? `Plafond mensuel atteint. Tu peux encore recharger ${remaining.toLocaleString("fr-DZ")} DA sur les 30 derniers jours.`
+          : "Plafond mensuel atteint. Réessaie dans quelques jours.",
+      code: "limit_reached",
+    };
+  }
+  const reservationId = resv.reservation_id;
+
+  const releaseQuota = async () => {
+    if (!reservationId) return;
+    await supabase.rpc(
+      "release_topup_reservation" as never,
+      { p_reservation_id: reservationId } as never
+    );
+  };
+
+  try {
+    const [{ checkIntlEligibility, getRequestCountry }, stripeMod] =
+      await Promise.all([
+        import("@/lib/payments/intl"),
+        import("@/lib/payments/stripe"),
+      ]);
+    // Domaine 'wallet' + plafonds € du client (jour/mois/plateforme) évalués
+    // en mode autoritaire : le taux est rafraîchi et la capacité auditée.
+    const elig = await checkIntlEligibility({
+      customerId: customer.id,
+      totalDa: amount,
+      domain: "wallet",
+      mode: "authoritative",
+    });
+    if (!elig.ok) {
+      await releaseQuota();
+      return {
+        ok: false,
+        code: "intl",
+        error:
+          elig.reason === "order_min"
+            ? "Montant trop faible pour la carte internationale."
+            : elig.reason === "order_max"
+              ? "Montant trop élevé pour la carte internationale."
+              : elig.reason === "user_day" ||
+                  elig.reason === "user_month" ||
+                  elig.reason === "capacity"
+                ? "Plafond carte internationale atteint."
+                : "Carte internationale indisponible pour le moment.",
+      };
+    }
+    const publishableKey = await stripeMod.getPublishableKey();
+    if (!publishableKey) {
+      await releaseQuota();
+      return { ok: false, code: "intl", error: "Paiement € indisponible." };
+    }
+    const intent = await stripeMod.createIntlPaymentIntent({
+      orderId: customer.id,
+      eurCents: elig.eur_cents!,
+      description: "Recharge Coligo Pay",
+      metadata: {
+        type: "customer_topup_intl",
+        customer_id: customer.id,
+        ...(reservationId ? { reservation_id: reservationId } : {}),
+      },
+    });
+    const admin = createAdminClient();
+    const { error: sessErr } = await (
+      admin.from("intl_payment_sessions" as never) as unknown as {
+        insert: (row: Record<string, unknown>) => Promise<{
+          error: { message: string } | null;
+        }>;
+      }
+    ).insert({
+      topup_customer_id: customer.id,
+      customer_id: customer.id,
+      stripe_payment_intent: intent.id,
+      eur_cents: elig.eur_cents!,
+      total_da: amount,
+      rate_da: elig.rate.rate_da,
+      rate_source: elig.rate.source,
+      ip_country: await getRequestCountry(),
+    });
+    if (sessErr) {
+      await releaseQuota();
+      return { ok: false, code: "intl", error: "Recharge indisponible." };
+    }
+    return {
+      ok: true,
+      client_secret: intent.clientSecret,
+      publishable_key: publishableKey,
+      eur_cents: elig.eur_cents!,
+      total_da: amount,
+    };
+  } catch (e) {
+    await releaseQuota();
+    return {
+      ok: false,
+      error:
+        e instanceof Error
+          ? `Recharge indisponible : ${e.message}`
+          : "Recharge indisponible.",
+    };
+  }
+}
+
+/** Le rail « carte internationale » est-il proposable au client pour CE
+ *  montant ? (interrupteur super-admin + pays + bornes € + plafonds). */
+export async function customerTopupIntlAvailability(
+  amountDa?: number
+): Promise<{ available: boolean; min_eur_cents: number }> {
+  try {
+    const customer = await getCurrentCustomerFull();
+    if (!customer) return { available: false, min_eur_cents: 500 };
+    const { checkIntlEligibility, getIntlOrderBoundsEur } =
+      await import("@/lib/payments/intl");
+    const [elig, bounds] = await Promise.all([
+      checkIntlEligibility({
+        customerId: customer.id,
+        domain: "wallet",
+        ...(amountDa != null && amountDa > 0 ? { totalDa: amountDa } : {}),
+        mode: "visibility",
+      }),
+      getIntlOrderBoundsEur(),
+    ]);
+    return { available: elig.ok, min_eur_cents: bounds.min_eur_cents };
+  } catch {
+    return { available: false, min_eur_cents: 500 };
   }
 }

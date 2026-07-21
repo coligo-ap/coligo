@@ -12,6 +12,7 @@ import { Car, ChevronLeft, Heart, Star } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { formatDA } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
+import { PaymentLine } from "@/components/customer/payment-line";
 import { VIOLET, ROSE } from "./drive-modals";
 import { ChAvatar } from "./ch-avatar";
 import {
@@ -228,6 +229,12 @@ export function DriveHistoryView({
                     .filter(Boolean)
                     .join(" · ")}
                 </small>
+                {/* Comment ça a été payé : moyen, carte (marque + 4 chiffres),
+                    fournisseur. Composant partagé avec les commandes. */}
+                <PaymentLine
+                  payment={r.payment}
+                  className="mt-0.5 text-[var(--d-muted)]"
+                />
               </span>
               <span className="shrink-0 text-end">
                 <span className="drive-sora block text-[14px] font-extrabold">

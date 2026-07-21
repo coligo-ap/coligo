@@ -1,9 +1,9 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { Loader2, X } from "lucide-react";
+import { CreditCard, Globe, Loader2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { formatDA, cn } from "@/lib/utils";
@@ -12,7 +12,16 @@ import {
   PaymentResultOverlay,
   type PaymentResultState,
 } from "@/components/payments/payment-result-overlay";
-import { createTopup, isTopupPaid } from "@/app/(customer)/cashback/actions";
+import {
+  createTopup,
+  isTopupPaid,
+  createCustomerTopupIntlPayment,
+  customerTopupIntlAvailability,
+} from "@/app/(customer)/cashback/actions";
+import {
+  IntlPaymentSheet,
+  type StripeIntentPayload,
+} from "@/components/customer/intl-payment-sheet";
 
 // =============================================================================
 // ColigoPayCard — bouton « Recharger » + modale (montants prédéfinis + libre).
@@ -86,10 +95,56 @@ export function TopupModal({
   // échoué / annulé / expiré). Succès → on rafraîchit le portefeuille.
   const pay = useInappPayment({ onPaid: () => router.refresh() });
 
+  // Rail de recharge : CIB/Edahabia en DA (Chargily, défaut) ou carte
+  // INTERNATIONALE en € (Stripe, feuille embarquée : carte, Apple Pay, Google
+  // Pay). Le rail € n'apparaît que si le super-admin l'a activé ET que le
+  // montant courant respecte ses bornes — jamais de choix qui mène à un mur.
+  const [rail, setRail] = useState<"dzd" | "eur">("dzd");
+  const [intlOk, setIntlOk] = useState(false);
+  const [intlIntent, setIntlIntent] = useState<StripeIntentPayload | null>(
+    null
+  );
+  const value = custom ? Number(custom) : amount;
+  useEffect(() => {
+    let alive = true;
+    const id = setTimeout(() => {
+      void customerTopupIntlAvailability(
+        Number.isFinite(value) && value > 0 ? value : undefined
+      ).then((info) => {
+        if (!alive) return;
+        setIntlOk(info.available);
+        if (!info.available) setRail("dzd");
+      });
+    }, 400);
+    return () => {
+      alive = false;
+      clearTimeout(id);
+    };
+  }, [value]);
+
   function submit() {
     const value = custom ? Number(custom) : amount;
     if (!Number.isFinite(value) || value <= 0) {
       setNote({ ok: false, text: t("invalidAmount") });
+      return;
+    }
+    // Rail € : aucune redirection, la feuille Stripe s'ouvre par-dessus. Le
+    // crédit reste posé par le webhook (jamais par le retour client).
+    if (rail === "eur") {
+      start(async () => {
+        setNote(null);
+        const res = await createCustomerTopupIntlPayment(value);
+        if (!res.ok) {
+          setNote({ ok: false, text: res.error });
+          return;
+        }
+        setIntlIntent({
+          client_secret: res.client_secret,
+          publishable_key: res.publishable_key,
+          eur_cents: res.eur_cents,
+          total_da: res.total_da,
+        });
+      });
       return;
     }
     start(async () => {
@@ -234,6 +289,39 @@ export function TopupModal({
           className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-[12px] border px-3 py-2 text-sm tabular-nums focus-visible:ring-2 focus-visible:outline-none"
         />
 
+        {/* Choix du rail — affiché seulement si la carte internationale est
+            réellement proposable pour ce montant. */}
+        {intlOk && (
+          <div className="mt-3 flex gap-2">
+            {(
+              [
+                ["dzd", CreditCard, t("railDzd"), t("railDzdSub")],
+                ["eur", Globe, t("railEur"), t("railEurSub")],
+              ] as const
+            ).map(([r, Icon, label, sub]) => (
+              <button
+                key={r}
+                type="button"
+                onClick={() => setRail(r)}
+                className={cn(
+                  "flex-1 rounded-[12px] border px-2.5 py-2 text-start transition",
+                  rail === r
+                    ? "border-primary-600 bg-primary-50 text-primary-700"
+                    : "border-border bg-surface text-muted"
+                )}
+              >
+                <span className="flex items-center gap-1.5">
+                  <Icon className="size-3.5 shrink-0" />
+                  <b className="text-[12px]">{label}</b>
+                </span>
+                <span className="text-muted mt-0.5 block text-[10px] leading-snug font-semibold">
+                  {sub}
+                </span>
+              </button>
+            ))}
+          </div>
+        )}
+
         <Button
           type="button"
           size="lg"
@@ -243,6 +331,10 @@ export function TopupModal({
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
+          ) : rail === "eur" ? (
+            t("payByCard", {
+              amount: formatDA(custom ? Number(custom) || 0 : amount),
+            })
           ) : (
             t("payViaChargily", {
               amount: formatDA(custom ? Number(custom) || 0 : amount),
@@ -251,9 +343,23 @@ export function TopupModal({
         </Button>
         <ActionNote note={note} className="mt-2 text-center" />
         <p className="text-muted mt-3 text-center text-[11px]">
-          {t("chargilyRedirectNote")}
+          {rail === "eur" ? t("intlCardNote") : t("chargilyRedirectNote")}
         </p>
       </div>
+
+      {/* Rail € : feuille Stripe embarquée (carte, Apple Pay, Google Pay).
+          Succès → le webhook crédite ; on rafraîchit le portefeuille. */}
+      {intlIntent && (
+        <IntlPaymentSheet
+          intent={intlIntent}
+          onSuccess={() => {
+            setIntlIntent(null);
+            router.refresh();
+            onClose();
+          }}
+          onClose={() => setIntlIntent(null)}
+        />
+      )}
     </div>
   );
 }

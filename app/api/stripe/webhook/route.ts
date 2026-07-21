@@ -124,13 +124,14 @@ export async function POST(req: NextRequest) {
                   ride_id: string | null;
                   eur_cents: number;
                   total_da: number;
+                  customer_id: string | null;
                 } | null;
               }>;
             };
           };
         }
       )
-        .select("id, ride_id, eur_cents, total_da")
+        .select("id, ride_id, eur_cents, total_da, customer_id")
         .eq("stripe_payment_intent", pi.id)
         .maybeSingle();
       if (!rideSess || !rideId || rideSess.ride_id !== rideId) {
@@ -185,6 +186,16 @@ export async function POST(req: NextRequest) {
         const { notifyChauffeursNewRide } = await import("@/lib/fcm/triggers");
         void notifyChauffeursNewRide({ rideId });
         void rpc("drive_demo_respond", { p_ride_id: rideId });
+        const { recordStripeReceipt } = await import("@/lib/payments/receipts");
+        void recordStripeReceipt({
+          kind: "ride",
+          externalId: pi.id,
+          status: "paid",
+          amountDa: rideSess.total_da,
+          eurCents: rideSess.eur_cents,
+          customerId: rideSess.customer_id,
+          rideId,
+        });
       }
       await recordEvent(rideSess.id);
       return NextResponse.json({ ok: true });
@@ -208,13 +219,14 @@ export async function POST(req: NextRequest) {
                   offer_id: string | null;
                   eur_cents: number;
                   total_da: number;
+                  customer_id: string | null;
                 } | null;
               }>;
             };
           };
         }
       )
-        .select("id, offer_id, eur_cents, total_da")
+        .select("id, offer_id, eur_cents, total_da, customer_id")
         .eq("stripe_payment_intent", pi.id)
         .maybeSingle();
       if (!offSess || !offerId || offSess.offer_id !== offerId) {
@@ -284,6 +296,18 @@ export async function POST(req: NextRequest) {
         void notifyRideEvent(row.ride_id, "ride_accepted");
         void notifyChauffeurRideWon({ rideId: row.ride_id });
         void notifyChauffeursRideGone({ rideId: row.ride_id });
+        // Traçabilité client (mig 0394) : fournisseur, montant €, marque et
+        // 4 derniers chiffres de la carte → historique des courses.
+        const { recordStripeReceipt } = await import("@/lib/payments/receipts");
+        void recordStripeReceipt({
+          kind: "ride",
+          externalId: pi.id,
+          status: "paid",
+          amountDa: offSess.total_da,
+          eurCents: offSess.eur_cents,
+          customerId: offSess.customer_id,
+          rideId: row.ride_id,
+        });
       }
       await recordEvent(offSess.id);
       return NextResponse.json({ ok: true });
@@ -363,6 +387,121 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true });
     }
 
+    // ── Recharge Coligo Pay du CLIENT par carte € (type "customer_topup_intl",
+    // mig 0394). Miroir exact du rail Chargily : crédit posé ICI seulement,
+    // idempotent via l'index unique customer_wallet_entries(chargily_checkout_id)
+    // — l'id du PaymentIntent y tient lieu d'identifiant de paiement externe.
+    if (pi.metadata?.type === "customer_topup_intl") {
+      const customerId =
+        typeof pi.metadata.customer_id === "string"
+          ? pi.metadata.customer_id
+          : null;
+      const { data: tSess } = await (
+        admin.from("intl_payment_sessions" as never) as unknown as {
+          select: (cols: string) => {
+            eq: (
+              c: string,
+              v: unknown
+            ) => {
+              maybeSingle: () => Promise<{
+                data: {
+                  id: string;
+                  topup_customer_id: string | null;
+                  eur_cents: number;
+                  total_da: number;
+                } | null;
+              }>;
+            };
+          };
+        }
+      )
+        .select("id, topup_customer_id, eur_cents, total_da")
+        .eq("stripe_payment_intent", pi.id)
+        .maybeSingle();
+      if (!tSess || !customerId || tSess.topup_customer_id !== customerId) {
+        await auditIntl(
+          admin,
+          "intl_session_mismatch",
+          `payment_intent.succeeded (customer_topup_intl) intent inconnu ou croisé (${pi.id}).`
+        );
+        await recordEvent(null);
+        return NextResponse.json({ ok: true, unknown_intent: true });
+      }
+      if (pi.currency !== "eur" || pi.amount !== tSess.eur_cents) {
+        await auditIntl(
+          admin,
+          "intl_amount_mismatch",
+          `Intent customer_topup_intl ${pi.id} : payé ${pi.amount} ≠ ${tSess.eur_cents} c€.`,
+          tSess.id
+        );
+        await recordEvent(tSess.id);
+        return NextResponse.json({ ok: false, amount_mismatch: true });
+      }
+      await sessions
+        .update({ status: "paid", paid_at: new Date().toISOString() })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+
+      const { error: creditErr } = await (
+        admin.from("customer_wallet_entries") as unknown as {
+          insert: (row: Record<string, unknown>) => Promise<{
+            error: { code?: string; message: string } | null;
+          }>;
+        }
+      ).insert({
+        customer_id: customerId,
+        order_id: null,
+        type: "topup_credit",
+        source: "topup",
+        amount_da: tSess.total_da,
+        chargily_checkout_id: pi.id,
+        note: `Recharge Coligo Pay par carte internationale (${pi.id}).`,
+      });
+      // 23505 = rejeu du webhook, déjà crédité → succès.
+      if (creditErr && creditErr.code !== "23505") {
+        console.error("[stripe/webhook] customer topup credit:", creditErr);
+        await recordEvent(tSess.id);
+        return NextResponse.json(
+          { ok: false, error: creditErr.message },
+          { status: 500 }
+        );
+      }
+
+      // Quota glissant 30 j : la réservation devient un crédit réel.
+      const reservationId =
+        typeof pi.metadata.reservation_id === "string"
+          ? pi.metadata.reservation_id
+          : null;
+      if (reservationId) {
+        const rpc = admin.rpc.bind(admin) as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => Promise<{ error: { message: string } | null }>;
+        const { error: consumeErr } = await rpc("consume_topup_reservation", {
+          p_reservation_id: reservationId,
+          p_checkout_id: pi.id,
+        });
+        if (consumeErr) {
+          console.warn(
+            "[stripe/webhook] consume_topup_reservation:",
+            consumeErr.message
+          );
+        }
+      }
+
+      const { recordStripeReceipt } = await import("@/lib/payments/receipts");
+      void recordStripeReceipt({
+        kind: "topup",
+        externalId: pi.id,
+        status: "paid",
+        amountDa: tSess.total_da,
+        eurCents: tSess.eur_cents,
+        customerId,
+      });
+      await recordEvent(tSess.id);
+      return NextResponse.json({ ok: true });
+    }
+
     const orderId =
       typeof pi.metadata?.order_id === "string" ? pi.metadata.order_id : null;
 
@@ -435,6 +574,17 @@ export async function POST(req: NextRequest) {
         totalDa: updated.total_da,
       });
       void notifyDriversTour({ orderId: updated.id });
+      // Traçabilité client (mig 0394) : fournisseur, montant €, carte.
+      const { recordStripeReceipt } = await import("@/lib/payments/receipts");
+      void recordStripeReceipt({
+        kind: "order",
+        externalId: pi.id,
+        status: "paid",
+        amountDa: sess.total_da,
+        eurCents: sess.eur_cents,
+        customerId: sess.customer_id,
+        orderId,
+      });
       await recordEvent(sess.id);
       return NextResponse.json({ ok: true });
     }
@@ -618,6 +768,32 @@ export async function POST(req: NextRequest) {
         .update({ status: "expired" })
         .eq("stripe_payment_intent", pi.id)
         .eq("status", "created");
+      await recordEvent(null);
+      return NextResponse.json({ ok: true });
+    }
+
+    // Recharge CLIENT échouée : session expirée ET quota 30 j LIBÉRÉ — sinon
+    // une carte refusée gèlerait le plafond du client jusqu'à sa péremption.
+    if (pi.metadata?.type === "customer_topup_intl") {
+      await sessions
+        .update({ status: "expired" })
+        .eq("stripe_payment_intent", pi.id)
+        .eq("status", "created");
+      const reservationId =
+        typeof pi.metadata.reservation_id === "string"
+          ? pi.metadata.reservation_id
+          : null;
+      if (reservationId) {
+        const rpc = admin.rpc.bind(admin) as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => Promise<{ error: { message: string } | null }>;
+        const { error } = await rpc("release_topup_reservation", {
+          p_reservation_id: reservationId,
+        });
+        if (error)
+          console.warn("[stripe/webhook] release quota:", error.message);
+      }
       await recordEvent(null);
       return NextResponse.json({ ok: true });
     }

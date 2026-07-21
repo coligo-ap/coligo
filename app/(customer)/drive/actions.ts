@@ -1731,6 +1731,23 @@ export async function toggleFavoriteChauffeur(
 
 /* ─────────────────────────── Historique + favoris ─────────────────────────── */
 
+/** Paiement d'une course, tel qu'il s'est RÉELLEMENT passé (mig 0394).
+ *  `provider`/`brand`/`last4` restent nuls quand la source ne les fournit pas
+ *  (espèces, Coligo Pay, ou Chargily qui n'expose pas la carte) — on n'affiche
+ *  jamais une information qu'on n'a pas. */
+export type RidePayment = {
+  mode: "cash" | "card" | "coligo_pay";
+  provider: "stripe" | "chargily" | null;
+  brand: string | null;
+  last4: string | null;
+  /** 'apple_pay' | 'google_pay' | null. */
+  wallet: string | null;
+  /** 'cib' | 'edahabia' | 'card' | null. */
+  method: string | null;
+  status: "paid" | "failed" | "refunded" | null;
+  paid_at: string | null;
+};
+
 export type DriveHistory = {
   rides: {
     id: string;
@@ -1739,6 +1756,7 @@ export type DriveHistory = {
     chauffeur_name: string | null;
     price_da: number;
     completed: boolean;
+    payment: RidePayment;
   }[];
   favorites: {
     chauffeur_id: string;
@@ -1768,7 +1786,7 @@ export async function getDriveHistory(): Promise<DriveHistory> {
     admin
       .from("rides")
       .select(
-        "id, dest_text, created_at, status, agreed_price_da, proposed_price_da, chauffeurs(first_name, full_name)"
+        "id, dest_text, created_at, status, agreed_price_da, proposed_price_da, payment_method, chauffeurs(first_name, full_name)"
       )
       .eq("customer_id", cust.id)
       // Annulée AVANT attribution (recherche abandonnée, carte échouée, TTL)
@@ -1832,12 +1850,62 @@ export async function getDriveHistory(): Promise<DriveHistory> {
     })
   );
 
+  // Reçus de paiement des courses affichées (mig 0394), en UNE requête.
+  const rideIds = (rides ?? []).map((r) => r.id);
+  const receipts = new Map<
+    string,
+    {
+      provider: "stripe" | "chargily";
+      card_brand: string | null;
+      card_last4: string | null;
+      wallet: string | null;
+      method: string | null;
+      status: "paid" | "failed" | "refunded";
+      paid_at: string | null;
+    }
+  >();
+  if (rideIds.length > 0) {
+    const { data: recs } = await (
+      admin.from("payment_receipts" as never) as unknown as {
+        select: (cols: string) => {
+          in: (
+            c: string,
+            v: string[]
+          ) => Promise<{ data: Record<string, unknown>[] | null }>;
+        };
+      }
+    )
+      .select(
+        "ride_id, provider, card_brand, card_last4, wallet, method, status, paid_at"
+      )
+      .in("ride_id", rideIds);
+    for (const rec of recs ?? []) {
+      const rid = rec.ride_id as string | null;
+      if (rid && !receipts.has(rid)) {
+        receipts.set(rid, {
+          provider: rec.provider as "stripe" | "chargily",
+          card_brand: (rec.card_brand as string | null) ?? null,
+          card_last4: (rec.card_last4 as string | null) ?? null,
+          wallet: (rec.wallet as string | null) ?? null,
+          method: (rec.method as string | null) ?? null,
+          status: rec.status as "paid" | "failed" | "refunded",
+          paid_at: (rec.paid_at as string | null) ?? null,
+        });
+      }
+    }
+  }
+
   return {
     rides: (rides ?? []).map((r) => {
       const ch = r.chauffeurs as unknown as {
         first_name: string | null;
         full_name: string;
       } | null;
+      const rec = receipts.get(r.id);
+      const mode = (r.payment_method ?? "cash") as
+        | "cash"
+        | "card"
+        | "coligo_pay";
       return {
         id: r.id,
         dest_text: r.dest_text,
@@ -1847,6 +1915,16 @@ export async function getDriveHistory(): Promise<DriveHistory> {
           : null,
         price_da: r.agreed_price_da ?? r.proposed_price_da ?? 0,
         completed: r.status === "completed",
+        payment: {
+          mode,
+          provider: rec?.provider ?? null,
+          brand: rec?.card_brand ?? null,
+          last4: rec?.card_last4 ?? null,
+          wallet: rec?.wallet ?? null,
+          method: rec?.method ?? null,
+          status: rec?.status ?? null,
+          paid_at: rec?.paid_at ?? null,
+        },
       };
     }),
     favorites,

@@ -19,6 +19,7 @@ import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tra
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { ReorderButton } from "@/components/customer/reorder-button";
 import { OrderTrack } from "@/components/customer/order-track";
+import { PaymentLine } from "@/components/customer/payment-line";
 import { CustomerDeliveryMap } from "@/components/customer/customer-delivery-map";
 import { ConfirmReception } from "@/components/customer/confirm-reception";
 import { ReportDriver } from "@/components/customer/report-driver";
@@ -146,6 +147,45 @@ export default async function CustomerOrderDetailPage({
           note: proofRow.delivery_proof_note,
         }
       : null;
+
+  // Reçu de paiement (mig 0394) : fournisseur, carte, statut, horodatage.
+  // Lu avec le client du CLIENT (pas service_role) : la policy RLS
+  // payment_receipts_own_select garantit qu'il ne voit que les siens.
+  const receiptFrom = supabase.from.bind(supabase) as unknown as (
+    t: string
+  ) => {
+    select: (c: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        order: (
+          c: string,
+          o: { ascending: boolean }
+        ) => {
+          limit: (n: number) => Promise<{
+            data:
+              | {
+                  provider: "stripe" | "chargily";
+                  card_brand: string | null;
+                  card_last4: string | null;
+                  wallet: string | null;
+                  method: string | null;
+                  status: "paid" | "failed" | "refunded";
+                  paid_at: string | null;
+                }[]
+              | null;
+          }>;
+        };
+      };
+    };
+  };
+  const { data: receiptRows } = await receiptFrom("payment_receipts")
+    .select("provider, card_brand, card_last4, wallet, method, status, paid_at")
+    .eq("order_id", order.id)
+    .order("created_at", { ascending: false })
+    .limit(1);
+  const receipt = receiptRows?.[0] ?? null;
 
   // Anti-fraude : un client qui a déjà été remboursé plusieurs fois sur des
   // annulations online (30 j) ne peut plus annuler cette commande payée en
@@ -727,6 +767,24 @@ export default async function CustomerOrderDetailPage({
           <div className="text-foreground mt-1 flex items-baseline justify-between border-t border-[var(--color-border)] pt-2 text-[15px] font-black">
             <span>{isCash ? t("total") : t("totalPaid")}</span>
             <span className="tabular-nums">{formatDA(order.total_da)}</span>
+          </div>
+          {/* Comment ça a été payé : moyen, fournisseur, carte (marque + 4
+              derniers chiffres), statut et horodatage. Même composant que
+              l'historique des courses. */}
+          <div className="text-muted mt-1.5 flex justify-end">
+            <PaymentLine
+              withDate
+              payment={{
+                mode: isCash ? "cash" : receipt ? "card" : "online",
+                provider: receipt?.provider ?? null,
+                brand: receipt?.card_brand ?? null,
+                last4: receipt?.card_last4 ?? null,
+                wallet: receipt?.wallet ?? null,
+                method: receipt?.method ?? null,
+                status: receipt?.status ?? null,
+                paid_at: receipt?.paid_at ?? null,
+              }}
+            />
           </div>
         </div>
 

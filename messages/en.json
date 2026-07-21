@@ -1005,7 +1005,13 @@
     "share": "Share",
     "shareTagText": "Send me money on Coligo Pay: my handle is @{handle} ({name}).",
     "cancel": "Cancel",
-    "back": "Back"
+    "back": "Back",
+    "railDzd": "CIB / Edahabia",
+    "railDzdSub": "In dinars (DA)",
+    "railEur": "International (€)",
+    "railEurSub": "Visa · Mastercard · Apple Pay",
+    "payByCard": "Pay {amount} by card",
+    "intlCardNote": "Secure payment, without leaving the app."
   },
   "productSearch": {
     "searching": "Searching…",
@@ -1459,5 +1465,13 @@
     "support": "Outside Coligo: no protection, no refund, no recourse. In doubt? Contact support from the Help Center.",
     "error": "Could not save — try again.",
     "confirm": "Yes, I understand and I agree"
+  },
+  "payment": {
+    "online": "Online",
+    "cash": "Cash",
+    "wallet": "Coligo Pay",
+    "card": "Bank card",
+    "failed": "Payment failed",
+    "refunded": "Refunded"
   }
 }

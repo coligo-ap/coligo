@@ -136,6 +136,26 @@ export async function POST(req: NextRequest) {
         // Tournée online payée : prévient les livreurs du commerçant (no-op si
         // ce n'est pas une tournée). Reçu même app fermée / hors ligne.
         void notifyDriversTour({ orderId: updated.id });
+        // Traçabilité client (mig 0394). Chargily n'expose PAS la marque ni les
+        // 4 derniers chiffres — on enregistre donc ce qu'il donne réellement :
+        // le moyen local (CIB / Edahabia). Mieux vaut un champ vide qu'une
+        // valeur inventée.
+        {
+          const { recordPaymentReceipt } =
+            await import("@/lib/payments/receipts");
+          void recordPaymentReceipt({
+            kind: "order",
+            provider: "chargily",
+            externalId: event.data.id,
+            status: "paid",
+            amountDa: paidAmount,
+            customerId: target.customer_id,
+            orderId,
+            method:
+              (event.data as unknown as { payment_method?: string })
+                .payment_method ?? null,
+          });
+        }
         return NextResponse.json({ ok: true });
       }
 
@@ -337,6 +357,23 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Traçabilité de la recharge (mig 0394) — visible dans l'historique
+      // Coligo Pay du client.
+      {
+        const { recordPaymentReceipt } =
+          await import("@/lib/payments/receipts");
+        void recordPaymentReceipt({
+          kind: "topup",
+          provider: "chargily",
+          externalId: checkoutId,
+          status: "paid",
+          amountDa: amount,
+          customerId,
+          method:
+            (event.data as unknown as { payment_method?: string })
+              .payment_method ?? null,
+        });
+      }
       return NextResponse.json({
         ok: true,
         already_processed: insertErr?.code === "23505",
@@ -529,6 +566,30 @@ export async function POST(req: NextRequest) {
         void notifyRideEvent(row.ride_id, "ride_accepted");
         void notifyChauffeurRideWon({ rideId: row.ride_id });
         void notifyChauffeursRideGone({ rideId: row.ride_id });
+        // Traçabilité client (mig 0394) : le customer_id est porté par la
+        // course, pas par le checkout Chargily.
+        const [{ recordPaymentReceipt }, { data: rideRow }] = await Promise.all(
+          [
+            import("@/lib/payments/receipts"),
+            admin
+              .from("rides")
+              .select("customer_id")
+              .eq("id", row.ride_id)
+              .maybeSingle(),
+          ]
+        );
+        void recordPaymentReceipt({
+          kind: "ride",
+          provider: "chargily",
+          externalId: event.data.id,
+          status: "paid",
+          amountDa: Math.round(event.data.amount),
+          customerId: rideRow?.customer_id ?? null,
+          rideId: row.ride_id,
+          method:
+            (event.data as unknown as { payment_method?: string })
+              .payment_method ?? null,
+        });
       }
     }
     if (

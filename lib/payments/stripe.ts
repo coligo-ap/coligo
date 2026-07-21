@@ -207,6 +207,41 @@ export async function createIntlPaymentIntent(
   };
 }
 
+/**
+ * Détails NON SENSIBLES de la carte ayant payé un PaymentIntent — marque,
+ * 4 derniers chiffres et portefeuille (Apple Pay / Google Pay), pour que le
+ * client retrouve « par quelle carte ai-je payé ? » dans son historique.
+ *
+ * Le payload du webhook ne porte que `latest_charge` sous forme d'ID : on
+ * re-interroge Stripe en l'expandant. Jamais de PAN ni de token réutilisable —
+ * seulement ce qui est affichable. Ne throw pas : un détail manquant ne doit
+ * jamais faire échouer un webhook de paiement.
+ */
+export async function fetchCardDetails(paymentIntentId: string): Promise<{
+  brand: string | null;
+  last4: string | null;
+  wallet: string | null;
+} | null> {
+  try {
+    const mode = await getStripeMode();
+    const stripe = stripeFor(mode);
+    const pi = await stripe.paymentIntents.retrieve(paymentIntentId, {
+      expand: ["latest_charge"],
+    });
+    const charge = pi.latest_charge as Stripe.Charge | null;
+    const card = charge?.payment_method_details?.card;
+    if (!card) return null;
+    return {
+      brand: card.brand ?? null,
+      last4: card.last4 ?? null,
+      wallet: card.wallet?.type ?? null,
+    };
+  } catch (err) {
+    console.warn("[stripe] détails carte indisponibles:", err);
+    return null;
+  }
+}
+
 /** Vérifie la signature du webhook et parse l'événement. Un webhook peut
  *  provenir de l'environnement TEST ou LIVE (events test encore en file après
  *  une bascule) : on essaie CHAQUE secret configuré — une signature ne valide

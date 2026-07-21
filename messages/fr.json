@@ -1005,7 +1005,13 @@
     "share": "Partager",
     "shareTagText": "Envoie-moi de l'argent sur Coligo Pay : mon identifiant est @{handle} ({name}).",
     "cancel": "Annuler",
-    "back": "Retour"
+    "back": "Retour",
+    "railDzd": "CIB / Edahabia",
+    "railDzdSub": "En dinars (DA)",
+    "railEur": "Internationale (€)",
+    "railEurSub": "Visa · Mastercard · Apple Pay",
+    "payByCard": "Payer {amount} par carte",
+    "intlCardNote": "Paiement sécurisé, sans quitter l’application."
   },
   "productSearch": {
     "searching": "Recherche…",
@@ -1453,5 +1459,13 @@
     "support": "Hors de Coligo : aucune protection, aucun remboursement, aucun recours. Un doute ? Contacte le support depuis le Centre d'aide.",
     "error": "Impossible d'enregistrer — réessaie.",
     "confirm": "Oui, j'ai compris et je suis d'accord"
+  },
+  "payment": {
+    "online": "En ligne",
+    "cash": "Espèces",
+    "wallet": "Coligo Pay",
+    "card": "Carte bancaire",
+    "failed": "Paiement échoué",
+    "refunded": "Remboursé"
   }
 }

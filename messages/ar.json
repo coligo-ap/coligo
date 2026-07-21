@@ -1005,7 +1005,13 @@
     "share": "مشاركة",
     "shareTagText": "أرسل لي أموالاً عبر كوليغو باي: معرّفي هو @{handle} ({name}).",
     "cancel": "إلغاء",
-    "back": "رجوع"
+    "back": "رجوع",
+    "railDzd": "CIB / Edahabia",
+    "railDzdSub": "بالدينار (DA)",
+    "railEur": "دولية (€)",
+    "railEurSub": "Visa · Mastercard · Apple Pay",
+    "payByCard": "ادفع {amount} بالبطاقة",
+    "intlCardNote": "دفع آمن دون مغادرة التطبيق."
   },
   "productSearch": {
     "searching": "جارٍ البحث…",
@@ -1448,5 +1454,13 @@
     "support": "خارج كوليغو: لا حماية، لا استرجاع للمال، لا أي ضمان. عندك شك؟ تواصل مع الدعم من مركز المساعدة.",
     "error": "تعذّر الحفظ — أعد المحاولة.",
     "confirm": "نعم، فهمت وأوافق"
+  },
+  "payment": {
+    "online": "عبر الإنترنت",
+    "cash": "نقدًا",
+    "wallet": "كوليڨو باي",
+    "card": "بطاقة بنكية",
+    "failed": "فشل الدفع",
+    "refunded": "مُسترجَع"
   }
 }

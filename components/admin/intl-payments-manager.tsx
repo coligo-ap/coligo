@@ -343,8 +343,10 @@ export function IntlPaymentsManager({
                 € pour recharger Coligo Pay
               </span>
               <span className="text-muted block text-[11px] font-medium">
-                Carte internationale pour recharger le portefeuille
-                (partenaires). Montant borné par le plafond de recharge.
+                Carte internationale pour recharger Coligo Pay — clients ET
+                partenaires (chauffeur, livreur, commerçant). Couper cet
+                interrupteur retire l&apos;option des DEUX espaces immédiatement
+                ; les plafonds de recharge continuent de s&apos;appliquer.
               </span>
             </span>
             <input

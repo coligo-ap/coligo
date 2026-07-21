@@ -430,6 +430,12 @@ export async function checkIntlEligibility(opts: {
   if (opts.domain === "marketplace" && !settings.enabled_marketplace) {
     return { ok: false, reason: "domain_off" };
   }
+  // Recharge de portefeuille (client OU partenaire) : même interrupteur
+  // super-admin que la recharge opérateur (« € pour recharger Coligo Pay »),
+  // pour qu'un seul geste coupe TOUTES les recharges par carte internationale.
+  if (opts.domain === "wallet" && !settings.enabled_wallet) {
+    return { ok: false, reason: "domain_off" };
+  }
 
   // 3. Pays (fail-closed si inconnu, '*' = monde entier)
   const country = await getRequestCountry();
