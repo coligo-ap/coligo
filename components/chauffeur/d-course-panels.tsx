@@ -245,10 +245,18 @@ export function DoneScreen({
                   ? isAr
                     ? `${formatDA(done.cash_due_da)} حُصِّلت نقدًا · ${formatDA(done.price_da - done.cash_due_da)} عبر كوليڨو باي، أُضيفت إلى رصيدك`
                     : `${formatDA(done.cash_due_da)} encaissés en espèces · ${formatDA(done.price_da - done.cash_due_da)} via Coligo Pay, crédités sur votre solde`
-                  : tr(
-                      "Prépayée · encaissée par Coligo, créditée sur votre solde",
-                      "مدفوعة مسبقًا · حصّلتها كوليڨو وأُضيفت إلى رصيدك"
-                    )}
+                  : // Carte bancaire distinguée de Coligo Pay : même logique
+                    // métier (encaissée par Coligo puis créditée), mais le
+                    // chauffeur voit le vrai moyen de paiement du client.
+                    done.payment_method === "card"
+                    ? tr(
+                        "Payée par carte bancaire · créditée sur votre solde",
+                        "مدفوعة بالبطاقة البنكية · أُضيفت إلى رصيدك"
+                      )
+                    : tr(
+                        "Prépayée (Coligo Pay) · encaissée par Coligo, créditée sur votre solde",
+                        "مدفوعة مسبقًا (كوليڨو باي) · حصّلتها كوليڨو وأُضيفت إلى رصيدك"
+                      )}
             </b>
             {done.commission_da > 0 && (
               <span className="text-[11px] text-[var(--d-muted)]">

@@ -505,7 +505,19 @@ export async function POST(req: NextRequest) {
       const row = (Array.isArray(data) ? data[0] : data) as {
         ok?: boolean;
         ride_id?: string;
+        refunded?: boolean;
       };
+      // Paiement TARDIF (fenêtre expirée / course déjà prise) : la RPC a
+      // recrédité le Coligo Pay — on prévient le client, même règle que le
+      // rail € (parité Chargily / Stripe).
+      if (!row?.ok && row?.refunded && row.ride_id) {
+        const { notifyCardRefundToWallet } =
+          await import("@/lib/drive/card-payment-window");
+        void notifyCardRefundToWallet({
+          rideId: row.ride_id,
+          amountDa: Math.round(event.data.amount),
+        });
+      }
       if (row?.ok && row.ride_id) {
         const [
           { notifyChauffeursRideGone, notifyChauffeurRideWon },

@@ -260,7 +260,19 @@ export async function POST(req: NextRequest) {
       const row = (Array.isArray(data) ? data[0] : data) as {
         ok?: boolean;
         ride_id?: string;
+        refunded?: boolean;
       };
+      // Paiement TARDIF (fenêtre expirée / course déjà prise) : le montant est
+      // recrédité en Coligo Pay par la RPC — on le DIT au client, sinon il
+      // constate un débit carte sans course.
+      if (!row?.ok && row?.refunded && row.ride_id) {
+        const { notifyCardRefundToWallet } =
+          await import("@/lib/drive/card-payment-window");
+        void notifyCardRefundToWallet({
+          rideId: row.ride_id,
+          amountDa: offSess.total_da,
+        });
+      }
       if (row?.ok && row.ride_id) {
         const [
           { notifyChauffeursRideGone, notifyChauffeurRideWon },

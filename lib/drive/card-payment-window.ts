@@ -29,6 +29,44 @@ type ExpiredRow = {
 };
 
 /**
+ * Paiement arrivé APRÈS la fermeture de la fenêtre (webhook tardif, 3DS long,
+ * course prise entre-temps) : `drive_card_accept_reserved` recrédite le montant
+ * sur le Coligo Pay du client (idempotent). Sans ce message, le client verrait
+ * un débit carte, aucune course, et un solde qui bouge sans explication — la
+ * pire combinaison possible pour la confiance. Fire-and-forget.
+ */
+export async function notifyCardRefundToWallet(input: {
+  rideId: string;
+  amountDa: number;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: ride } = await admin
+      .from("rides")
+      .select("customer_id")
+      .eq("id", input.rideId)
+      .maybeSingle();
+    if (!ride?.customer_id) return;
+    const { data: cust } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", ride.customer_id)
+      .maybeSingle();
+    if (!cust?.user_id) return;
+    await storeAndPushNotification({
+      userId: cust.user_id,
+      audience: "customer",
+      kind: "ride_card_refunded",
+      title: "Paiement remboursé",
+      body: `La course n'a pas pu être confirmée. ${input.amountDa} DA ont été recrédités sur votre Coligo Pay.`,
+      route: "/coligo-pay",
+    });
+  } catch (err) {
+    console.warn("[drive-card] notif remboursement:", err);
+  }
+}
+
+/**
  * Expire les fenêtres de paiement dépassées, puis prévient les deux parties.
  * Ne throw JAMAIS (appelée en fire-and-forget depuis des chemins chauds).
  * @returns le nombre de courses annulées pour non-paiement.

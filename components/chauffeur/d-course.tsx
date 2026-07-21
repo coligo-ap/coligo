@@ -573,6 +573,18 @@ export function DCourse() {
 
   const inProgress = ride.status === "in_progress";
 
+  // Mode de paiement EXPLICITE : la logique métier d'une course carte est
+  // exactement celle d'une course Coligo Pay / Chargily (séquestre, PIN au
+  // départ, rien à encaisser), mais le chauffeur doit voir PAR QUOI elle a été
+  // payée — « prépayée » tout court laissait croire à un paiement Coligo Pay.
+  const isCardRide = ride.payment_method === "card";
+  const payFr = isCardRide
+    ? "Course payée par carte bancaire"
+    : "Course prépayée (Coligo Pay)";
+  const payAr = isCardRide
+    ? "مشوار مدفوع بالبطاقة البنكية"
+    : "مشوار مدفوع مسبقًا (كوليڨو باي)";
+
   // Appel : Coligo Call par défaut ; si le client a partagé son numéro direct,
   // on ouvre un mini-sélecteur (Coligo Call / numéro) — une SEULE action visible.
   const onCall = () => {
@@ -994,14 +1006,14 @@ export function DCourse() {
                   )
                 ) : (
                   tr(
-                    "Course prépayée — montant en séquestre, versé sur votre solde à la fin de la course. Rien à encaisser.",
-                    "مشوار مدفوع مسبقًا — المبلغ في الضمان ويُضاف إلى رصيدك في نهاية المشوار. لا شيء للتحصيل."
+                    `${payFr} — montant en séquestre, versé sur votre solde à la fin de la course. Rien à encaisser.`,
+                    `${payAr} — المبلغ في الضمان ويُضاف إلى رصيدك في نهاية المشوار. لا شيء للتحصيل.`
                   )
                 )
               ) : isAr ? (
                 <>
-                  مشوار مدفوع مسبقًا — عند وصولك، اطلب من الزبون{" "}
-                  <b>رمز PIN (4 أرقام)</b>: إدخاله يبدأ المشوار.{" "}
+                  {payAr} — عند وصولك، اطلب من الزبون <b>رمز PIN (4 أرقام)</b>:
+                  إدخاله يبدأ المشوار.{" "}
                   {ride.cash_due_da > 0 ? (
                     <>
                       مبلغ إضافي يُحصَّل نقدًا:{" "}
@@ -1013,7 +1025,7 @@ export function DCourse() {
                 </>
               ) : (
                 <>
-                  Course prépayée — à votre arrivée, demandez le{" "}
+                  {payFr} — à votre arrivée, demandez le{" "}
                   <b>code PIN (4 chiffres)</b> au client : sa saisie démarre la
                   course.{" "}
                   {ride.cash_due_da > 0 ? (
