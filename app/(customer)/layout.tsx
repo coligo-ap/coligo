@@ -1,6 +1,6 @@
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import { getCustomerFraudGate } from "@/lib/fraud/gate";
 import { getMyAccountBlock } from "@/lib/data/account-status";
 import { AccountSuspendedNotice } from "@/components/customer/account-suspended-notice";
@@ -28,7 +28,7 @@ export default async function CustomerGroupLayout({
   const [user, customer, flags, fraudGate, accountBlock] = await Promise.all([
     getAuthUser(),
     getCurrentCustomerFull(),
-    getFeatureFlags(),
+    getEffectiveFlags(),
     getCustomerFraudGate(),
     getMyAccountBlock(),
   ]);

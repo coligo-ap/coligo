@@ -12,7 +12,7 @@ import {
   splitOpenFirst,
 } from "@/lib/data/merchant-ranking";
 import { getAuthUser } from "@/lib/auth/session";
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
@@ -55,7 +55,7 @@ export default async function CustomerHomePage() {
   const [authUser, customer, flags] = await Promise.all([
     getAuthUser(),
     getCurrentCustomerFull(),
-    getFeatureFlags(),
+    getEffectiveFlags(),
   ]);
   const isAuth = !!authUser;
   const customerCoords: {

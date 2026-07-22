@@ -22,7 +22,7 @@ import {
   getCashbackBalanceForCustomer,
   getTopupBalanceForCustomer,
 } from "@/lib/customer/cashback";
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import { getCustomerFraudGate } from "@/lib/fraud/gate";
 import {
   createCheckout as createChargilyCheckout,
@@ -313,7 +313,7 @@ export async function createOrder(
   // Disponibilité (super-admin) : refuse le paiement en ligne désactivé, et
   // neutralise l'usage de cashback / Coligo Pay s'ils sont coupés. (La DB pose
   // aussi un garde-fou bypass-proof sur les commandes online — mig 0182.)
-  const features = await getFeatureFlags();
+  const features = await getEffectiveFlags();
   if (
     input.payment_method === "online" &&
     features.online_payment.status !== "active"

@@ -24,7 +24,7 @@ import { CustomerLanguageRow } from "@/components/customer/customer-language-row
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import {
   getMyCashbackBalance,
   getMyTopupBalance,
@@ -72,7 +72,7 @@ export default async function CustomerAccountPage({
   const [merchant, flags, cashbackBalance, topupBalance, ongoingCount] =
     await Promise.all([
       getCurrentMerchant(),
-      getFeatureFlags(),
+      getEffectiveFlags(),
       getMyCashbackBalance(),
       getMyTopupBalance(),
       customer ? countOngoingOrders(customer.id) : Promise.resolve(0),

@@ -641,6 +641,14 @@ export async function escalateDispatch(rideId: string): Promise<void> {
  * drive_zone_maxdist:<km>. Sinon on renvoie le message brut.
  */
 function driveZoneError(msg: string): string {
+  // Restrictions de COMPTE (mig 0397) : le trigger d'insertion des courses
+  // refuse — on traduit plutôt que d'afficher un code technique.
+  if (msg.includes("account_blocked")) {
+    return "Votre compte est suspendu : les courses sont bloquées. Contactez le support Coligo.";
+  }
+  if (msg.includes("feature_disabled:drive")) {
+    return "Coligo Drive n'est pas disponible sur votre compte. Contactez le support Coligo.";
+  }
   if (msg.includes("drive_zone_maxdist")) {
     const km = msg.split(":")[1]?.trim();
     return km

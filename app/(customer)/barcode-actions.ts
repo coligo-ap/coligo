@@ -1,6 +1,6 @@
 "use server";
 
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import {
   isValidBarcode,
   resolveBarcode,
@@ -28,10 +28,19 @@ export async function scanBarcode(input: {
 }): Promise<ScanBarcodeResult> {
   const surface: BarcodeSurface =
     input.surface === "merchant" ? "merchant" : "marketplace";
-  const flags = await getFeatureFlags();
+  // Le scan est TOUJOURS déclenché depuis l'app cliente : on refuse si le
+  // kill-switch de la surface est coupé OU si le SCAN est coupé pour ce compte
+  // (mig 0397) — y compris sur une fiche commerçant, sinon la restriction se
+  // contournerait en scannant depuis une boutique.
+  const flags = await getEffectiveFlags();
   const key =
     surface === "marketplace" ? "barcode_marketplace" : "barcode_merchant";
-  if (flags[key].status !== "active") return { ok: false, error: "disabled" };
+  if (
+    flags[key].status !== "active" ||
+    flags.barcode_marketplace.status !== "active"
+  ) {
+    return { ok: false, error: "disabled" };
+  }
 
   const ean = (input.ean ?? "").replace(/\D/g, "");
   if (!isValidBarcode(ean)) return { ok: false, error: "invalid" };
@@ -62,10 +71,19 @@ export async function scanBarcodeFind(input: {
 }): Promise<ScanFindResult> {
   const surface: BarcodeSurface =
     input.surface === "merchant" ? "merchant" : "marketplace";
-  const flags = await getFeatureFlags();
+  // Le scan est TOUJOURS déclenché depuis l'app cliente : on refuse si le
+  // kill-switch de la surface est coupé OU si le SCAN est coupé pour ce compte
+  // (mig 0397) — y compris sur une fiche commerçant, sinon la restriction se
+  // contournerait en scannant depuis une boutique.
+  const flags = await getEffectiveFlags();
   const key =
     surface === "marketplace" ? "barcode_marketplace" : "barcode_merchant";
-  if (flags[key].status !== "active") return { ok: false, error: "disabled" };
+  if (
+    flags[key].status !== "active" ||
+    flags.barcode_marketplace.status !== "active"
+  ) {
+    return { ok: false, error: "disabled" };
+  }
 
   const ean = (input.ean ?? "").replace(/\D/g, "");
   if (!isValidBarcode(ean)) return { ok: false, error: "invalid" };

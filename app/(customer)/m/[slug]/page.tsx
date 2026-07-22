@@ -17,7 +17,7 @@ import { MerchantClosedNotice } from "@/components/customer/merchant-closed-noti
 import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
 import { getMerchantReviews } from "@/lib/data/reviews";
 import { getMerchantOfferDesigns } from "@/lib/data/promo-banners";
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import {
   discountedUnitPrice,
   isPromotionActive,
@@ -83,7 +83,7 @@ export default async function MerchantPublicPage({
     listMerchantPromotions(m.id),
     getMyFavoriteIds(),
     supabase.auth.getUser(),
-    getFeatureFlags(),
+    getEffectiveFlags(),
     getMerchantOfferDesigns(m.id),
   ]);
   const isAuth = !!authData?.user;

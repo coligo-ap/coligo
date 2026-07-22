@@ -157,10 +157,17 @@ export async function getFeatureFlag(key: FeatureKey): Promise<FeatureFlag> {
 
   const blocks = await getMyFeatureBlocks();
   if (!blocks.has(key)) return flag;
+  return personalBlockFlag(key, blocks);
+}
 
+/** Drapeau « coupé pour CE compte » — libellé honnête + motif de l'équipe. */
+function personalBlockFlag(
+  key: FeatureKey,
+  blocks: Map<FeatureKey, string | null>
+): FeatureFlag {
   const reason = blocks.get(key) ?? null;
   return {
-    ...flag,
+    key,
     // `maintenance` = « visible mais inutilisable » : les gardes en place
     // s'appliquent telles quelles ; le libellé, lui, dit la vérité.
     status: "maintenance",
@@ -175,6 +182,31 @@ export async function getFeatureFlag(key: FeatureKey): Promise<FeatureFlag> {
       : "تم تعطيل هذه الخدمة على حسابك. تواصل مع الدعم لمعرفة المزيد.",
   };
 }
+
+/**
+ * TOUS les drapeaux, EFFECTIFS pour le compte connecté.
+ *
+ * ⚠️ RÈGLE : dans l'espace CLIENT (pages, server actions, gardes), c'est CETTE
+ * fonction qu'il faut utiliser — jamais `getFeatureFlags()`, qui ne connaît que
+ * le kill-switch global et laisserait un client restreint continuer à utiliser
+ * la fonctionnalité. `getFeatureFlags()` ne reste légitime que pour les pages
+ * PUBLIQUES (vitrine, CGU, blog) et les espaces NON-client (admin, commerçant).
+ *
+ * Coût nul : les deux lectures sous-jacentes sont mémoïsées par requête.
+ */
+export const getEffectiveFlags = cache(async (): Promise<FeatureFlags> => {
+  const [flags, blocks] = await Promise.all([
+    getFeatureFlags(),
+    getMyFeatureBlocks(),
+  ]);
+  if (blocks.size === 0) return flags;
+  const out = { ...flags };
+  for (const key of blocks.keys()) {
+    if (out[key]?.status === "active")
+      out[key] = personalBlockFlag(key, blocks);
+  }
+  return out;
+});
 
 /** Visible dans le front ? (tout sauf 'hidden'). */
 export function isVisible(f: FeatureFlag): boolean {
