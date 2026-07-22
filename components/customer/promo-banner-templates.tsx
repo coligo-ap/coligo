@@ -187,13 +187,22 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
         </div>
       ) : null}
 
-      {/* Texte à gauche. */}
-      <div className="absolute inset-y-0 left-0 z-10 flex w-[62%] flex-col justify-center px-5 text-white">
-        <h3 className="font-display text-lg leading-tight font-bold sm:text-xl">
+      {/* Texte à gauche. La hauteur de la carte est FIXE (ratio 64/26) : on
+          borne le bloc et on resserre le sous-titre quand un compte à rebours
+          vient s'ajouter, sinon le texte déborde sur les cartes étroites. */}
+      <div className="absolute inset-y-0 left-0 z-10 flex w-[62%] flex-col justify-center overflow-hidden px-5 text-white">
+        <h3 className="font-display line-clamp-2 text-lg leading-tight font-bold sm:text-xl">
           {banner.title}
         </h3>
         {banner.subtitle && (
-          <p className="mt-1 line-clamp-2 text-sm opacity-90">
+          <p
+            className={cn(
+              "mt-1 text-sm opacity-90",
+              model.countdown && banner.offer?.ends_at
+                ? "line-clamp-1"
+                : "line-clamp-2"
+            )}
+          >
             {banner.subtitle}
           </p>
         )}

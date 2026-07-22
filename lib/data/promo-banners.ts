@@ -139,3 +139,87 @@ export async function getActiveBanners(
     };
   });
 }
+
+/**
+ * Habillage de bannière d'une offre, pour la FICHE COMMERÇANT.
+ *
+ * La page commerce affiche déjà les offres du commerce ; on ne re-liste donc
+ * pas les bannières (ce serait un doublon) — on récupère seulement le DESIGN
+ * choisi par le super-admin (modèle, dégradé, illustration, visuel) pour
+ * habiller chaque offre avec la même carte que l'accueil client. Une offre sans
+ * bannière garde le modèle automatique déduit de son type.
+ *
+ * Pas de filtre de zone ici : le client est DÉJÀ sur la fiche du commerçant.
+ * La policy publique (active + fenêtre de dates) reste la seule garde.
+ */
+export type OfferBannerDesign = {
+  title: string | null;
+  subtitle: string | null;
+  cta_label: string | null;
+  image_url: string | null;
+  image_fit: PromoBanner["image_fit"];
+  overlay_opacity: number;
+  template: string | null;
+  palette: string | null;
+  illustration: string | null;
+  show_products: boolean;
+};
+
+export async function getMerchantOfferDesigns(
+  merchantId: string
+): Promise<Record<string, OfferBannerDesign>> {
+  const supabase = await createClient();
+  // Colonnes hors `database.types.ts` généré (merchant_id / promotion_id /
+  // template / palette / illustration / show_products, mig 0330-0392) → accès
+  // casté, sinon tout le retour devient un SelectQueryError.
+  // ⚠️ `.bind(supabase)` OBLIGATOIRE : extraite nue, la méthode perd son
+  // receveur et casse à l'appel (même piège que `supabase.rpc`).
+  const from = supabase.from.bind(supabase) as unknown as (t: string) => {
+    select: (cols: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        not: (
+          c: string,
+          op: string,
+          v: null
+        ) => {
+          order: (
+            c: string,
+            o: { ascending: boolean }
+          ) => Promise<{ data: Record<string, unknown>[] | null }>;
+        };
+      };
+    };
+  };
+  const { data } = await from("promo_banners")
+    .select(
+      `promotion_id, title, subtitle, cta_label, image_url, image_fit,
+       overlay_opacity, template, palette, illustration, show_products, position`
+    )
+    .eq("merchant_id", merchantId)
+    .not("promotion_id", "is", null)
+    .order("position", { ascending: true });
+
+  const out: Record<string, OfferBannerDesign> = {};
+  for (const row of data ?? []) {
+    const promotionId = row.promotion_id as string | null;
+    if (!promotionId || out[promotionId]) continue;
+    out[promotionId] = {
+      title: (row.title as string) ?? null,
+      subtitle: (row.subtitle as string) ?? null,
+      cta_label: (row.cta_label as string) ?? null,
+      image_url: (row.image_url as string) ?? null,
+      image_fit: ((row.image_fit as string) ??
+        "overlay") as PromoBanner["image_fit"],
+      overlay_opacity:
+        row.overlay_opacity != null ? Number(row.overlay_opacity) : 30,
+      template: (row.template as string) ?? null,
+      palette: (row.palette as string) ?? null,
+      illustration: (row.illustration as string) ?? null,
+      show_products: row.show_products === true,
+    };
+  }
+  return out;
+}

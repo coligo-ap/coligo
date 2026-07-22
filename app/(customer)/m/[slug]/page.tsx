@@ -16,6 +16,7 @@ import { MerchantCartCta } from "@/components/customer/merchant-cart-cta";
 import { MerchantClosedNotice } from "@/components/customer/merchant-closed-notice";
 import { ShopModeToggle } from "@/components/customer/shop-mode-toggle";
 import { getMerchantReviews } from "@/lib/data/reviews";
+import { getMerchantOfferDesigns } from "@/lib/data/promo-banners";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   discountedUnitPrice,
@@ -70,14 +71,21 @@ export default async function MerchantPublicPage({
   const reviews = await getMerchantReviews(m.id, 20);
 
   const supabase = await createClient();
-  const [catalog, promotions, favoriteIds, { data: authData }, flags] =
-    await Promise.all([
-      listMerchantProducts(m.id),
-      listMerchantPromotions(m.id),
-      getMyFavoriteIds(),
-      supabase.auth.getUser(),
-      getFeatureFlags(),
-    ]);
+  const [
+    catalog,
+    promotions,
+    favoriteIds,
+    { data: authData },
+    flags,
+    offerDesigns,
+  ] = await Promise.all([
+    listMerchantProducts(m.id),
+    listMerchantPromotions(m.id),
+    getMyFavoriteIds(),
+    supabase.auth.getUser(),
+    getFeatureFlags(),
+    getMerchantOfferDesigns(m.id),
+  ]);
   const isAuth = !!authData?.user;
   const isFavorite = favoriteIds.has(m.id);
 
@@ -221,9 +229,11 @@ export default async function MerchantPublicPage({
             delivery_radius_km={m.delivery_radius_km}
           />
 
-          {/* Offres & réductions — carrousel COMPACT et CLASSÉ (codes, cadeaux,
-            livraison offerte, ventes flash à compte à rebours, anti-gaspi).
-            Une seule bande, pas d'empilement de cartes → visuel épuré. */}
+          {/* Offres & réductions — bande CLASSÉE (codes, cadeaux, livraison
+            offerte, ventes flash à compte à rebours, anti-gaspi), rendue avec
+            la MÊME bannière que l'accueil client : l'habillage réglé par
+            l'équipe Coligo sur la bannière de l'offre s'applique donc aussi
+            ici. Une seule bande → aucun doublon avec les carrousels produit. */}
           {railOffers.length > 0 && (
             <div className="mt-3">
               <MerchantOffersRail
@@ -236,6 +246,7 @@ export default async function MerchantPublicPage({
                 offers={railOffers}
                 productsById={productsById}
                 promoPriceById={promoPriceById}
+                designs={offerDesigns}
               />
             </div>
           )}

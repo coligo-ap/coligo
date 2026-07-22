@@ -5,7 +5,6 @@ import { useLocale, useTranslations } from "next-intl";
 import {
   BadgePercent,
   Check,
-  ChevronRight,
   Copy,
   Gift,
   Layers,
@@ -21,10 +20,15 @@ import { cn, formatDA } from "@/lib/utils";
 import { Portal } from "@/components/ui/portal";
 import { useCartAdd } from "@/components/customer/cart-mono-provider";
 import { isFractionalUnit, minQtyFor } from "@/lib/units";
+import {
+  BannerCard,
+  PromoStyles,
+} from "@/components/customer/promo-banner-templates";
 import type {
   PublicProduct,
   PublicPromotion,
 } from "@/lib/data/customer-catalog";
+import type { OfferBannerDesign, PromoBanner } from "@/lib/data/promo-banners";
 
 // =============================================================================
 // MerchantOffersRail — carrousel COMPACT et CLASSÉ des offres d'une boutique.
@@ -211,24 +215,91 @@ function fmtDate(iso: string, locale: string): string {
   });
 }
 
+/**
+ * Offre → forme `PromoBanner`, pour la rendre avec la MÊME carte que l'accueil
+ * client (`BannerCard`). `design` = habillage choisi par le super-admin sur la
+ * bannière reliée à cette offre ; absent ⇒ modèle AUTOMATIQUE déduit du type.
+ */
+function toBannerShape(
+  promo: PublicPromotion,
+  merchant: RailMerchant,
+  design: OfferBannerDesign | undefined,
+  productsById: ProductsById,
+  fallback: { title: string; subtitle: string | null; cta: string }
+): PromoBanner {
+  const products = promo.product_ids
+    .map((id) => productsById[id])
+    .filter((p): p is PublicProduct => !!p)
+    .slice(0, 8)
+    .map((p) => ({
+      id: p.id,
+      name_fr: p.name_fr,
+      name_ar: p.name_ar,
+      image_url: p.image_url,
+      price_da: p.price_da,
+    }));
+
+  return {
+    id: promo.id,
+    title: design?.title || fallback.title,
+    subtitle: design?.subtitle ?? fallback.subtitle,
+    cta_label: design?.cta_label || fallback.cta,
+    image_url: design?.image_url ?? null,
+    image_fit: design?.image_fit ?? "overlay",
+    overlay_opacity: design?.overlay_opacity ?? 30,
+    link: null,
+    accent: "violet",
+    template: design?.template ?? null,
+    palette: design?.palette ?? null,
+    illustration: design?.illustration ?? null,
+    show_products: design ? design.show_products : products.length > 0,
+    position: 0,
+    merchant_slug: merchant.slug,
+    offer: {
+      promotion_id: promo.id,
+      type: promo.type,
+      discount_kind: promo.discount_kind,
+      discount_value:
+        promo.discount_value != null ? Number(promo.discount_value) : null,
+      code: promo.code,
+      buy_qty: promo.buy_qty,
+      get_qty: promo.get_qty,
+      gift_label: promo.gift_label,
+      min_subtotal_da: promo.min_subtotal_da,
+      title_fr: promo.title_fr,
+      title_ar: promo.title_ar,
+      ends_at: promo.ends_at,
+      merchant_id: merchant.id,
+      merchant_name: merchant.name,
+      merchant_slug: merchant.slug,
+      products,
+    },
+  };
+}
+
 export function MerchantOffersRail({
   merchant,
   offers,
   productsById,
   promoPriceById,
+  designs,
 }: {
   merchant: RailMerchant;
   offers: PublicPromotion[];
   productsById: ProductsById;
   promoPriceById: Record<string, number>;
+  /** Habillages de bannière par promotion (mig 0391/0392), optionnels. */
+  designs?: Record<string, OfferBannerDesign>;
 }) {
   const t = useTranslations("browse");
   const [openId, setOpenId] = useState<string | null>(null);
   if (offers.length === 0) return null;
   const active = offers.find((o) => o.id === openId) ?? null;
+  const single = offers.length === 1;
 
   return (
     <section className="space-y-2">
+      <PromoStyles />
       <div className="flex items-baseline justify-between px-0.5">
         <h2 className="text-foreground flex items-center gap-1.5 text-sm font-extrabold">
           <BadgePercent className="text-accent-600 size-4" />
@@ -242,7 +313,15 @@ export function MerchantOffersRail({
       </div>
       <div className="-mx-4 flex snap-x [scrollbar-width:none] gap-2.5 overflow-x-auto px-4 pb-1.5 lg:-mx-6 lg:px-6 [&::-webkit-scrollbar]:hidden">
         {offers.map((o) => (
-          <OfferCard key={o.id} promo={o} onOpen={() => setOpenId(o.id)} />
+          <OfferCard
+            key={o.id}
+            promo={o}
+            merchant={merchant}
+            design={designs?.[o.id]}
+            productsById={productsById}
+            single={single}
+            onOpen={() => setOpenId(o.id)}
+          />
         ))}
       </div>
 
@@ -259,16 +338,29 @@ export function MerchantOffersRail({
   );
 }
 
+/**
+ * Carte d'offre = LA bannière promo (même modèle que l'accueil client), pour
+ * que l'habillage choisi côté super-admin s'applique aussi sur la fiche
+ * commerçant. Le visuel est purement décoratif (aucun élément interactif
+ * dedans) → l'envelopper d'un `<button>` reste sûr côté hydratation.
+ */
 function OfferCard({
   promo,
+  merchant,
+  design,
+  productsById,
+  single,
   onOpen,
 }: {
   promo: PublicPromotion;
+  merchant: RailMerchant;
+  design: OfferBannerDesign | undefined;
+  productsById: ProductsById;
+  single: boolean;
   onOpen: () => void;
 }) {
   const t = useTranslations("browse");
-  const meta = TYPE_META[promo.type];
-  const Icon = meta.Icon;
+  const locale = useLocale();
   const isFlash = promo.type === "flash_sale";
   const countdown = useCountdown(isFlash ? promo.ends_at : null);
   const value = offerValue(promo, t);
@@ -277,70 +369,25 @@ function OfferCard({
   // Une vente flash terminée côté client : on n'affiche plus la carte.
   if (isFlash && countdown.ended) return null;
 
+  const title =
+    locale === "ar" && promo.title_ar ? promo.title_ar : promo.title_fr;
+  const banner = toBannerShape(promo, merchant, design, productsById, {
+    title: title || value.text,
+    subtitle: condition ?? t("offerNoCondition"),
+    cta: t("offerSeeDetails"),
+  });
+
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="border-border relative flex w-[168px] shrink-0 snap-start flex-col overflow-hidden rounded-[18px] border bg-white p-3 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04)] transition-all duration-150 active:scale-[0.97]"
-      style={{ minHeight: 118 }}
-    >
-      <span className="relative flex items-center gap-1.5">
-        <span
-          className={cn(
-            "bg-surface-2 grid size-7 shrink-0 place-items-center rounded-[9px]",
-            meta.value
-          )}
-        >
-          <Icon className="size-4" />
-        </span>
-        <span
-          className={cn(
-            "min-w-0 truncate text-[11px] font-extrabold",
-            meta.value
-          )}
-        >
-          {t(meta.labelKey)}
-        </span>
-        <ChevronRight className="text-subtle ms-auto size-3.5 shrink-0 rtl:-scale-x-100" />
-      </span>
-
-      {/* Valeur : un code s'affiche en « coupon » (chip pointillé), le reste en
-          grande valeur nette. */}
-      {value.mono ? (
-        <span className="relative mt-2.5 inline-flex w-fit max-w-full">
-          <span className="border-accent-300 bg-accent-50 truncate rounded-[8px] border border-dashed px-2 py-1 font-mono text-[15px] font-black tracking-wide text-[#e6007a]">
-            {value.text}
-          </span>
-        </span>
-      ) : (
-        <span
-          className={cn(
-            "text-foreground relative mt-2 truncate text-[21px] leading-tight font-black"
-          )}
-        >
-          {value.text}
-        </span>
+      aria-label={title}
+      className={cn(
+        "group shrink-0 snap-start text-start transition-transform duration-150 active:scale-[0.98]",
+        single ? "w-full" : "w-[92%] max-w-[460px]"
       )}
-
-      <span className="relative mt-auto flex min-h-[18px] items-end pt-1.5">
-        {isFlash && countdown.mounted ? (
-          <span className="bg-danger-600 inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-bold text-white tabular-nums">
-            <span
-              className="size-1.5 animate-pulse rounded-full bg-white"
-              aria-hidden
-            />
-            {countdown.text}
-          </span>
-        ) : condition ? (
-          <span className="text-muted block truncate text-[11px] font-medium">
-            {condition}
-          </span>
-        ) : (
-          <span className="text-muted block truncate text-[11px] font-medium">
-            {t("offerNoCondition")}
-          </span>
-        )}
-      </span>
+    >
+      <BannerCard banner={banner} />
     </button>
   );
 }
