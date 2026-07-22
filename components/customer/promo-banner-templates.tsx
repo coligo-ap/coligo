@@ -35,6 +35,50 @@ export function PromoStyles() {
   );
 }
 
+/**
+ * Tailles de texte d'une bannière — calculées, jamais figées.
+ *
+ * La carte a une hauteur IMPOSÉE (ratio 64/26) : au-delà d'une certaine
+ * longueur, un titre en taille fixe finit coupé ou sous l'illustration. On
+ * choisit donc un palier selon le nombre de caractères ET la largeur de la
+ * colonne de texte disponible, exprimé en `cqw` (1 cqw = 1 % de la largeur de
+ * la CARTE) pour que tout suive la taille réelle du composant.
+ *
+ * `fallback` = classe Tailwind appliquée si le navigateur ne connaît pas les
+ * unités de conteneur : la déclaration inline devient invalide et la classe
+ * reprend la main (aucun écran sans texte).
+ */
+function bannerFontSizes(
+  banner: PromoBanner,
+  model: { countdown?: boolean },
+  textWidth: string
+) {
+  // Caractères tenant sur une ligne, à la louche : plus la colonne est étroite,
+  // plus le palier se déclenche tôt.
+  const col = parseFloat(textWidth); // 52 / 56 / 84
+  const title = banner.title ?? "";
+  const sub = banner.subtitle ?? "";
+  // Un compte à rebours mange une ligne entière → on resserre le titre.
+  const budget = (model.countdown && banner.offer?.ends_at ? 0.8 : 1) * col;
+
+  const long = title.length > budget * 0.62;
+  const veryLong = title.length > budget * 0.95;
+
+  const titleCq = veryLong ? 4.2 : long ? 5 : 5.9;
+  const titleMax = veryLong ? 20 : long ? 24 : 28;
+  const subLong = sub.length > budget * 1.1;
+
+  return {
+    title: {
+      fontSize: `clamp(13px, ${titleCq}cqw, ${titleMax}px)`,
+    },
+    subtitle: {
+      fontSize: `clamp(10.5px, ${subLong ? 3.1 : 3.6}cqw, ${subLong ? 13 : 15}px)`,
+    },
+    cta: { fontSize: "clamp(10px, 2.9cqw, 13px)" },
+  };
+}
+
 /** Prix promo d'un produit selon l'offre (percent / amount) — sinon null. */
 function promoPrice(price: number, offer: PromoBanner["offer"]): number | null {
   if (!offer || offer.discount_value == null) return null;
@@ -114,19 +158,17 @@ function Countdown({ endsAt }: { endsAt: string }) {
 /**
  * Carte visuelle d'une bannière (SANS le wrapper de clic).
  *
- * `size="lg"` = rendu de la FICHE COMMERÇANT : la carte y est la seule bande
- * d'offres de l'écran (et non une diapo parmi d'autres au milieu de l'accueil),
- * donc on remonte d'un cran le titre, le sous-titre et le bouton pour qu'ils se
- * lisent d'un coup d'œil.
+ * Le texte s'adapte TOUT SEUL — même carte à l'accueil et sur la fiche
+ * commerçant, quelle que soit la largeur disponible :
+ *   - taille en unités de conteneur (`cqw`) → elle suit la largeur RÉELLE de la
+ *     carte, pas un point de rupture d'écran (classe Tailwind gardée en repli
+ *     si le navigateur ignore les unités de conteneur) ;
+ *   - palier selon la LONGUEUR du libellé → un titre long descend d'un cran
+ *     plutôt que d'être coupé ;
+ *   - la colonne de texte s'arrête AVANT l'illustration / la bande de produits
+ *     (largeurs calculées ci-dessous) → plus jamais de texte passant dessous.
  */
-export function BannerCard({
-  banner,
-  size = "default",
-}: {
-  banner: PromoBanner;
-  size?: "default" | "lg";
-}) {
-  const lg = size === "lg";
+export function BannerCard({ banner }: { banner: PromoBanner }) {
   const { model, grad } = resolveModel(banner);
   const fit = banner.image_fit ?? "overlay";
   const hasImg = !!banner.image_url;
@@ -139,10 +181,15 @@ export function BannerCard({
   const art = model.art !== "none" ? model.art : null;
   const showArt = !!art && !coverImg && !showProducts;
 
+  // Place réellement libre à gauche : la bande de produits occupe 46 % à
+  // droite, l'illustration 40 % à partir de 57 %.
+  const textWidth = showProducts ? "52%" : showArt ? "56%" : "84%";
+  const fonts = bannerFontSizes(banner, model, textWidth);
+
   return (
     <article
       className="relative aspect-[64/26] w-full overflow-hidden rounded-[16px] shadow-md"
-      style={{ background: grad }}
+      style={{ background: grad, containerType: "inline-size" }}
     >
       {/* Image de fond optionnelle (fondu de marque + image derrière). */}
       {hasImg && (
@@ -201,32 +248,29 @@ export function BannerCard({
         </div>
       ) : null}
 
-      {/* Texte à gauche. La hauteur de la carte est FIXE (ratio 64/26) : on
-          borne le bloc et on resserre le sous-titre quand un compte à rebours
-          vient s'ajouter, sinon le texte déborde sur les cartes étroites. */}
+      {/* Texte à gauche. La colonne s'arrête AVANT l'illustration / les
+          produits (largeur calculée), le bloc est borné en hauteur, et les
+          tailles suivent la largeur réelle de la carte (cqw) → un titre long
+          rétrécit au lieu de passer sous l'autocollant ou d'être coupé. */}
       <div
-        className={cn(
-          "absolute inset-y-0 left-0 z-10 flex flex-col justify-center overflow-hidden text-white",
-          lg ? "w-[64%] px-5 sm:px-6" : "w-[62%] px-5"
-        )}
+        className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center overflow-hidden px-4 text-white sm:px-5"
+        style={{ width: textWidth }}
       >
         <h3
-          className={cn(
-            "font-display line-clamp-2 leading-tight font-bold",
-            lg ? "text-xl sm:text-[26px]" : "text-lg sm:text-xl"
-          )}
+          className="font-display line-clamp-2 text-lg leading-tight font-bold text-balance"
+          style={fonts.title}
         >
           {banner.title}
         </h3>
         {banner.subtitle && (
           <p
             className={cn(
-              "mt-1 opacity-90",
-              lg ? "text-[15px] sm:text-base" : "text-sm",
+              "mt-1 text-sm opacity-90",
               model.countdown && banner.offer?.ends_at
                 ? "line-clamp-1"
                 : "line-clamp-2"
             )}
+            style={fonts.subtitle}
           >
             {banner.subtitle}
           </p>
@@ -236,15 +280,11 @@ export function BannerCard({
         )}
         {banner.cta_label && (
           <span
-            className={cn(
-              "mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/20 font-semibold backdrop-blur transition-colors group-hover:bg-white/30",
-              lg ? "px-3.5 py-2 text-[13px]" : "px-3 py-1.5 text-xs"
-            )}
+            className="mt-2.5 inline-flex w-fit max-w-full items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur transition-colors group-hover:bg-white/30"
+            style={fonts.cta}
           >
-            {banner.cta_label}
-            <ArrowRight
-              className={cn("rtl:-scale-x-100", lg ? "size-4" : "size-3.5")}
-            />
+            <span className="truncate">{banner.cta_label}</span>
+            <ArrowRight className="size-3.5 shrink-0 rtl:-scale-x-100" />
           </span>
         )}
       </div>

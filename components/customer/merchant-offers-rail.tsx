@@ -387,7 +387,7 @@ function OfferCard({
         single ? "w-full" : "w-[92%] max-w-[460px]"
       )}
     >
-      <BannerCard banner={banner} size="lg" />
+      <BannerCard banner={banner} />
     </button>
   );
 }
