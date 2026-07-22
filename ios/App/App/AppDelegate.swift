@@ -63,8 +63,32 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate {
     // seul point d'entrée déterministe, cohérent avec l'absence de swizzling
     // côté Capacitor.
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-        NotificationCenter.default.post(name: .capacitorDidRegisterForRemoteNotifications, object: deviceToken)
+        // ⚠️ BUG CORRIGÉ (23/07/2026) : on postait ICI le token APNs BRUT (Data)
+        // sur `.capacitorDidRegisterForRemoteNotifications`. Le plugin Capacitor
+        // émettait alors l'event `registration` avec le token APNs (hex), que le
+        // JS (lib/native/push.ts, promesse one-shot) capturait AVANT que le
+        // token FCM n'arrive → c'est le token APNs qui était stocké et envoyé à
+        // l'API FCM HTTP v1 → **INVALID_ARGUMENT** (FCM refuse un token APNs).
+        // Résultat : AUCUNE push iOS ne partait, et les tokens étaient purgés.
+        //
+        // On ne fait donc PLUS QUE mapper APNs↔FCM ici. Le SEUL token relayé au
+        // JS est le token FCM, posté dans `didReceiveRegistrationToken` — c'est
+        // celui-là, et lui seul, que le backend attend.
         Messaging.messaging().apnsToken = deviceToken
+
+        // ROBUSTESSE : le délégué `didReceiveRegistrationToken` peut avoir déjà
+        // émis le token FCM à `FirebaseApp.configure()` (token en cache), AVANT
+        // que le JS n'ait attaché son écouteur. Comme `register()` déclenche
+        // toujours ce callback-ci, on redemande le token EXPLICITEMENT et on le
+        // repousse : le JS (qui vient d'appeler register) le reçoit à coup sûr.
+        Messaging.messaging().token { token, _ in
+            if let token = token {
+                NotificationCenter.default.post(
+                    name: .capacitorDidRegisterForRemoteNotifications,
+                    object: token
+                )
+            }
+        }
     }
 
     func application(_ application: UIApplication, didFailToRegisterForRemoteNotificationsWithError error: Error) {

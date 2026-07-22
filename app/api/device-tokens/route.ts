@@ -51,6 +51,20 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
 
+  // GARDE-FOU (23/07/2026) : un token FCM contient TOUJOURS un « : » (format
+  // `<id>:<APA91b…>`). Un token composé UNIQUEMENT de chiffres hexadécimaux est
+  // un token APNs BRUT — c'est le bug iOS historique (AppDelegate relayait le
+  // token APNs au lieu du FCM). L'envoyer à l'API FCM v1 renvoie
+  // INVALID_ARGUMENT, puis le token est purgé : aucune push iOS n'arrivait. On
+  // le refuse À LA SOURCE, ce qui protège aussi les binaires déjà installés
+  // sans attendre le rebuild natif.
+  if (/^[0-9a-fA-F]{40,}$/.test(token)) {
+    return NextResponse.json(
+      { error: "raw_apns_token_rejected" },
+      { status: 422 }
+    );
+  }
+
   const admin = createAdminClient();
   const { error } = await admin.from("device_tokens").upsert(
     {
