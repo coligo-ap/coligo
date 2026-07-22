@@ -1,67 +1,37 @@
 /**
- * Contrôle visuel des véhicules à proximité (mig 0400) : met quelques
- * chauffeurs EN LIGNE autour d'un point, ouvre l'écran des gammes côté client,
- * capture — puis REMET la présence dans son état initial.
+ * Contrôle visuel des véhicules à proximité (mig 0400/0401).
  *
- *   node scripts/_check-drive-vehicles.mjs <dossier-sortie>
+ *   node scripts/_check-drive-vehicles.mjs <dossier-sortie> [lat] [lng]
+ *
+ * N'ÉCRIT RIEN en base : depuis la mig 0401 les bots de démonstration sont
+ * placés autour du point demandé, donc le test fonctionne à N'IMPORTE QUELLE
+ * adresse sans toucher à la présence des chauffeurs réels.
+ *
+ * Vérifie : l'écran des gammes s'ouvre, les sprites véhicule sont montés, leur
+ * nombre correspond au décompte serveur pour la gamme sélectionnée, la moto
+ * apparaît bien avec son propre visuel, et les véhicules BOUGENT.
  */
 import { chromium } from "playwright";
-import pg from "pg";
-import { getDbUrl, loadEnvLocal } from "./_supabase.mjs";
+import { loadEnvLocal } from "./_supabase.mjs";
 
 loadEnvLocal();
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = process.argv[2] ?? ".";
+const PICKUP = {
+  lat: Number(process.argv[3] ?? 36.7551),
+  lng: Number(process.argv[4] ?? 5.0821),
+};
 const EMAIL = "qawaexpress@gmail.com";
-// Béjaïa centre — là où vivent les commerçants de démonstration.
-const PICKUP = { lat: 36.7551, lng: 5.0821 };
 
-const db = new pg.Client({
-  connectionString: getDbUrl(),
-  ssl: { rejectUnauthorized: false },
-});
-await db.connect();
+let pass = 0;
+let fail = 0;
+const check = (label, ok, detail = "") => {
+  ok ? pass++ : fail++;
+  console.log(`${ok ? "✅" : "❌"} ${label}${detail ? ` — ${detail}` : ""}`);
+};
 
-const { rows: chs } = await db.query(
-  `select id, gamme from public.chauffeurs
-    where is_verified and not is_frozen and not is_blocked
-    order by case when gamme = 'moto' then 0 else 1 end
-    limit 5`
-);
-const before = new Map();
-for (const ch of chs) {
-  const { rows } = await db.query(
-    "select lat, lng, is_online, heading from public.chauffeur_presence where chauffeur_id = $1",
-    [ch.id]
-  );
-  before.set(ch.id, rows[0] ?? null);
-}
-
-let browser;
+const browser = await chromium.launch();
 try {
-  // Positions en éventail autour du départ, caps variés (dont 350° pour voir
-  // la rotation par le plus court arc au relevé suivant).
-  const caps = [10, 95, 180, 265, 350];
-  let i = 0;
-  for (const ch of chs) {
-    await db.query(
-      `insert into public.chauffeur_presence (chauffeur_id, lat, lng, is_online, updated_at, heading)
-       values ($1, $2, $3, true, now(), $4)
-       on conflict (chauffeur_id) do update
-         set lat = excluded.lat, lng = excluded.lng, is_online = true,
-             updated_at = now(), heading = excluded.heading`,
-      [
-        ch.id,
-        PICKUP.lat + (i - 2) * 0.0016,
-        PICKUP.lng + ((i % 3) - 1) * 0.0022,
-        caps[i % caps.length],
-      ]
-    );
-    i++;
-  }
-  console.log(`${chs.length} chauffeurs en ligne autour du départ`);
-
-  browser = await chromium.launch();
   const ctx = await browser.newContext({
     viewport: { width: 412, height: 900 },
     geolocation: { latitude: PICKUP.lat, longitude: PICKUP.lng },
@@ -71,20 +41,6 @@ try {
   const page = await ctx.newPage();
   const errors = [];
   page.on("pageerror", (e) => errors.push(e.message.slice(0, 160)));
-  let apiCalls = 0;
-  const apiBodies = [];
-  page.on("request", (r) => {
-    if (r.url().includes("/api/drive/nearby-vehicles")) apiCalls++;
-  });
-  page.on("response", async (r) => {
-    if (!r.url().includes("/api/drive/nearby-vehicles")) return;
-    try {
-      const j = await r.json();
-      apiBodies.push(
-        `${new URL(r.url()).searchParams.get("gamme") ?? "toutes"}:${j.vehicles.length}`
-      );
-    } catch {}
-  });
 
   await page.goto(`${BASE}/se-connecter`, {
     waitUntil: "domcontentloaded",
@@ -105,94 +61,110 @@ try {
     .getByRole("button", { name: /Continuer/i })
     .first()
     .waitFor({ timeout: 120000 });
-  await page.waitForTimeout(2500);
+  await page.waitForTimeout(2000);
   await page.screenshot({ path: `${OUT}/drive-accueil.png` });
 
-  // ── Écran des GAMMES : destination récente puis « Continuer ».
-  const recent = page.getByText("Brise de Mer", { exact: true }).first();
+  // Le bouton « Continuer » exige un DÉPART résolu (GPS) ET une destination :
+  // on attend l'adresse de départ avant de choisir la destination.
+  await page
+    .getByText(/Ma position actuelle/i)
+    .first()
+    .waitFor({ timeout: 60000 })
+    .catch(() => {});
+  // Première destination RÉCENTE, quelle qu'elle soit : la liste dépend de
+  // l'historique du compte de test, s'accrocher à un libellé la rend fragile.
+  const recent = page.locator('button:below(:text("Continuer"))').first();
   if (await recent.count()) {
     await recent.click();
-    await page.waitForTimeout(2500);
+    await page.waitForTimeout(2000);
   }
+  // « Continuer » reste DÉSACTIVÉ tant que la destination n'est pas résolue :
+  // on attend qu'il soit réellement actionnable plutôt que de cliquer à l'aveugle.
   const go = page.getByRole("button", { name: /Continuer/i }).first();
-  if (await go.count()) {
-    await go.click();
-    // L'écran des gammes est prêt quand une gamme est listée.
-    await page
-      .getByText(/Classic|Confort/i)
-      .first()
-      .waitFor({ timeout: 120000 })
-      .catch(() => {});
-    // Puis on laisse au 1er relevé le temps d'arriver (poll 7 s).
+  for (let i = 0; i < 60 && !(await go.isEnabled().catch(() => false)); i++) {
+    await page.waitForTimeout(1000);
+  }
+  await go.click();
+  await page
+    .getByText(/Classic|Confort/i)
+    .first()
+    .waitFor({ timeout: 120000 })
+    .catch(() => {});
+
+  // ── Gamme par gamme : le décompte serveur doit correspondre à l'écran.
+  for (const gamme of ["Classic", "Confort", "Moto"]) {
+    const tile = page.getByText(gamme, { exact: true }).first();
+    if (!(await tile.count())) continue;
+    await tile.click();
     await page
       .locator('img[src*="/drive/vehicles/"]')
       .first()
-      .waitFor({ timeout: 25000 })
+      .waitFor({ timeout: 20000 })
       .catch(() => {});
-  }
-  // La carte de l'écran des gammes ne montre QUE la gamme sélectionnée : on
-  // choisit Classic explicitement, puis on compare au décompte serveur pour
-  // cette même gamme (sinon le test dépend du tirage des chauffeurs).
-  const classic = page.getByText("Classic", { exact: true }).first();
-  if (await classic.count()) {
-    await classic.click();
-    await page.waitForTimeout(1500);
-  }
-  await page
-    .locator('img[src*="/drive/vehicles/"]')
-    .first()
-    .waitFor({ timeout: 25000 })
-    .catch(() => {});
-  const expected = await page.evaluate(async () => {
-    const r = await fetch(
-      "/api/drive/nearby-vehicles?lat=36.7551&lng=5.0821&gamme=classic",
-      { cache: "no-store" }
+    const expected = await page.evaluate(
+      async (g) => {
+        const r = await fetch(
+          `/api/drive/nearby-vehicles?lat=${g.lat}&lng=${g.lng}&gamme=${g.key}`,
+          { cache: "no-store" }
+        );
+        return (await r.json()).vehicles.length;
+      },
+      { lat: PICKUP.lat, lng: PICKUP.lng, key: gamme.toLowerCase() }
     );
-    return (await r.json()).vehicles.length;
-  });
-  console.log("attendu (gamme classic, serveur) :", expected);
-
-  // Diagnostic : la route JSON répond-elle DANS la session du client ?
-  const api = await page.evaluate(async () => {
-    const r = await fetch("/api/drive/nearby-vehicles?lat=36.7551&lng=5.0821", {
-      cache: "no-store",
-    });
-    return { status: r.status, body: (await r.text()).slice(0, 300) };
-  });
-  console.log("route JSON :", api.status, api.body);
-  await page.screenshot({ path: `${OUT}/drive-gammes.png` });
-  const sprites = await page.locator('img[src*="/drive/vehicles/"]').count();
-  console.log(`sprites véhicule sur l'écran des gammes : ${sprites}`);
-  // Cap réellement appliqué au 1er véhicule (preuve de l'orientation).
-  const rot = await page
-    .locator("[data-veh]")
-    .first()
-    .evaluate((el) => el.style.transform)
-    .catch(() => "—");
-  console.log("rotation du 1er véhicule :", rot);
-  console.log("appels à la route JSON :", apiCalls, apiBodies.join(" "));
-  console.log("noeuds [data-veh] :", await page.locator("[data-veh]").count());
-  if (errors.length) console.log("ERREURS:\n" + errors.slice(0, 5).join("\n"));
-} finally {
-  for (const [id, prev] of before) {
-    if (prev) {
-      await db.query(
-        `update public.chauffeur_presence
-            set lat = $2, lng = $3, is_online = $4, heading = $5
-          where chauffeur_id = $1`,
-        [id, prev.lat, prev.lng, prev.is_online, prev.heading]
-      );
-    } else {
-      await db.query(
-        "delete from public.chauffeur_presence where chauffeur_id = $1",
-        [id]
-      );
+    // On ATTEND la convergence (le relevé suivant, ≤ 7 s) au lieu de dormir un
+    // délai arbitraire : sinon on compte encore les véhicules de la gamme
+    // précédente et le test accuse à tort.
+    let shown = await page.locator("[data-veh]").count();
+    for (let i = 0; i < 30 && shown !== expected; i++) {
+      await page.waitForTimeout(1000);
+      shown = await page.locator("[data-veh]").count();
     }
+    const moto = await page.locator('img[src*="moto-coligo"]').count();
+    check(
+      `gamme ${gamme} : ${shown} véhicule(s) affiché(s)`,
+      shown > 0 && Math.abs(shown - expected) <= 1,
+      `serveur ${expected}${gamme === "Moto" ? ` · visuel moto ${moto}` : ""}`
+    );
+    if (gamme === "Moto") {
+      check("visuel MOTO utilisé", moto > 0, `${moto} sprite(s)`);
+    }
+    await page.screenshot({ path: `${OUT}/gamme-${gamme.toLowerCase()}.png` });
   }
-  const { rows } = await db.query(
-    "select count(*)::int n from public.chauffeur_presence where is_online"
+
+  // ── Mouvement : on compare le CAP, pas les pixels. Sur un trajet très long
+  // la carte est dézoomée et 80 m de déplacement tiennent dans un pixel — le
+  // test dirait « immobile » alors que le véhicule roule.
+  const posOf = () =>
+    page
+      .locator("[data-veh]")
+      .first()
+      .evaluate((el) => el.style.transform)
+      .catch(() => null);
+  // Deux relevés séparés par PLUS d'un cycle : on accepte un changement de cap
+  // OU de position (sur une carte très dézoomée, 80 m tiennent dans un pixel).
+  const snap = async () => ({
+    rot: await posOf(),
+    pos: await page
+      .locator(".maplibregl-marker:has([data-veh])")
+      .first()
+      .evaluate((el) => el.style.transform)
+      .catch(() => null),
+  });
+  const s1 = await snap();
+  await page.waitForTimeout(16000);
+  const s2 = await snap();
+  const bougé =
+    (s1.rot && s2.rot && s1.rot !== s2.rot) ||
+    (s1.pos && s2.pos && s1.pos !== s2.pos);
+  check("les véhicules se déplacent", !!bougé, `${s1.rot} → ${s2.rot}`);
+
+  check(
+    "aucune erreur JS",
+    errors.length === 0,
+    errors.slice(0, 2).join(" | ")
   );
-  console.log(`présence restaurée — ${rows[0].n} chauffeur(s) en ligne`);
-  await db.end();
-  if (browser) await browser.close();
+  console.log(`\n${pass} succès, ${fail} échec(s)`);
+} finally {
+  await browser.close();
 }
+process.exit(fail ? 1 : 0);

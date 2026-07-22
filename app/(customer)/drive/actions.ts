@@ -968,6 +968,10 @@ export type DriveActiveRide = {
     badge_color: string | null;
     lat: number | null;
     lng: number | null;
+    /** Voiture ou moto (mig 0402) : MÊME visuel que sur la carte des gammes. */
+    kind: "car" | "moto";
+    /** Cap GPS en degrés, pour orienter le véhicule pendant le suivi. */
+    heading: number | null;
   } | null;
 };
 
@@ -1024,6 +1028,8 @@ export async function getDriveActiveRide(): Promise<DriveActiveRide | null> {
             )?.color ?? null,
           lat: (r.ch_lat as number) ?? null,
           lng: (r.ch_lng as number) ?? null,
+          kind: r.ch_gamme === "moto" ? ("moto" as const) : ("car" as const),
+          heading: r.ch_heading == null ? null : Number(r.ch_heading),
         }
       : null,
   };

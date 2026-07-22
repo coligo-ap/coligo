@@ -633,7 +633,10 @@ export function DriveMap({
   useEffect(() => {
     if (!ready || !(vehicles?.length ?? 0)) return;
     let raf = 0;
-    const DURATION = 1400; // ms — durée du glissement entre deux relevés
+    // Durée du glissement ALIGNÉE sur l'intervalle de relevé (7 s) : le
+    // véhicule avance en continu au lieu de faire un bond puis d'attendre.
+    // Légèrement plus court pour être arrivé quand le relevé suivant tombe.
+    const DURATION = 6500;
     const loop = () => {
       const now = performance.now();
       vehicleAnim.current.forEach((a) => {

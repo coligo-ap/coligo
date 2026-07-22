@@ -116,6 +116,40 @@ export function EnrouteScreen({
   const ch = ride.chauffeur;
   const chPos =
     ch?.lat != null && ch?.lng != null ? { lat: ch.lat, lng: ch.lng } : null;
+
+  // Cap du véhicule pendant le suivi. Le GPS ne renvoie pas toujours de cap
+  // (à l'arrêt, appareils sans boussole) : on le déduit alors du déplacement
+  // entre deux relevés, et on GARDE le dernier connu tant que le véhicule n'a
+  // pas bougé d'au moins ~12 m — sinon il pivoterait au nord à chaque feu.
+  const lastFixRef = useRef<{
+    lat: number;
+    lng: number;
+    bearing: number;
+  } | null>(null);
+  let bearing = ch?.heading ?? null;
+  if (chPos) {
+    const prev = lastFixRef.current;
+    if (bearing == null && prev) {
+      const movedM = haversineKm(prev, chPos) * 1000;
+      bearing =
+        movedM >= 12
+          ? (() => {
+              const toRad = (d: number) => (d * Math.PI) / 180;
+              const y =
+                Math.sin(toRad(chPos.lng - prev.lng)) *
+                Math.cos(toRad(chPos.lat));
+              const x =
+                Math.cos(toRad(prev.lat)) * Math.sin(toRad(chPos.lat)) -
+                Math.sin(toRad(prev.lat)) *
+                  Math.cos(toRad(chPos.lat)) *
+                  Math.cos(toRad(chPos.lng - prev.lng));
+              return ((Math.atan2(y, x) * 180) / Math.PI + 360) % 360;
+            })()
+          : prev.bearing;
+    }
+    if (bearing == null) bearing = 0;
+    lastFixRef.current = { ...chPos, bearing };
+  }
   const pickupPos =
     ride.pickup_lat != null
       ? { lat: ride.pickup_lat, lng: ride.pickup_lng! }
@@ -182,8 +216,23 @@ export function EnrouteScreen({
   return (
     <div className="drive-jakarta drive-screen z-40 bg-[var(--d-page)]">
       <DriveMap
+        // Le véhicule du chauffeur accepté est rendu comme sur la carte des
+        // gammes : même sprite (voiture/moto), orienté, phares allumés — le
+        // client reconnaît le véhicule et comprend d'où il arrive.
+        vehicles={
+          chPos && ch
+            ? [
+                {
+                  token: `ride-${ride.id}`,
+                  lat: chPos.lat,
+                  lng: chPos.lng,
+                  bearing: bearing ?? 0,
+                  kind: ch.kind,
+                },
+              ]
+            : null
+        }
         markers={[
-          ...(chPos ? [{ id: "car", pos: chPos, kind: "car" as const }] : []),
           ...(pickupPos
             ? [
                 {
