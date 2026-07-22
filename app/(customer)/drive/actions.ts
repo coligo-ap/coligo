@@ -2077,3 +2077,55 @@ export async function getRidePhoneShared(rideId: string): Promise<boolean> {
     (data as { client_phone_shared?: boolean } | null)?.client_phone_shared
   );
 }
+
+/* ───────────────── Véhicules à proximité (carte client) ───────────────── */
+
+/**
+ * Un véhicule affiché sur la carte. AUCUNE donnée nominative : la RPC
+ * `drive_nearby_vehicles` (mig 0400) ne renvoie qu'un jeton pseudonyme du jour
+ * et une position arrondie — voir le commentaire de la migration.
+ */
+export type NearbyVehicle = {
+  token: string;
+  lat: number;
+  lng: number;
+  /** Cap GPS en degrés (0 = nord). Null ⇒ déduit du déplacement côté client. */
+  heading: number | null;
+  kind: "car" | "moto";
+  distance_km: number;
+};
+
+/**
+ * Véhicules disponibles autour du point de départ (écran des gammes et écran
+ * de recherche). Jamais bloquant : toute erreur ⇒ liste vide, la carte reste
+ * utilisable.
+ */
+export async function getNearbyVehicles(input: {
+  lat: number;
+  lng: number;
+  gamme?: string | null;
+  radiusKm?: number;
+}): Promise<NearbyVehicle[]> {
+  if (!Number.isFinite(input.lat) || !Number.isFinite(input.lng)) return [];
+  try {
+    const rpc = await rpcClient();
+    const { data, error } = await rpc("drive_nearby_vehicles", {
+      p_lat: input.lat,
+      p_lng: input.lng,
+      p_radius_km: input.radiusKm ?? 4,
+      p_gamme: input.gamme ?? null,
+      p_limit: 14,
+    });
+    if (error) return [];
+    return ((data ?? []) as Record<string, unknown>[]).map((v) => ({
+      token: String(v.token),
+      lat: Number(v.lat),
+      lng: Number(v.lng),
+      heading: v.heading == null ? null : Number(v.heading),
+      kind: v.kind === "moto" ? "moto" : "car",
+      distance_km: Number(v.distance_km ?? 0),
+    }));
+  } catch {
+    return [];
+  }
+}

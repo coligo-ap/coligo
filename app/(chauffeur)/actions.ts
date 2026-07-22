@@ -680,7 +680,9 @@ export async function getChauffeurGate(): Promise<ChauffeurGate | null> {
 export async function chauffeurHeartbeat(
   lat: number,
   lng: number,
-  online = true
+  online = true,
+  /** Cap GPS (mig 0400) : oriente le véhicule sur la carte du client. */
+  heading?: number | null
 ): Promise<void> {
   try {
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) return;
@@ -689,6 +691,7 @@ export async function chauffeurHeartbeat(
       p_lat: lat,
       p_lng: lng,
       p_online: online,
+      p_heading: Number.isFinite(heading as number) ? heading : null,
     });
     // Anti-fraude : sweep opportuniste (throttlé) — auto-déconnexions + notifs
     void maybeFraudTick();

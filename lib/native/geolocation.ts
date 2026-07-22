@@ -19,6 +19,12 @@ export type Coords = {
   longitude: number;
   accuracy: number;
   timestamp: number;
+  /**
+   * Cap en degrés (0 = nord, sens horaire) quand l'appareil le fournit —
+   * absent à l'arrêt et sur les appareils sans boussole, d'où le null.
+   * Sert à ORIENTER le véhicule sur la carte du client (mig 0400).
+   */
+  heading?: number | null;
 };
 
 export type GeolocationErrorKind =
@@ -65,6 +71,7 @@ function toCoords(pos: GeolocationPosition): Coords {
     longitude: pos.coords.longitude,
     accuracy: pos.coords.accuracy,
     timestamp: pos.timestamp,
+    heading: Number.isFinite(pos.coords.heading) ? pos.coords.heading : null,
   };
 }
 
@@ -76,7 +83,12 @@ export function geolocationSupported(): boolean {
 // Importé dynamiquement pour ne pas alourdir le bundle web.
 
 type CapPosition = {
-  coords: { latitude: number; longitude: number; accuracy: number };
+  coords: {
+    latitude: number;
+    longitude: number;
+    accuracy: number;
+    heading?: number | null;
+  };
   timestamp: number;
 };
 
@@ -86,6 +98,7 @@ function fromCap(pos: CapPosition): Coords {
     longitude: pos.coords.longitude,
     accuracy: pos.coords.accuracy,
     timestamp: pos.timestamp,
+    heading: Number.isFinite(pos.coords.heading) ? pos.coords.heading : null,
   };
 }
 

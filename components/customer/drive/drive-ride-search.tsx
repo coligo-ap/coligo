@@ -18,6 +18,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { useRoadPath } from "@/lib/drive/use-road-path";
 import { DriveMap } from "./drive-map";
+import { useNearbyVehicles } from "@/lib/hooks/use-nearby-vehicles";
 import { ChAvatar } from "./ch-avatar";
 import { DriverBadgePill } from "@/components/drive/driver-badge";
 import { getDriverBadge } from "@/lib/drive/driver-badge";
@@ -108,6 +109,9 @@ export function SearchScreen({
     [ride?.dest_lat, ride?.dest_lng]
   );
   const roadPath = useRoadPath(pickupPos, destPos, { retryMs: 65_000 });
+  // Véhicules disponibles autour du départ pendant la recherche — toutes gammes
+  // (la demande est déjà partie, on montre l'offre réellement présente).
+  const nearby = useNearbyVehicles({ pickup: pickupPos });
   // Cadrage dans la BANDE VISIBLE au-dessus de la feuille d'offres (top 230px) :
   // padding bas ≈ hauteur d'écran − bande, borné pour ne jamais dépasser la
   // taille de la carte (fitBounds refuse un padding plus grand que le canvas).
@@ -358,6 +362,7 @@ export function SearchScreen({
                 ]
               : []),
           ]}
+          vehicles={nearby}
           route={destPos ? (roadPath ?? [pickupPos, destPos]) : null}
           padding={mapPadding}
         />

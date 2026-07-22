@@ -240,7 +240,7 @@ export function DCourse() {
 
   const refresh = useCallback(async () => {
     const c = coordsRef.current;
-    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, true);
+    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, true, c.heading);
     const r = await getChauffeurActiveRide();
     if (r) {
       followedRideId.current = r.id;

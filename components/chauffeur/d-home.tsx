@@ -240,7 +240,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
     // Synchro serveur en tâche de fond (best-effort).
     void setChauffeurOnline(next).catch(() => {});
     const c = coordsRef.current;
-    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, next);
+    if (c) void chauffeurHeartbeat(c.latitude, c.longitude, next, c.heading);
   };
 
   // ── Réception des courses (popup entrant) ──────────────────────────────
@@ -325,7 +325,8 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         void chauffeurHeartbeat(
           live.latitude,
           live.longitude,
-          onlineRef.current
+          onlineRef.current,
+          live.heading
         );
     };
     beat();

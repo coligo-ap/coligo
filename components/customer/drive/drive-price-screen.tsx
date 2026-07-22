@@ -21,6 +21,7 @@ import { formatDA } from "@/lib/utils";
 import { useRoadPath } from "@/lib/drive/use-road-path";
 import { AvailabilityNotice } from "@/components/zones/availability-notice";
 import { DriveMap, type LatLng } from "./drive-map";
+import { useNearbyVehicles } from "@/lib/hooks/use-nearby-vehicles";
 import { PrimaryBtn, ProxModal, GO, ROSE, VIOLET } from "./drive-modals";
 import { Leg, OptRow, ZoneBlockNotice } from "./drive-ui";
 import { IntlApproxTag } from "@/components/customer/intl-approx";
@@ -181,6 +182,10 @@ export function DrivePriceScreen({
           : price === quote.recommended
             ? t("price.atReco")
             : t("price.aboveReco", { reco: quote.recommended });
+  // Véhicules DISPONIBLES de la gamme choisie, autour du point de départ :
+  // le client voit ce qu'il achète avant de lancer la recherche.
+  const nearby = useNearbyVehicles({ pickup, gamme });
+
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[var(--d-surface)]">
       {/* Carte du trajet (haut d'écran, maquette s-price) */}
@@ -190,6 +195,7 @@ export function DrivePriceScreen({
             { id: "me", pos: pickup, kind: "me", label: "A" },
             { id: "dest", pos: dest, kind: "pin", label: "B" },
           ]}
+          vehicles={nearby}
           route={route?.path ?? backupPath ?? [pickup, dest]}
           padding={{ top: 40, bottom: 30, left: 50, right: 50 }}
           className="absolute inset-0"

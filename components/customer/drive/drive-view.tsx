@@ -462,13 +462,30 @@ export function DriveView({ userId }: { userId: string }) {
     min: number;
     path?: LatLng[];
   } | null>(null);
+  // ⚠️ DÉPENDANCES PRIMITIVES, PAS LES OBJETS.
+  // Avec `[pickup, dest]`, la moindre RÉÉCRITURE d'un de ces objets (le
+  // `setPickup` du watch GPS en recrée un à chaque fix, même position
+  // identique) relançait l'effet, qui appelait `setRoute(null)` sans condition
+  // → nouveau rendu → effet → « Maximum update depth exceeded », et l'écran des
+  // gammes tombait sur « Une erreur est survenue ». On dépend donc des
+  // COORDONNÉES, et on n'efface le tracé que si le trajet CHANGE vraiment.
+  const pickupLat = pickup?.lat ?? null;
+  const pickupLng = pickup?.lng ?? null;
+  const destLat = dest?.lat ?? null;
+  const destLng = dest?.lng ?? null;
   useEffect(() => {
     setRoute(null);
-    if (!pickup || !dest) return;
+    if (
+      pickupLat == null ||
+      pickupLng == null ||
+      destLat == null ||
+      destLng == null
+    )
+      return;
     let cancelled = false;
     void routeEstimate({
-      from: { lat: pickup.lat, lng: pickup.lng },
-      to: { lat: dest.lat, lng: dest.lng },
+      from: { lat: pickupLat, lng: pickupLng },
+      to: { lat: destLat, lng: destLng },
     })
       .then((r) => {
         if (!cancelled && r.ok)
@@ -482,7 +499,7 @@ export function DriveView({ userId }: { userId: string }) {
     return () => {
       cancelled = true;
     };
-  }, [pickup, dest]);
+  }, [pickupLat, pickupLng, destLat, destLng]);
 
   const distanceKm =
     route?.km ?? (crowKm > 0 ? Number((crowKm * 1.25).toFixed(2)) : 0);

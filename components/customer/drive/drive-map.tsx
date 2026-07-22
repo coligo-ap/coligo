@@ -95,6 +95,33 @@ const keptOnMove: {
 
 export type LatLng = { lat: number; lng: number };
 
+/**
+ * Sprite du véhicule. Les fichiers sont normalisés NEZ VERS LE HAUT par
+ * `scripts/drive-vehicle-sprites.mjs` : la carte applique donc `rotate(cap)`
+ * directement. Violet sur fond clair, blanc sur fond sombre — sinon le
+ * véhicule violet se perd dans le fond gris du style « positron ».
+ */
+function vehicleSprite(kind: "car" | "moto", dark: boolean): string {
+  const base = kind === "moto" ? "moto-coligo" : "voiture-coligo";
+  return `/drive/vehicles/${base}-${dark ? "white" : "violet"}.png`;
+}
+
+/** État d'animation d'un véhicule (glissement + rotation entre deux relevés). */
+type VehicleAnim = {
+  marker: maplibregl.Marker;
+  inner: HTMLElement | null;
+  fromLat: number;
+  fromLng: number;
+  fromBearing: number;
+  toLat: number;
+  toLng: number;
+  toBearing: number;
+  curLat: number;
+  curLng: number;
+  curBearing: number;
+  start: number;
+};
+
 type Marker = {
   id: string;
   pos: LatLng;
@@ -107,8 +134,20 @@ type Marker = {
   radar?: boolean;
 };
 
+/** Véhicule disponible affiché sur la carte (sprite orienté + phares). */
+export type MapVehicleMarker = {
+  /** Jeton pseudonyme du jour (mig 0400) — sert d'identité de marqueur. */
+  token: string;
+  lat: number;
+  lng: number;
+  /** Cap en degrés, 0 = nord, sens horaire. */
+  bearing: number;
+  kind: "car" | "moto";
+};
+
 export function DriveMap({
   markers,
+  vehicles,
   route,
   approach,
   heatZones,
@@ -122,6 +161,12 @@ export function DriveMap({
   fallbackCenter,
 }: {
   markers: Marker[];
+  /**
+   * Véhicules disponibles autour du client (façon Uber/Bolt) : sprite vu du
+   * dessus, ORIENTÉ selon le cap, avec un faisceau de phares qui montre le sens
+   * de circulation. Ils glissent d'un relevé à l'autre au lieu de sauter.
+   */
+  vehicles?: MapVehicleMarker[] | null;
   /** Tracé course (violet plein) : liste de points [départ → arrivée]. */
   route?: LatLng[] | null;
   /** Tracé approche (gris pointillé) : voiture → client. */
@@ -162,6 +207,8 @@ export function DriveMap({
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
   const markerObjs = useRef<Map<string, maplibregl.Marker>>(new Map());
+  // Animations des véhicules à proximité, indexées par jeton du jour.
+  const vehicleAnim = useRef<Map<string, VehicleAnim>>(new Map());
   // Vrai une fois la carte centrée pour la 1re fois (mode suivi). Si une caméra
   // de suivi est déjà mémorisée, on considère le centrage « déjà fait » → on
   // PANNE doucement vers la position sans rejouer l'animation de zoom.
@@ -258,6 +305,12 @@ export function DriveMap({
         timers.forEach(clearTimeout);
         markerObjs.current.forEach((m) => m.remove());
         markerObjs.current.clear();
+        // Les véhicules vivent dans une table à part : si on ne la vide pas
+        // ici, leurs marqueurs sont retirés de la carte mais considérés comme
+        // « déjà présents » au relevé suivant → ils ne réapparaissent JAMAIS
+        // (bug vécu : véhicules visibles une fois sur deux selon le moment où
+        // le style de carte finit de charger).
+        vehicleAnim.current.clear();
         // Détache SANS détruire (la carte survit pour la prochaine visite).
         if (keptContainer && keptContainer.parentNode === wrapper) {
           wrapper.removeChild(keptContainer);
@@ -362,6 +415,12 @@ export function DriveMap({
       timers.forEach(clearTimeout);
       markerObjs.current.forEach((m) => m.remove());
       markerObjs.current.clear();
+      // Les véhicules vivent dans une table à part : si on ne la vide pas
+      // ici, leurs marqueurs sont retirés de la carte mais considérés comme
+      // « déjà présents » au relevé suivant → ils ne réapparaissent JAMAIS
+      // (bug vécu : véhicules visibles une fois sur deux selon le moment où
+      // le style de carte finit de charger).
+      vehicleAnim.current.clear();
       if (keepAlive) {
         // Détache le conteneur conservé sans détruire la carte (réutilisée à la
         // prochaine visite). Si la création n'a pas encore eu lieu, rien à faire.
@@ -465,13 +524,138 @@ export function DriveMap({
         markerObjs.current.set(m.id, mk);
       }
       markerObjs.current.forEach((mk, id) => {
-        if (!seen.has(id) && !id.startsWith("heat-")) {
+        // Les véhicules (`veh-*`) et les halos (`heat-*`) ont leur PROPRE cycle
+        // de vie : sans cette exclusion, cet effet — qui tourne à chaque
+        // changement de `markers` — supprimait les véhicules aussitôt créés
+        // (bug vécu : la carte appelait bien l'API mais n'affichait rien).
+        if (
+          !seen.has(id) &&
+          !id.startsWith("heat-") &&
+          !id.startsWith("veh-")
+        ) {
           mk.remove();
           markerObjs.current.delete(id);
         }
       });
     });
   }, [markers, ready]);
+
+  // ---------------------------------------------------------------------------
+  // VÉHICULES DISPONIBLES — sprite orienté + phares, façon Uber/Bolt.
+  //
+  // Trois choix qui font la différence entre « des icônes posées » et une carte
+  // vivante :
+  //   - le marqueur GLISSE de l'ancienne à la nouvelle position (et tourne par
+  //     le PLUS COURT chemin angulaire) au lieu de sauter à chaque relevé ;
+  //   - le sprite est recyclé tant que le véhicule reste visible : on ne recrée
+  //     pas un nœud DOM toutes les 7 s (sinon l'animation repart de zéro) ;
+  //   - la rotation est posée sur un enfant, JAMAIS sur l'élément racine du
+  //     marqueur : MapLibre y écrit sa propre `transform` de positionnement.
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready) return;
+    const list = vehicles ?? [];
+    void import("maplibre-gl").then(({ Marker: Mk }) => {
+      // Thème LU AU MOMENT DU RENDU : `keptDark` ne concerne que la carte
+      // conservée (accueil chauffeur) — s'y fier ici donnerait le sprite violet
+      // sur fond sombre. Un changement de thème recharge le style, ce qui vide
+      // les marqueurs : les véhicules sont recréés avec la bonne couleur.
+      const dark = isDarkTheme();
+      const seen = new Set<string>();
+
+      for (const v of list) {
+        const id = `veh-${v.token}`;
+        seen.add(id);
+        const anim = vehicleAnim.current.get(id);
+        if (anim) {
+          // Nouvelle cible : on repart de la position/angle AFFICHÉS pour que
+          // le mouvement reste continu même si un relevé arrive en plein vol.
+          anim.fromLat = anim.curLat;
+          anim.fromLng = anim.curLng;
+          anim.fromBearing = anim.curBearing;
+          anim.toLat = v.lat;
+          anim.toLng = v.lng;
+          anim.toBearing = v.bearing;
+          anim.start = performance.now();
+          continue;
+        }
+
+        const el = document.createElement("div");
+        const sprite = vehicleSprite(v.kind, dark);
+        const h = v.kind === "moto" ? 34 : 40;
+        el.innerHTML =
+          `<div data-veh style="position:relative;width:${h}px;height:${h}px;` +
+          `display:flex;align-items:center;justify-content:center;` +
+          `transform:rotate(${v.bearing}deg);will-change:transform">` +
+          // Faisceau de phares : cône clair DEVANT le véhicule (haut du sprite,
+          // donc toujours dans son sens de marche puisque tout tourne ensemble).
+          `<div style="position:absolute;left:50%;bottom:52%;width:${h * 1.6}px;height:${h * 1.9}px;` +
+          `margin-left:-${(h * 1.6) / 2}px;pointer-events:none;` +
+          `clip-path:polygon(44% 100%, 56% 100%, 100% 0, 0 0);` +
+          `background:linear-gradient(to top, rgba(255,236,170,${dark ? 0.72 : 0.55}) 0%, rgba(255,240,190,${dark ? 0.3 : 0.22}) 45%, rgba(255,240,190,0) 100%);` +
+          `filter:blur(1.5px)"></div>` +
+          `<img src="${sprite}" alt="" width="${h}" height="${h}" ` +
+          `style="width:auto;height:${h}px;display:block;` +
+          `filter:drop-shadow(0 4px 6px rgba(12,10,30,.38))"/>` +
+          `</div>`;
+
+        const mk = new Mk({ element: el, anchor: "center" })
+          .setLngLat([v.lng, v.lat])
+          .addTo(map);
+        vehicleAnim.current.set(id, {
+          marker: mk,
+          inner: el.querySelector("[data-veh]") as HTMLElement,
+          fromLat: v.lat,
+          fromLng: v.lng,
+          fromBearing: v.bearing,
+          toLat: v.lat,
+          toLng: v.lng,
+          toBearing: v.bearing,
+          curLat: v.lat,
+          curLng: v.lng,
+          curBearing: v.bearing,
+          start: performance.now(),
+        });
+      }
+
+      // Véhicules sortis du rayon : on retire marqueur ET animation.
+      vehicleAnim.current.forEach((a, id) => {
+        if (seen.has(id)) return;
+        a.marker.remove();
+        vehicleAnim.current.delete(id);
+      });
+    });
+  }, [vehicles, ready]);
+
+  // Boucle d'animation UNIQUE pour tous les véhicules (une seule rAF, pas une
+  // par marqueur) — elle ne tourne que s'il y a des véhicules à animer.
+  useEffect(() => {
+    if (!ready || !(vehicles?.length ?? 0)) return;
+    let raf = 0;
+    const DURATION = 1400; // ms — durée du glissement entre deux relevés
+    const loop = () => {
+      const now = performance.now();
+      vehicleAnim.current.forEach((a) => {
+        const t = Math.min(1, (now - a.start) / DURATION);
+        // Adoucissement (ease-out) : départ franc, arrivée posée.
+        const k = 1 - Math.pow(1 - t, 3);
+        a.curLat = a.fromLat + (a.toLat - a.fromLat) * k;
+        a.curLng = a.fromLng + (a.toLng - a.fromLng) * k;
+        // Rotation par le PLUS COURT arc : sans ça, passer de 350° à 10° ferait
+        // faire un tour complet au véhicule.
+        const delta = ((a.toBearing - a.fromBearing + 540) % 360) - 180;
+        a.curBearing = a.fromBearing + delta * k;
+        a.marker.setLngLat([a.curLng, a.curLat]);
+        if (a.inner) {
+          a.inner.style.transform = `rotate(${a.curBearing}deg)`;
+        }
+      });
+      raf = requestAnimationFrame(loop);
+    };
+    raf = requestAnimationFrame(loop);
+    return () => cancelAnimationFrame(raf);
+  }, [ready, vehicles]);
 
   // Tracés (course aux couleurs Coligo / approche grise pointillée).
   useEffect(() => {

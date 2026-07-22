@@ -274,7 +274,13 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     try {
       // Heartbeat « en ligne » UNIQUEMENT avec un VRAI fix GPS (ne pas réécrire
       // une position de repli périmée). Hors ligne, on ne poll pas du tout.
-      if (live) void chauffeurHeartbeat(live.latitude, live.longitude, true);
+      if (live)
+        void chauffeurHeartbeat(
+          live.latitude,
+          live.longitude,
+          true,
+          live.heading
+        );
       // UN SEUL POST (consolidé) au lieu de 2 Server Actions sérialisées.
       const { nearby: list, activeRide: active } = await getDemandesTick(
         c.latitude,
