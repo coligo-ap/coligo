@@ -58,8 +58,8 @@ android {
             applicationId "app.coligo.client"
             // Versionnage indépendant des APK pros. Play exige un versionCode
             // strictement croissant à chaque upload — incrémenter ICI.
-            versionCode 18
-            versionName "1.0.15"
+            versionCode 19
+            versionName "1.0.16"
         }
     }
     buildTypes {
