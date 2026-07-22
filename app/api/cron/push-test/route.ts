@@ -1,6 +1,73 @@
 import { NextResponse } from "next/server";
+import { JWT } from "google-auth-library";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { sendFcm } from "@/lib/fcm/send";
+
+/**
+ * Diagnostic NON destructif : FCM `validateOnly` (aucune livraison, aucune
+ * purge de token) avec le MÊME payload que la vraie push. Renvoie le message
+ * d'erreur complet pour chaque token → révèle la cause exacte (clé APNs absente,
+ * SenderId mismatch, token périmé) sans effet de bord.
+ */
+async function dryRunDiagnose(
+  tokens: string[]
+): Promise<
+  Array<{ tail: string; ok: boolean; status: number; error: string }>
+> {
+  const projectId = process.env.FCM_PROJECT_ID?.trim();
+  const clientEmail = process.env.FCM_CLIENT_EMAIL?.trim();
+  const rawKey = process.env.FCM_PRIVATE_KEY;
+  if (!projectId || !clientEmail || !rawKey) {
+    return tokens.map((t) => ({
+      tail: t.slice(-8),
+      ok: false,
+      status: 0,
+      error: "FCM_* env manquantes",
+    }));
+  }
+  const key = rawKey.includes("\\n") ? rawKey.replace(/\\n/g, "\n") : rawKey;
+  const jwt = new JWT({
+    email: clientEmail,
+    key,
+    scopes: ["https://www.googleapis.com/auth/firebase.messaging"],
+  });
+  const { token: at } = await jwt.getAccessToken();
+  const endpoint = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+
+  return Promise.all(
+    tokens.map(async (deviceToken) => {
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${at}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          validateOnly: true,
+          message: {
+            token: deviceToken,
+            notification: { title: "Diag", body: "Diag" },
+            apns: {
+              headers: { "apns-priority": "10", "apns-push-type": "alert" },
+              payload: { aps: { sound: "default" } },
+            },
+          },
+        }),
+      });
+      const body = (await res.json().catch(() => null)) as {
+        error?: { message?: string; status?: string };
+      } | null;
+      return {
+        tail: deviceToken.slice(-8),
+        ok: res.ok,
+        status: res.status,
+        error: body?.error
+          ? `${body.error.status ?? ""}: ${body.error.message ?? ""}`
+          : "",
+      };
+    })
+  );
+}
 
 /**
  * OUTIL — Push de test vers les appareils d'un utilisateur.
@@ -51,6 +118,15 @@ export async function GET(request: Request) {
   }
   if (!rows?.length) {
     return NextResponse.json({ error: "no_tokens" }, { status: 404 });
+  }
+
+  // Mode DIAGNOSTIC (&dryrun=1) : valide le message auprès de FCM (validateOnly)
+  // SANS livrer NI purger le token, et renvoie le MESSAGE d'erreur COMPLET —
+  // pour distinguer « clé APNs absente », « SenderId mismatch » ou « token
+  // périmé » sans détruire les tokens de test.
+  if (url.searchParams.get("dryrun") === "1") {
+    const diag = await dryRunDiagnose(rows.map((r) => r.token));
+    return NextResponse.json({ ok: true, dryrun: true, results: diag });
   }
 
   const result = await sendFcm(
