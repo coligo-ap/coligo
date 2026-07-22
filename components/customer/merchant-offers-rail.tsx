@@ -387,7 +387,7 @@ function OfferCard({
         single ? "w-full" : "w-[92%] max-w-[460px]"
       )}
     >
-      <BannerCard banner={banner} />
+      <BannerCard banner={banner} size="lg" />
     </button>
   );
 }
@@ -440,6 +440,16 @@ function OfferDetailSheet({
     [promo.product_ids, productsById]
   );
 
+  // Feuille ouverte = la page DERRIÈRE ne défile plus (sinon, sur mobile, le
+  // geste de scroll dans la feuille entraîne la fiche commerçant).
+  useEffect(() => {
+    const previous = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previous;
+    };
+  }, []);
+
   async function copy() {
     try {
       await navigator.clipboard.writeText(code);
@@ -458,8 +468,11 @@ function OfferDetailSheet({
           if (e.target === e.currentTarget) onClose();
         }}
       >
+        {/* `overflow-hidden` sur la feuille + `min-h-0` sur la zone défilante :
+            sans ça, l'enfant flex garde sa hauteur de contenu, ne défile pas,
+            et le geste part dans la page. */}
         <div
-          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[24px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]"
+          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-[24px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]"
           role="dialog"
           aria-modal="true"
         >
@@ -506,7 +519,7 @@ function OfferDetailSheet({
             </button>
           </header>
 
-          <div className="space-y-4 overflow-y-auto px-5 pb-5">
+          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain px-5 pb-5">
             <div>
               <p className="text-foreground text-sm font-semibold">{title}</p>
               {promo.type === "flash_sale" &&

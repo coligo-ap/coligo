@@ -111,8 +111,22 @@ function Countdown({ endsAt }: { endsAt: string }) {
   );
 }
 
-/** Carte visuelle d'une bannière (SANS le wrapper de clic). */
-export function BannerCard({ banner }: { banner: PromoBanner }) {
+/**
+ * Carte visuelle d'une bannière (SANS le wrapper de clic).
+ *
+ * `size="lg"` = rendu de la FICHE COMMERÇANT : la carte y est la seule bande
+ * d'offres de l'écran (et non une diapo parmi d'autres au milieu de l'accueil),
+ * donc on remonte d'un cran le titre, le sous-titre et le bouton pour qu'ils se
+ * lisent d'un coup d'œil.
+ */
+export function BannerCard({
+  banner,
+  size = "default",
+}: {
+  banner: PromoBanner;
+  size?: "default" | "lg";
+}) {
+  const lg = size === "lg";
   const { model, grad } = resolveModel(banner);
   const fit = banner.image_fit ?? "overlay";
   const hasImg = !!banner.image_url;
@@ -190,14 +204,25 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
       {/* Texte à gauche. La hauteur de la carte est FIXE (ratio 64/26) : on
           borne le bloc et on resserre le sous-titre quand un compte à rebours
           vient s'ajouter, sinon le texte déborde sur les cartes étroites. */}
-      <div className="absolute inset-y-0 left-0 z-10 flex w-[62%] flex-col justify-center overflow-hidden px-5 text-white">
-        <h3 className="font-display line-clamp-2 text-lg leading-tight font-bold sm:text-xl">
+      <div
+        className={cn(
+          "absolute inset-y-0 left-0 z-10 flex flex-col justify-center overflow-hidden text-white",
+          lg ? "w-[64%] px-5 sm:px-6" : "w-[62%] px-5"
+        )}
+      >
+        <h3
+          className={cn(
+            "font-display line-clamp-2 leading-tight font-bold",
+            lg ? "text-xl sm:text-[26px]" : "text-lg sm:text-xl"
+          )}
+        >
           {banner.title}
         </h3>
         {banner.subtitle && (
           <p
             className={cn(
-              "mt-1 text-sm opacity-90",
+              "mt-1 opacity-90",
+              lg ? "text-[15px] sm:text-base" : "text-sm",
               model.countdown && banner.offer?.ends_at
                 ? "line-clamp-1"
                 : "line-clamp-2"
@@ -210,9 +235,16 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
           <Countdown endsAt={banner.offer.ends_at} />
         )}
         {banner.cta_label && (
-          <span className="mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/20 px-3 py-1.5 text-xs font-semibold backdrop-blur transition-colors group-hover:bg-white/30">
+          <span
+            className={cn(
+              "mt-3 inline-flex w-fit items-center gap-1.5 rounded-full bg-white/20 font-semibold backdrop-blur transition-colors group-hover:bg-white/30",
+              lg ? "px-3.5 py-2 text-[13px]" : "px-3 py-1.5 text-xs"
+            )}
+          >
             {banner.cta_label}
-            <ArrowRight className="size-3.5 rtl:-scale-x-100" />
+            <ArrowRight
+              className={cn("rtl:-scale-x-100", lg ? "size-4" : "size-3.5")}
+            />
           </span>
         )}
       </div>
