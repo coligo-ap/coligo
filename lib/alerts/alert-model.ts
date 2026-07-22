@@ -22,7 +22,8 @@ export type AlertDomain =
   | "finances"
   | "confiance"
   | "plateforme"
-  | "marketing";
+  | "marketing"
+  | "clients";
 
 /** Une alerte émise par la RPC. `severity` n'est jamais `ok` ici (les règles à
  *  0 ne sont pas émises). `since` = plus ancien élément concerné (escalade). */
@@ -90,6 +91,7 @@ export const DOMAIN_LABEL: Record<AlertDomain, string> = {
   confiance: "Confiance & Sécurité",
   plateforme: "Plateforme",
   marketing: "Marketing",
+  clients: "Clients",
 };
 
 /**

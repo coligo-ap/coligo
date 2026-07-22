@@ -343,6 +343,36 @@ export const ADMIN_NAV: AdminNavDomain[] = [
   },
 
   {
+    key: "clients",
+    href: "/admin/clients",
+    label: "Clients",
+    icon: Users,
+    sections: [
+      {
+        items: [
+          {
+            href: "/admin/clients",
+            label: "Annuaire clients",
+            icon: Users,
+            exact: true,
+            keywords: [
+              "client",
+              "compte",
+              "bloquer",
+              "suspendre",
+              "rechercher",
+              "localisation",
+              "coligo pay",
+              "cashback",
+              "fonctionnalité",
+            ],
+          },
+        ],
+      },
+    ],
+  },
+
+  {
     key: "finances",
     href: "/admin/coligo-pay",
     label: "Coligo Pay & Finances",
