@@ -8,6 +8,7 @@ import { MerchantMobileBottomNav } from "@/components/merchant/mobile-bottom-nav
 import { MobileDrawer } from "@/components/merchant/mobile-drawer";
 import { InstallBanner } from "@/components/pwa/install-banner";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
+import { SessionKeeper } from "@/components/shared/session-keeper";
 import { ConnectionGuard } from "@/components/shared/connection-guard";
 import { OfflineDim } from "@/components/shared/offline-dim";
 import { MerchantQueryProvider } from "@/components/merchant/merchant-query-provider";
@@ -160,6 +161,8 @@ export async function MerchantShell({
           {/* Refresh doux des données au retour au premier plan (complément du
           Router Cache : retour instantané puis maj asynchrone du RSC). */}
           <RouteRefreshOnFocus />
+          {/* Session conservée au retour dans l'app (paiement externe, veille iOS). */}
+          <SessionKeeper />
           {/* Garde de connexion PARTAGÉ (comme client/livreur/chauffeur) :
               bannière unique « hors ligne » + jamais de faux « en ligne ». */}
           <ConnectionGuard />

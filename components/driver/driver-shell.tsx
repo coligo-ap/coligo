@@ -1,4 +1,5 @@
 import { DriverBottomNav } from "./driver-bottom-nav";
+import { SessionKeeper } from "@/components/shared/session-keeper";
 import { PullToRefresh } from "./pull-to-refresh";
 import { DriverContentDim } from "./driver-content-dim";
 
@@ -25,6 +26,8 @@ export function DriverShell({
         </main>
       </PullToRefresh>
       <DriverBottomNav />
+      {/* Session conservée au retour dans l'app (paiement externe, veille iOS). */}
+      <SessionKeeper />
     </div>
   );
 }

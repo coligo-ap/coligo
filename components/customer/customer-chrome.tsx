@@ -3,6 +3,7 @@
 import { usePathname } from "next/navigation";
 import { ClientThemeScope } from "@/components/customer/client-theme-scope";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
+import { SessionKeeper } from "@/components/shared/session-keeper";
 import { CartMonoProvider } from "@/components/customer/cart-mono-provider";
 import { CustomerHeader } from "@/components/customer/customer-header";
 import { CustomerFooter } from "@/components/customer/customer-footer";
@@ -82,6 +83,8 @@ export function CustomerChrome({
       <ClientThemeScope />
       {/* Refresh doux des données au retour au premier plan. */}
       <RouteRefreshOnFocus />
+      {/* Session conservée au retour dans l'app (paiement externe, veille iOS). */}
+      <SessionKeeper />
       {/* Garde de connexion : feedback + reprise auto quand le réseau coupe ou
           devient instable — jamais d'écran muet en session (cf. offline.html qui
           ne couvre QUE l'échec au cold start). */}

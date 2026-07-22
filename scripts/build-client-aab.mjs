@@ -72,6 +72,16 @@ writeFileSync(
       server: {
         url: SERVER_URL,
         androidScheme: "https",
+        // Paiement DANS l'app : sans cette liste, Capacitor ouvre le checkout
+        // Chargily dans le navigateur externe (cf. capacitor.config.ts).
+        allowNavigation: [
+          "pay.chargily.net",
+          "*.chargily.net",
+          "*.chargily.com",
+          "*.chargily.dz",
+          "*.satim.dz",
+          "*.stripe.com",
+        ],
         // Écran hors-ligne embarqué (capacitor-webroot/offline.html), chargé
         // par Capacitor quand le document principal ne peut pas être récupéré.
         errorPath: "offline.html",

@@ -52,6 +52,21 @@ const config: CapacitorConfig = {
     //   cleartext: true,
     // et autoriser dans network_security_config.xml.
     androidScheme: "https",
+    // PAIEMENT DANS L'APP — hôtes autorisés à s'ouvrir DANS la WebView.
+    // Par défaut, Capacitor envoie toute navigation hors de `server.url` au
+    // NAVIGATEUR EXTERNE : le client quittait donc l'app pour payer, et sur iOS
+    // il revenait sur une session qui semblait perdue. Ces hôtes-là restent
+    // désormais dans l'application. Liste VOLONTAIREMENT limitée aux domaines de
+    // paiement (Chargily + passerelle bancaire SATIM + Stripe) : tout élargir
+    // reviendrait à faire de l'app un navigateur.
+    allowNavigation: [
+      "pay.chargily.net",
+      "*.chargily.net",
+      "*.chargily.com",
+      "*.chargily.dz",
+      "*.satim.dz",
+      "*.stripe.com",
+    ],
     // PAS d'`errorPath` ici, volontairement.
     //
     // Sans connexion, la WebView affiche la page d'erreur de Chrome. Capacitor
