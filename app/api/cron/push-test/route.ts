@@ -67,5 +67,8 @@ export async function GET(request: Request) {
     sent: result.ok,
     devices: rows.map((r) => ({ platform: r.platform, role: r.role })),
     invalidated: result.invalidTokens.length,
+    // Codes d'erreur FCM (diagnostic) : THIRD_PARTY_AUTH_ERROR = clé APNs
+    // absente côté Firebase ; UNREGISTERED = token mort (réinstall / rotation).
+    errors: result.errors,
   });
 }

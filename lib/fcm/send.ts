@@ -53,6 +53,9 @@ export type FcmData = Record<string, string>;
 type SendResult = {
   ok: number;
   invalidTokens: string[];
+  /** Codes d'erreur FCM rencontrés (diagnostic ; ex. UNREGISTERED,
+   *  THIRD_PARTY_AUTH_ERROR = clé APNs absente côté Firebase). */
+  errors: string[];
 };
 
 /**
@@ -70,11 +73,11 @@ export async function sendFcm(
   notification: FcmNotification,
   data: FcmData = {}
 ): Promise<SendResult> {
-  if (tokens.length === 0) return { ok: 0, invalidTokens: [] };
+  if (tokens.length === 0) return { ok: 0, invalidTokens: [], errors: [] };
   const ctx = getContext();
   if (!ctx) {
     console.warn("[fcm] FCM_* env vars missing — push skipped");
-    return { ok: 0, invalidTokens: [] };
+    return { ok: 0, invalidTokens: [], errors: [] };
   }
 
   let accessToken: string | null;
@@ -83,12 +86,13 @@ export async function sendFcm(
     accessToken = token ?? null;
   } catch (err) {
     console.error("[fcm] OAuth token fetch failed:", err);
-    return { ok: 0, invalidTokens: [] };
+    return { ok: 0, invalidTokens: [], errors: [] };
   }
-  if (!accessToken) return { ok: 0, invalidTokens: [] };
+  if (!accessToken) return { ok: 0, invalidTokens: [], errors: [] };
 
   const url = `https://fcm.googleapis.com/v1/projects/${ctx.projectId}/messages:send`;
   const invalidTokens: string[] = [];
+  const errors: string[] = [];
   let ok = 0;
 
   await Promise.all(
@@ -113,6 +117,31 @@ export async function sendFcm(
                   default_vibrate_timings: true,
                 },
               },
+              // BLOC iOS — sans lui, une push arrive en priorité RÉDUITE, sans
+              // son, et une push « data » (topup/promo) ne réveille pas l'app
+              // fermée. Le bloc `android` ci-dessus n'a AUCUN effet sur iOS.
+              //   - apns-priority 10        → livraison IMMÉDIATE (5 = throttlé) ;
+              //   - apns-push-type "alert"  → requis iOS 13+ dès qu'il y a un
+              //     titre/corps (toutes nos push en ont un) ;
+              //   - sound "default"         → son + bannière app fermée ;
+              //   - content-available 1     → réveille brièvement l'app pour
+              //     rafraîchir ses données (solde, promo) AVANT même le tap →
+              //     « temps réel sans ouvrir l'app » ;
+              //   - mutable-content 1       → laisse une extension enrichir la
+              //     notif (images à venir), sans effet si absente.
+              apns: {
+                headers: {
+                  "apns-priority": "10",
+                  "apns-push-type": "alert",
+                },
+                payload: {
+                  aps: {
+                    sound: "default",
+                    "content-available": 1,
+                    "mutable-content": 1,
+                  },
+                },
+              },
             },
           }),
         });
@@ -128,11 +157,16 @@ export async function sendFcm(
           body?.error?.details?.find((d) => d.errorCode)?.errorCode ??
           body?.error?.status ??
           "";
+        if (errCode) errors.push(errCode);
+        // UNREGISTERED / NOT_FOUND = token mort (app désinstallée, réinstallée,
+        // rotation) → purge. INVALID_ARGUMENT sur un token EXPIRÉ idem. On NE
+        // purge PAS THIRD_PARTY_AUTH_ERROR (clé APNs manquante côté Firebase) :
+        // le token est bon, c'est la config projet qui manque.
         if (
           res.status === 404 ||
           errCode === "UNREGISTERED" ||
-          errCode === "INVALID_ARGUMENT" ||
-          errCode === "NOT_FOUND"
+          errCode === "NOT_FOUND" ||
+          errCode === "INVALID_ARGUMENT"
         ) {
           invalidTokens.push(deviceToken);
         } else if (process.env.NODE_ENV !== "production") {
@@ -157,5 +191,5 @@ export async function sendFcm(
       });
   }
 
-  return { ok, invalidTokens };
+  return { ok, invalidTokens, errors };
 }
