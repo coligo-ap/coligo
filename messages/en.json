@@ -258,6 +258,7 @@
     "cashPickupSub": "You pay the merchant at the counter",
     "online": "Online",
     "onlineSub": "CIB / EDAHABIA card · Bonus cashback",
+    "unavailableOnAccount": "Unavailable on your account",
     "intlCard": "International card (€, $, £…)",
     "intlCardSub": "Visa · Mastercard · Apple Pay · Google Pay",
     "intlOrCard": "or pay by card",

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CheckoutView } from "@/components/customer/checkout-view";
-import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { getFeatureFlag } from "@/lib/data/feature-flags";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
@@ -15,9 +15,13 @@ export default async function CheckoutPage() {
   // Si l'utilisateur connecté est un MARCHAND, pas un client → on l'arrête.
   if (await getCurrentMerchant()) redirect("/dashboard");
 
-  const [customer, flags] = await Promise.all([
+  // `getFeatureFlag` (singulier) = kill-switch global PUIS coupure propre au
+  // compte (mig 0397) → le checkout dit la vérité à ce client-là.
+  const [customer, online, pay, cashback] = await Promise.all([
     getCurrentCustomerFull(),
-    getFeatureFlags(),
+    getFeatureFlag("online_payment"),
+    getFeatureFlag("coligo_pay"),
+    getFeatureFlag("cashback"),
   ]);
 
   return (
@@ -31,9 +35,10 @@ export default async function CheckoutPage() {
             latitude: customer?.latitude ?? null,
             longitude: customer?.longitude ?? null,
           }}
-          onlinePaymentStatus={flags.online_payment.status}
-          coligoPayStatus={flags.coligo_pay.status}
-          cashbackStatus={flags.cashback.status}
+          onlinePaymentStatus={online.status}
+          onlinePaymentPersonal={online.personal}
+          coligoPayStatus={pay.status}
+          cashbackStatus={cashback.status}
         />
       </div>
     </CustomerShell>

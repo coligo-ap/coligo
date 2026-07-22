@@ -1378,6 +1378,23 @@ export async function createOrder(
     if (orderErr?.message?.includes("slot_not_open")) {
       return { ok: false, error: "Ce créneau n'est plus disponible." };
     }
+    // Compte suspendu par l'équipe Coligo (trigger 0397) : on le dit
+    // franchement plutôt que de laisser une erreur technique.
+    if (orderErr?.message?.includes("account_blocked")) {
+      return {
+        ok: false,
+        error:
+          "Votre compte est suspendu : les commandes sont bloquées. Contactez le support Coligo.",
+      };
+    }
+    // Paiement en ligne coupé sur ce compte (trigger 0397).
+    if (orderErr?.message?.includes("feature_disabled:online_payment")) {
+      return {
+        ok: false,
+        error:
+          "Le paiement en ligne n'est pas disponible sur votre compte. Choisissez le paiement à la livraison ou contactez le support.",
+      };
+    }
     // Kill-switch livraison (trigger 0324) : service coupé entre l'affichage
     // et l'INSERT.
     if (orderErr?.message?.includes("feature_disabled:express")) {

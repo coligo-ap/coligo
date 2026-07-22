@@ -99,6 +99,8 @@ type Props = {
   };
   /** Disponibilité (super-admin) — gèle/masque paiement en ligne, Coligo Pay, cashback. */
   onlinePaymentStatus?: FeatureStatus;
+  /** La coupure vise CE compte seulement (mig 0397) → le libellé le dit. */
+  onlinePaymentPersonal?: boolean;
   coligoPayStatus?: FeatureStatus;
   cashbackStatus?: FeatureStatus;
 };
@@ -106,6 +108,7 @@ type Props = {
 export function CheckoutView({
   customer,
   onlinePaymentStatus = "active",
+  onlinePaymentPersonal = false,
   coligoPayStatus = "active",
   cashbackStatus = "active",
 }: Props) {
@@ -1045,7 +1048,13 @@ export function CheckoutView({
                 }}
                 title={t("online")}
                 bolt
-                sub={onlineUsable ? t("onlineSub") : "Bientôt"}
+                sub={
+                  onlineUsable
+                    ? t("onlineSub")
+                    : onlinePaymentPersonal
+                      ? t("unavailableOnAccount")
+                      : "Bientôt"
+                }
                 disabled={!ctx.merchant.accepts_online || !onlineUsable}
                 chip={
                   cashbackOn && cashbackEarnOnline > 0

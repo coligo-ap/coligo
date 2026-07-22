@@ -37,6 +37,7 @@ export default async function CustomerCashbackPage() {
             status={flag.status}
             title={featureTitle(flag, locale)}
             message={featureMessage(flag, locale)}
+            personal={flag.personal}
           />
         </div>
       </CustomerShell>

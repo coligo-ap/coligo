@@ -48,6 +48,7 @@ export default async function CustomerColigoPayPage() {
             status={flag.status}
             title={featureTitle(flag, locale)}
             message={featureMessage(flag, locale)}
+            personal={flag.personal}
           />
         </div>
       </CustomerShell>

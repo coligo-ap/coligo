@@ -8,6 +8,7 @@ import {
   type EnginePromotion,
 } from "@/lib/promotions/engine";
 import { loadLineOptions } from "@/lib/checkout/option-pricing";
+import { getMyFeatureBlocks } from "@/lib/data/feature-flags";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   getMyCashbackBalance,
@@ -488,10 +489,15 @@ export async function fetchCheckoutContext(
     };
   });
 
+  // Mode de livraison coupé pour CE client (mig 0397) : on le retire du
+  // choix — la base le refuserait de toute façon à l'insertion.
+  const myBlocks = await getMyFeatureBlocks();
+
   const deliveryCtx: CheckoutDeliveryContext = {
     enabled: deliveryEnabled,
-    express_enabled: !!merchDelivery?.express_enabled,
-    tours_enabled: !!merchDelivery?.tours_enabled,
+    express_enabled:
+      !!merchDelivery?.express_enabled && !myBlocks.has("express"),
+    tours_enabled: !!merchDelivery?.tours_enabled && !myBlocks.has("tour"),
     merchantPosition:
       deliveryEnabled && merchDelivery
         ? {
