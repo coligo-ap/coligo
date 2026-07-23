@@ -42,48 +42,39 @@ export function CustomerBottomNav({
         const active =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
 
-        // Onglet DRIVE mis en avant (« héros ») : au centre de la barre, il ne
-        // se fond pas dans les icônes plates — pastille en dégradé violet de
-        // marque, léger relief + halo qui respire pour inviter à DÉCOUVRIR la
-        // course, et un micro-badge « VTC » qui dit d'un coup d'œil que Drive
-        // c'est aussi le transport de personnes. Hauteur du slot identique aux
-        // autres (26 px) → la barre ne grandit pas, les libellés restent alignés.
+        // Onglet DRIVE mis en avant : au centre de la barre, un CERCLE PLAT en
+        // dégradé violet→rose de marque — AUCUN relief, AUCUNE ombre, aucun
+        // effet — rempli par la Tesla des cartes (sprite vu de dessus), avec un
+        // tag ambre « Nouveau » en haut de la voiture pour inviter à découvrir
+        // la course / le VTC. Hauteur du slot identique aux autres (26 px) → la
+        // barre ne grandit pas, les libellés restent alignés.
         if (item.key === "drive") {
           return (
             <Link
               key={item.href}
               href={item.href}
               prefetch
-              aria-label={`${t("drive")} · VTC`}
+              aria-label={`${t("drive")} · ${t("driveTag")}`}
               className="relative flex flex-col items-center justify-center gap-1 py-1.5 text-[11px]"
             >
               <span className="relative flex h-[26px] w-full items-center justify-center">
-                <span className="absolute -top-2 left-1/2 grid -translate-x-1/2 place-items-center">
-                  {/* Halo « découvrez » — anneau doux qui pulse (masqué si
-                      l'utilisateur est déjà sur Drive : plus besoin d'inviter). */}
-                  {!active && (
-                    <span
-                      aria-hidden
-                      className="bg-primary-500/25 co-nav-beacon absolute inset-0 rounded-[14px]"
-                    />
-                  )}
-                  <span
-                    className={cn(
-                      "from-primary-500 to-primary-700 relative grid size-9 place-items-center rounded-[14px] bg-gradient-to-br text-white ring-1 ring-white/20 transition-shadow",
-                      active
-                        ? "shadow-primary-700/40 shadow-lg"
-                        : "shadow-primary-700/30 shadow-md"
-                    )}
-                  >
-                    <Car
-                      className="size-[22px] rtl:-scale-x-100"
-                      strokeWidth={2.3}
+                <span className="absolute -top-2 left-1/2 -translate-x-1/2">
+                  {/* Cercle PLAT dégradé violet→rose Coligo (pas d'ombre, pas de
+                      relief). La Tesla blanche des cartes le remplit. */}
+                  <span className="from-primary-600 via-primary-400 relative grid size-9 place-items-center overflow-hidden rounded-full bg-gradient-to-br to-[#FF2D7A]">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src="/drive/vehicles/voiture-coligo-white.png"
+                      alt=""
+                      width={34}
+                      height={34}
+                      className="size-[34px] object-contain rtl:-scale-x-100"
                     />
                   </span>
-                  {/* Badge VTC : dit que Drive = aussi transport de personnes. */}
+                  {/* Tag « Nouveau » ambre, posé en haut de la voiture. */}
                   <span
                     aria-hidden
-                    className="bg-coral-500 absolute -end-2 -top-1.5 rounded-full px-1 text-[8px] leading-[14px] font-black text-white shadow-sm ring-1 ring-white/80"
+                    className="absolute -top-1.5 left-1/2 -translate-x-1/2 rounded-full bg-amber-400 px-1 text-[8px] leading-[13px] font-black text-[#4a2e00] ring-1 ring-white/80"
                   >
                     {t("driveTag")}
                   </span>
