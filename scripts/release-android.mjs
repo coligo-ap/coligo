@@ -17,7 +17,7 @@
  * La signature (keystore) et les secrets vivent sur cette machine ; les porter
  * en CI est possible plus tard (cf. RELEASING.md).
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
 import { dirname, join, resolve } from "node:path";
@@ -41,40 +41,6 @@ function run(cmd, cmdArgs) {
   if (r.status !== 0) {
     throw new Error(`échec: ${cmd} ${cmdArgs.join(" ")} (code ${r.status})`);
   }
-}
-
-/**
- * Bump du flavor CLIENT uniquement (le flavor commerce a son propre
- * versionCode). On cible le bloc `client { … }` pour ne jamais toucher commerce.
- */
-function bumpClientVersion() {
-  const src = readFileSync(GRADLE, "utf8");
-  const clientIdx = src.indexOf("client {");
-  if (clientIdx < 0)
-    throw new Error("bloc `client {` introuvable dans build.gradle");
-  const before = src.slice(0, clientIdx);
-  let block = src.slice(clientIdx);
-
-  const codeM = block.match(/versionCode (\d+)/);
-  const nameM = block.match(/versionName "([^"]+)"/);
-  if (!codeM || !nameM)
-    throw new Error("versionCode/versionName introuvables dans le bloc client");
-
-  const newCode = Number(codeM[1]) + 1;
-  // versionName patch +1 (1.0.16 → 1.0.17). Si pas de patch, on en ajoute un.
-  const parts = nameM[1].split(".");
-  while (parts.length < 3) parts.push("0");
-  parts[2] = String(Number(parts[2] || 0) + 1);
-  const newName = parts.join(".");
-
-  block = block
-    .replace(/versionCode \d+/, `versionCode ${newCode}`)
-    .replace(/versionName "[^"]+"/, `versionName "${newName}"`);
-  writeFileSync(GRADLE, before + block, "utf8");
-  console.log(
-    `✅ Client bumpé → versionCode ${newCode}, versionName ${newName}`
-  );
-  return { code: newCode, name: newName };
 }
 
 /** versionCode client courant (sans bump). */
@@ -146,7 +112,17 @@ async function tryProduction(versionCode) {
 }
 
 async function main() {
-  const versionCode = NO_BUMP ? readClientCode() : bumpClientVersion().code;
+  let versionCode;
+  if (NO_BUMP) {
+    versionCode = readClientCode();
+  } else {
+    // MÊME source que le CI Codemagic : versionCode = Play max + 1. Local et CI
+    // ne se marchent JAMAIS dessus (plus de « version code already used »).
+    run("node", ["scripts/ci-android-versioncode.mjs"]);
+    versionCode = Number(
+      readFileSync(join(ROOT, "android", ".ci-versioncode"), "utf8").trim()
+    );
+  }
 
   run("node", ["scripts/build-client-aab.mjs"]);
   // Toujours servir les pistes de TEST (doivent réussir).
