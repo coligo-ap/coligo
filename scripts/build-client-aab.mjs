@@ -21,7 +21,13 @@
  */
 
 import { spawnSync } from "node:child_process";
-import { existsSync, readFileSync, statSync, writeFileSync } from "node:fs";
+import {
+  chmodSync,
+  existsSync,
+  readFileSync,
+  statSync,
+  writeFileSync,
+} from "node:fs";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -217,6 +223,16 @@ if (!existsSync(join(ANDROID, "keystore.properties"))) {
     "✖ android/keystore.properties absent — le .aab sortirait NON signé."
   );
   process.exit(1);
+}
+// macOS/Linux (CI Codemagic) : gradlew DOIT être exécutable. Le bit +x peut être
+// perdu quand le dépôt est édité sous Windows → `exec gradlew` échoue avec un
+// « exit null » cryptique (aucune sortie Gradle). On le repose avant l'appel.
+if (process.platform !== "win32") {
+  try {
+    chmodSync(join(ANDROID, "gradlew"), 0o755);
+  } catch {
+    /* best-effort — le bit git 100755 suffit normalement */
+  }
 }
 run(
   join(ANDROID, process.platform === "win32" ? "gradlew.bat" : "gradlew"),
