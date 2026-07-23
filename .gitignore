@@ -61,3 +61,7 @@ db-reset-backup-*.json
 
 # Clé compte de service Google Play (secret — JAMAIS committer)
 play-service-account.json
+
+# CI Android (artefacts générés en build, jamais commités)
+android/.ci-versioncode
+android/coligo-release-ci.jks

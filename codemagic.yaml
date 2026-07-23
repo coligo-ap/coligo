@@ -192,6 +192,91 @@ workflows:
           success: true
           failure: true
 
+  # ── PROD/TEST Android — Google Play (client app.coligo.client) ─────────────
+  # AUTO sur push `main` touchant du natif Android → interne + alpha.
+  # Sur TAG `release-*` → tente aussi la PRODUCTION (verrouillée par Google tant
+  # que l'accès prod n'est pas accordé : l'échec est toléré, le test passe).
+  #
+  # Secrets (groupe Codemagic `android_client`, tous SÉCURISÉS, déjà posés par
+  # l'API) : GOOGLE_SERVICES_JSON_B64, PLAY_SERVICE_ACCOUNT_B64, CM_KEYSTORE_B64,
+  # CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD. Aucun de ces fichiers
+  # n'est commité (keystore, google-services.json, service account = gitignorés).
+  android-client-play:
+    name: Coligo Client — Android Google Play
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment:
+      java: 21
+      node: lts
+      groups:
+        - android_client
+    triggering:
+      events:
+        - push
+        - tag
+      branch_patterns:
+        - pattern: main
+          include: true
+      tag_patterns:
+        - pattern: "release-*"
+          include: true
+      when:
+        changeset:
+          includes:
+            - "android"
+            - "capacitor.config.ts"
+            - "scripts/build-client-aab.mjs"
+            - "scripts/android-assets.mjs"
+            - "scripts/ci-android-versioncode.mjs"
+            - "scripts/play-upload.mjs"
+            - "scripts/play-promote.mjs"
+            - "package.json"
+            - "codemagic.yaml"
+          excludes:
+            - "**/*.md"
+    scripts:
+      - name: Dépendances Node
+        script: npm ci
+      - name: Restaurer les secrets (google-services / keystore / service account)
+        script: |
+          set -e
+          for v in GOOGLE_SERVICES_JSON_B64 PLAY_SERVICE_ACCOUNT_B64 CM_KEYSTORE_B64 CM_KEYSTORE_PASSWORD CM_KEY_ALIAS CM_KEY_PASSWORD; do
+            eval "val=\$$v"
+            if [ -z "$val" ]; then echo "✖ secret $v absent (groupe android_client)"; exit 1; fi
+          done
+          node -e "require('fs').writeFileSync('android/app/google-services.json', Buffer.from(process.env.GOOGLE_SERVICES_JSON_B64,'base64'))"
+          node -e "require('fs').writeFileSync('play-service-account.json', Buffer.from(process.env.PLAY_SERVICE_ACCOUNT_B64,'base64'))"
+          node -e "require('fs').writeFileSync('android/coligo-release-ci.jks', Buffer.from(process.env.CM_KEYSTORE_B64,'base64'))"
+          printf 'storeFile=coligo-release-ci.jks\nstorePassword=%s\nkeyAlias=%s\nkeyPassword=%s\n' \
+            "$CM_KEYSTORE_PASSWORD" "$CM_KEY_ALIAS" "$CM_KEY_PASSWORD" > android/keystore.properties
+      - name: versionCode auto (Play max + 1)
+        script: node scripts/ci-android-versioncode.mjs
+      - name: Build AAB signé (flavor client)
+        # build-client-aab.mjs est portable : sur Linux, existsSync(JBR)=false →
+        # utilise le JAVA_HOME système (Java 21 fixé ci-dessus). Les res du flavor
+        # client sont commitées → pas de --assets.
+        script: node scripts/build-client-aab.mjs
+      - name: Publier sur Google Play
+        script: |
+          set -e
+          # Toujours : interne + alpha (doivent réussir).
+          node scripts/play-upload.mjs --track alpha --status completed --also internal
+          # Sur TAG release-* : tenter la production (verrou Google toléré).
+          if [ -n "$CM_TAG" ]; then
+            VC=$(cat android/.ci-versioncode)
+            node scripts/play-promote.mjs --to production --version "$VC" --status completed \
+              || echo "⚠ PRODUCTION Google verrouillée (accès non accordé) — test publié, prod ignorée."
+          fi
+    artifacts:
+      - android/app/build/outputs/bundle/**/*.aab
+    publishing:
+      email:
+        recipients:
+          - primefood69@gmail.com
+        notify:
+          success: true
+          failure: true
+
   # ── Sonde LECTURE SEULE du statut App Store (aucun build) ──────────────────
   # Interroge l'API App Store Connect avec les identifiants de l'intégration :
   # état de la version (Prepare for Submission / Waiting for Review /
