@@ -208,7 +208,7 @@ workflows:
   android-client-play:
     name: Coligo Client — Android Play (auto push → interne + alpha)
     max_build_duration: 60
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     environment: &android_env
       java: 21
       node: lts
@@ -287,7 +287,7 @@ workflows:
   android-client-release:
     name: Coligo Client — Android Play (PROD, sur tag)
     max_build_duration: 60
-    instance_type: linux_x2
+    instance_type: mac_mini_m2
     environment: *android_env
     triggering:
       events:
