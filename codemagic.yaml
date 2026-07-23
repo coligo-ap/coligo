@@ -62,18 +62,22 @@ workflows:
       branch_patterns:
         - pattern: main
           include: true
-      when:
-        changeset:
-          includes:
-            - "ios"
-            - "capacitor.config.ts"
-            - "scripts/ios-client-config.mjs"
-            - "lib/native"
-            - "package.json"
-            - "package-lock.json"
-            - "codemagic.yaml"
-          excludes:
-            - "**/*.md"
+    # `when` est un champ de WORKFLOW (pas sous `triggering`) : il SAUTE le build
+    # si aucun fichier natif/config n'a changé (une modif web-only part par
+    # Vercel). Ne s'applique qu'aux events push — un tag construit toujours
+    # (workflow `ios-client-release`, sans `when`).
+    when:
+      changeset:
+        includes:
+          - "ios"
+          - "capacitor.config.ts"
+          - "scripts/ios-client-config.mjs"
+          - "lib/native"
+          - "package.json"
+          - "package-lock.json"
+          - "codemagic.yaml"
+        excludes:
+          - "**/*.md"
     scripts: &ios_scripts
       - name: Installer les dépendances Node
         script: npm ci
@@ -202,10 +206,10 @@ workflows:
   # CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD. Aucun de ces fichiers
   # n'est commité (keystore, google-services.json, service account = gitignorés).
   android-client-play:
-    name: Coligo Client — Android Google Play
+    name: Coligo Client — Android Play (auto push → interne + alpha)
     max_build_duration: 60
     instance_type: linux_x2
-    environment:
+    environment: &android_env
       java: 21
       node: lts
       groups:
@@ -213,28 +217,27 @@ workflows:
     triggering:
       events:
         - push
-        - tag
       branch_patterns:
         - pattern: main
           include: true
-      tag_patterns:
-        - pattern: "release-*"
-          include: true
-      when:
-        changeset:
-          includes:
-            - "android"
-            - "capacitor.config.ts"
-            - "scripts/build-client-aab.mjs"
-            - "scripts/android-assets.mjs"
-            - "scripts/ci-android-versioncode.mjs"
-            - "scripts/play-upload.mjs"
-            - "scripts/play-promote.mjs"
-            - "package.json"
-            - "codemagic.yaml"
-          excludes:
-            - "**/*.md"
-    scripts:
+    # `when` = champ de WORKFLOW (pas sous `triggering`) : saute le build si
+    # aucun fichier natif Android n'a changé (le web part par Vercel). Ne
+    # s'applique qu'au push — le tag construit toujours (android-client-release).
+    when:
+      changeset:
+        includes:
+          - "android"
+          - "capacitor.config.ts"
+          - "scripts/build-client-aab.mjs"
+          - "scripts/android-assets.mjs"
+          - "scripts/ci-android-versioncode.mjs"
+          - "scripts/play-upload.mjs"
+          - "scripts/play-promote.mjs"
+          - "package.json"
+          - "codemagic.yaml"
+        excludes:
+          - "**/*.md"
+    scripts: &android_scripts
       - name: Dépendances Node
         script: npm ci
       - name: Restaurer les secrets (google-services / keystore / service account)
@@ -261,21 +264,40 @@ workflows:
           set -e
           # Toujours : interne + alpha (doivent réussir).
           node scripts/play-upload.mjs --track alpha --status completed --also internal
-          # Sur TAG release-* : tenter la production (verrou Google toléré).
+          # Sur TAG release-* SEULEMENT (CM_TAG posé par Codemagic) : tenter la
+          # PRODUCTION (verrou Google toléré → le test reste publié).
           if [ -n "$CM_TAG" ]; then
             VC=$(cat android/.ci-versioncode)
             node scripts/play-promote.mjs --to production --version "$VC" --status completed \
               || echo "⚠ PRODUCTION Google verrouillée (accès non accordé) — test publié, prod ignorée."
           fi
-    artifacts:
+    artifacts: &android_artifacts
       - android/app/build/outputs/bundle/**/*.aab
-    publishing:
+    publishing: &android_publishing
       email:
         recipients:
           - primefood69@gmail.com
         notify:
           success: true
           failure: true
+
+  # ── PROD Android sur TAG `release-*` — interne + alpha + production ─────────
+  # Mêmes env/scripts (ancres YAML). CM_TAG est posé → l'étape de publication
+  # tente la production en plus des pistes de test.
+  android-client-release:
+    name: Coligo Client — Android Play (PROD, sur tag)
+    max_build_duration: 60
+    instance_type: linux_x2
+    environment: *android_env
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "release-*"
+          include: true
+    scripts: *android_scripts
+    artifacts: *android_artifacts
+    publishing: *android_publishing
 
   # ── Sonde LECTURE SEULE du statut App Store (aucun build) ──────────────────
   # Interroge l'API App Store Connect avec les identifiants de l'intégration :
