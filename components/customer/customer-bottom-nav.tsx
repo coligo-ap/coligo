@@ -41,6 +41,61 @@ export function CustomerBottomNav({
         const Icon = item.icon;
         const active =
           item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+
+        // Onglet DRIVE mis en avant (« héros ») : au centre de la barre, il ne
+        // se fond pas dans les icônes plates — pastille en dégradé violet de
+        // marque, léger relief + halo qui respire pour inviter à DÉCOUVRIR la
+        // course, et un micro-badge « VTC » qui dit d'un coup d'œil que Drive
+        // c'est aussi le transport de personnes. Hauteur du slot identique aux
+        // autres (26 px) → la barre ne grandit pas, les libellés restent alignés.
+        if (item.key === "drive") {
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              prefetch
+              aria-label={`${t("drive")} · VTC`}
+              className="relative flex flex-col items-center justify-center gap-1 py-1.5 text-[11px]"
+            >
+              <span className="relative flex h-[26px] w-full items-center justify-center">
+                <span className="absolute -top-2 left-1/2 grid -translate-x-1/2 place-items-center">
+                  {/* Halo « découvrez » — anneau doux qui pulse (masqué si
+                      l'utilisateur est déjà sur Drive : plus besoin d'inviter). */}
+                  {!active && (
+                    <span
+                      aria-hidden
+                      className="bg-primary-500/25 co-nav-beacon absolute inset-0 rounded-[14px]"
+                    />
+                  )}
+                  <span
+                    className={cn(
+                      "from-primary-500 to-primary-700 relative grid size-9 place-items-center rounded-[14px] bg-gradient-to-br text-white ring-1 ring-white/20 transition-shadow",
+                      active
+                        ? "shadow-primary-700/40 shadow-lg"
+                        : "shadow-primary-700/30 shadow-md"
+                    )}
+                  >
+                    <Car
+                      className="size-[22px] rtl:-scale-x-100"
+                      strokeWidth={2.3}
+                    />
+                  </span>
+                  {/* Badge VTC : dit que Drive = aussi transport de personnes. */}
+                  <span
+                    aria-hidden
+                    className="bg-coral-500 absolute -end-2 -top-1.5 rounded-full px-1 text-[8px] leading-[14px] font-black text-white shadow-sm ring-1 ring-white/80"
+                  >
+                    {t("driveTag")}
+                  </span>
+                </span>
+              </span>
+              <span className="text-primary-700 leading-none font-bold">
+                {t("drive")}
+              </span>
+            </Link>
+          );
+        }
+
         return (
           <Link
             key={item.href}

@@ -11,6 +11,7 @@
     "orders": "Orders",
     "account": "Account",
     "drive": "Drive",
+    "driveTag": "VTC",
     "pay": "Pay"
   },
   "header": {
