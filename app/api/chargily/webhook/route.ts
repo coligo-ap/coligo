@@ -357,6 +357,15 @@ export async function POST(req: NextRequest) {
         }
       }
 
+      // Push « recharge confirmée » (app fermée) — le client a souvent payé sur
+      // la page externe sans rouvrir l'app ; il voit son solde crédité en temps
+      // réel. Best-effort, seulement sur un crédit RÉELLEMENT nouveau (pas un
+      // rejeu 23505). Trace cloche + push.
+      if (!insertErr) {
+        const { notifyCustomerTopup } = await import("@/lib/fcm/triggers");
+        void notifyCustomerTopup({ customerId, amountDa: amount });
+      }
+
       // Traçabilité de la recharge (mig 0394) — visible dans l'historique
       // Coligo Pay du client.
       {

@@ -511,6 +511,52 @@ export async function notifyCustomerRefund(input: {
   }
 }
 
+/**
+ * Recharge Coligo Pay confirmée (webhook Chargily/Stripe). Le client a souvent
+ * payé sur une page externe SANS rouvrir l'app : cette push lui confirme, en
+ * temps réel et app fermée, que son solde est crédité. Trace cloche + push.
+ */
+export async function notifyCustomerTopup(input: {
+  customerId: string;
+  amountDa: number;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", input.customerId)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const title = "Recharge confirmée";
+    const body = `${formatDA(input.amountDa)} ont été ajoutés à votre solde Coligo Pay.`;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "topup_credited",
+      title,
+      body,
+      route: "/coligo-pay",
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      { title, body },
+      {
+        route: "/coligo-pay",
+        kind: "customer_topup",
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCustomerTopup failed:", err);
+  }
+}
+
 /** Libellés clients par statut — alignés sur la copy commerçant. */
 const STATUS_PUSH: Partial<
   Record<OrderStatus, { title: string; body: string }>
