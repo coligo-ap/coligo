@@ -61,8 +61,20 @@ writeFileSync(
         // comme un site EXTERNE → ouverture dans Safari + WebView blanche
         // (bug vécu build 21). `androidScheme: "https"` reste valide côté
         // Android — c'est un cas spécial Android uniquement.
-        // Garde-fou : les navigations restent bornées au domaine.
-        allowNavigation: ["coligo.app", "*.coligo.app"],
+        // Garde-fou : les navigations restent bornées au domaine + aux hôtes de
+        // PAIEMENT (Chargily / SATIM / Stripe), qui doivent s'ouvrir DANS l'app
+        // et non dans Safari. Le paiement passe d'abord par le navigateur
+        // intégré (@capacitor/browser) ; ceci couvre le repli (window.location).
+        allowNavigation: [
+          "coligo.app",
+          "*.coligo.app",
+          "pay.chargily.net",
+          "*.chargily.net",
+          "*.chargily.com",
+          "*.chargily.dz",
+          "*.satim.dz",
+          "*.stripe.com",
+        ],
       },
       ios: {
         ...(generated.ios ?? {}),
