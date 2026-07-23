@@ -152,9 +152,20 @@ export default async function CustomerHomePage() {
           )}
 
           {/* Bannière promo — rendue UNIQUEMENT si une campagne est active.
-              geoFallback : sans position serveur (visiteur anon), on re-filtre
-              les bannières ciblées par zone côté client (géoloc navigateur). */}
-          <PromoBanner banners={banners} geoFallback={!hasCoords} />
+              On transmet la position utilisée par le SSR : côté client, la
+              position LIVE du navigateur (location-store, MÊME source que la
+              liste des commerces) PRIME dès qu'elle diffère → un client à
+              Béjaïa ne voit jamais les offres d'Alger restées dans son adresse
+              enregistrée. Si live == SSR, aucun refetch (cache d'abord). */}
+          <PromoBanner
+            banners={banners}
+            ssrLocation={{
+              lat: customerCoords?.latitude ?? null,
+              lng: customerCoords?.longitude ?? null,
+              wilaya: customer?.default_wilaya_code ?? null,
+              commune: customer?.default_commune ?? null,
+            }}
+          />
 
           {/* Commerces près de toi. */}
           {/* ⚠️ PAS de <Suspense fallback={null}> autour de ces blocs (ni des

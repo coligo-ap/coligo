@@ -1,5 +1,8 @@
 import { PromoBannerClient } from "@/components/customer/promo-banner-client";
-import type { PromoBanner as PromoBannerData } from "@/lib/data/promo-banners";
+import type {
+  PromoBanner as PromoBannerData,
+  BannerViewerLocation,
+} from "@/lib/data/promo-banners";
 
 /**
  * Emplacement bannière promo sur l'accueil — VOLONTAIREMENT VIDE par défaut.
@@ -16,12 +19,13 @@ import type { PromoBanner as PromoBannerData } from "@/lib/data/promo-banners";
  */
 export function PromoBanner({
   banners,
-  geoFallback = false,
+  ssrLocation,
 }: {
   banners: PromoBannerData[];
-  /** Visiteur sans position connue du serveur (anon) → re-filtrage par zone
-   *  côté client via la géoloc/localStorage. */
-  geoFallback?: boolean;
+  /** Position utilisée par le SSR pour ces bannières. Le client re-cible sur la
+   *  position LIVE du navigateur dès qu'elle en diffère (même source que la
+   *  liste des commerces). */
+  ssrLocation: BannerViewerLocation;
 }) {
-  return <PromoBannerClient initial={banners} geoFallback={geoFallback} />;
+  return <PromoBannerClient initial={banners} ssrLocation={ssrLocation} />;
 }
