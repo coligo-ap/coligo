@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeImage } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
-import { embedFoundFace, findFaceUpright } from "@/lib/idv/pipeline/face-embed";
+import { describeFace, findFaceUpright } from "@/lib/idv/pipeline/face-embed";
 import { passiveLivenessScore } from "@/lib/idv/pipeline/antispoof";
 import type {
   AnalyzeSelfieRequest,
@@ -74,16 +74,25 @@ export async function POST(req: Request) {
       // présence se jugent sur cette géométrie.
       const found = await findFaceUpright(yunet, raw);
       if (!found) {
-        frames.push({ face: null, embedding: null, passiveLiveness: null });
+        frames.push({
+          face: null,
+          embedding: null,
+          passiveLiveness: null,
+          quality: null,
+          rival: 0,
+        });
         continue;
       }
       const best = found.face;
-      // Embedding sur visage RECALÉ (+ moyenne miroir) : c'est ce qui rend la
-      // comparaison insensible à l'inclinaison du selfie.
-      const embedding = await embedFoundFace(sface, {
+      // Embedding sur visage RECALÉ (+ moyenne miroir), et dans la même passe :
+      // la QUALITÉ de ce que le modèle a réellement vu. Un score calculé sur un
+      // visage flou ou minuscule n'est pas une preuve — l'action doit pouvoir
+      // redemander une photo plutôt que de trancher sur du bruit.
+      const { embedding, quality } = await describeFace(sface, {
         image: raw,
         face: best,
         pass: found.pass,
+        rival: found.rival,
       });
       let passiveLiveness: number | null = null;
       if (minifasnet) {
@@ -95,6 +104,8 @@ export async function POST(req: Request) {
       }
       frames.push({
         passiveLiveness,
+        quality,
+        rival: found.rival,
         face: {
           x: Math.round(best.x),
           y: Math.round(best.y),

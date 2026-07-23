@@ -1,10 +1,12 @@
 // =============================================================================
-// IDV — CONTRAT de la route interne /api/idv/analyze-document (pur, partagé
-// entre la route et les server actions qui l'appellent). Versionné : tout
-// changement de forme = bump de ANALYZE_CONTRACT_VERSION.
+// IDV — CONTRAT des routes internes d'analyse (pur, partagé entre les routes et
+// les server actions qui les appellent). Versionné : tout changement de forme
+// = bump de ANALYZE_CONTRACT_VERSION.
 // =============================================================================
+import type { FaceQuality } from "@/lib/idv/pipeline/face-quality";
 
-export const ANALYZE_CONTRACT_VERSION = 1;
+/** v2 : qualité biométrique + ambiguïté de visage + gabarit multi-vues. */
+export const ANALYZE_CONTRACT_VERSION = 2;
 
 export type AnalyzeDocumentRequest = {
   /** Chemins dans le bucket privé idv-captures. */
@@ -65,6 +67,13 @@ export type AnalyzedFrame = {
   /** Anti-spoof PASSIF (MiniFASNetV2) : p(visage vivant) ∈ [0,1].
    *  null = pas de visage, ou modèle indisponible (dégradé non bloquant). */
   passiveLiveness: number | null;
+  /** Qualité biométrique de la frame (netteté, résolution, pose) — ce que le
+   *  modèle voit réellement. null si aucun visage. */
+  quality: FaceQuality | null;
+  /** Aire du 2e visage relative au principal : > 0 ⇒ quelqu'un d'autre est
+   *  dans le cadre (complice, portrait brandi) et « le plus grand » n'est plus
+   *  une réponse fiable. */
+  rival: number;
 };
 
 export type AnalyzeSelfieResponse =
@@ -78,9 +87,9 @@ export type FaceMatchRequest = {
   docPath: string;
   /** Frame selfie de référence (défi « center »). */
   selfiePath: string;
-  /** Autres frames du selfie (défis). Comparer TOUTES les vues et garder la
-   *  meilleure évite de condamner quelqu'un pour une frame floue : la personne
-   *  bouge, une prise est nette, c'est celle-là qui fait foi. */
+  /** Autres frames du selfie (défis). Toutes les vues exploitables entrent dans
+   *  le GABARIT d'identité, pondérées par ce qu'elles apportent (netteté,
+   *  résolution, frontalité) — voir lib/idv/face-match.ts. */
   framePaths?: string[];
 };
 
@@ -89,15 +98,29 @@ export type FaceMatchResponse =
       ok: true;
       /** Score NORMALISÉ [0,1] — comparable aux seuils DB (idv_modes). */
       score: number;
-      /** Cosinus SFace brut ∈ [-1,1] (traçabilité / recalibrage). */
+      /** Cosinus SFace du gabarit ∈ [-1,1] (traçabilité / recalibrage). */
       cosine: number;
       docFaceFound: boolean;
       selfieFaceFound: boolean;
-      /** Nombre de vues du selfie réellement comparées (≥ 1). */
+      /** Nombre de vues du selfie entrées dans le gabarit (≥ 1). */
       framesCompared?: number;
       /** Passe de détection qui a trouvé le portrait (audit : « rot90 »,
        *  « upscale2 »… disent ce que la caméra de l'utilisateur a donné). */
       docPass?: string;
-      selfiePass?: string;
+      /** Qualité du portrait du document et de la meilleure vue du selfie. */
+      docQuality?: FaceQuality | null;
+      selfieQuality?: FaceQuality | null;
+      /** Cosinus de chaque vue (audit : une vue aberrante se voit ici). */
+      viewCosines?: number[];
+      /**
+       * Distance perceptuelle entre le visage du DOCUMENT et celui du SELFIE.
+       * Très faible ⇒ ce n'est pas une ressemblance, c'est la MÊME image :
+       * quelqu'un a renvoyé le portrait de la carte en guise de selfie.
+       */
+      replayDistance?: number;
+      replaySuspected?: boolean;
+      /** Un 2e visage occupe le cadre du document ou du selfie. */
+      docRival?: number;
+      selfieRival?: number;
     }
   | { ok: false; error: string };

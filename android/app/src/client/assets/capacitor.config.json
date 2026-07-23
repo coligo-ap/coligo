@@ -5,6 +5,14 @@
   "server": {
     "url": "https://coligo.app/api/start/client",
     "androidScheme": "https",
+    "allowNavigation": [
+      "pay.chargily.net",
+      "*.chargily.net",
+      "*.chargily.com",
+      "*.chargily.dz",
+      "*.satim.dz",
+      "*.stripe.com"
+    ],
     "errorPath": "offline.html"
   },
   "android": {

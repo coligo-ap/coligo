@@ -21,16 +21,46 @@ export const IDV_CHALLENGES = [
   "turn_left",
   "turn_right",
   "closer",
+  "farther",
 ] as const;
 export type IdvChallenge = (typeof IDV_CHALLENGES)[number];
 
 /** Durée de vie d'une session de défis (ms). */
 export const CHALLENGE_TTL_MS = 5 * 60 * 1000;
 
-/** Séquence : référence au centre, puis rotation aléatoire, puis approche. */
+/** Défis tirables après la référence (la référence est toujours « center »). */
+const DRAWABLE: IdvChallenge[] = [
+  "turn_left",
+  "turn_right",
+  "closer",
+  "farther",
+];
+/** Nombre de défis tirés après la référence. */
+const DRAW_COUNT = 2;
+
+/**
+ * Séquence de défis : référence au centre, puis DEUX défis tirés au sort dans
+ * un ordre lui aussi tiré au sort.
+ *
+ * POURQUOI CE N'EST PAS UN DÉTAIL. L'ancienne séquence était
+ * « centre → tourner (gauche OU droite) → se rapprocher » : un seul bit
+ * d'aléa, et l'ordre était connu d'avance. Autrement dit, deux vidéos
+ * pré-enregistrées suffisaient à répondre à TOUTES les demandes possibles du
+ * serveur. Un défi qu'on peut préparer à l'avance ne prouve plus rien.
+ *
+ * En tirant 2 défis parmi 4, ordre compris, on passe de 2 séquences possibles à
+ * 12 : l'attaquant ne peut plus rejouer un clip préparé, il devrait produire la
+ * bonne gestuelle, dans le bon ordre, dans les secondes qui suivent la demande.
+ * Combiné à l'anti-spoof passif (qui voit l'écran et le papier), le rejeu
+ * devient une impasse.
+ */
 export function drawChallenges(): IdvChallenge[] {
-  const turn: IdvChallenge = randomInt(2) === 0 ? "turn_left" : "turn_right";
-  return ["center", turn, "closer"];
+  const pool = [...DRAWABLE];
+  const drawn: IdvChallenge[] = [];
+  for (let i = 0; i < DRAW_COUNT && pool.length > 0; i++) {
+    drawn.push(pool.splice(randomInt(pool.length), 1)[0]);
+  }
+  return ["center", ...drawn];
 }
 
 // ── Jeton anti-rejeu (stateless : HMAC du contexte + expiration) ─────────────
@@ -124,6 +154,14 @@ const CENTER_BOX = 0.28; // centre du visage à ±28 % du milieu
 const YAW_DELTA = 0.15; // rotation franche vs référence
 const EYE_COLLAPSE = 0.55; // yeux « écrasés » = photo inclinée, pas une pose
 const CLOSER_RATIO = 1.18; // rapprochement ≥ 18 %
+/** La frame de RÉFÉRENCE doit être prise DE FACE.
+ *  Deux raisons, et les deux comptent : (1) c'est elle qui porte l'identité —
+ *  c'est la vue la mieux notée du gabarit de comparaison ; (2) les rotations
+ *  se jugent en écart PAR RAPPORT À ELLE : une référence déjà tournée fausse
+ *  la mesure des défis suivants. */
+const REFERENCE_MAX_YAW = 0.35;
+/** Le visage ne doit pas devenir si petit qu'il sorte du domaine de mesure. */
+const MIN_FARTHER_SIZE = 0.1;
 
 export type ChallengeVerdict = {
   challenge: IdvChallenge;
@@ -146,6 +184,8 @@ export function verifyChallenge(
         Math.abs(frame.cy - 0.5) > CENTER_BOX
       )
         return fail("face_off_center");
+      if (Math.abs(frame.yaw) > REFERENCE_MAX_YAW)
+        return fail("reference_not_frontal");
       return { challenge, passed: true, reason: null };
     }
     case "turn_left":
@@ -161,6 +201,14 @@ export function verifyChallenge(
     }
     case "closer": {
       if (frame.size < neutral.size * CLOSER_RATIO) return fail("not_closer");
+      return { challenge, passed: true, reason: null };
+    }
+    case "farther": {
+      // Symétrique de « closer ». On borne aussi par le bas : au-delà, on
+      // demanderait à l'utilisateur de sortir du champ — et un visage qu'on ne
+      // voit plus n'est pas un défi réussi, c'est une mesure perdue.
+      if (frame.size > neutral.size / CLOSER_RATIO) return fail("not_farther");
+      if (frame.size < MIN_FARTHER_SIZE) return fail("face_too_small");
       return { challenge, passed: true, reason: null };
     }
   }

@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
@@ -11,12 +12,20 @@ import {
 import { getIdvDocumentTypes, getIdvGate, getIdvModes } from "@/lib/idv/config";
 import {
   assessDocQuality,
+  DOC_QUALITY_REASONS_AR,
   DOC_QUALITY_REASONS_FR,
   type DocQuality,
 } from "@/lib/idv/pipeline/quality";
 import { logIdvAudit } from "@/lib/idv/audit";
 import { openIdvManualFallback } from "@/lib/idv/fallback";
 import { ANTISPOOF_LIVE_MIN } from "@/lib/idv/pipeline/antispoof";
+import {
+  FACE_QUALITY_REASONS_FR,
+  REPLAY_HAMMING_MAX,
+  RIVAL_FACE_MAX,
+  type FaceQuality,
+  type FaceQualityReason,
+} from "@/lib/idv/pipeline/face-quality";
 import { getIdvCompliance, type IdvCompliance } from "@/lib/idv/compliance";
 import { IDV_ACTIVE_STATUSES, type IdvStatus } from "@/lib/idv/types";
 import {
@@ -63,6 +72,16 @@ import type {
 
 const BUCKET = "idv-captures";
 const MAX_DOC_BYTES = 8 * MB;
+
+/** Messages utilisateur dans la langue du cookie NEXT_LOCALE (FR/AR). */
+async function idvTr(fr: string, ar: string): Promise<string> {
+  return (await getLocale()) === "ar" ? ar : fr;
+}
+
+/** `true` si la locale de la requête est l'arabe (messages composés). */
+async function idvIsAr(): Promise<boolean> {
+  return (await getLocale()) === "ar";
+}
 
 // ── Profils : route, audience de notification, table qui prouve l'identité ──
 // Le profil vient du CLIENT (il choisit sa surface) mais n'est JAMAIS cru sur
@@ -299,34 +318,54 @@ async function notifyIdvOutcome(
 /** Message inline pour les échecs REPRENABLES (photo à refaire). */
 function retryableMessage(
   checks: AnalyzedCheck[],
-  mrzFormat: "td1" | "td3" | null
+  mrzFormat: "td1" | "td3" | null,
+  isAr: boolean
 ): string {
   const parts: string[] = [];
   for (const c of checks) {
     if (c.key === "mrz") {
       parts.push(
-        `Zone MRZ illisible — reprenez la photo${
-          mrzFormat === "td1" ? " du verso" : ""
-        }, document bien à plat`
+        isAr
+          ? `منطقة MRZ غير مقروءة — أعد التقاط الصورة${
+              mrzFormat === "td1" ? " للوجه الخلفي" : ""
+            }، والوثيقة مبسوطة جيدًا`
+          : `Zone MRZ illisible — reprenez la photo${
+              mrzFormat === "td1" ? " du verso" : ""
+            }, document bien à plat`
       );
     } else if (c.key === "doc_face") {
       parts.push(
-        "Portrait introuvable — reprenez le recto, net et sans reflet"
+        isAr
+          ? "لم يُعثر على الصورة الشخصية — أعد التقاط الوجه الأمامي، واضحًا وبلا انعكاس"
+          : "Portrait introuvable — reprenez le recto, net et sans reflet"
       );
     }
   }
-  return parts.join(" · ") || "Document illisible — reprenez les photos";
+  return (
+    parts.join(" · ") ||
+    (isAr
+      ? "الوثيقة غير مقروءة — أعد التقاط الصور"
+      : "Document illisible — reprenez les photos")
+  );
 }
 
-function qualityMessage(front: DocQuality, back: DocQuality | null): string {
+function qualityMessage(
+  front: DocQuality,
+  back: DocQuality | null,
+  isAr: boolean
+): string {
+  const reasons = isAr ? DOC_QUALITY_REASONS_AR : DOC_QUALITY_REASONS_FR;
   const parts: string[] = [];
   if (front.verdict === "failed") {
     parts.push(
-      (back ? "Recto : " : "") + DOC_QUALITY_REASONS_FR[front.reasons[0]]
+      (back ? (isAr ? "الوجه الأمامي: " : "Recto : ") : "") +
+        reasons[front.reasons[0]]
     );
   }
   if (back && back.verdict === "failed") {
-    parts.push("Verso : " + DOC_QUALITY_REASONS_FR[back.reasons[0]]);
+    parts.push(
+      (isAr ? "الوجه الخلفي: " : "Verso : ") + reasons[back.reasons[0]]
+    );
   }
   return parts.join(" · ");
 }
@@ -339,14 +378,26 @@ export async function submitIdvDocument(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée — reconnectez-vous." };
+  if (!user)
+    return {
+      error: await idvTr(
+        "Session expirée — reconnectez-vous.",
+        "انتهت الجلسة — سجّل الدخول من جديد."
+      ),
+    };
 
   const profile = await resolveProfile(user.id, formData.get("profile"));
-  if (!profile) return { error: "Profil invalide." };
+  if (!profile)
+    return { error: await idvTr("Profil invalide.", "ملف تعريف غير صالح.") };
 
   const gate = await getIdvGate(profile);
   if (!gate.enabled) {
-    return { error: "La vérification d'identité n'est pas disponible." };
+    return {
+      error: await idvTr(
+        "La vérification d'identité n'est pas disponible.",
+        "التحقّق من الهوية غير متاح."
+      ),
+    };
   }
 
   // ── Identité DÉJÀ confirmée : jamais de nouveau dossier ───────────────────
@@ -366,7 +417,10 @@ export async function submitIdvDocument(
   const docType = docTypes.find(
     (d) => d.key === String(formData.get("document_type") ?? "")
   );
-  if (!docType) return { error: "Type de document invalide." };
+  if (!docType)
+    return {
+      error: await idvTr("Type de document invalide.", "نوع وثيقة غير صالح."),
+    };
 
   // TD2 (2×36) : format prévu par le registre mais non implémenté par le
   // parseur (aucun document algérien) → traité comme « sans MRZ ».
@@ -377,7 +431,12 @@ export async function submitIdvDocument(
     enabledModes.some((e) => e.key === m)
   );
   if (candidates.length === 0) {
-    return { error: "Aucun mode de vérification disponible." };
+    return {
+      error: await idvTr(
+        "Aucun mode de vérification disponible.",
+        "لا يوجد أي وضع تحقّق متاح."
+      ),
+    };
   }
   const requested = String(formData.get("mode") ?? "");
   const mode =
@@ -419,7 +478,10 @@ export async function submitIdvDocument(
     existing.status !== "resubmit_document"
   ) {
     return {
-      error: "Un dossier est déjà en cours pour ce compte.",
+      error: await idvTr(
+        "Un dossier est déjà en cours pour ce compte.",
+        "يوجد ملف قيد المعالجة بالفعل لهذا الحساب."
+      ),
       status: existing.status as IdvStatus,
     };
   }
@@ -442,7 +504,12 @@ export async function submitIdvDocument(
       .select("id, attempt")
       .single();
     if (insErr || !created) {
-      return { error: "Impossible d'ouvrir le dossier. Réessayez." };
+      return {
+        error: await idvTr(
+          "Impossible d'ouvrir le dossier. Réessayez.",
+          "تعذّر فتح الملف. أعد المحاولة."
+        ),
+      };
     }
     verifId = String(created.id);
     attempt = Number(created.attempt); // 1
@@ -471,14 +538,26 @@ export async function submitIdvDocument(
   const { error: upFrontErr } = await admin.storage
     .from(BUCKET)
     .upload(frontPath, front.bytes, { contentType: front.mime, upsert: true });
-  if (upFrontErr) return { error: "Envoi du recto impossible. Réessayez." };
+  if (upFrontErr)
+    return {
+      error: await idvTr(
+        "Envoi du recto impossible. Réessayez.",
+        "تعذّر إرسال الوجه الأمامي. أعد المحاولة."
+      ),
+    };
   let backPath: string | null = null;
   if (back) {
     backPath = `${base}-back.${back.ext}`;
     const { error: upBackErr } = await admin.storage
       .from(BUCKET)
       .upload(backPath, back.bytes, { contentType: back.mime, upsert: true });
-    if (upBackErr) return { error: "Envoi du verso impossible. Réessayez." };
+    if (upBackErr)
+      return {
+        error: await idvTr(
+          "Envoi du verso impossible. Réessayez.",
+          "تعذّر إرسال الوجه الخلفي. أعد المحاولة."
+        ),
+      };
   }
   await logIdvAudit({
     verificationId: verifId,
@@ -541,7 +620,7 @@ export async function submitIdvDocument(
     });
     revalidateIdv(profile);
     return {
-      error: qualityMessage(frontQuality, backQuality),
+      error: qualityMessage(frontQuality, backQuality, await idvIsAr()),
       status: keepStatus,
     };
   }
@@ -662,7 +741,7 @@ export async function submitIdvDocument(
     });
     revalidateIdv(profile);
     return {
-      error: retryableMessage(retryables, mrzFormat),
+      error: retryableMessage(retryables, mrzFormat, await idvIsAr()),
       status: keepStatus,
       checks: summary,
     };
@@ -671,7 +750,12 @@ export async function submitIdvDocument(
   // 4) Tout est bon → « Document validé ».
   const updated = await applyUpdate({ status: "doc_validated" });
   if (!updated)
-    return { error: "Enregistrement du dossier impossible. Réessayez." };
+    return {
+      error: await idvTr(
+        "Enregistrement du dossier impossible. Réessayez.",
+        "تعذّر حفظ الملف. أعد المحاولة."
+      ),
+    };
   await logIdvAudit({
     verificationId: verifId,
     actorType: "system",
@@ -717,13 +801,26 @@ export async function startIdvSelfie(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée — reconnectez-vous." };
+  if (!user)
+    return {
+      error: await idvTr(
+        "Session expirée — reconnectez-vous.",
+        "انتهت الجلسة — سجّل الدخول من جديد."
+      ),
+    };
   const profile = await resolveProfile(user.id, requestedProfile);
-  if (!profile) return { error: "Profil invalide." };
+  if (!profile)
+    return { error: await idvTr("Profil invalide.", "ملف تعريف غير صالح.") };
   const gate = await getIdvGate(profile);
-  if (!gate.enabled) return { error: "Vérification indisponible." };
+  if (!gate.enabled)
+    return {
+      error: await idvTr("Vérification indisponible.", "التحقّق غير متاح."),
+    };
   const secret = process.env.INTERNAL_IDV_SECRET;
-  if (!secret) return { error: "Vérification indisponible." };
+  if (!secret)
+    return {
+      error: await idvTr("Vérification indisponible.", "التحقّق غير متاح."),
+    };
 
   const { data: verif } = await table<ActiveSelect>("idv_verifications")
     .select("id, status")
@@ -735,7 +832,12 @@ export async function startIdvSelfie(
     !verif ||
     (verif.status !== "doc_validated" && verif.status !== "resubmit_selfie")
   ) {
-    return { error: "Validez d'abord votre document." };
+    return {
+      error: await idvTr(
+        "Validez d'abord votre document.",
+        "تحقّق من وثيقتك أولًا."
+      ),
+    };
   }
 
   const challenges = drawChallenges();
@@ -750,18 +852,56 @@ export async function startIdvSelfie(
 }
 
 /** Message de coaching pour un échec REPRENABLE de liveness. */
-function livenessCoaching(reasons: (string | null)[]): string {
-  const map: Record<string, string> = {
-    no_face: "Visage non détecté — placez-vous face caméra, en pleine lumière",
-    face_off_center: "Placez votre visage dans l'ovale",
-    face_too_small: "Rapprochez le téléphone de votre visage",
-    head_turn_not_detected: "Tournez davantage la tête au moment demandé",
-    not_closer: "Rapprochez davantage le téléphone quand c'est demandé",
-    eye_distance_collapsed: "Gardez le téléphone bien face à vous",
-    no_reference: "Recommencez le selfie depuis le début",
-  };
+function livenessCoaching(reasons: (string | null)[], isAr: boolean): string {
+  const map: Record<string, string> = isAr
+    ? {
+        no_face: "لم يُكتشف وجه — قف أمام الكاميرا في إضاءة جيدة",
+        face_off_center: "ضع وجهك داخل الإطار البيضاوي",
+        face_too_small: "قرّب الهاتف من وجهك",
+        head_turn_not_detected: "أدر رأسك أكثر عند الطلب",
+        not_closer: "قرّب الهاتف أكثر عندما يُطلب منك",
+        not_farther: "أبعد الهاتف أكثر عندما يُطلب منك",
+        eye_distance_collapsed: "أبقِ الهاتف مواجهًا لك تمامًا",
+        reference_not_frontal: "انظر إلى العدسة مباشرة في الخطوة الأولى",
+        no_reference: "أعد السيلفي من البداية",
+      }
+    : {
+        no_face:
+          "Visage non détecté — placez-vous face caméra, en pleine lumière",
+        face_off_center: "Placez votre visage dans l'ovale",
+        face_too_small: "Rapprochez le téléphone de votre visage",
+        head_turn_not_detected: "Tournez davantage la tête au moment demandé",
+        not_closer: "Rapprochez davantage le téléphone quand c'est demandé",
+        not_farther: "Éloignez davantage le téléphone quand c'est demandé",
+        eye_distance_collapsed: "Gardez le téléphone bien face à vous",
+        reference_not_frontal: "Regardez bien l'objectif au premier temps",
+        no_reference: "Recommencez le selfie depuis le début",
+      };
   for (const r of reasons) if (r && map[r]) return map[r];
-  return "Selfie non conforme — recommencez en suivant les consignes";
+  return isAr
+    ? "سيلفي غير مطابق — أعد المحاولة متبعًا التعليمات"
+    : "Selfie non conforme — recommencez en suivant les consignes";
+}
+
+/** Coaching pour une capture INEXPLOITABLE (flou, trop petit, contre-jour). */
+function faceQualityCoaching(
+  reasons: readonly FaceQualityReason[],
+  isAr: boolean
+): string {
+  const ar: Record<FaceQualityReason, string> = {
+    face_too_small: "قرّب الهاتف: وجهك صغير جدًا",
+    blurry: "الصورة مشوّشة — لا تتحرّك وأعد السيلفي",
+    too_dark: "الإضاءة ضعيفة — قف مقابل مصدر ضوء",
+    too_bright: "الإضاءة قوية جدًا — تجنّب الضوء المباشر خلفك",
+    not_frontal: "انظر إلى العدسة مباشرة",
+  };
+  const first = reasons[0];
+  if (!first) {
+    return isAr
+      ? "صورة غير واضحة — أعد السيلفي"
+      : "Selfie inexploitable — refaites la photo";
+  }
+  return isAr ? ar[first] : FACE_QUALITY_REASONS_FR[first];
 }
 
 export async function submitIdvSelfie(
@@ -772,15 +912,30 @@ export async function submitIdvSelfie(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { error: "Session expirée — reconnectez-vous." };
+  if (!user)
+    return {
+      error: await idvTr(
+        "Session expirée — reconnectez-vous.",
+        "انتهت الجلسة — سجّل الدخول من جديد."
+      ),
+    };
   const profile = await resolveProfile(user.id, formData.get("profile"));
-  if (!profile) return { error: "Profil invalide." };
+  if (!profile)
+    return { error: await idvTr("Profil invalide.", "ملف تعريف غير صالح.") };
   const gate = await getIdvGate(profile);
   if (!gate.enabled) {
-    return { error: "La vérification d'identité n'est pas disponible." };
+    return {
+      error: await idvTr(
+        "La vérification d'identité n'est pas disponible.",
+        "التحقّق من الهوية غير متاح."
+      ),
+    };
   }
   const secret = process.env.INTERNAL_IDV_SECRET;
-  if (!secret) return { error: "Vérification indisponible." };
+  if (!secret)
+    return {
+      error: await idvTr("Vérification indisponible.", "التحقّق غير متاح."),
+    };
 
   const { data: verif } = await table<ActiveSelect>("idv_verifications")
     .select("id, status, mode")
@@ -793,7 +948,10 @@ export async function submitIdvSelfie(
     (verif.status !== "doc_validated" && verif.status !== "resubmit_selfie")
   ) {
     return {
-      error: "Dossier non prêt pour le selfie.",
+      error: await idvTr(
+        "Dossier non prêt pour le selfie.",
+        "الملف غير جاهز للسيلفي."
+      ),
       status: verif?.status as IdvStatus | undefined,
     };
   }
@@ -810,7 +968,12 @@ export async function submitIdvSelfie(
     challenges.some((c) => !IDV_CHALLENGES.includes(c)) ||
     !verifyChallengeToken(secret, token, verifId, challenges, expiresAt)
   ) {
-    return { error: "Session de vérification expirée — relancez le selfie." };
+    return {
+      error: await idvTr(
+        "Session de vérification expirée — relancez le selfie.",
+        "انتهت جلسة التحقّق — أعد تشغيل السيلفي."
+      ),
+    };
   }
 
   // ── Tentatives selfie bornées (comptées sur les contrôles liveness) ──────
@@ -851,7 +1014,13 @@ export async function submitIdvSelfie(
     const { error: upErr } = await admin.storage
       .from(BUCKET)
       .upload(path, v.bytes, { contentType: v.mime, upsert: true });
-    if (upErr) return { error: "Envoi du selfie impossible. Réessayez." };
+    if (upErr)
+      return {
+        error: await idvTr(
+          "Envoi du selfie impossible. Réessayez.",
+          "تعذّر إرسال السيلفي. أعد المحاولة."
+        ),
+      };
     paths.push(path);
   }
   await logIdvAudit({
@@ -944,14 +1113,126 @@ export async function submitIdvSelfie(
           },
   });
 
+  // ── QUALITÉ BIOMÉTRIQUE du selfie (le contrôle qui manquait) ──────────────
+  // Le pipeline savait dire « il y a un visage » ; il ne savait pas dire « ce
+  // visage est exploitable ». Or juger une identité sur une capture floue,
+  // minuscule ou à contre-jour, c'est tirer au sort : le modèle rendra un score,
+  // mais ce score ne veut plus rien dire — et les deux issues sont fausses
+  // (refuser un livreur honnête, ou laisser passer un imposteur que le bruit a
+  // rapproché de sa cible). La bonne réponse n'est ni oui ni non : c'est
+  // « refaites la photo ».
+  // On juge sur la MEILLEURE frame : l'utilisateur bouge pendant les défis, le
+  // condamner sur sa plus mauvaise prise serait injuste.
+  const qualities = analysis.frames
+    .map((f) => f.quality)
+    .filter((q): q is FaceQuality => q != null);
+  const bestQuality = qualities.length
+    ? qualities.reduce((a, b) => (b.score > a.score ? b : a))
+    : null;
+  const qualityOk = bestQuality ? bestQuality.verdict === "passed" : true;
+  await table<PlainInsert>("idv_checks").insert({
+    verification_id: verifId,
+    attempt: selfieAttempt,
+    check_key: "selfie_quality",
+    status: !bestQuality ? "skipped" : qualityOk ? "passed" : "failed",
+    score: bestQuality?.score ?? null,
+    details: bestQuality
+      ? {
+          best: bestQuality,
+          per_frame: analysis.frames.map((f) => f.quality?.score ?? null),
+        }
+      : { reason: "no_face_detected" },
+  });
+
+  // ── AMBIGUÏTÉ : qui d'autre est dans le cadre ? ───────────────────────────
+  // Un second visage aussi grand que le principal, et « le plus grand visage »
+  // cesse d'être une réponse : c'est un pari sur l'identité de quelqu'un. Ça
+  // peut être innocent (un collègue derrière l'épaule) comme frauduleux (le
+  // portrait d'un tiers brandi devant l'objectif) — ce n'est donc pas à la
+  // machine de trancher : revue humaine, jamais de refus automatique.
+  const rival = analysis.frames.reduce((m, f) => Math.max(m, f.rival ?? 0), 0);
+  const ambiguous = rival >= RIVAL_FACE_MAX;
+  await table<PlainInsert>("idv_checks").insert({
+    verification_id: verifId,
+    attempt: selfieAttempt,
+    check_key: "face_ambiguity",
+    status: ambiguous ? "failed" : "passed",
+    score: Math.round((1 - Math.min(1, rival)) * 1000) / 1000,
+    details: {
+      rival,
+      threshold: RIVAL_FACE_MAX,
+      per_frame: analysis.frames.map((f) => f.rival ?? 0),
+    },
+  });
+
   // Résumé client des contrôles du selfie (résultats, jamais les scores).
   const selfieSummary: IdvCheckSummary[] = [
+    {
+      key: "selfie_quality",
+      status: !bestQuality ? "skipped" : qualityOk ? "passed" : "failed",
+    },
     { key: "liveness_active", status: passed ? "passed" : "failed" },
     {
       key: "liveness_passive",
       status: passiveMin === null ? "skipped" : passiveOk ? "passed" : "failed",
     },
+    { key: "face_ambiguity", status: ambiguous ? "failed" : "passed" },
   ];
+
+  // Deux visages dans le cadre : on ne devine pas, on fait relire.
+  if (ambiguous) {
+    await applyStatus({
+      selfie_path: paths[0],
+      selfie_frames: paths,
+      status: "pending_review",
+    });
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "sent_to_review",
+      reason: "face_ambiguity",
+      metadata: { selfieAttempt, rival, threshold: RIVAL_FACE_MAX },
+    });
+    await notifyIdvOutcome(user.id, profile, "pending_review");
+    revalidateIdv(profile);
+    return { ok: true, status: "pending_review", checks: selfieSummary };
+  }
+
+  // Capture inexploitable : on REDEMANDE une photo — on ne juge pas sur du flou.
+  // À court de tentatives, la revue humaine prend le relais (jamais un refus :
+  // une mauvaise photo n'est pas une fraude).
+  if (!qualityOk && bestQuality) {
+    if (selfieAttempt >= maxAttempts) {
+      await applyStatus({
+        selfie_path: paths[0],
+        selfie_frames: paths,
+        status: "pending_review",
+      });
+      await logIdvAudit({
+        verificationId: verifId,
+        actorType: "system",
+        action: "sent_to_review",
+        reason: "selfie_quality_low",
+        metadata: { selfieAttempt, quality: bestQuality },
+      });
+      await notifyIdvOutcome(user.id, profile, "pending_review");
+      revalidateIdv(profile);
+      return { ok: true, status: "pending_review", checks: selfieSummary };
+    }
+    await logIdvAudit({
+      verificationId: verifId,
+      actorType: "system",
+      action: "selfie_processed",
+      reason: "selfie_quality_retryable",
+      metadata: { selfieAttempt, quality: bestQuality },
+    });
+    revalidateIdv(profile);
+    return {
+      error: faceQualityCoaching(bestQuality.reasons, await idvIsAr()),
+      status: keepStatus,
+      checks: selfieSummary,
+    };
+  }
 
   // Suspicion d'attaque passive (photo/écran) : le dossier ne peut PAS être
   // approuvé automatiquement — il part en revue humaine avec le score.
@@ -1048,7 +1329,10 @@ export async function submitIdvSelfie(
   });
   revalidateIdv(profile);
   return {
-    error: livenessCoaching(evaluation.verdicts.map((v) => v.reason)),
+    error: livenessCoaching(
+      evaluation.verdicts.map((v) => v.reason),
+      await idvIsAr()
+    ),
     status: keepStatus,
     checks: selfieSummary,
   };
@@ -1123,15 +1407,24 @@ async function finalizeIdvDecision(input: {
     framePaths,
   } = input;
 
+  /** Statut du garde anti-rejeu, connu seulement après le face match. */
+  let replayStatus: IdvCheckSummary["status"] = "skipped";
+
   /** Résumé enrichi du face match (résultat seul, jamais le score). */
   const withFace = (status: IdvCheckSummary["status"]): IdvCheckSummary[] => [
     ...summary,
     { key: "face_match", status },
+    { key: "face_replay", status: replayStatus },
   ];
 
   const toReview = async (
     reason: string,
-    metadata: Record<string, unknown>
+    metadata: Record<string, unknown>,
+    /** Le rejeu est le seul cas où le face match RÉUSSIT et où l'on refuse
+     *  quand même de conclure : le résumé client doit le dire honnêtement. */
+    faceStatus: IdvCheckSummary["status"] = reason === "face_not_comparable"
+      ? "error"
+      : "failed"
   ) => {
     await table<UpdateById>("idv_verifications")
       .update({ status: "pending_review" })
@@ -1148,7 +1441,7 @@ async function finalizeIdvDecision(input: {
     return {
       ok: true,
       status: "pending_review" as IdvStatus,
-      checks: withFace(reason === "face_not_comparable" ? "error" : "failed"),
+      checks: withFace(faceStatus),
     };
   };
 
@@ -1188,6 +1481,11 @@ async function finalizeIdvDecision(input: {
       cosine: match.cosine,
       docFaceFound: match.docFaceFound,
       selfieFaceFound: match.selfieFaceFound,
+      framesCompared: match.framesCompared,
+      viewCosines: match.viewCosines,
+      docQuality: match.docQuality,
+      selfieQuality: match.selfieQuality,
+      replayDistance: match.replayDistance,
       thresholds,
     },
   });
@@ -1198,6 +1496,51 @@ async function finalizeIdvDecision(input: {
       selfieFaceFound: match.selfieFaceFound,
     });
   }
+
+  // ── « Ce selfie n'est-il pas simplement la photo du document ? » ──────────
+  // Un cosinus parfait obtenu par copier-coller n'est pas une vérification : si
+  // le visage du selfie est, au pixel près, le portrait de la carte, alors rien
+  // n'a été prouvé — et c'est justement le cas qui produirait le MEILLEUR score.
+  // Le signal est fort mais pas une preuve (revue humaine, jamais de refus auto).
+  if (match.replaySuspected) {
+    replayStatus = "failed";
+    await table<PlainInsert>("idv_checks").insert({
+      verification_id: verifId,
+      attempt,
+      check_key: "face_replay",
+      status: "failed",
+      score: 0,
+      details: {
+        replayDistance: match.replayDistance,
+        threshold: REPLAY_HAMMING_MAX,
+        cosine: match.cosine,
+      },
+    });
+    return toReview(
+      "face_replay_suspected",
+      {
+        attempt,
+        replayDistance: match.replayDistance,
+        cosine: match.cosine,
+        face_match: match.score,
+      },
+      // Le visage CORRESPOND (et même trop bien) : dire « échec de comparaison »
+      // serait mentir à l'utilisateur sur ce qu'on lui reproche.
+      "passed"
+    );
+  }
+  replayStatus = "passed";
+  await table<PlainInsert>("idv_checks").insert({
+    verification_id: verifId,
+    attempt,
+    check_key: "face_replay",
+    status: "passed",
+    score: 1,
+    details: {
+      replayDistance: match.replayDistance,
+      threshold: REPLAY_HAMMING_MAX,
+    },
+  });
 
   // ── Confiance document (dernier doc_quality du dossier) ───────────────────
   const { data: qualityRows } = await table<ChecksSelect>("idv_checks")
@@ -1328,10 +1671,18 @@ export async function requestIdvManualReview(
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  if (!user) return { ok: false, error: "Session expirée." };
+  if (!user)
+    return {
+      ok: false,
+      error: await idvTr("Session expirée.", "انتهت الجلسة."),
+    };
 
   const profile = await resolveProfile(user.id, requestedProfile);
-  if (!profile) return { ok: false, error: "Profil inconnu." };
+  if (!profile)
+    return {
+      ok: false,
+      error: await idvTr("Profil inconnu.", "ملف تعريف مجهول."),
+    };
 
   const res = await openIdvManualFallback(user.id, profile);
   if (!res.ok) return res;

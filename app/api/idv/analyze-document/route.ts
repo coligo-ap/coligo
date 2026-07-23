@@ -3,7 +3,7 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeImage } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
-import { detectFaces } from "@/lib/idv/pipeline/yunet";
+import { findBestFace } from "@/lib/idv/pipeline/face-embed";
 import { ocrVisualZone, readMrz } from "@/lib/idv/pipeline/mrz-ocr";
 import { extractFromVisualZone } from "@/lib/idv/doc-ocr";
 import { parseMrz, type MrzResult } from "@/lib/idv/mrz";
@@ -81,12 +81,17 @@ export async function POST(req: Request) {
   }
 
   // ── doc_face : un portrait doit exister sur le recto ──────────────────────
+  // On cherche le portrait avec EXACTEMENT la même cascade que le face match
+  // (findBestFace : le plus GRAND visage, contraste redressé, agrandi, quarts de
+  // tour). Auparavant ce contrôle prenait « le premier visage détecté » : il
+  // pouvait donc valider l'image fantôme d'un passeport pendant que le face
+  // match, lui, comparait le vrai portrait. Deux réponses à la même question =
+  // une incohérence qui finit toujours par se payer.
   try {
     const raw = await decodeImage(front, 1280);
     const { session } = await getIdvSession("yunet");
-    // Portrait IMPRIMÉ (petit, tramé) : seuil plus tolérant que du live.
-    const faces = await detectFaces(session, raw, { scoreThreshold: 0.6 });
-    const best = faces[0] ?? null;
+    const found = await findBestFace(session, raw);
+    const best = found?.face ?? null;
     checks.push({
       key: "doc_face",
       status: best ? "passed" : "failed",
@@ -100,6 +105,11 @@ export async function POST(req: Request) {
               w: Math.round(best.w),
               h: Math.round(best.h),
             },
+            pass: found?.pass,
+            /** Portrait minuscule = peu d'information biométrique : la revue
+             *  humaine doit le savoir, même quand la détection a réussi. */
+            portraitSide: Math.round(Math.min(best.w, best.h)),
+            rival: found?.rival ?? 0,
           }
         : { reason: "no_face_on_document" },
     });

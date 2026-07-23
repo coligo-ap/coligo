@@ -3,13 +3,22 @@ import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { decodeImage } from "@/lib/idv/pipeline/image";
 import { getIdvSession } from "@/lib/idv/pipeline/onnx";
-import { cosineSimilarity } from "@/lib/idv/pipeline/sface";
 import {
-  embedFoundFace,
+  describeFace,
   findBestFace,
   findFaceUpright,
 } from "@/lib/idv/pipeline/face-embed";
-import { normalizeFaceScore } from "@/lib/idv/face-match";
+import {
+  faceViewWeight,
+  hammingDistance,
+  REPLAY_HAMMING_MAX,
+  type FaceQuality,
+} from "@/lib/idv/pipeline/face-quality";
+import {
+  buildFaceTemplate,
+  cosine,
+  normalizeFaceScore,
+} from "@/lib/idv/face-match";
 import type {
   FaceMatchRequest,
   FaceMatchResponse,
@@ -18,16 +27,23 @@ import type {
 // =============================================================================
 // POST /api/idv/face-match — comparaison PORTRAIT DU DOCUMENT ↔ SELFIE.
 //
-// Deux principes, tirés du terrain :
+// Trois principes, tirés du terrain et vérifiés au banc sur 13 identités réelles
+// (scripts/test-idv-calibration.mjs) :
 //
 // 1. On compare des visages RECALÉS (alignement 5 points), pas des rectangles.
 //    SFace a été entraîné sur des visages recalés : lui donner un cadrage brut,
-//    c'est le juger sur l'inclinaison de la tête autant que sur l'identité. Le
-//    recalage a doublé la marge entre « même personne » et « imposteur » au banc.
+//    c'est le juger sur l'inclinaison de la tête autant que sur l'identité.
 //
-// 2. On compare TOUTES les vues du selfie, et la MEILLEURE fait foi. L'utilisateur
-//    bouge pendant les défis : une frame est floue, une autre est nette. Refuser
-//    quelqu'un sur sa plus mauvaise image serait injuste — et faux.
+// 2. On construit un GABARIT à partir de TOUTES les vues du selfie, pondérées
+//    par ce qu'elles apportent (netteté × résolution × frontalité) — et non « la
+//    meilleure vue », qui flattait aussi les imposteurs (le maximum de N tirages
+//    monte pour tout le monde). Le gabarit remonte le pire cas légitime
+//    (0.322 → 0.365) sans remonter l'imposteur.
+//
+// 3. On répond à une question que l'identité ne peut pas trancher : « ce selfie
+//    n'est-il pas simplement la photo du document ? » — empreinte perceptuelle
+//    des deux visages recalés. Un cosinus parfait obtenu par copier-coller n'est
+//    pas une vérification.
 //
 // La DÉCISION, elle, reste dans l'action (moteur decideIdv). Route INTERNE
 // (Bearer INTERNAL_IDV_SECRET), aucune écriture.
@@ -50,11 +66,11 @@ function authorized(req: Request): boolean {
   return a.length === b.length && timingSafeEqual(a, b);
 }
 
-async function load(path: string) {
+async function load(path: string, maxSide = 1280) {
   const admin = createAdminClient();
   const { data, error } = await admin.storage.from(BUCKET).download(path);
   if (error || !data) throw new Error(`téléchargement impossible : ${path}`);
-  return decodeImage(Buffer.from(await data.arrayBuffer()), 1280);
+  return decodeImage(Buffer.from(await data.arrayBuffer()), maxSide);
 }
 
 export async function POST(req: Request) {
@@ -92,7 +108,7 @@ export async function POST(req: Request) {
       };
       return NextResponse.json(res);
     }
-    const docEmbedding = await embedFoundFace(sface, docFace);
+    const doc = await describeFace(sface, docFace);
 
     // ── Vues du selfie : la frame de référence, puis les défis ──────────────
     const views = [
@@ -100,23 +116,37 @@ export async function POST(req: Request) {
       ...(body.framePaths ?? []).filter((p) => p !== body.selfiePath),
     ].slice(0, MAX_SELFIE_VIEWS);
 
-    let best: { cosine: number; pass: string } | null = null;
-    let compared = 0;
+    const scored: {
+      embedding: number[];
+      weight: number;
+      cosine: number;
+      hash: bigint;
+      quality: FaceQuality;
+      rival: number;
+    }[] = [];
+
     for (const path of views) {
-      const image = await load(path);
+      const image = await load(path, 960);
       const found = await findFaceUpright(yunet, image);
       if (!found) continue;
-      const embedding = await embedFoundFace(sface, {
+      const { embedding, quality, hash } = await describeFace(sface, {
         image,
         face: found.face,
         pass: found.pass,
+        rival: found.rival,
       });
-      const cosine = cosineSimilarity(docEmbedding, embedding);
-      compared++;
-      if (!best || cosine > best.cosine) best = { cosine, pass: found.pass };
+      const vector = Array.from(embedding);
+      scored.push({
+        embedding: vector,
+        weight: faceViewWeight(quality),
+        cosine: cosine(Array.from(doc.embedding), vector),
+        hash,
+        quality,
+        rival: found.rival,
+      });
     }
 
-    if (!best) {
+    if (scored.length === 0) {
       const res: FaceMatchResponse = {
         ok: true,
         score: 0,
@@ -124,19 +154,43 @@ export async function POST(req: Request) {
         docFaceFound: true,
         selfieFaceFound: false,
         docPass: docFace.pass,
+        docQuality: doc.quality,
+        docRival: docFace.rival,
       };
       return NextResponse.json(res);
     }
 
+    // ── Gabarit d'identité : moyenne PONDÉRÉE des vues, re-normalisée ───────
+    const template = buildFaceTemplate(scored);
+    const templateCosine = template
+      ? cosine(Array.from(doc.embedding), template)
+      : Math.max(...scored.map((v) => v.cosine));
+
+    // ── « Ce selfie EST-IL le portrait du document ? » ──────────────────────
+    // On compare l'image, pas l'identité : la vue la PLUS proche en pixels fait
+    // foi (il suffit d'une frame rejouée pour trahir la manœuvre).
+    const replayDistance = Math.min(
+      ...scored.map((v) => hammingDistance(doc.hash, v.hash))
+    );
+
+    // La vue de meilleure qualité représente le selfie dans le dossier de revue.
+    const bestView = scored.reduce((a, b) => (b.weight > a.weight ? b : a));
+
     const res: FaceMatchResponse = {
       ok: true,
-      score: normalizeFaceScore(best.cosine),
-      cosine: Math.round(best.cosine * 10000) / 10000,
+      score: normalizeFaceScore(templateCosine),
+      cosine: Math.round(templateCosine * 10000) / 10000,
       docFaceFound: true,
       selfieFaceFound: true,
-      framesCompared: compared,
+      framesCompared: scored.length,
       docPass: docFace.pass,
-      selfiePass: best.pass,
+      docQuality: doc.quality,
+      selfieQuality: bestView.quality,
+      viewCosines: scored.map((v) => Math.round(v.cosine * 10000) / 10000),
+      replayDistance,
+      replaySuspected: replayDistance <= REPLAY_HAMMING_MAX,
+      docRival: docFace.rival,
+      selfieRival: Math.max(...scored.map((v) => v.rival)),
     };
     return NextResponse.json(res);
   } catch (e) {

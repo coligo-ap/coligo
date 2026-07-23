@@ -10,6 +10,7 @@
 // =============================================================================
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   ArrowLeft,
   ArrowRight,
@@ -17,6 +18,7 @@ import {
   ScanFace,
   X,
   ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 import { Check } from "lucide-react";
 import { Portal } from "@/components/ui/portal";
@@ -56,29 +58,52 @@ function SelfieStyles() {
   );
 }
 
+// Les flèches gauche/droite sont des directions PHYSIQUES (tête de
+// l'utilisateur) : elles ne se retournent JAMAIS en RTL.
 const CHALLENGE_UI: Record<
   IdvChallenge,
-  { icon: typeof ScanFace; label: string; hint: string }
+  {
+    icon: typeof ScanFace;
+    label: string;
+    labelAr: string;
+    hint: string;
+    hintAr: string;
+  }
 > = {
   center: {
     icon: ScanFace,
     label: "Placez votre visage dans l'ovale",
+    labelAr: "ضع وجهك داخل الإطار البيضاوي",
     hint: "Regardez l'objectif",
+    hintAr: "انظر إلى العدسة",
   },
   turn_left: {
     icon: ArrowLeft,
     label: "Tournez la tête à gauche",
+    labelAr: "أدر رأسك إلى اليسار",
     hint: "Puis restez ainsi",
+    hintAr: "ثم ابقَ هكذا",
   },
   turn_right: {
     icon: ArrowRight,
     label: "Tournez la tête à droite",
+    labelAr: "أدر رأسك إلى اليمين",
     hint: "Puis restez ainsi",
+    hintAr: "ثم ابقَ هكذا",
   },
   closer: {
     icon: ZoomIn,
     label: "Rapprochez le téléphone",
+    labelAr: "قرّب الهاتف",
     hint: "Visage plus grand dans l'ovale",
+    hintAr: "اجعل وجهك أكبر داخل الإطار",
+  },
+  farther: {
+    icon: ZoomOut,
+    label: "Éloignez le téléphone",
+    labelAr: "أبعد الهاتف",
+    hint: "Visage plus petit, mais entier",
+    hintAr: "اجعل وجهك أصغر مع بقائه كاملًا",
   },
 };
 
@@ -206,8 +231,12 @@ export function IdvSelfieCapture({
     };
   }, [phase, stepIndex, retry, challenges.length, capture, onDone]);
 
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const challenge = challenges[Math.min(stepIndex, challenges.length - 1)];
   const ui = CHALLENGE_UI[challenge];
+  const uiLabel = isAr ? ui.labelAr : ui.label;
+  const uiHint = isAr ? ui.hintAr : ui.hint;
   const Icon = ui.icon;
 
   return (
@@ -270,16 +299,19 @@ export function IdvSelfieCapture({
         <div className="relative z-30 px-4 pt-[calc(env(safe-area-inset-top)+12px)]">
           <div className="flex items-start justify-between">
             <div className="text-white">
-              <p className="text-sm font-semibold">Selfie de vérification</p>
+              <p className="text-sm font-semibold">
+                {tr("Selfie de vérification", "سيلفي التحقّق")}
+              </p>
               <p className="text-xs text-white/70">
-                Geste {Math.min(stepIndex + 1, challenges.length)} sur{" "}
+                {tr("Geste", "الحركة")}{" "}
+                {Math.min(stepIndex + 1, challenges.length)} {tr("sur", "من")}{" "}
                 {challenges.length}
               </p>
             </div>
             <button
               type="button"
               onClick={onClose}
-              aria-label="Fermer"
+              aria-label={tr("Fermer", "إغلاق")}
               className="rounded-full bg-white/15 p-2 text-white backdrop-blur"
             >
               <X className="size-5" />
@@ -288,7 +320,11 @@ export function IdvSelfieCapture({
           <div className="mt-3">
             <IdvStepper
               current="selfie"
-              hint={phase === "live" ? ui.label : "Démarrage de la caméra…"}
+              hint={
+                phase === "live"
+                  ? uiLabel
+                  : tr("Démarrage de la caméra…", "جارٍ تشغيل الكاميرا…")
+              }
               progress={
                 challenges.length
                   ? (stepIndex + (burst ? 1 : 0)) / challenges.length
@@ -309,8 +345,8 @@ export function IdvSelfieCapture({
               >
                 <Icon className="size-7 shrink-0 animate-pulse" />
                 <div>
-                  <p className="text-sm font-semibold">{ui.label}</p>
-                  <p className="text-xs text-white/70">{ui.hint}</p>
+                  <p className="text-sm font-semibold">{uiLabel}</p>
+                  <p className="text-xs text-white/70">{uiHint}</p>
                 </div>
               </div>
               <span
@@ -323,12 +359,12 @@ export function IdvSelfieCapture({
           )}
           {phase === "live" && burst && (
             <span className="rounded-full bg-emerald-500/90 px-3.5 py-1.5 text-sm font-medium text-white">
-              Parfait
+              {tr("Parfait", "ممتاز")}
             </span>
           )}
           {phase === "starting" && (
             <span className="rounded-full bg-black/60 px-3.5 py-1.5 text-sm text-white backdrop-blur">
-              Démarrage de la caméra…
+              {tr("Démarrage de la caméra…", "جارٍ تشغيل الكاميرا…")}
             </span>
           )}
         </div>
@@ -338,15 +374,17 @@ export function IdvSelfieCapture({
           <div className="absolute inset-0 z-40 flex flex-col items-center justify-center gap-4 bg-black/85 px-8 text-center">
             <Camera className="size-10 text-white/70" />
             <p className="text-sm text-white">
-              Caméra indisponible. Le selfie de vérification nécessite la caméra
-              — autorisez l&apos;accès dans les réglages puis réessayez.
+              {tr(
+                "Caméra indisponible. Le selfie de vérification nécessite la caméra — autorisez l'accès dans les réglages puis réessayez.",
+                "الكاميرا غير متاحة. سيلفي التحقّق يتطلب الكاميرا — اسمح بالوصول في الإعدادات ثم أعد المحاولة."
+              )}
             </p>
             <button
               type="button"
               onClick={onClose}
               className="rounded-full bg-white px-5 py-2.5 text-sm font-semibold text-black"
             >
-              Fermer
+              {tr("Fermer", "إغلاق")}
             </button>
           </div>
         )}
