@@ -1,18 +1,36 @@
+# =============================================================================
+# CI/CD iOS (client app.coligo.client) — Codemagic
+# =============================================================================
+# Deux workflows de build PARTAGENT le même environnement + scripts (ancres YAML
+# `&ios_env` / `&ios_scripts` / `&ios_artifacts` / `&ios_int`) :
+#
+#   - ios-client-app-store : AUTO sur push `main` touchant du natif → TestFlight.
+#     Le web (server.url distant) se déploie par Vercel : inutile de rebuilder
+#     l'app native sur une modif web-only (filtre changeset), on économise les
+#     minutes Mac.
+#   - ios-client-release   : sur TAG `release-*` → soumission App Store (revue
+#     Apple), publication AUTO à l'approbation (AFTER_APPROVAL). C'est le signal
+#     explicite « mettre en prod ».
+#
+# Le seul point manuel restant en prod iOS = la revue Apple par version (~24-48 h)
+# et le renseignement du « What's New » de la nouvelle version dans App Store
+# Connect. Aucune automatisation ne contourne la revue Apple.
+# =============================================================================
+
 workflows:
   ios-client-app-store:
-    name: Coligo Client — iOS App Store
+    name: Coligo Client — iOS TestFlight (auto)
     max_build_duration: 60
     instance_type: mac_mini_m2
-    integrations:
+    integrations: &ios_int
       # Nom EXACT donné à la clé lors de sa création dans Codemagic :
       # Team settings → Integrations → Developer Portal → Manage keys → Add key
       # (clé "App Store Connect API", rôle App Manager — PAS les clés .p8
       # APNs / Sign in with Apple créées sur developer.apple.com, c'en est
       # une troisième, distincte, créée sur appstoreconnect.apple.com →
       # Users and Access → Integrations).
-      # Renommer ci-dessous si la clé est créée sous un autre nom.
       app_store_connect: coligo_asc
-    environment:
+    environment: &ios_env
       ios_signing:
         distribution_type: app_store
         bundle_identifier: app.coligo.client
@@ -33,7 +51,30 @@ workflows:
       #   PowerShell : [Convert]::ToBase64String([IO.File]::ReadAllBytes("GoogleService-Info.plist")) | Set-Clipboard
       groups:
         - firebase_ios
-    scripts:
+    # DÉCLENCHEMENT AUTO — push sur `main` touchant du NATIF/config. Une modif
+    # web-only (app/, components/, sauf lib/native) ne rebuild PAS l'app : elle
+    # part déjà par Vercel puisque l'app charge server.url. ⚠️ Exige que le
+    # webhook du dépôt soit connecté dans Codemagic (Team → Applications →
+    # coligo → webhook GitHub actif).
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+      when:
+        changeset:
+          includes:
+            - "ios"
+            - "capacitor.config.ts"
+            - "scripts/ios-client-config.mjs"
+            - "lib/native"
+            - "package.json"
+            - "package-lock.json"
+            - "codemagic.yaml"
+          excludes:
+            - "**/*.md"
+    scripts: &ios_scripts
       - name: Installer les dépendances Node
         script: npm ci
       - name: Régénérer le projet iOS (identité CLIENT)
@@ -60,6 +101,12 @@ workflows:
         # inchangée). $BUILD_NUMBER = compteur Codemagic pour ce workflow,
         # déjà strictement croissant à chaque build → jamais besoin d'y
         # retoucher à la main.
+        #
+        # ⚠️ MARKETING_VERSION (CFBundleShortVersionString) est figée dans
+        # project.pbxproj. Quand une version est APPROUVÉE sur l'App Store, son
+        # train se FERME : Apple refuse alors tout nouveau build sur cette
+        # version (erreurs 90186 / 90062). Il faut BUMPER MARKETING_VERSION
+        # (les 2 occurrences Debug+Release de project.pbxproj) avant de rebuilder.
         script: |
           cd ios/App && agvtool new-version -all "$BUILD_NUMBER"
       - name: Build .ipa signé
@@ -94,12 +141,15 @@ workflows:
           xcode-project build-ipa \
             --project "$XCODE_PROJECT" \
             --scheme "$XCODE_SCHEME"
-    artifacts:
+    artifacts: &ios_artifacts
       - build/ios/ipa/*.ipa
       - /tmp/xcodebuild_logs/*.log
     publishing:
       app_store_connect:
         auth: integration
+        # Push auto → TestFlight SEULEMENT (testeurs internes, sans revue).
+        # La mise en prod App Store passe par le workflow `ios-client-release`
+        # (tag), pour ne PAS soumettre à la revue Apple à chaque commit.
         submit_to_testflight: true
       email:
         recipients:
@@ -108,13 +158,43 @@ workflows:
           success: true
           failure: true
 
-    # Pas de déclenchement automatique volontairement : tant que le bouton
-    # « Continuer avec Apple » n'est pas codé côté UI, chaque build se lance à
-    # la main depuis le dashboard Codemagic (bouton « Start new build »).
+  # ── PROD iOS — déclenché par un TAG `release-*` ────────────────────────────
+  # `git tag release-2026-07-23 && git push --tags` → build + soumission App
+  # Store, publication AUTO à l'approbation Apple. MÊME environnement/scripts que
+  # le workflow TestFlight (ancres YAML) : rien à maintenir en double.
+  ios-client-release:
+    name: Coligo Client — iOS App Store (PROD, sur tag)
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations: *ios_int
+    environment: *ios_env
+    triggering:
+      events:
+        - tag
+      tag_patterns:
+        - pattern: "release-*"
+          include: true
+    scripts: *ios_scripts
+    artifacts: *ios_artifacts
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        # Soumet à la revue App Store et PUBLIE automatiquement à l'approbation.
+        # ⚠️ Apple review ~24-48 h par version ; le « What's New » de la nouvelle
+        # MARKETING_VERSION doit être renseigné dans App Store Connect (ou hérité).
+        submit_to_app_store: true
+        release_type: AFTER_APPROVAL
+      email:
+        recipients:
+          - primefood69@gmail.com
+        notify:
+          success: true
+          failure: true
 
   # ── Sonde LECTURE SEULE du statut App Store (aucun build) ──────────────────
   # Interroge l'API App Store Connect avec les identifiants de l'intégration :
-  # état de la version 1.0 (Prepare for Submission / Waiting for Review /
+  # état de la version (Prepare for Submission / Waiting for Review /
   # Ready for Sale…), soumissions en cours. Déclenchée à la main / par API.
   asc-status:
     name: ASC — statut App Store (lecture seule)

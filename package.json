@@ -66,6 +66,8 @@
     "play:cert": "node scripts/play-signing-cert.mjs",
     "play:status": "node scripts/play-status.mjs",
     "build:client:aab": "node scripts/build-client-aab.mjs",
+    "release:android": "node scripts/release-android.mjs",
+    "release:android:prod": "node scripts/release-android.mjs --prod",
     "cap:sync": "cap sync android",
     "cap:sync:ios": "cap sync ios && node scripts/ios-client-config.mjs",
     "ios:assets": "node scripts/ios-assets.mjs",
