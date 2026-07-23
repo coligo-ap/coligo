@@ -501,7 +501,21 @@ export function MerchantCatalog({
                 <span className="text-foreground line-clamp-2 block text-[13px] leading-snug font-bold">
                   {title}
                 </span>
-                <span className="relative mt-auto block h-[62%] w-full">
+                <span
+                  className="relative mt-auto block h-[62%] w-full overflow-hidden rounded-[12px]"
+                  style={{
+                    /* Socle photo CLAIR figé (identique clair/sombre). En clair il
+                       se fond dans la carte (bg-surface-2 ≈ #f7f7fb) → aucun
+                       changement visuel. En SOMBRE il devient un socle clair sur
+                       lequel la photo — souvent sur fond blanc, détourée via
+                       `mix-blend-multiply` — RESTE lisible : sans lui, `multiply`
+                       sur la carte quasi-noire écrasait l'image en noir (bug « la
+                       catégorie ne s'adapte pas au sombre »). `isolate` = le
+                       multiply se mélange à CE socle, jamais au fond de carte. */
+                    background: "linear-gradient(180deg,#f7f8fc,#eef0f6)",
+                    isolation: "isolate",
+                  }}
+                >
                   {img ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img

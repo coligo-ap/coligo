@@ -359,13 +359,28 @@ export function DrivePriceScreen({
                   <Zap className="size-3.5 fill-[#F97316] text-[#F97316]" />
                 </span>
               )}
-              <Image
-                src={GAMME_IMG[g]}
-                alt={t(`gammes.${g}`)}
-                width={88}
-                height={62}
-                className="pointer-events-none h-[62px] w-[88px] object-contain"
-              />
+              <span
+                className="pointer-events-none flex h-[64px] w-[92px] items-center justify-center rounded-[13px]"
+                style={{
+                  /* « Stage showroom » : socle CLAIR figé (identique clair/sombre)
+                     pour que TOUTE illustration — verte (classic), blanche, ou en
+                     fil de fer sombre (confort) — ressorte PAREIL dans les deux
+                     thèmes, façon Uber/Bolt. Sans lui, en sombre les gammes
+                     claires/sombres disparaissaient sur la tuile `--d-soft`. */
+                  background:
+                    "radial-gradient(115% 100% at 50% 14%,#ffffff 0%,#eef0f6 70%,#e6e8f1 100%)",
+                  boxShadow:
+                    "inset 0 0 0 1px rgba(17,20,45,.06),0 2px 7px -4px rgba(17,20,45,.3)",
+                }}
+              >
+                <Image
+                  src={GAMME_IMG[g]}
+                  alt={t(`gammes.${g}`)}
+                  width={84}
+                  height={54}
+                  className="h-[54px] w-[84px] object-contain [filter:drop-shadow(0_3px_3px_rgba(17,20,45,.16))]"
+                />
+              </span>
               <b className="drive-sora mt-1 text-[13px]">{t(`gammes.${g}`)}</b>
               <span className="mt-0.5">
                 <b className="text-[12px]" style={{ color: "var(--d-violet)" }}>
