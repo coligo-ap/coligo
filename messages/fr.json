@@ -734,6 +734,8 @@
     "promosCodesDesc": "Tes codes et bons d'achat",
     "referralRow": "Parrainage",
     "referralRowDesc": "Invite tes proches, gagnez tous les deux",
+    "wheelRow": "Roue Coligo",
+    "wheelRowDesc": "Un tour par jour, des DA à gagner",
     "saveChanges": "Enregistrer les modifications",
     "emailReceiptsHint": "Sert à recevoir tes reçus et notifications de commande.",
     "settings": "Réglages",
@@ -869,6 +871,27 @@
     "concernedProducts": "Produits concernés",
     "seeProductsInMenu": "À ajouter depuis le menu ci-dessous"
   },
+  "wheel": {
+    "title": "Roue Coligo",
+    "subtitle": "Un tour gratuit par jour — les DA gagnés vont sur Coligo Pay",
+    "back": "Compte",
+    "spinCta": "Tourner la roue",
+    "spinning": "La roue tourne…",
+    "alreadyPlayed": "Tu as déjà joué aujourd'hui — reviens demain !",
+    "spinError": "Impossible de lancer la roue. Réessaye.",
+    "comeBack": "À demain !",
+    "comeBackDesc": "Un nouveau tour t'attend dès demain — garde ta série.",
+    "streakTitle": "Ta série",
+    "streakHint": "Joue {target} jours d'affilée : le lot du {target}ᵉ jour est multiplié ×{mult}.",
+    "wonTitle": "+ {amount} !",
+    "bonusApplied": "Bonus série ×{mult} appliqué !",
+    "wonDesc": "Crédités sur ton Coligo Pay",
+    "nothingTitle": "Presque !",
+    "nothingDesc": "Retente demain — ta série continue.",
+    "resultClose": "Super",
+    "soonTitle": "Bientôt disponible",
+    "soonDesc": "La Roue Coligo arrive très vite."
+  },
   "sharedCart": {
     "notFoundTitle": "Panier introuvable",
     "notFoundDesc": "Ce lien n'est plus valide ou le panier a été supprimé.",
@@ -966,7 +989,14 @@
     "statusExpired": "Expiré",
     "soonTitle": "Bientôt disponible",
     "soonDesc": "Le programme de parrainage arrive très vite.",
-    "loadError": "Impossible de charger le parrainage. Réessaye."
+    "loadError": "Impossible de charger le parrainage. Réessaye.",
+    "shareCardTitle": "T'as aimé {merchant} ?",
+    "shareCardBody": "Partage ta commande — tes proches reçoivent {amount} DA avec ton code.",
+    "shareCardBodyPlain": "Partage ta commande à tes proches.",
+    "shareCta": "Partager la story",
+    "shareWhatsapp": "Partager sur WhatsApp",
+    "shareMsg": "Je viens de commander chez {merchant} sur Coligo ! Inscris-toi avec mon code {code} et reçois {amount} DA offerts : {link}",
+    "shareMsgPlain": "Je viens de commander chez {merchant} sur Coligo ! Découvre : {link}"
   },
   "wallet": {
     "cashbackTitle": "Mon Cashback",

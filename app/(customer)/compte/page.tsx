@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import {
   BadgeCheck,
   ChevronRight,
+  Dices,
   Gift,
   Heart,
   MapPin,
@@ -304,6 +305,15 @@ export default async function CustomerAccountPage({
               icon={<Gift className="size-[19px]" />}
               title={t("referralRow")}
               subtitle={t("referralRowDesc")}
+            />
+          )}
+          {flags.wheel.status !== "hidden" && (
+            <MenuRow
+              href="/roue"
+              tone="promo"
+              icon={<Dices className="size-[19px]" />}
+              title={t("wheelRow")}
+              subtitle={t("wheelRowDesc")}
             />
           )}
         </div>

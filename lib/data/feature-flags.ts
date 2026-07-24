@@ -25,7 +25,8 @@ export type FeatureKey =
   | "identity_verification"
   | "referral"
   | "shared_cart"
-  | "intl_card";
+  | "intl_card"
+  | "wheel";
 export type FeatureStatus = "active" | "hidden" | "coming_soon" | "maintenance";
 
 export type FeatureFlag = {
@@ -56,6 +57,7 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "referral",
   "shared_cart",
   "intl_card",
+  "wheel",
 ];
 
 function defaultFlag(key: FeatureKey): FeatureFlag {

@@ -734,6 +734,8 @@
     "promosCodesDesc": "Your codes and vouchers",
     "referralRow": "Referral",
     "referralRowDesc": "Invite friends, you both earn",
+    "wheelRow": "Coligo Wheel",
+    "wheelRowDesc": "One spin a day, win DA",
     "saveChanges": "Save changes",
     "emailReceiptsHint": "Used to receive your receipts and order notifications.",
     "settings": "Settings",
@@ -869,6 +871,27 @@
     "concernedProducts": "Products included",
     "seeProductsInMenu": "Add them from the menu below"
   },
+  "wheel": {
+    "title": "Coligo Wheel",
+    "subtitle": "One free spin a day — winnings go to Coligo Pay",
+    "back": "Account",
+    "spinCta": "Spin the wheel",
+    "spinning": "Spinning…",
+    "alreadyPlayed": "You already played today — come back tomorrow!",
+    "spinError": "Couldn't spin. Try again.",
+    "comeBack": "See you tomorrow!",
+    "comeBackDesc": "A new spin awaits tomorrow — keep your streak.",
+    "streakTitle": "Your streak",
+    "streakHint": "Play {target} days in a row: day {target}'s prize is multiplied ×{mult}.",
+    "wonTitle": "+ {amount}!",
+    "bonusApplied": "Streak bonus ×{mult} applied!",
+    "wonDesc": "Credited to your Coligo Pay",
+    "nothingTitle": "So close!",
+    "nothingDesc": "Try again tomorrow — your streak continues.",
+    "resultClose": "Nice",
+    "soonTitle": "Coming soon",
+    "soonDesc": "The Coligo Wheel is almost here."
+  },
   "sharedCart": {
     "notFoundTitle": "Cart not found",
     "notFoundDesc": "This link is no longer valid or the cart was deleted.",
@@ -966,7 +989,14 @@
     "statusExpired": "Expired",
     "soonTitle": "Coming soon",
     "soonDesc": "The referral program is almost here.",
-    "loadError": "Couldn't load referral data. Try again."
+    "loadError": "Couldn't load referral data. Try again.",
+    "shareCardTitle": "Enjoyed {merchant}?",
+    "shareCardBody": "Share your order — your friends get {amount} DA with your code.",
+    "shareCardBodyPlain": "Share your order with your friends.",
+    "shareCta": "Share the story",
+    "shareWhatsapp": "Share on WhatsApp",
+    "shareMsg": "I just ordered from {merchant} on Coligo! Sign up with my code {code} and get {amount} DA free: {link}",
+    "shareMsgPlain": "I just ordered from {merchant} on Coligo! Check it out: {link}"
   },
   "wallet": {
     "cashbackTitle": "My Cashback",

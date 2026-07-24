@@ -69,6 +69,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Sélecteur Visa/Mastercard sur la page de paiement invité du panier partagé. « Bientôt » = affiché grisé ; s'activera quand la passerelle internationale sera branchée.",
   },
   {
+    key: "wheel",
+    label: "Roue Coligo (jeu quotidien)",
+    hint: "Un tour par client et par jour : lots = bons d'achat crédités sur Coligo Pay, bonus de série. Lots et réglages dans Marketing → Roue. Masqué = page /roue retirée + tirages coupés.",
+  },
+  {
     key: "referral",
     label: "Parrainage client",
     hint: "Programme « Invite un ami » : lien /r/CODE, crédit Coligo Pay double à la 1ʳᵉ commande du filleul. Les montants et plafonds se règlent dans Marketing → Parrainage. Masqué = page client retirée + attributions gelées.",

@@ -8,6 +8,7 @@ import {
   Car,
   ClipboardCheck,
   Crown,
+  Dices,
   FileSignature,
   Fingerprint,
   FolderOpen,
@@ -482,6 +483,12 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Parrainage",
             icon: Gift,
             keywords: ["referral", "invitation", "filleul", "récompense"],
+          },
+          {
+            href: "/admin/marketing/roue",
+            label: "Roue Coligo",
+            icon: Dices,
+            keywords: ["jeu", "wheel", "lots", "gamification", "quotidien"],
           },
           {
             href: "/admin/marketing/notifications",

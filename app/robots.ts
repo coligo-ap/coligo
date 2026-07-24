@@ -41,6 +41,7 @@ const PRIVATE_PATHS = [
   "/course",
   "/drive",
   "/parrainage",
+  "/roue",
   // Espace commerçant
   "/dashboard",
   "/catalog",

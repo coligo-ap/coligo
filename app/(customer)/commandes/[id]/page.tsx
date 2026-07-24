@@ -15,6 +15,8 @@ import { createClient } from "@/lib/supabase/server";
 import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
+import { OrderShareCard } from "@/components/customer/referral/order-share-card";
+import { getMyReferralOverview } from "@/lib/referral/overview";
 import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tracking";
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { ReorderButton } from "@/components/customer/reorder-button";
@@ -599,6 +601,23 @@ export default async function CustomerOrderDetailPage({
           {/* « Commander à nouveau » — sur une commande terminée ou annulée. */}
           {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
         </div>
+
+        {/* ═══ PARTAGE POST-COMMANDE (mégaphone viral + code parrain) ═══ */}
+        {isCompleted && (
+          <OrderShareCard
+            merchantName={merchant.name}
+            referral={await getMyReferralOverview().then((o) =>
+              o
+                ? {
+                    code: o.code,
+                    reward_referee_da: o.reward_referee_da,
+                    enabled: o.enabled,
+                  }
+                : null
+            )}
+            appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://coligo.app"}
+          />
+        )}
 
         {/* ═══ PREUVE DE DÉPÔT (No-Show en ligne) ═══
             Le livreur a déposé la commande à l'adresse après votre absence

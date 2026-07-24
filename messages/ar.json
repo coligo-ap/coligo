@@ -734,6 +734,8 @@
     "promosCodesDesc": "أكوادك وقسائم الشراء",
     "referralRow": "برنامج الإحالة",
     "referralRowDesc": "ادعُ أقاربك واربحا معاً",
+    "wheelRow": "عجلة كوليقو",
+    "wheelRowDesc": "دورة واحدة يومياً واربح دنانير",
     "saveChanges": "حفظ التعديلات",
     "emailReceiptsHint": "يُستخدم لاستلام إيصالاتك وإشعارات طلباتك.",
     "settings": "الإعدادات",
@@ -869,6 +871,27 @@
     "concernedProducts": "المنتجات المعنية",
     "seeProductsInMenu": "أضِفها من القائمة أدناه"
   },
+  "wheel": {
+    "title": "عجلة كوليقو",
+    "subtitle": "دورة مجانية واحدة يومياً — الدنانير تُضاف إلى كوليقو باي",
+    "back": "الحساب",
+    "spinCta": "أدر العجلة",
+    "spinning": "العجلة تدور…",
+    "alreadyPlayed": "لعبت اليوم بالفعل — عد غداً!",
+    "spinError": "تعذّر تشغيل العجلة. أعد المحاولة.",
+    "comeBack": "إلى الغد!",
+    "comeBackDesc": "دورة جديدة تنتظرك غداً — حافظ على سلسلتك.",
+    "streakTitle": "سلسلتك",
+    "streakHint": "العب {target} أيام متتالية: جائزة اليوم {target} تُضاعف ×{mult}.",
+    "wonTitle": "+ {amount}!",
+    "bonusApplied": "مكافأة السلسلة ×{mult} مُطبقة!",
+    "wonDesc": "أُضيفت إلى كوليقو باي",
+    "nothingTitle": "اقتربت!",
+    "nothingDesc": "أعد المحاولة غداً — سلسلتك مستمرة.",
+    "resultClose": "رائع",
+    "soonTitle": "قريباً",
+    "soonDesc": "عجلة كوليقو قادمة قريباً جداً."
+  },
   "sharedCart": {
     "notFoundTitle": "السلة غير موجودة",
     "notFoundDesc": "هذا الرابط لم يعد صالحاً أو تم حذف السلة.",
@@ -966,7 +989,14 @@
     "statusExpired": "منتهي",
     "soonTitle": "قريباً",
     "soonDesc": "برنامج الإحالة قادم قريباً جداً.",
-    "loadError": "تعذّر تحميل برنامج الإحالة. أعد المحاولة."
+    "loadError": "تعذّر تحميل برنامج الإحالة. أعد المحاولة.",
+    "shareCardTitle": "أعجبك {merchant}؟",
+    "shareCardBody": "شارك طلبك — أقاربك يحصلون على {amount} دج برمزك.",
+    "shareCardBodyPlain": "شارك طلبك مع أقاربك.",
+    "shareCta": "مشاركة الستوري",
+    "shareWhatsapp": "مشاركة عبر واتساب",
+    "shareMsg": "طلبت للتو من {merchant} على كوليقو! سجّل برمزي {code} واحصل على {amount} دج هدية: {link}",
+    "shareMsgPlain": "طلبت للتو من {merchant} على كوليقو! اكتشف: {link}"
   },
   "wallet": {
     "cashbackTitle": "استردادي النقدي",
