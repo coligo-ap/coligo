@@ -12,6 +12,7 @@ import { ActiveOrdersBar } from "@/components/customer/active-orders-bar";
 import { ConnectionGuard } from "@/components/shared/connection-guard";
 import { OfflineDim } from "@/components/shared/offline-dim";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { MarketingPush } from "@/components/native/marketing-push";
 import { AppUrlListener } from "@/components/native/app-url-listener";
 import { AppUpdateManager } from "@/components/native/app-update-manager";
 import { TawkChat } from "@/components/support/tawk-chat";
@@ -119,6 +120,11 @@ export function CustomerChrome({
 
       {/* FCM (no-op hors APK / si non connecté). Monté une fois ici. */}
       {isAuth && <PushRegistrar role="customer" />}
+
+      {/* Abonnement MARKETING géo (topic de la wilaya) — SANS condition d'auth :
+          un client déconnecté continue de recevoir les promos de sa zone, alors
+          que ses notifications PERSONNELLES sont coupées au logout. */}
+      <MarketingPush />
 
       {/* App Links Android : un lien https://coligo.app/… tapé hors de l'app
           (e-mail, partage) route la SPA vers ce chemin. No-op hors APK. */}

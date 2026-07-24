@@ -43,6 +43,56 @@ function getContext(): FcmContext | null {
   return cached;
 }
 
+/**
+ * Jeton OAuth2 court (~55 min) + projectId, partagés par l'envoi par token,
+ * l'envoi par TOPIC (sendFcmToTopic) et l'abonnement aux topics (lib/fcm/topics).
+ * `null` si la config FCM_* manque ou si l'échange JWT→token échoue (log, jamais
+ * throw : les push ne doivent pas casser le flux applicatif).
+ */
+export async function getFcmAccessToken(): Promise<{
+  accessToken: string;
+  projectId: string;
+} | null> {
+  const ctx = getContext();
+  if (!ctx) {
+    console.warn("[fcm] FCM_* env vars missing — push skipped");
+    return null;
+  }
+  try {
+    const { token } = await ctx.jwt.getAccessToken();
+    if (!token) return null;
+    return { accessToken: token, projectId: ctx.projectId };
+  } catch (err) {
+    console.error("[fcm] OAuth token fetch failed:", err);
+    return null;
+  }
+}
+
+/** Blocs Android + iOS communs à tous les envois (priorité haute, son, réveil
+ *  app fermée). Le détail du bloc apns est commenté dans sendFcm. */
+function platformBlocks() {
+  return {
+    android: {
+      priority: "HIGH" as const,
+      notification: {
+        channel_id: "coligo_orders",
+        default_sound: true,
+        default_vibrate_timings: true,
+      },
+    },
+    apns: {
+      headers: { "apns-priority": "10", "apns-push-type": "alert" },
+      payload: {
+        aps: {
+          sound: "default",
+          "content-available": 1,
+          "mutable-content": 1,
+        },
+      },
+    },
+  };
+}
+
 export type FcmNotification = {
   title: string;
   body: string;
@@ -74,23 +124,11 @@ export async function sendFcm(
   data: FcmData = {}
 ): Promise<SendResult> {
   if (tokens.length === 0) return { ok: 0, invalidTokens: [], errors: [] };
-  const ctx = getContext();
-  if (!ctx) {
-    console.warn("[fcm] FCM_* env vars missing — push skipped");
-    return { ok: 0, invalidTokens: [], errors: [] };
-  }
+  const ctx = await getFcmAccessToken();
+  if (!ctx) return { ok: 0, invalidTokens: [], errors: [] };
+  const { accessToken, projectId } = ctx;
 
-  let accessToken: string | null;
-  try {
-    const { token } = await ctx.jwt.getAccessToken();
-    accessToken = token ?? null;
-  } catch (err) {
-    console.error("[fcm] OAuth token fetch failed:", err);
-    return { ok: 0, invalidTokens: [], errors: [] };
-  }
-  if (!accessToken) return { ok: 0, invalidTokens: [], errors: [] };
-
-  const url = `https://fcm.googleapis.com/v1/projects/${ctx.projectId}/messages:send`;
+  const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
   const invalidTokens: string[] = [];
   const errors: string[] = [];
   let ok = 0;
@@ -192,4 +230,42 @@ export async function sendFcm(
   }
 
   return { ok, invalidTokens, errors };
+}
+
+/**
+ * Envoie une push à un TOPIC (ex. marketing géo `promo_wilaya_16`). Atteint TOUS
+ * les appareils abonnés au topic, INDÉPENDAMMENT de leur session : c'est le canal
+ * du MARKETING (les promos de zone continuent même déconnecté), séparé du
+ * personnel (par token/user_id, coupé au logout). Abonnement : lib/fcm/topics +
+ * lib/marketing/geo-topics. Best-effort (jamais throw).
+ */
+export async function sendFcmToTopic(
+  topic: string,
+  notification: FcmNotification,
+  data: FcmData = {}
+): Promise<{ ok: boolean }> {
+  const ctx = await getFcmAccessToken();
+  if (!ctx) return { ok: false };
+  try {
+    const res = await fetch(
+      `https://fcm.googleapis.com/v1/projects/${ctx.projectId}/messages:send`,
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${ctx.accessToken}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          message: { topic, notification, data, ...platformBlocks() },
+        }),
+      }
+    );
+    if (!res.ok && process.env.NODE_ENV !== "production") {
+      console.warn("[fcm] topic send failed", topic, res.status);
+    }
+    return { ok: res.ok };
+  } catch (err) {
+    console.warn("[fcm] topic send error:", err);
+    return { ok: false };
+  }
 }

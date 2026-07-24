@@ -62,6 +62,28 @@ export function PushBroadcastForm({
 
       <div>
         <label
+          htmlFor="push-wilaya"
+          className="mb-1 block text-sm font-semibold"
+        >
+          Zone marketing — wilaya{" "}
+          <span className="text-muted font-normal">(optionnel)</span>
+        </label>
+        <input
+          id="push-wilaya"
+          name="wilaya"
+          inputMode="numeric"
+          placeholder="Ex. : 16 (Alger), 06 (Béjaïa)"
+          className="border-border focus:border-primary-400 w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+        />
+        <p className="text-muted mt-1 text-xs">
+          Envoie aux appareils abonnés à cette wilaya (promo de zone),{" "}
+          <b>même déconnectés</b>. Laisse vide pour n&apos;envoyer qu&apos;aux
+          types cochés ci-dessus.
+        </p>
+      </div>
+
+      <div>
+        <label
           htmlFor="push-title"
           className="mb-1 block text-sm font-semibold"
         >
@@ -132,8 +154,10 @@ export function PushBroadcastForm({
         )}
         {state.ok && (
           <p className="text-success-600 mt-2 text-sm font-medium">
-            Envoyée à {state.sent}/{state.devices} appareil
-            {(state.devices ?? 0) > 1 ? "s" : ""}.
+            {state.zone &&
+              `Promo envoyée à la wilaya ${state.zone} (appareils abonnés). `}
+            {(state.devices ?? 0) > 0 &&
+              `Envoyée à ${state.sent}/${state.devices} appareil${(state.devices ?? 0) > 1 ? "s" : ""}.`}
           </p>
         )}
       </div>

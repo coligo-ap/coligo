@@ -119,3 +119,45 @@ export async function registerWebPush(role: PushRole): Promise<boolean> {
     return false;
   }
 }
+
+/**
+ * Token push web COURANT sans JAMAIS prompter (null si permission ≠ « granted »)
+ * et SANS écrire dans device_tokens. Pour l'abonnement MARKETING silencieux aux
+ * topics de zone (y compris déconnecté). Best-effort.
+ */
+export async function getWebPushTokenSilent(): Promise<string | null> {
+  try {
+    if (typeof window === "undefined") return null;
+    if (!isWebPushConfigured()) return null;
+    if (!("serviceWorker" in navigator) || !("Notification" in window))
+      return null;
+    if (Notification.permission !== "granted") return null;
+
+    const { isSupported, getMessaging, getToken } =
+      await import("firebase/messaging");
+    if (!(await isSupported().catch(() => false))) return null;
+
+    const qs = new URLSearchParams({
+      apiKey: cfg.apiKey!,
+      authDomain: cfg.authDomain!,
+      projectId: cfg.projectId!,
+      messagingSenderId: cfg.messagingSenderId!,
+      appId: cfg.appId!,
+    });
+    const swReg = await navigator.serviceWorker.register(
+      `/firebase-messaging-sw.js?${qs.toString()}`,
+      { scope: "/firebase-cloud-messaging-push-scope" }
+    );
+    const { initializeApp, getApps, getApp } = await import("firebase/app");
+    const app = getApps().length ? getApp() : initializeApp(cfg);
+    const messaging = getMessaging(app);
+    const token = await getToken(messaging, {
+      vapidKey: VAPID_KEY,
+      serviceWorkerRegistration: swReg,
+    });
+    return token || null;
+  } catch (err) {
+    console.warn("[push-web] getWebPushTokenSilent failed:", err);
+    return null;
+  }
+}

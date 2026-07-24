@@ -49,14 +49,17 @@ async function loadPlugin(): Promise<PushPluginModule | null> {
  * L'enregistrement complet (token + role + user_id) côté serveur est fait
  * par `registerPushToken` — celle-ci ne fait que l'aller-retour natif.
  */
-async function obtainFcmToken(): Promise<string | null> {
+async function obtainFcmToken(prompt = true): Promise<string | null> {
   const mod = await loadPlugin();
   if (!mod) return null;
   const { PushNotifications } = mod;
 
   // 1) Permission. Sur Android 13+, déclenche le dialog système POST_NOTIFICATIONS.
+  // `prompt=false` (abonnement marketing silencieux) : on NE demande jamais la
+  // permission, on ne renvoie un token que si elle est DÉJÀ accordée.
   let perm = await PushNotifications.checkPermissions();
   if (perm.receive !== "granted") {
+    if (!prompt) return null;
     perm = await PushNotifications.requestPermissions();
   }
   if (perm.receive !== "granted") return null;
@@ -142,6 +145,29 @@ export async function registerPushToken(role: PushRole): Promise<boolean> {
     console.warn("[push] registerPushToken failed:", err);
     return false;
   }
+}
+
+/**
+ * Token push COURANT, SANS jamais demander la permission (null si non accordée)
+ * et SANS écrire dans `device_tokens`. Sert à l'abonnement MARKETING silencieux
+ * aux topics de zone (lib/native/marketing-topics), y compris DÉCONNECTÉ. Natif
+ * (Capacitor) OU web (Firebase JS). Best-effort.
+ */
+export async function getPushTokenSilent(): Promise<{
+  token: string;
+  platform: string;
+} | null> {
+  if (!isPushAvailable()) {
+    try {
+      const { getWebPushTokenSilent } = await import("./push-web");
+      const token = await getWebPushTokenSilent();
+      return token ? { token, platform: "web" } : null;
+    } catch {
+      return null;
+    }
+  }
+  const token = await obtainFcmToken(false);
+  return token ? { token, platform: getNativePlatform() } : null;
 }
 
 /**
