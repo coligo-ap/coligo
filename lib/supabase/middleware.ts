@@ -290,7 +290,12 @@ export async function updateSession(request: NextRequest) {
       path === "/se-connecter" ||
       path === "/inscription" ||
       path.startsWith("/compte/telephone");
-    const phoneOk = request.cookies.get("coligo_phone_ok")?.value === "1";
+    // Marqueur « téléphone déjà validé » PRÉFIXÉ par l'utilisateur (même parade
+    // que coligo_role) : le cookie d'un compte précédent sur le même navigateur
+    // ne doit JAMAIS faire sauter la porte téléphone d'un AUTRE compte (bypass
+    // anti-fraude). Un préfixe qui ne matche pas ⇒ on re-vérifie en base.
+    const phoneTok = user.id.slice(0, 8);
+    const phoneOk = request.cookies.get("coligo_phone_ok")?.value === phoneTok;
     if (!phoneExempt && !phoneOk) {
       const { data: cust } = await supabase
         .from("customers")
@@ -300,7 +305,7 @@ export async function updateSession(request: NextRequest) {
       if (cust) {
         if (isValidContactPhone(cust.phone)) {
           // Numéro déjà valide → on mémorise pour ne plus requêter.
-          supabaseResponse.cookies.set("coligo_phone_ok", "1", {
+          supabaseResponse.cookies.set("coligo_phone_ok", phoneTok, {
             httpOnly: true,
             sameSite: "lax",
             path: "/",
