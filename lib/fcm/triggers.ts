@@ -558,6 +558,51 @@ export async function notifyCustomerTopup(input: {
 }
 
 /**
+ * PANIER PARTAGÉ — « un proche veut payer » (mig 0410) : un invité a tapé
+ * « Payer » alors que la commande n'est pas encore validée → on prévient le
+ * capitaine (rate-limité côté SQL à 1 / 10 min par panier).
+ */
+export async function notifySharedCartPayRequest(input: {
+  customerId: string;
+  merchantName: string;
+  shareToken: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", input.customerId)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const title = "Un proche veut payer";
+    const body = `Quelqu'un du panier ${input.merchantName} attend pour régler — valide la commande pour lui ouvrir le paiement.`;
+    const route = `/p/${input.shareToken}`;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "shared_cart_pay_request",
+      title,
+      body,
+      route,
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      { title, body },
+      { route, kind: "customer_shared_cart" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifySharedCartPayRequest failed:", err);
+  }
+}
+
+/**
  * Rappel PANIER PARTAGÉ (cron quotidien, mig 0406) : le panier du capitaine
  * expire dans moins de 24 h avec des articles dedans — commander ou perdre.
  */

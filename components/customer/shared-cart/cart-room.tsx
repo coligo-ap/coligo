@@ -32,7 +32,11 @@ import { useConfirm } from "@/components/ui/confirm";
 import { AvatarDot } from "@/components/ui/avatar-dot";
 import { setLocale } from "@/i18n/actions";
 import { addItem, clearMerchantCart } from "@/lib/customer/cart-store";
-import { guestJoin, guestSetQty } from "@/app/p/[token]/actions";
+import {
+  guestJoin,
+  guestRequestPayment,
+  guestSetQty,
+} from "@/app/p/[token]/actions";
 import {
   attachOrderToSharedCart,
   cancelCart,
@@ -158,6 +162,8 @@ export function CartRoom({
   const [joinBusy, setJoinBusy] = useState(false);
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  // Info NON bloquante (ex : « le capitaine a été prévenu ») — inline.
+  const [notice, setNotice] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
   // Sections par participant OUVRANTES/FERMANTES — tout ouvert par défaut,
   // l'en-tête (compte + sous-total) reste parlant une fois replié.
@@ -376,6 +382,67 @@ export function CartRoom({
     }
   };
 
+  // Commande liée en attente de paiement EN LIGNE → le groupe peut payer.
+  const canPayNow =
+    cart.ordered &&
+    cart.payment_method === "online" &&
+    cart.payment_status !== "paid" &&
+    cart.payment_status !== "refunded";
+
+  // Ouvre la page de paiement du GROUPE (get-or-create du lien, RPC anon).
+  const payNow = async (skipBusy = false): Promise<boolean> => {
+    if (!skipBusy) {
+      setActionError(null);
+      setActionBusy("roompay");
+    }
+    try {
+      const supabase = createClient();
+      const rpc = supabase.rpc.bind(supabase) as unknown as (
+        fn: string,
+        args: Record<string, unknown>
+      ) => Promise<{
+        data: { ok: boolean; reason?: string; ptoken?: string } | null;
+      }>;
+      const { data } = await rpc("shared_cart_room_pay_token", {
+        p_token: token,
+      });
+      if (data?.ok && data.ptoken) {
+        router.push(`/payer/${data.ptoken}`);
+        return true;
+      }
+      if (data?.reason === "already_paid") {
+        void fetchView();
+        return true;
+      }
+      return false;
+    } finally {
+      if (!skipBusy) setActionBusy(null);
+    }
+  };
+
+  // « Payer » du panier OUVERT : capitaine → checkout (verrouille + commande) ;
+  // invité → si la commande existe déjà on paie, sinon on PRÉVIENT le capitaine.
+  const payFromOpen = async () => {
+    if (isCaptain) {
+      await order();
+      return;
+    }
+    setActionError(null);
+    setNotice(null);
+    setActionBusy("paybtn");
+    try {
+      if (await payNow(true)) return;
+      const res = await guestRequestPayment({ token });
+      if (res.ok) {
+        setNotice(t("payAskSent", { name: view.captain_name ?? t("captain") }));
+      } else {
+        setActionError(t("actionError"));
+      }
+    } finally {
+      setActionBusy(null);
+    }
+  };
+
   const stepFor = (it: SCItem) =>
     it.unit && it.unit !== "piece" && !Number.isInteger(it.quantity) ? 0.5 : 1;
 
@@ -471,60 +538,12 @@ export function CartRoom({
             {t("lockedBanner")}
           </Banner>
         )}
-        {cart.ordered &&
-        cart.payment_method === "online" &&
-        cart.payment_status !== "paid" &&
-        cart.payment_status !== "refunded" ? (
-          /* PAIEMENT OUVERT AU GROUPE : n'importe qui avec le lien règle. */
-          <div className="from-primary-500 to-primary-700 rounded-[16px] bg-gradient-to-br p-4 text-white shadow-[0_12px_28px_-14px_rgba(76,27,155,.5)]">
-            <p className="text-[15px] font-extrabold">{t("roomPayTitle")}</p>
-            <p className="mt-0.5 text-[12px] font-medium text-white/85">
-              {t("roomPayDesc")}
-            </p>
-            <button
-              type="button"
-              disabled={actionBusy === "roompay"}
-              onClick={async () => {
-                setActionError(null);
-                setActionBusy("roompay");
-                try {
-                  const supabase = createClient();
-                  const rpc = supabase.rpc.bind(supabase) as unknown as (
-                    fn: string,
-                    args: Record<string, unknown>
-                  ) => Promise<{
-                    data: {
-                      ok: boolean;
-                      reason?: string;
-                      ptoken?: string;
-                    } | null;
-                  }>;
-                  const { data } = await rpc("shared_cart_room_pay_token", {
-                    p_token: token,
-                  });
-                  if (data?.ok && data.ptoken) {
-                    router.push(`/payer/${data.ptoken}`);
-                    return;
-                  }
-                  if (data?.reason === "already_paid") {
-                    void fetchView();
-                    return;
-                  }
-                  setActionError(t("actionError"));
-                } finally {
-                  setActionBusy(null);
-                }
-              }}
-              className="text-primary-700 mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition active:scale-[0.98] disabled:opacity-70"
-            >
-              {actionBusy === "roompay" ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <Lock className="size-4" />
-              )}
-              {t("roomPayCta")}
-            </button>
-          </div>
+        {canPayNow ? (
+          /* Info seulement — le bouton « Payer la commande » vit dans la
+             barre du bas (jamais de doublon d'action). */
+          <Banner icon={Lock} tone="amber">
+            {t("roomPayTitle")} — {t("roomPayDesc")}
+          </Banner>
         ) : (
           cart.ordered && (
             <Banner icon={PackageCheck} tone="success">
@@ -670,6 +689,11 @@ export function CartRoom({
         {actionError && (
           <p className="rounded-[12px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800">
             {actionError}
+          </p>
+        )}
+        {notice && (
+          <p className="border-success-200 bg-success-50 text-success-800 rounded-[12px] border px-3 py-2 text-sm font-medium">
+            {notice}
           </p>
         )}
 
@@ -881,44 +905,83 @@ export function CartRoom({
                 {t("minOrder", { amount: formatDA(merchant.min_order_da) })}
               </p>
             )}
+          {/* DEUX boutons, même design, couleurs différentes :
+              « Ajouter des produits » (violet contour) + « Payer » (rose). */}
           <div className="flex gap-2">
             {open && (
-              <Link
-                href={joinedOrCaptain ? `/p/${token}/catalogue` : "#"}
-                onClick={(e) => {
-                  if (!joinedOrCaptain) {
-                    e.preventDefault();
-                    setJoinOpen(true);
-                  }
-                }}
-                className={cn(
-                  "border-primary-200 text-primary-700 flex-1 rounded-[14px] border-2 px-4 py-3 text-center text-sm font-extrabold transition active:scale-[0.98]",
-                  isCaptain && items.length > 0 ? "flex-none" : "flex-1"
+              <>
+                <Link
+                  href={joinedOrCaptain ? `/p/${token}/catalogue` : "#"}
+                  onClick={(e) => {
+                    if (!joinedOrCaptain) {
+                      e.preventDefault();
+                      setJoinOpen(true);
+                    }
+                  }}
+                  className="border-primary-200 text-primary-700 flex-1 rounded-[14px] border-2 px-3 py-3 text-center text-sm font-extrabold transition active:scale-[0.98]"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    <Plus className="size-4" />
+                    {t("addProducts")}
+                  </span>
+                </Link>
+                {items.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={() => void payFromOpen()}
+                    disabled={actionBusy === "paybtn" || actionBusy === "order"}
+                    className="flex-1 rounded-[14px] bg-[#FF2D7A] px-3 py-3 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(255,45,122,0.55)] transition hover:bg-[#E6216D] active:scale-[0.98] disabled:opacity-60"
+                  >
+                    <span className="inline-flex items-center gap-1.5">
+                      {actionBusy === "paybtn" || actionBusy === "order" ? (
+                        <Loader2 className="size-4 animate-spin" />
+                      ) : (
+                        <Lock className="size-4" />
+                      )}
+                      {t("payCtaShort")}
+                    </span>
+                  </button>
                 )}
-              >
-                <span className="inline-flex items-center gap-1.5">
-                  <Plus className="size-4" />
-                  {t("addProducts")}
-                </span>
-              </Link>
+              </>
             )}
-            {isCaptain && !cart.ordered && items.length > 0 && (
+            {!open && canPayNow && (
               <button
                 type="button"
-                onClick={() => void order()}
-                disabled={actionBusy === "order"}
-                className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[14px] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                onClick={() => void payNow()}
+                disabled={actionBusy === "roompay"}
+                className="flex-1 rounded-[14px] bg-[#FF2D7A] px-4 py-3 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(255,45,122,0.55)] transition hover:bg-[#E6216D] active:scale-[0.98] disabled:opacity-60"
               >
                 <span className="inline-flex items-center gap-1.5">
-                  {actionBusy === "order" ? (
+                  {actionBusy === "roompay" ? (
                     <Loader2 className="size-4 animate-spin" />
                   ) : (
-                    <ArrowRight className="size-4 rtl:-scale-x-100" />
+                    <Lock className="size-4" />
                   )}
-                  {t("orderCta")}
+                  {t("roomPayCta")}
                 </span>
               </button>
             )}
+            {!open &&
+              !canPayNow &&
+              isCaptain &&
+              !cart.ordered &&
+              items.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => void order()}
+                  disabled={actionBusy === "order"}
+                  className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[14px] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                >
+                  <span className="inline-flex items-center gap-1.5">
+                    {actionBusy === "order" ? (
+                      <Loader2 className="size-4 animate-spin" />
+                    ) : (
+                      <ArrowRight className="size-4 rtl:-scale-x-100" />
+                    )}
+                    {t("orderCta")}
+                  </span>
+                </button>
+              )}
           </div>
         </div>
       </div>

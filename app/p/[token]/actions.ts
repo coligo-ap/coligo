@@ -1,7 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { broadcastSharedCartBump } from "@/lib/realtime/broadcast";
+import { notifySharedCartPayRequest } from "@/lib/fcm/triggers";
 
 // =============================================================================
 // Actions INVITÉ du panier partagé — publiques (aucune session requise) : la
@@ -90,6 +92,63 @@ export async function guestSetQty(input: {
   });
   if (res.ok) void broadcastSharedCartBump(input.token);
   return res;
+}
+
+/**
+ * « Payer » tapé alors que la commande n'est pas encore validée : prévient le
+ * CAPITAINE (push, rate-limité 10 min côté SQL). Public — le token du lien
+ * est la capacité, la RPC revalide tout.
+ */
+export async function guestRequestPayment(input: {
+  token: string;
+}): Promise<{ ok: boolean; reason?: string }> {
+  const res = await callRpc("shared_cart_request_payment", {
+    p_token: input.token,
+  });
+  const r = res as unknown as {
+    ok: boolean;
+    reason?: string;
+    notified?: boolean;
+    captain_customer_id?: string;
+  };
+  if (r.ok && r.notified && r.captain_customer_id) {
+    try {
+      const admin = createAdminClient();
+      const from = admin.from.bind(admin) as unknown as (t: string) => {
+        select: (c: string) => {
+          eq: (
+            col: string,
+            v: string
+          ) => {
+            maybeSingle: () => Promise<{
+              data: { merchant_id: string } | null;
+            }>;
+          };
+        };
+      };
+      const { data: cart } = await from("shared_carts")
+        .select("merchant_id")
+        .eq("share_token", input.token)
+        .maybeSingle();
+      let merchantName = "Coligo";
+      if (cart?.merchant_id) {
+        const { data: m } = await admin
+          .from("merchants")
+          .select("name")
+          .eq("id", cart.merchant_id)
+          .maybeSingle();
+        if (m?.name) merchantName = m.name;
+      }
+      void notifySharedCartPayRequest({
+        customerId: r.captain_customer_id,
+        merchantName,
+        shareToken: input.token,
+      });
+    } catch (e) {
+      console.warn("[shared-cart] pay request push:", e);
+    }
+  }
+  return { ok: r.ok, reason: r.reason };
 }
 
 export async function guestSetName(input: {

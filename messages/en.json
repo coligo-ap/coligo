@@ -963,6 +963,8 @@
     "roomPayTitle": "Order awaiting payment",
     "roomPayDesc": "Anyone in the group can pay — Algerian or international card.",
     "roomPayCta": "Pay the order",
+    "payCtaShort": "Pay",
+    "payAskSent": "{name} has been notified — once the order is confirmed, payment opens here.",
     "payIntlSub": "Visa / Mastercard — secure payment in €"
   },
   "referral": {
