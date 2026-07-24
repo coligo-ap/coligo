@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { markSignedOut } from "@/lib/auth/mark-signed-out";
+import { clearMyDeviceTokens } from "@/lib/notifications/device-tokens";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -529,6 +530,7 @@ export async function completeSocialSignup(
  */
 export async function logout() {
   const supabase = await createClient();
+  await clearMyDeviceTokens("merchant"); // couper les push perso au logout
   await supabase.auth.signOut();
   await markSignedOut();
   revalidatePath("/", "layout");

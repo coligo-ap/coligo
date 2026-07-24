@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { markSignedOut } from "@/lib/auth/mark-signed-out";
+import { clearMyDeviceTokens } from "@/lib/notifications/device-tokens";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/session";
@@ -1367,6 +1368,7 @@ export async function routeEstimate(input: {
 /** Déconnexion client (utilisable depuis n'importe quelle page client). */
 export async function customerLogout(): Promise<void> {
   const supabase = await createClient();
+  await clearMyDeviceTokens("customer"); // couper les push perso au logout
   await supabase.auth.signOut();
   await markSignedOut();
   revalidatePath("/", "layout");

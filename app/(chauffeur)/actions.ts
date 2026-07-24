@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { markSignedOut } from "@/lib/auth/mark-signed-out";
+import { clearMyDeviceTokens } from "@/lib/notifications/device-tokens";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
@@ -200,6 +201,7 @@ export async function chauffeurLogout(): Promise<{ error: string } | void> {
   } catch {
     /* best-effort — ne jamais empêcher la déconnexion */
   }
+  await clearMyDeviceTokens("chauffeur"); // couper les push perso au logout
   await supabase.auth.signOut();
   await markSignedOut();
   redirect("/chauffeur/login");
