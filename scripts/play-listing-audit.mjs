@@ -65,9 +65,10 @@ const IMAGE_TYPES = [
 ];
 console.log(`\n── IMAGES (${lang}) ──`);
 for (const type of IMAGE_TYPES) {
+  // Chemin réel de l'API : /listings/{lang}/{type} — SANS segment /images/.
   const imgs = await api(
     "GET",
-    `${base}/edits/${eid}/listings/${lang}/images/${type}`,
+    `${base}/edits/${eid}/listings/${lang}/${type}`,
     [404]
   );
   const n = imgs?.images?.length ?? 0;
