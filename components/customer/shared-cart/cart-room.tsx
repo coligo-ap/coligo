@@ -88,6 +88,8 @@ export type SharedCartView = {
     expires_at: string;
     ordered: boolean;
     has_payment_link: boolean;
+    payment_method: string | null;
+    payment_status: string | null;
   };
   captain_name: string | null;
   merchant: {
@@ -469,18 +471,74 @@ export function CartRoom({
             {t("lockedBanner")}
           </Banner>
         )}
-        {cart.ordered && (
-          <Banner icon={PackageCheck} tone="success">
-            {t("orderedBanner")}
-            {isCaptain && (
-              <Link
-                href="/commandes"
-                className="ms-1 font-extrabold underline underline-offset-2"
-              >
-                {t("seeOrder")}
-              </Link>
-            )}
-          </Banner>
+        {cart.ordered &&
+        cart.payment_method === "online" &&
+        cart.payment_status !== "paid" &&
+        cart.payment_status !== "refunded" ? (
+          /* PAIEMENT OUVERT AU GROUPE : n'importe qui avec le lien règle. */
+          <div className="from-primary-500 to-primary-700 rounded-[16px] bg-gradient-to-br p-4 text-white shadow-[0_12px_28px_-14px_rgba(76,27,155,.5)]">
+            <p className="text-[15px] font-extrabold">{t("roomPayTitle")}</p>
+            <p className="mt-0.5 text-[12px] font-medium text-white/85">
+              {t("roomPayDesc")}
+            </p>
+            <button
+              type="button"
+              disabled={actionBusy === "roompay"}
+              onClick={async () => {
+                setActionError(null);
+                setActionBusy("roompay");
+                try {
+                  const supabase = createClient();
+                  const rpc = supabase.rpc.bind(supabase) as unknown as (
+                    fn: string,
+                    args: Record<string, unknown>
+                  ) => Promise<{
+                    data: {
+                      ok: boolean;
+                      reason?: string;
+                      ptoken?: string;
+                    } | null;
+                  }>;
+                  const { data } = await rpc("shared_cart_room_pay_token", {
+                    p_token: token,
+                  });
+                  if (data?.ok && data.ptoken) {
+                    router.push(`/payer/${data.ptoken}`);
+                    return;
+                  }
+                  if (data?.reason === "already_paid") {
+                    void fetchView();
+                    return;
+                  }
+                  setActionError(t("actionError"));
+                } finally {
+                  setActionBusy(null);
+                }
+              }}
+              className="text-primary-700 mt-3 inline-flex w-full items-center justify-center gap-2 rounded-[13px] bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition active:scale-[0.98] disabled:opacity-70"
+            >
+              {actionBusy === "roompay" ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <Lock className="size-4" />
+              )}
+              {t("roomPayCta")}
+            </button>
+          </div>
+        ) : (
+          cart.ordered && (
+            <Banner icon={PackageCheck} tone="success">
+              {t("orderedBanner")}
+              {isCaptain && (
+                <Link
+                  href="/commandes"
+                  className="ms-1 font-extrabold underline underline-offset-2"
+                >
+                  {t("seeOrder")}
+                </Link>
+              )}
+            </Banner>
+          )
         )}
         {cart.status === "expired" && (
           <Banner icon={Hourglass} tone="muted">

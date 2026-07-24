@@ -234,6 +234,26 @@ async function main() {
     JSON.stringify(payInfo)
   );
 
+  // PAIEMENT OUVERT AU GROUPE (mig 0409) : quiconque a le lien famille obtient
+  // LE MÊME lien de paiement, et la room expose l'état de paiement.
+  const { data: roomPay } = await guest.rpc("shared_cart_room_pay_token", {
+    p_token: token,
+  });
+  assert(
+    roomPay?.ok === true && roomPay.ptoken === ptoken,
+    "room : « Payer la commande » ouvert au groupe (même lien, zéro doublon)",
+    JSON.stringify(roomPay)
+  );
+  const { data: viewOrdered } = await guest.rpc("shared_cart_by_token", {
+    p_token: token,
+  });
+  assert(
+    viewOrdered?.cart?.payment_method === "online" &&
+      viewOrdered?.cart?.payment_status === "pending",
+    "room : état de paiement exposé (online, pending)",
+    JSON.stringify(viewOrdered?.cart)
+  );
+
   // =========================================================================
   console.log("💳 INVITÉ — checkout Chargily MODE TEST réel");
   // =========================================================================
@@ -354,6 +374,14 @@ async function main() {
     paidInfo?.payment_status === "paid",
     "page /payer d'un 2ᵉ payeur → « Déjà payé »",
     JSON.stringify(paidInfo)
+  );
+  const { data: roomPayPaid } = await guest.rpc("shared_cart_room_pay_token", {
+    p_token: token,
+  });
+  assert(
+    roomPayPaid?.ok === false && roomPayPaid.reason === "already_paid",
+    "room : bouton « Payer » après le webhook → déjà payé",
+    JSON.stringify(roomPayPaid)
   );
 
   await db.end();

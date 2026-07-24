@@ -959,7 +959,11 @@
     "payPendingConfirm": "Confirmation du paiement en cours…",
     "payFailedBanner": "Paiement non abouti. Réessaie.",
     "payExpired": "Ce lien n'est plus actif",
-    "payExpiredDesc": "La commande liée a été annulée — demande au capitaine de relancer."
+    "payExpiredDesc": "La commande liée a été annulée — demande au capitaine de relancer.",
+    "roomPayTitle": "Commande en attente de paiement",
+    "roomPayDesc": "N'importe qui du groupe peut la régler — carte algérienne ou internationale.",
+    "roomPayCta": "Payer la commande",
+    "payIntlSub": "Visa / Mastercard — paiement sécurisé en €"
   },
   "referral": {
     "title": "Parrainage",

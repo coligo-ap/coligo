@@ -16,7 +16,14 @@ import { createClient } from "@/lib/supabase/client";
 import { openCheckout } from "@/lib/payments/open-checkout";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
-import { startGuestPayment } from "@/app/payer/[ptoken]/actions";
+import {
+  startGuestIntlPayment,
+  startGuestPayment,
+} from "@/app/payer/[ptoken]/actions";
+import {
+  IntlPaymentSheet,
+  type StripeIntentPayload,
+} from "@/components/customer/intl-payment-sheet";
 import type { FeatureStatus } from "@/lib/data/feature-flags";
 
 // =============================================================================
@@ -51,6 +58,12 @@ export function GuestPayView({
   const [info, setInfo] = useState<PayInfo | null | "notfound">(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
+  // Choix du payeur : carte DZ (Chargily) ou INTERNATIONALE (Stripe €).
+  const [method, setMethod] = useState<"dz" | "intl">("dz");
+  const [intlIntent, setIntlIntent] = useState<StripeIntentPayload | null>(
+    null
+  );
+  const [stripeDone, setStripeDone] = useState(false);
   const [resyncNonce, setResyncNonce] = useState(0);
 
   const fetchInfo = useCallback(async () => {
@@ -80,6 +93,28 @@ export function GuestPayView({
   const pay = async () => {
     setPayError(null);
     setPaying(true);
+    if (method === "intl") {
+      // CARTE INTERNATIONALE — Payment Element Stripe EMBARQUÉ (même page,
+      // 3DS géré) ; le webhook Stripe existant fait foi.
+      const res = await startGuestIntlPayment(ptoken);
+      setPaying(false);
+      if (res.ok) {
+        setIntlIntent(res.intent);
+        return;
+      }
+      if (res.reason === "already_paid") {
+        void fetchInfo();
+        return;
+      }
+      setPayError(
+        res.reason === "ineligible"
+          ? (res.message ?? t("payFailedBanner"))
+          : res.reason === "expired"
+            ? t("payExpiredDesc")
+            : t("payFailedBanner")
+      );
+      return;
+    }
     const res = await startGuestPayment(ptoken);
     if (res.ok) {
       // STANDARD in-app (lib/payments/open-checkout) : web → redirection,
@@ -126,7 +161,8 @@ export function GuestPayView({
   const paid =
     info.payment_status === "paid" || info.payment_status === "refunded";
   const expired = info.order_status === "cancelled" && !paid;
-  const confirming = !paid && !expired && returnState === "success";
+  const confirming =
+    !paid && !expired && (returnState === "success" || stripeDone);
 
   // ── DÉJÀ PAYÉ — premier paiement gagne, tout autre payeur voit ceci. ──
   if (paid) {
@@ -217,10 +253,27 @@ export function GuestPayView({
               </p>
             )}
 
-            {/* Sélecteur : rail DZ actif + carte internationale extensible. */}
+            {/* Sélecteur : carte DZ (Chargily) OU carte INTERNATIONALE
+                (Stripe €, actif — éligibilité pays/plafonds au moment T). */}
             <div className="mt-4 space-y-2">
-              <div className="border-primary-400 bg-primary-50/50 flex items-center gap-3 rounded-[14px] border-2 px-3.5 py-3">
-                <span className="bg-primary-600 grid size-9 shrink-0 place-items-center rounded-[10px] text-white">
+              <button
+                type="button"
+                onClick={() => setMethod("dz")}
+                className={cn(
+                  "flex w-full items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 text-start transition-colors",
+                  method === "dz"
+                    ? "border-primary-400 bg-primary-50/50"
+                    : "border-border"
+                )}
+              >
+                <span
+                  className={cn(
+                    "grid size-9 shrink-0 place-items-center rounded-[10px]",
+                    method === "dz"
+                      ? "bg-primary-600 text-white"
+                      : "bg-surface-2 text-subtle"
+                  )}
+                >
                   <CreditCard className="size-4.5" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -231,23 +284,59 @@ export function GuestPayView({
                     {t("payEdahabiaSub")}
                   </span>
                 </span>
-                <CheckCircle2 className="text-primary-600 size-5 shrink-0" />
-              </div>
-              {intlStatus !== "hidden" && (
-                <div className="border-border flex items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 opacity-55">
-                  <span className="bg-surface-2 text-subtle grid size-9 shrink-0 place-items-center rounded-[10px]">
-                    <Globe className="size-4.5" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="text-foreground block text-sm font-extrabold">
-                      {t("payIntl")}
+                {method === "dz" && (
+                  <CheckCircle2 className="text-primary-600 size-5 shrink-0" />
+                )}
+              </button>
+              {intlStatus !== "hidden" &&
+                (intlStatus === "active" ? (
+                  <button
+                    type="button"
+                    onClick={() => setMethod("intl")}
+                    className={cn(
+                      "flex w-full items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 text-start transition-colors",
+                      method === "intl"
+                        ? "border-primary-400 bg-primary-50/50"
+                        : "border-border"
+                    )}
+                  >
+                    <span
+                      className={cn(
+                        "grid size-9 shrink-0 place-items-center rounded-[10px]",
+                        method === "intl"
+                          ? "bg-primary-600 text-white"
+                          : "bg-surface-2 text-subtle"
+                      )}
+                    >
+                      <Globe className="size-4.5" />
                     </span>
-                    <span className="text-muted block text-[11px] font-semibold">
-                      {t("payIntlSoon")}
+                    <span className="min-w-0 flex-1">
+                      <span className="text-foreground block text-sm font-extrabold">
+                        {t("payIntl")}
+                      </span>
+                      <span className="text-muted block text-[11px] font-semibold">
+                        {t("payIntlSub")}
+                      </span>
                     </span>
-                  </span>
-                </div>
-              )}
+                    {method === "intl" && (
+                      <CheckCircle2 className="text-primary-600 size-5 shrink-0" />
+                    )}
+                  </button>
+                ) : (
+                  <div className="border-border flex items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 opacity-55">
+                    <span className="bg-surface-2 text-subtle grid size-9 shrink-0 place-items-center rounded-[10px]">
+                      <Globe className="size-4.5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="text-foreground block text-sm font-extrabold">
+                        {t("payIntl")}
+                      </span>
+                      <span className="text-muted block text-[11px] font-semibold">
+                        {t("payIntlSoon")}
+                      </span>
+                    </span>
+                  </div>
+                ))}
             </div>
 
             <button
@@ -270,6 +359,19 @@ export function GuestPayView({
           </>
         )}
       </Card>
+
+      {/* Feuille Stripe EMBARQUÉE (Payment Element / PaymentSheet native). */}
+      {intlIntent && (
+        <IntlPaymentSheet
+          intent={intlIntent}
+          onSuccess={() => {
+            setIntlIntent(null);
+            setStripeDone(true);
+            void fetchInfo();
+          }}
+          onClose={() => setIntlIntent(null)}
+        />
+      )}
     </Screen>
   );
 }

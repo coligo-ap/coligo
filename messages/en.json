@@ -959,7 +959,11 @@
     "payPendingConfirm": "Confirming payment…",
     "payFailedBanner": "Payment failed. Try again.",
     "payExpired": "This link is no longer active",
-    "payExpiredDesc": "The linked order was cancelled — ask the host to resend."
+    "payExpiredDesc": "The linked order was cancelled — ask the host to resend.",
+    "roomPayTitle": "Order awaiting payment",
+    "roomPayDesc": "Anyone in the group can pay — Algerian or international card.",
+    "roomPayCta": "Pay the order",
+    "payIntlSub": "Visa / Mastercard — secure payment in €"
   },
   "referral": {
     "title": "Referral",
