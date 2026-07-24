@@ -1,9 +1,17 @@
+import { cookies } from "next/headers";
 import {
   listMerchantCategories,
   listPublicMerchants,
   getPromoLabelsByMerchant,
 } from "@/lib/data/merchants-public";
-import { getActiveBanners } from "@/lib/data/promo-banners";
+import {
+  getActiveBanners,
+  type BannerViewerLocation,
+} from "@/lib/data/promo-banners";
+import {
+  LOCATION_COOKIE,
+  parseLocationCookie,
+} from "@/lib/customer/location-cookie";
 import { getMyFavoriteIds } from "@/lib/data/favorites";
 import { getMyReviewableOrders } from "@/lib/data/reviews";
 import {
@@ -67,6 +75,22 @@ export default async function CustomerHomePage() {
   const hasCoords =
     customerCoords?.latitude != null && customerCoords?.longitude != null;
 
+  // Position pour le CIBLAGE DES BANNIÈRES, filtrée CÔTÉ SERVEUR (comme Uber/
+  // Bolt) : on lit d'abord le cookie miroir de la position LIVE du navigateur
+  // (écrit par writeStoredLocation) → le SSR renvoie déjà la bonne bannière, sans
+  // afficher puis retirer celle d'une autre ville ni refaire une requête client.
+  // Repli : adresse enregistrée du client connecté (puis rien = bannières
+  // globales pour un visiteur sans position).
+  const cookieLoc = parseLocationCookie(
+    (await cookies()).get(LOCATION_COOKIE)?.value
+  );
+  const bannerLoc: BannerViewerLocation = cookieLoc ?? {
+    lat: customerCoords?.latitude ?? null,
+    lng: customerCoords?.longitude ?? null,
+    wilaya: customer?.default_wilaya_code ?? null,
+    commune: customer?.default_commune ?? null,
+  };
+
   const [fallback, categories, banners, reviewableOrders, favoriteIds] =
     await Promise.all([
       // Avec coords → liste déjà filtrée par rayon et triée par proximité.
@@ -80,15 +104,10 @@ export default async function CustomerHomePage() {
           : { limit: 24 }
       ),
       listMerchantCategories(),
-      // Ciblage par ZONE : on transmet la position + wilaya/commune du client
-      // (les bannières sans zone restent globales ; un visiteur sans position
-      // ne voit que les globales).
-      getActiveBanners({
-        lat: customerCoords?.latitude ?? null,
-        lng: customerCoords?.longitude ?? null,
-        wilaya: customer?.default_wilaya_code ?? null,
-        commune: customer?.default_commune ?? null,
-      }),
+      // Ciblage par ZONE côté serveur avec la position live (cookie) — repli
+      // adresse enregistrée. Bannières sans zone = globales ; visiteur sans
+      // position = globales seulement.
+      getActiveBanners(bannerLoc),
       getMyReviewableOrders(1),
       getMyFavoriteIds(),
     ]);
@@ -157,15 +176,7 @@ export default async function CustomerHomePage() {
               liste des commerces) PRIME dès qu'elle diffère → un client à
               Béjaïa ne voit jamais les offres d'Alger restées dans son adresse
               enregistrée. Si live == SSR, aucun refetch (cache d'abord). */}
-          <PromoBanner
-            banners={banners}
-            ssrLocation={{
-              lat: customerCoords?.latitude ?? null,
-              lng: customerCoords?.longitude ?? null,
-              wilaya: customer?.default_wilaya_code ?? null,
-              commune: customer?.default_commune ?? null,
-            }}
-          />
+          <PromoBanner banners={banners} ssrLocation={bannerLoc} />
 
           {/* Commerces près de toi. */}
           {/* ⚠️ PAS de <Suspense fallback={null}> autour de ces blocs (ni des

@@ -57,7 +57,6 @@ export function PromoBannerClient({
   initial: PromoBanner[];
   ssrLocation: BannerViewerLocation;
 }) {
-  const [banners, setBanners] = useState<PromoBanner[]>(initial);
   const loc = useCustomerLocation();
 
   const live: Live = {
@@ -69,11 +68,14 @@ export function PromoBannerClient({
   const liveKnown = live.lat != null || !!live.wilaya;
   const refilter = liveKnown && locationDiffers(live, ssrLocation);
 
+  // Résultat re-ciblé sur la position live — UNIQUEMENT quand elle diffère du
+  // SSR (cookie absent/périmé). Cas normal (cookie à jour) : refilter=false,
+  // aucune requête client, le SSR fait foi.
+  const [refiltered, setRefiltered] = useState<PromoBanner[] | null>(null);
+
   useEffect(() => {
-    // Position live alignée sur le SSR (ou inconnue) : le résultat serveur fait
-    // foi — y compris quand le SSR se rafraîchit avec une nouvelle adresse.
     if (!refilter) {
-      setBanners(initial);
+      setRefiltered(null);
       return;
     }
     let cancelled = false;
@@ -83,13 +85,18 @@ export function PromoBannerClient({
       wilaya: live.wilaya,
       commune: live.commune,
     }).then((b) => {
-      if (!cancelled) setBanners(b);
+      if (!cancelled) setRefiltered(b);
     });
     return () => {
       cancelled = true;
     };
-  }, [refilter, live.lat, live.lng, live.wilaya, live.commune, initial]);
+  }, [refilter, live.lat, live.lng, live.wilaya, live.commune]);
 
-  if (!banners.length) return null;
-  return <PromoBannerCarousel banners={banners} />;
+  // Quand on re-cible, on N'AFFICHE PAS le résultat SSR (position d'une autre
+  // ville possible) : on attend les bonnes bannières → aucune bannière qui
+  // apparaît puis disparaît. Sinon le SSR fait foi.
+  const shown = refilter ? (refiltered ?? []) : initial;
+
+  if (!shown.length) return null;
+  return <PromoBannerCarousel banners={shown} />;
 }

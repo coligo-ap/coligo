@@ -1,6 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import {
+  LOCATION_COOKIE,
+  LOCATION_COOKIE_MAX_AGE,
+  encodeLocationCookie,
+} from "@/lib/customer/location-cookie";
 
 // =============================================================================
 // Localisation préférée du client (persistée en localStorage côté navigateur,
@@ -50,6 +55,23 @@ export function openLocationPicker(): void {
   window.dispatchEvent(new CustomEvent(LOCATION_PICKER_OPEN_EVENT));
 }
 
+/**
+ * Miroir de la position dans un cookie lisible par le SSR (voir location-cookie).
+ * Permet à l'accueil de cibler les bannières AVEC la vraie position live dès le
+ * rendu serveur. No-op hors navigateur. Best-effort (cookies désactivés → le SSR
+ * retombe sur l'adresse enregistrée + repli client).
+ */
+function setLocationCookie(loc: CustomerLocation): void {
+  if (typeof document === "undefined") return;
+  try {
+    document.cookie =
+      `${LOCATION_COOKIE}=${encodeLocationCookie(loc)}; ` +
+      `path=/; max-age=${LOCATION_COOKIE_MAX_AGE}; samesite=lax`;
+  } catch {
+    /* cookies bloqués (mode privé strict) — sans effet */
+  }
+}
+
 export function readStoredLocation(): CustomerLocation | null {
   if (typeof window === "undefined") return null;
   try {
@@ -87,6 +109,8 @@ export function writeStoredLocation(loc: Partial<CustomerLocation>): void {
     updated_at: new Date().toISOString(),
   };
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+  // Miroir cookie → le SSR de l'accueil cible les bannières sur cette position.
+  setLocationCookie(merged);
   // Broadcast à d'autres composants/onglets (header, home, search).
   window.dispatchEvent(
     new CustomEvent("coligo:location:change", { detail: merged })
@@ -153,7 +177,12 @@ export function writeDriveDeparture(
 export function useCustomerLocation(): CustomerLocation | null {
   const [loc, setLoc] = useState<CustomerLocation | null>(null);
   useEffect(() => {
-    setLoc(readStoredLocation());
+    const stored = readStoredLocation();
+    setLoc(stored);
+    // Aligne le cookie SSR sur le localStorage dès le montage → les clients
+    // déjà localisés (avant l'ajout du cookie) l'obtiennent sans rien changer,
+    // et la prochaine navigation/refresh rend directement la bonne bannière.
+    if (stored) setLocationCookie(stored);
     const onChange = (e: Event) => {
       const ce = e as CustomEvent<CustomerLocation>;
       setLoc(ce.detail ?? readStoredLocation());
