@@ -120,6 +120,8 @@ function describe(
       return { label: t("entryTopupCredit") };
     case "voucher_credit":
       return { label: t("entryVoucherCredit") };
+    case "referral_credit":
+      return { label: t("entryReferralCredit") };
     case "topup_spent":
       return { label: t("entryTopupSpent") };
     case "transfer_in":

@@ -12,6 +12,7 @@ import {
   Fingerprint,
   FolderOpen,
   Gauge,
+  Gift,
   Globe,
   Image as ImageIcon,
   LayoutDashboard,
@@ -475,6 +476,12 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Bons d'achat",
             icon: Ticket,
             keywords: ["voucher", "cadeau", "avoir"],
+          },
+          {
+            href: "/admin/marketing/parrainage",
+            label: "Parrainage",
+            icon: Gift,
+            keywords: ["referral", "invitation", "filleul", "récompense"],
           },
           {
             href: "/admin/marketing/notifications",

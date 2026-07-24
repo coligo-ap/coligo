@@ -21,17 +21,24 @@ import {
 // Si un conflit ouvre la modale, il renvoie `false`.
 // =============================================================================
 
-type AddMerchant = {
+export type AddMerchant = {
   id: string;
   slug: string;
   name: string;
   logo_url?: string | null;
 };
-type CartAddCtx = {
+export type CartAddCtx = {
   requestAdd: (merchant: AddMerchant, item: AddItemInput) => boolean;
 };
 
-const Ctx = createContext<CartAddCtx | null>(null);
+/**
+ * Exporté pour permettre un provider ALTERNATIF (panier partagé invité :
+ * `SharedCartAddProvider` fournit le même contrat `requestAdd` mais pousse
+ * vers le panier partagé serveur au lieu du localStorage) — tout le catalogue
+ * (ProductDetailSheet, product-row…) fonctionne alors sans modification.
+ */
+export const CartAddContext = createContext<CartAddCtx | null>(null);
+const Ctx = CartAddContext;
 
 /**
  * Accès à l'ajout panier protégé mono-commerçant. Fallback hors provider :

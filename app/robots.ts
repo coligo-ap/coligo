@@ -25,6 +25,9 @@ const PRIVATE_PATHS = [
   "/offline",
   "/wallet",
   "/t/",
+  "/r/",
+  "/p/",
+  "/payer/",
   // Espace client connecté
   "/compte",
   "/checkout",
@@ -37,6 +40,7 @@ const PRIVATE_PATHS = [
   "/codes-promo",
   "/course",
   "/drive",
+  "/parrainage",
   // Espace commerçant
   "/dashboard",
   "/catalog",

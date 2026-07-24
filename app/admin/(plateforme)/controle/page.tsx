@@ -59,6 +59,21 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Icône scan dans la recherche d'une boutique : le client scanne un produit → recherche dans le catalogue de CE commerçant.",
   },
   {
+    key: "shared_cart",
+    label: "Panier partagé",
+    hint: "Panier collaboratif par lien WhatsApp (/p/…) : invités sans compte, commande finale sur le compte du capitaine. Masqué = bouton retiré + RPC invités coupées.",
+  },
+  {
+    key: "intl_card",
+    label: "Carte internationale (invité payeur)",
+    hint: "Sélecteur Visa/Mastercard sur la page de paiement invité du panier partagé. « Bientôt » = affiché grisé ; s'activera quand la passerelle internationale sera branchée.",
+  },
+  {
+    key: "referral",
+    label: "Parrainage client",
+    hint: "Programme « Invite un ami » : lien /r/CODE, crédit Coligo Pay double à la 1ʳᵉ commande du filleul. Les montants et plafonds se règlent dans Marketing → Parrainage. Masqué = page client retirée + attributions gelées.",
+  },
+  {
     key: "identity_verification",
     label: "Vérification d'identité (IDV)",
     hint: "Kill-switch du parcours automatisé document + selfie (scan, liveness, comparaison du visage). Masqué = retiré partout. Les règles par profil et les seuils se pilotent dans Confiance → Identité.",

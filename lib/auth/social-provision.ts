@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { isValidContactPhone } from "@/lib/dz/phone";
+import { attachReferralForNewCustomer } from "@/lib/referral/attach";
 
 /**
  * Ce qu'il faut faire APRÈS une connexion sociale réussie, quelle qu'en soit la
@@ -73,13 +74,23 @@ export async function provisionSocialUser(
     const fullName = String(
       meta.full_name || meta.name || user.email?.split("@")[0] || "Client"
     ).slice(0, 80);
-    await supabase.from("customers").insert({
-      user_id: user.id,
-      full_name: fullName,
-      email: user.email ?? null,
-      phone: null,
-    });
+    const { data: created } = await supabase
+      .from("customers")
+      .insert({
+        user_id: user.id,
+        full_name: fullName,
+        email: user.email ?? null,
+        phone: null,
+      })
+      .select("id")
+      .maybeSingle();
     phone = null;
+
+    // Parrainage via cookie /r/CODE — même règle que l'inscription email :
+    // best-effort, ne bloque jamais le login social.
+    if (created?.id) {
+      await attachReferralForNewCustomer(created.id);
+    }
   }
 
   // Sans numéro valide (obligatoire) → page de saisie BLOQUANTE. Le middleware

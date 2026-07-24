@@ -23,6 +23,8 @@ type BroadcastMessage = {
   topic: string;
   event: string;
   payload: Record<string, unknown>;
+  /** false = canal PUBLIC (ex. panier partagé : le token EST la capacité). */
+  private?: boolean;
 };
 
 /** Découpe un tableau en lots de taille `size`. */
@@ -58,7 +60,7 @@ async function sendBroadcast(messages: BroadcastMessage[]): Promise<void> {
         // seul le partenaire propriétaire du topic peut s'abonner/recevoir. Le
         // service_role bypass la RLS à l'émission.
         body: JSON.stringify({
-          messages: batch.map((m) => ({ ...m, private: true })),
+          messages: batch.map((m) => ({ ...m, private: m.private ?? true })),
         }),
       });
       if (!res.ok && res.status !== 202) {
@@ -116,4 +118,28 @@ export async function broadcastToCouriers(
 /** Nom de canal personnel d'un livreur (à réutiliser côté client). */
 export function courierChannel(userId: string): string {
   return `courier:${userId}`;
+}
+
+/**
+ * PANIER PARTAGÉ — signal « quelque chose a changé » sur un canal PUBLIC
+ * `shared-cart:{token}` (les invités n'ont pas de compte ; le token du lien
+ * EST la capacité d'accès). Payload SANS AUCUNE donnée : les clients
+ * re-fetchent via la RPC token-validée `shared_cart_by_token`.
+ */
+export async function broadcastSharedCartBump(
+  shareToken: string
+): Promise<void> {
+  await sendBroadcast([
+    {
+      topic: sharedCartChannel(shareToken),
+      event: "bump",
+      payload: { at: Date.now() },
+      private: false,
+    },
+  ]);
+}
+
+/** Nom du canal public d'un panier partagé (à réutiliser côté client). */
+export function sharedCartChannel(shareToken: string): string {
+  return `shared-cart:${shareToken}`;
 }

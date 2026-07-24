@@ -8,10 +8,17 @@ import { getCurrentCustomerFull } from "@/lib/auth/customer";
 
 export const dynamic = "force-dynamic";
 
-export default async function CheckoutPage() {
+export default async function CheckoutPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ shared?: string }>;
+}) {
   // Auth obligatoire au checkout (PARTIE A). Session + profil mémoïsés
   // (partagés avec CustomerShell → pas de double auth ni requête redondante).
   if (!(await getAuthUser())) redirect("/se-connecter?next=/checkout");
+  // Panier PARTAGÉ (?shared=<cart_id>) : la commande créée sera liée au panier
+  // (locked → ordered) et l'option « Faire payer un proche » devient visible.
+  const sharedCartId = (await searchParams).shared ?? null;
   // Si l'utilisateur connecté est un MARCHAND, pas un client → on l'arrête.
   if (await getCurrentMerchant()) redirect("/dashboard");
 
@@ -39,6 +46,7 @@ export default async function CheckoutPage() {
           onlinePaymentPersonal={online.personal}
           coligoPayStatus={pay.status}
           cashbackStatus={cashback.status}
+          sharedCartId={sharedCartId}
         />
       </div>
     </CustomerShell>

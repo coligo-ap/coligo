@@ -71,10 +71,17 @@ export async function GET(request: Request) {
     console.error("[cron/expire-orders] stale claims:", staleErr.message);
   }
 
+  // 4) Attributions de parrainage `pending` périmées → `expired` (mig 0404).
+  const { data: refData, error: refErr } = await rpc("expire_referrals", {});
+  if (refErr) {
+    console.error("[cron/expire-orders] referrals:", refErr.message);
+  }
+
   return NextResponse.json({
     ok: true,
     expired: row?.expired ?? 0,
     unpaidOnlineExpired: unpaidRow?.expired ?? 0,
     staleClaimsReleased: typeof staleData === "number" ? staleData : 0,
+    referralsExpired: typeof refData === "number" ? refData : 0,
   });
 }

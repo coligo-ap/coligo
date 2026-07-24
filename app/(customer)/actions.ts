@@ -13,6 +13,7 @@ import {
   normalizeAlgerianPhone,
 } from "@/lib/validation/customer-auth";
 import { firstZodError } from "@/lib/validation/auth";
+import { attachReferralForNewCustomer } from "@/lib/referral/attach";
 import {
   listPublicMerchants,
   getPromoLabelsByMerchant,
@@ -187,14 +188,27 @@ export async function customerSignup(
   }
 
   const phoneE164 = normalizeAlgerianPhone(parsed.data.phone);
-  const { error: insErr } = await supabase.from("customers").insert({
-    user_id: data.user.id,
-    full_name: parsed.data.full_name,
-    phone: phoneE164,
-    email: parsed.data.email,
-  });
+  const { data: created, error: insErr } = await supabase
+    .from("customers")
+    .insert({
+      user_id: data.user.id,
+      full_name: parsed.data.full_name,
+      phone: phoneE164,
+      email: parsed.data.email,
+    })
+    .select("id")
+    .single();
   if (insErr) {
     return { error: `Création du profil client : ${insErr.message}` };
+  }
+
+  // Parrainage (champ du formulaire ou cookie /r/CODE) — best-effort : ne
+  // bloque jamais l'inscription, toutes les règles sont dans la RPC.
+  if (created?.id) {
+    await attachReferralForNewCustomer(
+      created.id,
+      formData.get("referral_code") as string | null
+    );
   }
 
   // Si Supabase a déjà créé une session (confirm email OFF), on redirige

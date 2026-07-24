@@ -557,6 +557,177 @@ export async function notifyCustomerTopup(input: {
   }
 }
 
+/**
+ * Rappel PANIER PARTAGÉ (cron quotidien, mig 0406) : le panier du capitaine
+ * expire dans moins de 24 h avec des articles dedans — commander ou perdre.
+ */
+export async function notifySharedCartReminder(input: {
+  customerId: string;
+  merchantName: string;
+  shareToken: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", input.customerId)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const title = "Ton panier partagé expire bientôt";
+    const body = `Le panier ${input.merchantName} se ferme dans moins de 24 h — passe la commande avant qu'il expire.`;
+    const route = `/p/${input.shareToken}`;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "shared_cart_reminder",
+      title,
+      body,
+      route,
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      { title, body },
+      { route, kind: "customer_shared_cart" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifySharedCartReminder failed:", err);
+  }
+}
+
+/**
+ * Pushes « récompense parrainage créditée » : parrain (récompense) + filleul
+ * (cadeau de bienvenue). Appelée après la qualification automatique (commande
+ * `completed`, triggers SQL mig 0403) ET par l'approbation admin d'un `held`.
+ */
+export async function notifyReferralRewarded(input: {
+  referrerCustomerId: string;
+  refereeCustomerId: string;
+  referrerAmountDa: number;
+  refereeAmountDa: number;
+}): Promise<void> {
+  const pushTo = async (
+    customerId: string,
+    title: string,
+    body: string,
+    route: string,
+    bellKind: string
+  ) => {
+    const admin = createAdminClient();
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", customerId)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: bellKind,
+      title,
+      body,
+      route,
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      { title, body },
+      { route, kind: "customer_referral" }
+    );
+  };
+
+  try {
+    if (input.referrerAmountDa > 0) {
+      await pushTo(
+        input.referrerCustomerId,
+        "Parrainage réussi",
+        `${formatDA(input.referrerAmountDa)} crédités sur votre Coligo Pay — votre invitation a porté ses fruits.`,
+        "/parrainage",
+        "referral_rewarded"
+      );
+    }
+    if (input.refereeAmountDa > 0) {
+      await pushTo(
+        input.refereeCustomerId,
+        "Cadeau de bienvenue",
+        `${formatDA(input.refereeAmountDa)} offerts sur votre Coligo Pay grâce à votre parrain.`,
+        "/coligo-pay",
+        "referral_gift"
+      );
+    }
+  } catch (err) {
+    console.warn("[fcm] notifyReferralRewarded failed:", err);
+  }
+}
+
+/**
+ * Si CETTE commande `completed` vient de qualifier un parrainage (T1→T2 SQL
+ * ont crédité les deux wallets dans la même transaction), pousse les notifs.
+ * Fenêtre courte sur `credited_at` : jamais de re-notification sur un
+ * re-passage de statut tardif. Fire-and-forget.
+ */
+export async function notifyReferralRewardedForOrder(
+  orderId: string
+): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    // Table hors types générés (mig 0403) → cast local du builder.
+    const from = admin.from.bind(admin) as unknown as (table: string) => {
+      select: (cols: string) => {
+        eq: (
+          col: string,
+          val: string
+        ) => {
+          eq: (
+            col: string,
+            val: string
+          ) => {
+            maybeSingle: () => Promise<{
+              data: {
+                referrer_customer_id: string;
+                referee_customer_id: string;
+                reward_referrer_da: number;
+                reward_referee_da: number;
+                credited_at: string | null;
+              } | null;
+            }>;
+          };
+        };
+      };
+    };
+    const { data } = await from("customer_referrals")
+      .select(
+        "referrer_customer_id, referee_customer_id, reward_referrer_da, reward_referee_da, credited_at"
+      )
+      .eq("qualifying_order_id", orderId)
+      .eq("status", "rewarded")
+      .maybeSingle();
+    if (!data?.credited_at) return;
+    if (Date.now() - new Date(data.credited_at).getTime() > 15 * 60 * 1000) {
+      return;
+    }
+
+    await notifyReferralRewarded({
+      referrerCustomerId: data.referrer_customer_id,
+      refereeCustomerId: data.referee_customer_id,
+      referrerAmountDa: data.reward_referrer_da,
+      refereeAmountDa: data.reward_referee_da,
+    });
+  } catch (err) {
+    console.warn("[fcm] notifyReferralRewardedForOrder failed:", err);
+  }
+}
+
 /** Libellés clients par statut — alignés sur la copy commerçant. */
 const STATUS_PUSH: Partial<
   Record<OrderStatus, { title: string; body: string }>
@@ -618,6 +789,13 @@ export async function notifyCustomerStatusChange(input: {
   newStatus: OrderStatus;
 }): Promise<void> {
   try {
+    // Une commande honorée peut venir de qualifier un parrainage (mig 0403) —
+    // point d'accroche UNIQUE : tous les chemins de complétion (commerçant,
+    // livreur, admin) passent par cette fonction.
+    if (input.newStatus === "completed") {
+      void notifyReferralRewardedForOrder(input.orderId);
+    }
+
     const admin = createAdminClient();
     const { data: order } = await admin
       .from("orders")

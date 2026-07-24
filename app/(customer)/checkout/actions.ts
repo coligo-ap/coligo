@@ -126,6 +126,13 @@ export type CreateOrderInput = {
    * la commande à l'adresse vue par le client.
    */
   delivery_quote_id?: string | null;
+  /**
+   * PANIER PARTAGÉ « Faire payer un proche » (mig 0405/0406) : crée la commande
+   * online `pending` SANS créer de session Chargily (personne ne l'ouvrirait
+   * ici — l'invité génère la sienne, token-validée, sur /payer/{ptoken}).
+   * Le webhook et toute la suite restent strictement identiques.
+   */
+  defer_payment?: boolean;
 };
 
 export type CreateOrderResult =
@@ -360,7 +367,10 @@ export async function createOrder(
     if (
       existing.payment_method === "online" &&
       existing.payment_status === "pending" &&
-      existing.total_da > 0
+      existing.total_da > 0 &&
+      // Paiement DIFFÉRÉ (panier partagé) : ne pas régénérer une session que
+      // personne n'ouvrira — l'invité crée la sienne sur /payer/{ptoken}.
+      !input.defer_payment
     ) {
       try {
         const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
@@ -1620,6 +1630,10 @@ export async function createOrder(
   // aucun paiement nécessaire → on bascule directement à `payment_status = paid`.
   // ---------------------------------------------------------------------------
   let checkoutUrl: string | undefined;
+  // Paiement DIFFÉRÉ (panier partagé « Faire payer un proche ») : commande
+  // online `pending` sans session Chargily — le commerçant doit rester muet
+  // exactement comme quand une session est ouverte mais pas encore payée.
+  let deferredOnline = false;
   if (input.payment_method === "online") {
     if (totalWithDelivery === 0) {
       // Le wallet couvre tout (livraison comprise) → aucun paiement Chargily.
@@ -1719,6 +1733,8 @@ export async function createOrder(
               : "Commande créée mais paiement indisponible.",
         };
       }
+    } else if (input.defer_payment) {
+      deferredOnline = true;
     } else {
       try {
         const { successUrl, failureUrl, webhookEndpoint } = buildCallbackUrls({
@@ -1762,7 +1778,8 @@ export async function createOrder(
   // confirmation du paiement. Le cash et l'online déjà soldé (cashback couvre
   // tout) notifient immédiatement.
   const onlineAwaitingPayment =
-    input.payment_method === "online" && checkoutUrl != null;
+    input.payment_method === "online" &&
+    (checkoutUrl != null || deferredOnline);
   if (!onlineAwaitingPayment) {
     void notifyMerchantNewOrder({
       merchantId: merchant.id,

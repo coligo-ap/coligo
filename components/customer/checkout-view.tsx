@@ -20,6 +20,7 @@ import {
   Sparkles,
   Store,
   Tag,
+  Users,
   Wallet,
   X,
   Zap,
@@ -68,6 +69,10 @@ import {
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
 import { joinIntlWaitlist } from "@/app/(customer)/checkout/intl-actions";
 import {
+  attachOrderToSharedCart,
+  createGuestPaymentLink,
+} from "@/app/(customer)/panier-partage/actions";
+import {
   IntlPaymentSheet,
   type StripeIntentPayload,
 } from "@/components/customer/intl-payment-sheet";
@@ -103,6 +108,8 @@ type Props = {
   onlinePaymentPersonal?: boolean;
   coligoPayStatus?: FeatureStatus;
   cashbackStatus?: FeatureStatus;
+  /** Panier PARTAGÉ (?shared=) : la commande créée lui sera liée. */
+  sharedCartId?: string | null;
 };
 
 export function CheckoutView({
@@ -111,6 +118,7 @@ export function CheckoutView({
   onlinePaymentPersonal = false,
   coligoPayStatus = "active",
   cashbackStatus = "active",
+  sharedCartId = null,
 }: Props) {
   // Raccourcis de disponibilité (super-admin).
   const onlineVisible = onlinePaymentStatus !== "hidden";
@@ -119,6 +127,7 @@ export function CheckoutView({
   const cashbackOn = cashbackStatus === "active";
   const t = useTranslations("checkout");
   const tc = useTranslations("cart");
+  const tShared = useTranslations("sharedCart");
   const locale = useLocale();
   const router = useRouter();
   const cart = useCart();
@@ -131,6 +140,13 @@ export function CheckoutView({
   const [chosenSlotIdx, setChosenSlotIdx] = useState<number | null>(null);
   const [chosenDayKey, setChosenDayKey] = useState<string | null>(null);
   const [payment, setPayment] = useState<PaymentMethod>("cash");
+  // Panier partagé : « Faire payer un proche » — commande online SANS ouvrir
+  // Chargily ici (defer_payment) ; l'invité paie via /payer/{ptoken}.
+  const [guestPays, setGuestPays] = useState(false);
+  const [guestPayShare, setGuestPayShare] = useState<{
+    ptoken: string;
+    shareToken: string;
+  } | null>(null);
   // Rail du paiement en ligne : Chargily (CIB/EDAHABIA, DA) ou Stripe (carte
   // internationale, €). Le taux de change n'apparaît JAMAIS ici — le client
   // voit son total en DA, le montant € s'affiche sur la page Stripe.
@@ -564,9 +580,29 @@ export function CheckoutView({
         topup_to_use_da: useTopup && coligoPayOn ? topupApplied : 0,
         promo_code: appliedPromo?.code ?? null,
         device_id: getDeviceId(),
+        defer_payment: guestPays || undefined,
       });
       if (!res.ok) {
         setSubmitError(res.error);
+        return;
+      }
+      // Panier PARTAGÉ : lier la commande dès sa création (locked → ordered),
+      // quel que soit le mode de paiement — le webhook ne change rien ici.
+      // Attendu (pas fire-and-forget) : le lien de paiement invité exige que
+      // le panier soit passé `ordered` avant de générer le token.
+      if (sharedCartId) {
+        await attachOrderToSharedCart(sharedCartId, res.order_id);
+      }
+      // « Faire payer un proche » : pas de Chargily ici — on génère le lien
+      // public /payer/{ptoken} et on ouvre l'écran de partage WhatsApp.
+      if (guestPays && sharedCartId) {
+        const link = await createGuestPaymentLink(sharedCartId);
+        if (!link.ok) {
+          setSubmitError(link.error);
+          return;
+        }
+        clearCart();
+        setGuestPayShare({ ptoken: link.ptoken, shareToken: link.shareToken });
         return;
       }
       if (payment === "online" && res.stripe_intent) {
@@ -1022,8 +1058,11 @@ export function CheckoutView({
           >
             <PayCard
               icon={Banknote}
-              selected={payment === "cash"}
-              onClick={() => setPayment("cash")}
+              selected={payment === "cash" && !guestPays}
+              onClick={() => {
+                setPayment("cash");
+                setGuestPays(false);
+              }}
               title={isDelivery ? t("cashOnDelivery") : t("cashOnPickup")}
               sub={isDelivery ? t("cashDeliverySub") : t("cashPickupSub")}
               disabled={!ctx.merchant.accepts_cash}
@@ -1040,11 +1079,16 @@ export function CheckoutView({
             {onlineVisible && (
               <PayCard
                 icon={CreditCard}
-                selected={payment === "online" && onlineRail === "chargily"}
+                selected={
+                  payment === "online" &&
+                  onlineRail === "chargily" &&
+                  !guestPays
+                }
                 onClick={() => {
                   if (!onlineUsable) return;
                   setPayment("online");
                   setOnlineRail("chargily");
+                  setGuestPays(false);
                 }}
                 title={t("online")}
                 bolt
@@ -1069,6 +1113,37 @@ export function CheckoutView({
                 className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
               />
             )}
+            {/* Panier PARTAGÉ : un proche paie à distance (lien /payer). */}
+            {sharedCartId && onlineVisible && (
+              <PayCard
+                icon={Users}
+                selected={guestPays}
+                onClick={() => {
+                  if (!onlineUsable || !ctx.merchant.accepts_online) return;
+                  setPayment("online");
+                  setOnlineRail("chargily");
+                  setGuestPays(true);
+                }}
+                title={tShared("payLinkTitle")}
+                sub={
+                  onlineUsable && ctx.merchant.accepts_online
+                    ? tShared("payLinkSub")
+                    : "Bientôt"
+                }
+                disabled={!ctx.merchant.accepts_online || !onlineUsable}
+                chip={
+                  cashbackOn && cashbackEarnOnline > 0
+                    ? t("cashbackChip", {
+                        amount: formatDA(cashbackEarnOnline),
+                      })
+                    : t("noCashbackChip")
+                }
+                chipTone={
+                  cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
+                }
+                className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
+              />
+            )}
             {/* Carte internationale € — visible UNIQUEMENT si le serveur l'a
                 jugée éligible (flag + pays IP + plafonds). Aucun taux ni
                 montant € ici : le client paie son total en DA, la conversion
@@ -1076,11 +1151,16 @@ export function CheckoutView({
             {onlineVisible && onlineUsable && ctx.intl_payment.available && (
               <PayCard
                 icon={Globe}
-                selected={payment === "online" && onlineRail === "stripe_eur"}
+                selected={
+                  payment === "online" &&
+                  onlineRail === "stripe_eur" &&
+                  !guestPays
+                }
                 onClick={() => {
                   if (!ctx.merchant.accepts_online) return;
                   setPayment("online");
                   setOnlineRail("stripe_eur");
+                  setGuestPays(false);
                 }}
                 title={t("intlCard")}
                 sub={t("intlCardSub")}
@@ -1633,6 +1713,92 @@ export function CheckoutView({
           }
         />
       )}
+
+      {/* « Faire payer un proche » : commande créée, lien de paiement prêt —
+          écran de partage plein écran (WhatsApp / copie / retour room). */}
+      {guestPayShare && (
+        <GuestPayShareOverlay
+          ptoken={guestPayShare.ptoken}
+          shareToken={guestPayShare.shareToken}
+          merchantName={cart.merchant_name ?? ""}
+        />
+      )}
+    </div>
+  );
+}
+
+/** Écran de partage du lien de paiement invité (panier partagé). */
+function GuestPayShareOverlay({
+  ptoken,
+  shareToken,
+  merchantName,
+}: {
+  ptoken: string;
+  shareToken: string;
+  merchantName: string;
+}) {
+  const tShared = useTranslations("sharedCart");
+  const router = useRouter();
+  const [copied, setCopied] = useState(false);
+  const base = (
+    process.env.NEXT_PUBLIC_APP_URL ?? "https://coligo.app"
+  ).replace(/\/+$/, "");
+  const link = `${base}/payer/${ptoken}`;
+  const waHref = `https://wa.me/?text=${encodeURIComponent(
+    tShared("waPayMsg", { merchant: merchantName, link })
+  )}`;
+
+  return (
+    <div className="bg-surface fixed inset-0 z-[96] flex items-center justify-center px-5">
+      <div className="w-full max-w-sm text-center">
+        <span className="bg-success-50 text-success-600 mx-auto grid size-16 place-items-center rounded-3xl">
+          <Check className="size-8" />
+        </span>
+        <h2 className="text-foreground mt-4 text-xl font-extrabold tracking-tight">
+          {tShared("payLinkReady")}
+        </h2>
+        <p className="text-muted mt-1.5 text-sm font-medium">
+          {tShared("payLinkReadyDesc")}
+        </p>
+
+        <a
+          href={waHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-4 text-base font-extrabold text-white shadow-[0_10px_24px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98]"
+        >
+          {tShared("payLinkWhatsapp")}
+        </a>
+        <button
+          type="button"
+          onClick={async () => {
+            try {
+              await navigator.clipboard.writeText(link);
+              setCopied(true);
+              setTimeout(() => setCopied(false), 1600);
+            } catch {
+              /* clipboard indisponible */
+            }
+          }}
+          className="border-border text-foreground mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-[14px] border-2 px-4 py-3.5 text-sm font-extrabold transition active:scale-[0.98]"
+        >
+          {copied ? (
+            <>
+              <Check className="text-success-600 size-4" />
+              {tShared("copied")}
+            </>
+          ) : (
+            tShared("copyLink")
+          )}
+        </button>
+        <button
+          type="button"
+          onClick={() => router.push(`/p/${shareToken}`)}
+          className="text-muted hover:text-foreground mt-3 text-sm font-bold transition"
+        >
+          {tShared("backToSharedCart")}
+        </button>
+      </div>
     </div>
   );
 }

@@ -10,12 +10,15 @@ import {
   ChevronUp,
   Copy,
   Gift,
+  Loader2,
   Minus,
   Plus,
   ShoppingCart,
   Ticket,
   Trash2,
+  Users,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
@@ -32,16 +35,63 @@ import { toEnginePromotions } from "@/lib/promotions/cart-summary";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
+import {
+  createSharedCartFromLocal,
+  getOpenSharedCart,
+} from "@/app/(customer)/panier-partage/actions";
 import type { PublicPromotion } from "@/lib/data/customer-catalog";
 
-export function CartView() {
+export function CartView({
+  sharedCartEnabled = false,
+}: {
+  /** Panier partagé actif (kill-switch super-admin, mig 0405). */
+  sharedCartEnabled?: boolean;
+}) {
   const t = useTranslations("cart");
+  const tsc = useTranslations("sharedCart");
+  const router = useRouter();
   const locale = useLocale();
   const isAr = locale === "ar";
   const confirm = useConfirm();
   const [detailOpen, setDetailOpen] = useState(false);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
   const cart = useCart();
   const empty = cart.items.length === 0;
+
+  // « Inviter la famille » : reprend un panier partagé encore OUVERT chez ce
+  // commerçant, sinon en crée un à partir du panier local, puis ouvre la room.
+  const inviteFamily = async () => {
+    if (!cart.merchant_id || inviteBusy) return;
+    setInviteError(null);
+    setInviteBusy(true);
+    try {
+      const existing = await getOpenSharedCart(cart.merchant_id);
+      if (existing) {
+        router.push(`/p/${existing.token}`);
+        return;
+      }
+      const res = await createSharedCartFromLocal({
+        merchant_id: cart.merchant_id,
+        items: cart.items.map((i) => ({
+          product_id: i.product_id,
+          option_ids: (i.options ?? []).map((o) => o.option_id),
+          quantity: i.quantity,
+        })),
+      });
+      if (res.ok) {
+        router.push(`/p/${res.token}`);
+        return;
+      }
+      if (res.reason === "not_a_customer") {
+        router.push("/se-connecter?next=/cart");
+        return;
+      }
+      setInviteError(res.error);
+    } finally {
+      setInviteBusy(false);
+    }
+  };
 
   // Promotions actives du commerçant du panier (réduction / offre quantité /
   // code). On applique LE MÊME moteur que le checkout → mêmes prix partout.
@@ -586,6 +636,28 @@ export function CartView() {
             {t("checkout")}
             <ArrowRight className="size-5 rtl:-scale-x-100" />
           </Link>
+          {sharedCartEnabled && (
+            <>
+              <button
+                type="button"
+                onClick={() => void inviteFamily()}
+                disabled={inviteBusy}
+                className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-[10px] border-2 text-[15px] font-extrabold transition-colors disabled:opacity-60"
+              >
+                {inviteBusy ? (
+                  <Loader2 className="size-4.5 animate-spin" />
+                ) : (
+                  <Users className="size-4.5" />
+                )}
+                {tsc("inviteCta")}
+              </button>
+              {inviteError && (
+                <p className="text-center text-xs font-medium text-rose-600">
+                  {inviteError}
+                </p>
+              )}
+            </>
+          )}
         </div>
       </div>
     </div>

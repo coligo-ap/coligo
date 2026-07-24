@@ -297,6 +297,15 @@ export default async function CustomerAccountPage({
             title={t("promosCodes")}
             subtitle={t("promosCodesDesc")}
           />
+          {flags.referral.status !== "hidden" && (
+            <MenuRow
+              href="/parrainage"
+              tone="promo"
+              icon={<Gift className="size-[19px]" />}
+              title={t("referralRow")}
+              subtitle={t("referralRowDesc")}
+            />
+          )}
         </div>
 
         {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré. */}

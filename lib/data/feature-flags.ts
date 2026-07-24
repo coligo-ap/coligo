@@ -22,7 +22,10 @@ export type FeatureKey =
   | "tour"
   | "barcode_marketplace"
   | "barcode_merchant"
-  | "identity_verification";
+  | "identity_verification"
+  | "referral"
+  | "shared_cart"
+  | "intl_card";
 export type FeatureStatus = "active" | "hidden" | "coming_soon" | "maintenance";
 
 export type FeatureFlag = {
@@ -50,6 +53,9 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "barcode_marketplace",
   "barcode_merchant",
   "identity_verification",
+  "referral",
+  "shared_cart",
+  "intl_card",
 ];
 
 function defaultFlag(key: FeatureKey): FeatureFlag {

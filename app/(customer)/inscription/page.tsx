@@ -12,6 +12,7 @@ import { AuthScreen } from "@/components/shared/auth-screen";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { SocialAuth } from "@/components/customer/social-auth";
+import { ReferralCodeField } from "@/components/customer/referral/referral-code-field";
 import {
   customerSignup,
   type CustomerAuthState,
@@ -39,6 +40,7 @@ function CustomerSignupInner() {
     initialState
   );
   const params = useSearchParams();
+  const refCode = params.get("ref") ?? "";
   const rawNext = params.get("next") ?? "";
   const next =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
@@ -153,6 +155,8 @@ function CustomerSignupInner() {
           }}
           disabled={pending}
         />
+
+        <ReferralCodeField initialCode={refCode} disabled={pending} />
 
         {state.error && (
           <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
