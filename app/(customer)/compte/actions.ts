@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { normalizeContactPhone, DZ_PHONE_ERROR } from "@/lib/dz/phone";
 
@@ -379,6 +380,7 @@ export async function deleteMyCustomerAccount(): Promise<DeleteAccountState> {
 
   // 5) Fin de session locale (cookies) — le ban couvre les autres appareils.
   await supabase.auth.signOut();
+  await markSignedOut(); // ne jamais ressusciter un compte SUPPRIMÉ via la copie
   revalidatePath("/", "layout");
   return { done: true };
 }

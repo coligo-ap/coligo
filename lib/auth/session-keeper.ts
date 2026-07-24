@@ -2,6 +2,7 @@
 
 import { createClient } from "@/lib/supabase/client";
 import { isNative } from "@/lib/native/context";
+import { SIGNED_OUT_COOKIE } from "@/lib/auth/session-signout-marker";
 
 // =============================================================================
 // FILET DE SÉCURITÉ DE SESSION — « je reviens dans l'app et je suis déconnecté ».
@@ -75,6 +76,27 @@ async function writeBackup(b: Backup): Promise<void> {
   }
 }
 
+/**
+ * Lit + EFFACE le marqueur « déconnexion volontaire » posé par les Server
+ * Actions de logout. Présent ⇒ l'utilisateur s'est déconnecté exprès : on ne
+ * doit PAS restaurer la session depuis la copie (le JWT d'accès encore valide
+ * ~1 h la ressusciterait). On l'efface après lecture (une seule fois suffit).
+ */
+function consumeSignedOutMarker(): boolean {
+  if (typeof document === "undefined") return false;
+  try {
+    const present = document.cookie
+      .split("; ")
+      .some((c) => c.startsWith(`${SIGNED_OUT_COOKIE}=`));
+    if (present) {
+      document.cookie = `${SIGNED_OUT_COOKIE}=; path=/; max-age=0`;
+    }
+    return present;
+  } catch {
+    return false;
+  }
+}
+
 export async function clearSessionBackup(): Promise<void> {
   try {
     const p = prefs();
@@ -92,11 +114,16 @@ export async function clearSessionBackup(): Promise<void> {
  */
 export async function syncOrRestoreSession(): Promise<boolean> {
   try {
+    // Déconnexion VOLONTAIRE récente ? (marqueur posé par le logout serveur)
+    const signedOut = consumeSignedOutMarker();
+
     const supabase = createClient();
     const { data } = await supabase.auth.getSession();
     const session = data.session;
 
     if (session?.access_token && session?.refresh_token) {
+      // Session valide présente (ex. reconnexion) → la copie suit ; le marqueur
+      // éventuel a déjà été consommé, sans effet sur une session bien vivante.
       await writeBackup({
         access_token: session.access_token,
         refresh_token: session.refresh_token,
@@ -105,8 +132,15 @@ export async function syncOrRestoreSession(): Promise<boolean> {
       return false;
     }
 
-    // Pas de session visible : est-ce une VRAIE déconnexion, ou des cookies
-    // perdus au réveil ? La copie tranche.
+    // Pas de session visible. Si l'utilisateur vient de se déconnecter EXPRÈS,
+    // on PURGE la copie et on ne restaure PAS (sinon le JWT encore valide ~1 h
+    // ressusciterait la session fermée).
+    if (signedOut) {
+      await clearSessionBackup();
+      return false;
+    }
+
+    // Sinon : cookies perdus au réveil ? La copie tranche (cas légitime).
     const backup = await readBackup();
     if (!backup) return false;
 

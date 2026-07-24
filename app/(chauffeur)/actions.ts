@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
@@ -200,6 +201,7 @@ export async function chauffeurLogout(): Promise<{ error: string } | void> {
     /* best-effort — ne jamais empêcher la déconnexion */
   }
   await supabase.auth.signOut();
+  await markSignedOut();
   redirect("/chauffeur/login");
 }
 

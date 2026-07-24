@@ -1,6 +1,7 @@
 ﻿"use server";
 
 import { revalidatePath } from "next/cache";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -529,6 +530,7 @@ export async function completeSocialSignup(
 export async function logout() {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await markSignedOut();
   revalidatePath("/", "layout");
   redirect("/login");
 }

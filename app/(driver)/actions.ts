@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { revalidatePath } from "next/cache";
 import { getLocale } from "next-intl/server";
 import { z } from "zod";
@@ -245,6 +246,7 @@ export async function driverLogout(): Promise<{ error: string } | void> {
     /* best-effort — ne jamais empêcher la déconnexion */
   }
   await supabase.auth.signOut();
+  await markSignedOut();
   redirect("/driver/login");
 }
 

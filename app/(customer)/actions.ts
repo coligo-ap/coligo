@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/session";
@@ -1367,6 +1368,7 @@ export async function routeEstimate(input: {
 export async function customerLogout(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await markSignedOut();
   revalidatePath("/", "layout");
   redirect("/");
 }

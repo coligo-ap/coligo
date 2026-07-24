@@ -1,6 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
@@ -217,6 +218,7 @@ export async function partnerLogin(
 export async function partnerLogout(): Promise<void> {
   const supabase = await createClient();
   await supabase.auth.signOut();
+  await markSignedOut();
   redirect("/partenaire/login");
 }
 
