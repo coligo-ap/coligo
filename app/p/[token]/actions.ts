@@ -3,7 +3,14 @@
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { broadcastSharedCartBump } from "@/lib/realtime/broadcast";
-import { notifySharedCartPayRequest } from "@/lib/fcm/triggers";
+import {
+  notifySharedCartOrderPlaced,
+  notifySharedCartPayRequest,
+} from "@/lib/fcm/triggers";
+import {
+  createRoomOrder,
+  type RoomOrderResult,
+} from "@/lib/shared-cart/room-order";
 
 // =============================================================================
 // Actions INVITÉ du panier partagé — publiques (aucune session requise) : la
@@ -91,6 +98,59 @@ export async function guestSetQty(input: {
     p_quantity: input.quantity,
   });
   if (res.ok) void broadcastSharedCartBump(input.token);
+  return res;
+}
+
+/**
+ * « LE PREMIER QUI PAIE, PAIE » : un membre du groupe tape « Payer » — on crée
+ * la commande NOUS-MÊMES (compte du capitaine, retrait, en ligne — mêmes
+ * règles d'argent que le checkout, cf. lib/shared-cart/room-order) et on
+ * renvoie le lien /payer. Public : le token du lien EST la capacité, tout est
+ * revalidé serveur. Le capitaine est prévenu par push + bump temps réel.
+ */
+export async function guestOrderAndPay(input: {
+  token: string;
+}): Promise<RoomOrderResult> {
+  const res = await createRoomOrder(input.token);
+  if (res.ok) {
+    void broadcastSharedCartBump(input.token);
+    try {
+      const admin = createAdminClient();
+      const from = admin.from.bind(admin) as unknown as (t: string) => {
+        select: (c: string) => {
+          eq: (
+            col: string,
+            v: string
+          ) => {
+            maybeSingle: () => Promise<{
+              data: {
+                captain_customer_id: string;
+                merchant_id: string;
+              } | null;
+            }>;
+          };
+        };
+      };
+      const { data: cart } = await from("shared_carts")
+        .select("captain_customer_id, merchant_id")
+        .eq("share_token", input.token)
+        .maybeSingle();
+      if (cart) {
+        const { data: m } = await admin
+          .from("merchants")
+          .select("name")
+          .eq("id", cart.merchant_id)
+          .maybeSingle();
+        void notifySharedCartOrderPlaced({
+          customerId: cart.captain_customer_id,
+          merchantName: m?.name ?? "Coligo",
+          shareToken: input.token,
+        });
+      }
+    } catch (e) {
+      console.warn("[shared-cart] order placed push:", e);
+    }
+  }
   return res;
 }
 

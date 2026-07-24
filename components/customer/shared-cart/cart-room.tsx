@@ -34,7 +34,7 @@ import { setLocale } from "@/i18n/actions";
 import { addItem, clearMerchantCart } from "@/lib/customer/cart-store";
 import {
   guestJoin,
-  guestRequestPayment,
+  guestOrderAndPay,
   guestSetQty,
 } from "@/app/p/[token]/actions";
 import {
@@ -420,8 +420,11 @@ export function CartRoom({
     }
   };
 
-  // « Payer » du panier OUVERT : capitaine → checkout (verrouille + commande) ;
-  // invité → si la commande existe déjà on paie, sinon on PRÉVIENT le capitaine.
+  // « Payer » du panier OUVERT — LE PREMIER QUI PAIE, PAIE :
+  //   capitaine → checkout (il garde le choix cash/livraison) ;
+  //   invité → la COMMANDE est créée directement (compte du capitaine,
+  //   retrait, en ligne — mêmes règles d'argent que le checkout) puis la
+  //   page de paiement s'ouvre. Peu importe qui paie.
   const payFromOpen = async () => {
     if (isCaptain) {
       await order();
@@ -431,13 +434,17 @@ export function CartRoom({
     setNotice(null);
     setActionBusy("paybtn");
     try {
-      if (await payNow(true)) return;
-      const res = await guestRequestPayment({ token });
+      if (await payNow(true)) return; // une commande existait déjà
+      const res = await guestOrderAndPay({ token });
       if (res.ok) {
-        setNotice(t("payAskSent", { name: view.captain_name ?? t("captain") }));
-      } else {
-        setActionError(t("actionError"));
+        router.push(`/payer/${res.ptoken}`);
+        return;
       }
+      if (res.reason === "already_paid") {
+        void fetchView();
+        return;
+      }
+      setActionError(res.message);
     } finally {
       setActionBusy(null);
     }
@@ -918,7 +925,7 @@ export function CartRoom({
                       setJoinOpen(true);
                     }
                   }}
-                  className="border-primary-200 text-primary-700 flex-1 rounded-[14px] border-2 px-3 py-3 text-center text-sm font-extrabold transition active:scale-[0.98]"
+                  className="border-primary-200 text-primary-700 flex-1 rounded-[13px] border-2 px-3 py-2.5 text-center text-sm font-extrabold transition active:scale-[0.98]"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Plus className="size-4" />
@@ -930,7 +937,7 @@ export function CartRoom({
                     type="button"
                     onClick={() => void payFromOpen()}
                     disabled={actionBusy === "paybtn" || actionBusy === "order"}
-                    className="flex-1 rounded-[14px] bg-[#FF2D7A] px-3 py-3 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(255,45,122,0.55)] transition hover:bg-[#E6216D] active:scale-[0.98] disabled:opacity-60"
+                    className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[13px] border-2 border-transparent px-3 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       {actionBusy === "paybtn" || actionBusy === "order" ? (
@@ -949,7 +956,7 @@ export function CartRoom({
                 type="button"
                 onClick={() => void payNow()}
                 disabled={actionBusy === "roompay"}
-                className="flex-1 rounded-[14px] bg-[#FF2D7A] px-4 py-3 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(255,45,122,0.55)] transition hover:bg-[#E6216D] active:scale-[0.98] disabled:opacity-60"
+                className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[13px] border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
               >
                 <span className="inline-flex items-center gap-1.5">
                   {actionBusy === "roompay" ? (
@@ -970,7 +977,7 @@ export function CartRoom({
                   type="button"
                   onClick={() => void order()}
                   disabled={actionBusy === "order"}
-                  className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[14px] px-4 py-3 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                  className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[13px] border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     {actionBusy === "order" ? (

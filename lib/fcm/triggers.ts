@@ -603,6 +603,51 @@ export async function notifySharedCartPayRequest(input: {
 }
 
 /**
+ * PANIER PARTAGÉ — « le premier qui paie, paie » : un membre du groupe a
+ * déclenché LA commande (retrait, en ligne) sur le compte du capitaine — on
+ * l'en informe immédiatement.
+ */
+export async function notifySharedCartOrderPlaced(input: {
+  customerId: string;
+  merchantName: string;
+  shareToken: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", input.customerId)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const title = "Un proche règle la commande";
+    const body = `La commande ${input.merchantName} de ton panier partagé a été lancée (retrait) — elle démarre dès le paiement confirmé.`;
+    const route = `/p/${input.shareToken}`;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "shared_cart_order_placed",
+      title,
+      body,
+      route,
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      { title, body },
+      { route, kind: "customer_shared_cart" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifySharedCartOrderPlaced failed:", err);
+  }
+}
+
+/**
  * Rappel PANIER PARTAGÉ (cron quotidien, mig 0406) : le panier du capitaine
  * expire dans moins de 24 h avec des articles dedans — commander ou perdre.
  */
