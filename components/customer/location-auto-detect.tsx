@@ -54,6 +54,13 @@ const BOOT_DONE_KEY = "coligo:geo:boot-done";
 const REFRESH_THROTTLE_MS = 45_000;
 // En deçà de ce déplacement, on NE réécrit PAS (évite un refetch inutile).
 const MIN_MOVE_KM = 0.05; // 50 m
+// Absence (app en arrière-plan) au-delà de laquelle un RETOUR au premier plan est
+// traité comme une RÉOUVERTURE : on reprend la position GPS réelle comme défaut,
+// même par-dessus une zone choisie manuellement (règle produit « à la réouverture
+// = position actuelle »). En deçà (micro-bascule : dialog de permission, feuille
+// de partage, coup d'œil dans une autre app), on respecte le choix manuel en
+// cours. Aligné sur le seuil « longue absence » de useResumeResync.
+const REOPEN_GRACE_MS = 30_000;
 
 /** État de la permission Geolocation (sans jamais déclencher de prompt). */
 async function readPermission(): Promise<PermissionState | "unknown"> {
@@ -120,7 +127,7 @@ export function LocationAutoDetect() {
   const inFlightRef = useRef(false);
   const lastRunRef = useRef(0);
 
-  const run = useCallback(async (allowPrompt: boolean) => {
+  const run = useCallback(async (allowPrompt: boolean, resumeAwayMs = 0) => {
     if (typeof window === "undefined") return;
     if (!geolocationSupported()) return;
     if (inFlightRef.current) return;
@@ -140,11 +147,18 @@ export function LocationAutoDetect() {
       /* sessionStorage indispo — on reste sur le comportement de session */
     }
 
-    // Une zone choisie manuellement (ou legacy) ne se rafraîchit pas EN COURS
-    // DE SESSION. À l'OUVERTURE en revanche, la position par défaut redevient
-    // la position ACTUELLE (silencieux, uniquement si permission déjà accordée
-    // — jamais de prompt par-dessus un choix manuel).
-    if (hasPosition && current?.source !== "gps" && !isBoot) return;
+    // RÉOUVERTURE ? Démarrage à froid (nouvelle session : sessionStorage vide)
+    // OU retour au premier plan après une absence > grâce (l'app a été fermée /
+    // mise en arrière-plan un moment). Dans ces cas, la règle produit est « par
+    // défaut = position ACTUELLE ».
+    const reopen = isBoot || resumeAwayMs > REOPEN_GRACE_MS;
+
+    // Une zone choisie manuellement (ou legacy) ne se rafraîchit pas EN COURS DE
+    // SESSION (le client vient de décider, on ne lui reprend pas la main). MAIS à
+    // la RÉOUVERTURE, on repart de la position GPS RÉELLE comme défaut, même
+    // par-dessus un choix manuel — silencieusement, uniquement si la permission
+    // est déjà accordée (jamais de prompt par-dessus un choix manuel).
+    if (hasPosition && current?.source !== "gps" && !reopen) return;
 
     const permission = await readPermission();
 
@@ -211,9 +225,11 @@ export function LocationAutoDetect() {
     void run(true);
   }, [run]);
 
-  // À la reprise au premier plan (retour dans l'app) : refresh SILENCIEUX.
-  useResumeResync(() => {
-    void run(false);
+  // À la reprise au premier plan : refresh SILENCIEUX. On transmet la durée
+  // d'absence → une reprise après une absence > grâce est traitée comme une
+  // réouverture (reprend la position GPS réelle, même sur une zone manuelle).
+  useResumeResync((hiddenMs) => {
+    void run(false, hiddenMs);
   });
 
   return null;

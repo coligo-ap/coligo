@@ -37,7 +37,7 @@ import { probeConnectionAlive, waitForConnection } from "@/lib/net/probe";
 /** Absence au-delà de laquelle on ne fait plus confiance au socket. */
 const PROBE_AFTER_HIDDEN_MS = 30_000;
 
-export function useResumeResync(onResume: () => void): void {
+export function useResumeResync(onResume: (hiddenForMs: number) => void): void {
   const ref = useRef(onResume);
   useEffect(() => {
     ref.current = onResume;
@@ -62,7 +62,7 @@ export function useResumeResync(onResume: () => void): void {
       if (hiddenFor < PROBE_AFTER_HIDDEN_MS) {
         // Micro-bascule : socket présumé sain → resync immédiat (comportement
         // historique, zéro latence ajoutée).
-        ref.current();
+        ref.current(hiddenFor);
         return;
       }
 
@@ -80,7 +80,7 @@ export function useResumeResync(onResume: () => void): void {
         } finally {
           probing = false;
         }
-        ref.current();
+        ref.current(hiddenFor);
       })();
     };
 
