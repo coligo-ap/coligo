@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  ArrowLeft,
   ArrowRight,
   Check,
+  ChevronDown,
   Copy,
   Hourglass,
   Loader2,
@@ -133,10 +135,13 @@ export function CartRoom({
   token,
   isCaptain,
   appUrl,
+  showChrome = false,
 }: {
   token: string;
   isCaptain: boolean;
   appUrl: string;
+  /** CLIENT connecté : bouton retour + la nav basse est rendue par la page. */
+  showChrome?: boolean;
 }) {
   const t = useTranslations("sharedCart");
   const locale = useLocale();
@@ -152,6 +157,9 @@ export function CartRoom({
   const [actionBusy, setActionBusy] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  // Sections par participant OUVRANTES/FERMANTES — tout ouvert par défaut,
+  // l'en-tête (compte + sous-total) reste parlant une fois replié.
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [resyncNonce, setResyncNonce] = useState(0);
   const seenItems = useRef<Set<string>>(new Set());
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
@@ -370,13 +378,25 @@ export function CartRoom({
     it.unit && it.unit !== "piece" && !Number.isInteger(it.quantity) ? 0.5 : 1;
 
   return (
-    <div className="bg-surface-2 min-h-dvh pb-40">
+    <div
+      className={cn("bg-surface-2 min-h-dvh", showChrome ? "pb-56" : "pb-40")}
+    >
       {/* Micro-animation d'apparition des ajouts temps réel. */}
       <style>{`@keyframes scAdd{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}`}</style>
 
       {/* ── EN-TÊTE ── */}
       <header className="from-primary-500 via-primary-600 to-primary-800 bg-gradient-to-br px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-12 text-white">
         <div className="mx-auto flex max-w-lg items-center gap-3">
+          {showChrome && (
+            <button
+              type="button"
+              aria-label={t("backToCart")}
+              onClick={() => router.push(isCaptain ? "/cart" : "/")}
+              className="grid size-9 shrink-0 place-items-center rounded-full bg-white/15 transition-colors hover:bg-white/25"
+            >
+              <ArrowLeft className="size-4.5 rtl:-scale-x-100" />
+            </button>
+          )}
           {merchant?.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -397,9 +417,15 @@ export function CartRoom({
               {t("cartOf", { name: view.captain_name ?? t("captain") })}
             </p>
           </div>
-          {/* Langue FR/AR — page publique, invités WhatsApp. */}
-          <div className="flex shrink-0 gap-1 rounded-full bg-white/15 p-0.5 text-[11px] font-extrabold">
-            {(["fr", "ar"] as const).map((l) => (
+          {/* Langues (comme le sélecteur client existant) : FR / AR / EN. */}
+          <div className="flex shrink-0 gap-0.5 rounded-full bg-white/15 p-0.5 text-[11px] font-extrabold">
+            {(
+              [
+                ["fr", "FR"],
+                ["ar", "ع"],
+                ["en", "EN"],
+              ] as const
+            ).map(([l, label]) => (
               <button
                 key={l}
                 type="button"
@@ -411,7 +437,7 @@ export function CartRoom({
                   locale === l ? "text-primary-700 bg-white" : "text-white/85"
                 )}
               >
-                {l === "fr" ? "FR" : "ع"}
+                {label}
               </button>
             ))}
           </div>
@@ -606,22 +632,49 @@ export function CartRoom({
               key={member.id}
               className="bg-surface overflow-hidden rounded-[18px] shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
             >
-              <div className="flex items-center gap-2 px-3.5 pt-3 pb-1">
+              {/* En-tête OUVRANT/FERMANT : compte + sous-total toujours lisibles. */}
+              <button
+                type="button"
+                onClick={() =>
+                  setCollapsed((prev) => {
+                    const next = new Set(prev);
+                    if (next.has(member.id)) next.delete(member.id);
+                    else next.add(member.id);
+                    return next;
+                  })
+                }
+                className="flex w-full items-center gap-2 px-3.5 py-3 text-start"
+              >
                 <AvatarDot
                   name={memberName(member)}
                   colorIndex={member.color_index}
                   size="sm"
                 />
-                <p className="text-foreground text-[13px] font-extrabold">
+                <p className="text-foreground min-w-0 flex-1 truncate text-[13px] font-extrabold">
                   {t("addedBy", { name: memberName(member) })}
                 </p>
                 {member.id === myMemberId && (
-                  <span className="bg-primary-50 text-primary-700 rounded-full px-2 py-0.5 text-[10px] font-extrabold">
+                  <span className="bg-primary-50 text-primary-700 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold">
                     {t("you")}
                   </span>
                 )}
-              </div>
-              <ul className="divide-border divide-y">
+                <span className="text-muted shrink-0 text-[11px] font-bold tabular-nums">
+                  {mItems.length} ·{" "}
+                  {formatDA(mItems.reduce((s, i) => s + i.line_total_da, 0))}
+                </span>
+                <ChevronDown
+                  className={cn(
+                    "text-subtle size-4 shrink-0 transition-transform",
+                    collapsed.has(member.id) && "-rotate-90 rtl:rotate-90"
+                  )}
+                />
+              </button>
+              <ul
+                className={cn(
+                  "divide-border divide-y",
+                  collapsed.has(member.id) && "hidden"
+                )}
+              >
                 {mItems.map((it) => (
                   <li
                     key={it.id}
@@ -746,8 +799,15 @@ export function CartRoom({
         )}
       </main>
 
-      {/* ── BARRE BASSE : total + CTA ── */}
-      <div className="border-border bg-surface fixed inset-x-0 bottom-0 z-40 border-t px-4 pt-3 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]">
+      {/* ── BARRE BASSE : total + CTA — au-dessus de la nav client si coque ── */}
+      <div
+        className={cn(
+          "border-border bg-surface fixed inset-x-0 z-40 border-t px-4 pt-3",
+          showChrome
+            ? "bottom-[calc(env(safe-area-inset-bottom)+3.4rem)] pb-3 lg:bottom-0 lg:pb-[calc(env(safe-area-inset-bottom)+0.9rem)]"
+            : "bottom-0 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]"
+        )}
+      >
         <div className="mx-auto max-w-lg">
           <div className="mb-2.5 flex items-baseline justify-between">
             <span className="text-muted text-xs font-bold">{t("total")}</span>

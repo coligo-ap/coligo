@@ -3,9 +3,11 @@ import { notFound, redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { ArrowLeft } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getAuthUser } from "@/lib/auth/session";
 import { listMerchantProducts } from "@/lib/data/customer-catalog";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { SharedCartAddProvider } from "@/components/customer/shared-cart/shared-cart-add-provider";
+import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 
 export const dynamic = "force-dynamic";
 
@@ -59,10 +61,15 @@ export default async function SharedCartCataloguePage({
       ) => { maybeSingle: () => Promise<{ data: { id: string } | null }> };
     };
   };
-  const { data: mine } = await fromCast("shared_carts")
-    .select("id")
-    .eq("share_token", token)
-    .maybeSingle();
+  const [{ data: mine }, user] = await Promise.all([
+    fromCast("shared_carts")
+      .select("id")
+      .eq("share_token", token)
+      .maybeSingle(),
+    getAuthUser(),
+  ]);
+  // CLIENT connecté : coque habituelle (nav basse) — invités : plein écran.
+  const showChrome = !!user;
 
   const { categories, products } = await listMerchantProducts(view.merchant.id);
 
@@ -100,8 +107,14 @@ export default async function SharedCartCataloguePage({
           />
         </main>
 
-        {/* Retour permanent vers la room (le geste principal après ajout). */}
-        <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]">
+        {/* Retour permanent vers la room — au-dessus de la nav client si coque. */}
+        <div
+          className={
+            showChrome
+              ? "fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+3.9rem)] z-40 px-4 lg:bottom-0 lg:pb-[calc(env(safe-area-inset-bottom)+0.9rem)]"
+              : "fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(env(safe-area-inset-bottom)+0.9rem)]"
+          }
+        >
           <div className="mx-auto max-w-2xl">
             <Link
               href={`/p/${token}`}
@@ -111,6 +124,7 @@ export default async function SharedCartCataloguePage({
             </Link>
           </div>
         </div>
+        {showChrome && <CustomerBottomNav />}
       </div>
     </SharedCartAddProvider>
   );

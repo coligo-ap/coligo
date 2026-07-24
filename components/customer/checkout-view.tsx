@@ -69,6 +69,7 @@ import {
 import { CHARGILY_MIN_AMOUNT_DA } from "@/lib/config/payment-limits";
 import { joinIntlWaitlist } from "@/app/(customer)/checkout/intl-actions";
 import {
+  assertSharedCartOrderable,
   attachOrderToSharedCart,
   createGuestPaymentLink,
 } from "@/app/(customer)/panier-partage/actions";
@@ -507,6 +508,15 @@ export function CheckoutView({
     const clientOpId = crypto.randomUUID();
 
     startSubmit(async () => {
+      // Panier PARTAGÉ : garde ANTI-DOUBLON — un panier déjà commandé ne doit
+      // jamais produire une 2ᵉ commande (re-clic « Commander » après abandon).
+      if (sharedCartId) {
+        const orderable = await assertSharedCartOrderable(sharedCartId);
+        if (!orderable.ok) {
+          setSubmitError(orderable.error);
+          return;
+        }
+      }
       // Devis signé (Partie D) lié à l'adresse de livraison affichée. Émis ici
       // puis vérifié+consommé par createOrder → la commande est liée à l'adresse
       // vue par le client (usage unique). Best-effort, jamais bloquant.

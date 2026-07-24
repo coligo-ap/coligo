@@ -457,6 +457,34 @@ export async function createGuestPaymentLink(
   return { ok: false, error: "Génération du lien impossible. Réessaye." };
 }
 
+/**
+ * GARDE ANTI-DOUBLON du checkout partagé : à appeler AVANT createOrder.
+ * Un panier déjà commandé (ordered / order_id posé) ne doit JAMAIS produire
+ * une deuxième commande — cas vécu : le capitaine abandonne le checkout,
+ * revient sur la room verrouillée et re-clique « Commander ».
+ */
+export async function assertSharedCartOrderable(
+  cartId: string
+): Promise<Result> {
+  const { from } = await db();
+  const { data } = await from("shared_carts")
+    .select("status, order_id")
+    .eq("id", cartId)
+    .maybeSingle();
+  if (!data) return { ok: false, error: "Panier introuvable." };
+  if (data.order_id || data.status === "ordered") {
+    return {
+      ok: false,
+      error:
+        "Ce panier a déjà une commande — retrouve-la dans « Mes commandes ».",
+    };
+  }
+  if (data.status !== "open" && data.status !== "locked") {
+    return { ok: false, error: "Ce panier n'est plus actif." };
+  }
+  return { ok: true };
+}
+
 /** Lie la commande créée au panier (locked → ordered). Conditionnel strict. */
 export async function attachOrderToSharedCart(
   cartId: string,
