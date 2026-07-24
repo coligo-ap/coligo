@@ -66,9 +66,9 @@ export function CustomerBottomNav({
                     <img
                       src="/drive/vehicles/voiture-coligo-white.png"
                       alt=""
-                      width={34}
-                      height={34}
-                      className="size-[34px] object-contain rtl:-scale-x-100"
+                      width={44}
+                      height={44}
+                      className="size-[44px] object-contain rtl:-scale-x-100"
                     />
                   </span>
                   {/* Tag « Nouveau » ambre, posé en haut de la voiture. */}
