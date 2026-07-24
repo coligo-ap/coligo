@@ -2,6 +2,7 @@ import {
   Banknote,
   BarChart3,
   Bell,
+  BellRing,
   Bike,
   Boxes,
   Building2,
@@ -489,6 +490,18 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Roue Coligo",
             icon: Dices,
             keywords: ["jeu", "wheel", "lots", "gamification", "quotidien"],
+          },
+          {
+            href: "/admin/marketing/annonces",
+            label: "Annonces",
+            icon: BellRing,
+            keywords: [
+              "pop-up",
+              "communication",
+              "maintenance",
+              "broadcast",
+              "message",
+            ],
           },
           {
             href: "/admin/marketing/notifications",

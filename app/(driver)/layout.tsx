@@ -7,6 +7,7 @@ import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator
 import { DriverDispatchMount } from "@/components/driver/driver-dispatch-mount";
 import { TourDispatchMount } from "@/components/driver/tour-dispatch-mount";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { AnnouncementHost } from "@/components/shared/announcement-host";
 import { ActiveCourseBanner } from "@/components/driver/active-course-banner";
 import { DriverCancelWatch } from "@/components/driver/driver-cancel-watch";
 import { DriverThemeRoot } from "@/components/driver/driver-theme-root";
@@ -170,6 +171,8 @@ export default async function DriverLayout({
           Monté DÈS la création du compte : c'est ce qui permet de le prévenir
           que l'équipe Coligo a validé son inscription. */}
         {driver && <PushRegistrar role="courier" />}
+        {/* Annonces admin (mig 0408) — pop-up ciblée livreurs. */}
+        {driver && <AnnouncementHost role="driver" />}
         {/* Organes opérationnels : réservés au compte activé. */}
         {isActive && (
           <>

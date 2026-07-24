@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { notifySharedCartReminder } from "@/lib/fcm/triggers";
+import {
+  dispatchAnnouncement,
+  type DispatchableAnnouncement,
+} from "@/lib/announcements/dispatch";
 
 /**
  * CRON — PANIERS PARTAGÉS (quotidien, filet — mig 0405/0406) :
@@ -52,10 +56,24 @@ export async function GET(request: Request) {
     });
   }
 
+  // ANNONCES PROGRAMMÉES (mig 0408) : les pushes dues dont l'heure est passée
+  // partent ici (idempotent : dispatch pose push_sent_at). L'admin peut aussi
+  // cliquer « Envoyer la push maintenant » dans la console sans attendre.
+  let announcementsPushed = 0;
+  const { data: due, error: dueErr } = await rpc("announcements_due_push", {});
+  if (dueErr) {
+    console.error("[cron/shared-carts] annonces dues:", dueErr.message);
+  }
+  for (const ann of (due ?? []) as DispatchableAnnouncement[]) {
+    const { pushSent } = await dispatchAnnouncement(ann);
+    announcementsPushed += pushSent;
+  }
+
   return NextResponse.json({
     ok: true,
     expired: res.expired ?? 0,
     reopened: res.reopened ?? 0,
     reminders: (res.reminders ?? []).length,
+    announcementsPushed,
   });
 }

@@ -12,6 +12,7 @@ import { ActiveOrdersBar } from "@/components/customer/active-orders-bar";
 import { ConnectionGuard } from "@/components/shared/connection-guard";
 import { OfflineDim } from "@/components/shared/offline-dim";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { AnnouncementHost } from "@/components/shared/announcement-host";
 import { MarketingPush } from "@/components/native/marketing-push";
 import { AppUrlListener } from "@/components/native/app-url-listener";
 import { AppUpdateManager } from "@/components/native/app-update-manager";
@@ -120,6 +121,8 @@ export function CustomerChrome({
 
       {/* FCM (no-op hors APK / si non connecté). Monté une fois ici. */}
       {isAuth && <PushRegistrar role="customer" />}
+      {/* Annonces admin (mig 0408) — pop-up ciblée, chargée après le paint. */}
+      {isAuth && <AnnouncementHost role="customer" />}
 
       {/* Abonnement MARKETING géo (topic de la wilaya) — SANS condition d'auth :
           un client déconnecté continue de recevoir les promos de sa zone, alors

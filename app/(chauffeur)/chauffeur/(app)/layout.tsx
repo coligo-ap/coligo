@@ -4,6 +4,7 @@ import { ChauffeurGateGuard } from "@/components/chauffeur/gate-guard";
 import { ChauffeurContentDim } from "@/components/chauffeur/chauffeur-content-dim";
 import { HomeSkeleton } from "@/components/chauffeur/d-skeleton";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { AnnouncementHost } from "@/components/shared/announcement-host";
 
 /**
  * Coque PERSISTANTE des pages chauffeur authentifiées. Deux propriétés clés :
@@ -40,6 +41,8 @@ export default function ChauffeurAppLayout({
           démarrage à froid sur une autre page — n'attachait aucun listener et
           le tap « ne menait nulle part ». */}
       <PushRegistrar role="chauffeur" />
+      {/* Annonces admin (mig 0408) — pop-up ciblée chauffeurs. */}
+      <AnnouncementHost role="chauffeur" />
     </>
   );
 }

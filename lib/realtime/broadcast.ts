@@ -143,3 +143,29 @@ export async function broadcastSharedCartBump(
 export function sharedCartChannel(shareToken: string): string {
   return `shared-cart:${shareToken}`;
 }
+
+/**
+ * ANNONCES ADMIN — pop-up « instantanée » (mig 0408) : signal PUBLIC par rôle
+ * (`announcements:{role}`) sans AUCUNE donnée — chaque host re-fetch via la
+ * RPC `my_announcements` qui refait le ciblage côté serveur. Sert aussi à
+ * faire DISPARAÎTRE immédiatement une annonce désactivée.
+ */
+export async function broadcastAnnouncements(
+  audiences: string[]
+): Promise<void> {
+  const unique = [...new Set(audiences.filter(Boolean))];
+  if (unique.length === 0) return;
+  await sendBroadcast(
+    unique.map((role) => ({
+      topic: announcementsChannel(role),
+      event: "bump",
+      payload: { at: Date.now() },
+      private: false,
+    }))
+  );
+}
+
+/** Nom du canal public des annonces d'un rôle (à réutiliser côté client). */
+export function announcementsChannel(role: string): string {
+  return `announcements:${role}`;
+}

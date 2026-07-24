@@ -15,6 +15,7 @@ import { MerchantQueryProvider } from "@/components/merchant/merchant-query-prov
 import { ConfirmProvider } from "@/components/ui/confirm";
 import { OrderRealtimeBridge } from "@/components/merchant/order-realtime-bridge";
 import { PushRegistrar } from "@/components/native/push-registrar";
+import { AnnouncementHost } from "@/components/shared/announcement-host";
 import { MerchantPendingScreen } from "@/components/merchant/merchant-pending-screen";
 import { TawkChat } from "@/components/support/tawk-chat";
 import { expireStalePendingOrders } from "@/lib/merchant/expire-pending";
@@ -215,6 +216,8 @@ export async function MerchantShell({
 
           {/* Enregistrement du token FCM (no-op hors APK Capacitor). */}
           <PushRegistrar role="merchant" />
+          {/* Annonces admin (mig 0408) — pop-up ciblée commerçants. */}
+          <AnnouncementHost role="merchant" />
 
           {/* Live chat support (Tawk.to) — JAMAIS de bulle flottante : Tawk ne
           se charge QUE sur clic « Contacter le support » (openSupportChat).
