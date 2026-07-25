@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import { BellRing, SquarePlus, X } from "lucide-react";
@@ -11,6 +11,7 @@ import {
   type PushRole,
 } from "@/lib/native/push";
 import { isWebPushConfigured } from "@/lib/native/push-web";
+import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 
 /** Re-proposer la bannière après ce délai si l'utilisateur l'a écartée. */
 const DISMISS_KEY = "coligo_push_prompt_dismissed_at";
@@ -125,6 +126,26 @@ export function PushRegistrar({ role }: { role: PushRole }) {
       cleanup?.();
     };
   }, [role, router]);
+
+  // iOS ne COLD-START presque jamais une app : elle revient du background, donc
+  // l'effet de montage (et son registerPushToken) ne rejoue pas — un token
+  // (re)devenu enregistrable (permission accordée dans Réglages, rotation,
+  // correctif serveur déployé entre-temps) n'était JAMAIS envoyé. À chaque
+  // retour au premier plan : nouvelle tentative, idempotente (upsert
+  // last_seen_at), throttlée 15 min. Sur web, on ne retente que si la
+  // permission est DÉJÀ accordée (jamais de prompt hors geste).
+  const lastResumeReg = useRef(0);
+  useResumeResync(() => {
+    const now = Date.now();
+    if (now - lastResumeReg.current < 15 * 60_000) return;
+    const canRetry =
+      isPushAvailable() ||
+      (typeof Notification !== "undefined" &&
+        Notification.permission === "granted");
+    if (!canRetry) return;
+    lastResumeReg.current = now;
+    void registerPushToken(role);
+  });
 
   const enable = async () => {
     setEnabling(true);
