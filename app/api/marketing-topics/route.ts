@@ -4,6 +4,7 @@ import {
   unsubscribeTokensFromTopic,
 } from "@/lib/fcm/topics";
 import { wilayaTopic, isValidWilaya } from "@/lib/marketing/geo-topics";
+import { isRawApnsToken, importApnsToken } from "@/lib/fcm/apns-import";
 
 /**
  * POST /api/marketing-topics — abonne l'appareil au topic MARKETING de sa wilaya.
@@ -24,19 +25,24 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_json" }, { status: 400 });
   }
 
-  const token = typeof body.token === "string" ? body.token.trim() : "";
+  let token = typeof body.token === "string" ? body.token.trim() : "";
   const wilaya = typeof body.wilaya === "string" ? body.wilaya.trim() : "";
   const prevWilaya =
     typeof body.prevWilaya === "string" ? body.prevWilaya.trim() : "";
 
-  // Token FCM : contient toujours « : » (`<id>:<APA91b…>`). Rejette un token
-  // vide, trop long, ou un token APNs brut (hexadécimal) — cf. /api/device-tokens.
-  if (
-    !token ||
-    token.length > 4096 ||
-    !token.includes(":") ||
-    /^[0-9a-fA-F]{40,}$/.test(token)
-  ) {
+  if (!token || token.length > 4096) {
+    return NextResponse.json({ error: "invalid_token" }, { status: 400 });
+  }
+  // Token APNs BRUT (hexadécimal — binaire iOS < build 30) : converti serveur en
+  // token FCM via IID batchImport, comme /api/device-tokens. Sinon, un token FCM
+  // contient toujours « : » (`<id>:<APA91b…>`).
+  if (isRawApnsToken(token)) {
+    const fcm = await importApnsToken(token);
+    if (!fcm) {
+      return NextResponse.json({ error: "invalid_token" }, { status: 400 });
+    }
+    token = fcm;
+  } else if (!token.includes(":")) {
     return NextResponse.json({ error: "invalid_token" }, { status: 400 });
   }
   if (!isValidWilaya(wilaya)) {

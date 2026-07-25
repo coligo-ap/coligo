@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { isRawApnsToken, importApnsToken } from "@/lib/fcm/apns-import";
 
 /**
  * POST /api/device-tokens — enregistre (ou met à jour) le token FCM de
@@ -51,18 +52,23 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "invalid_payload" }, { status: 400 });
   }
 
-  // GARDE-FOU (23/07/2026) : un token FCM contient TOUJOURS un « : » (format
-  // `<id>:<APA91b…>`). Un token composé UNIQUEMENT de chiffres hexadécimaux est
-  // un token APNs BRUT — c'est le bug iOS historique (AppDelegate relayait le
-  // token APNs au lieu du FCM). L'envoyer à l'API FCM v1 renvoie
-  // INVALID_ARGUMENT, puis le token est purgé : aucune push iOS n'arrivait. On
-  // le refuse À LA SOURCE, ce qui protège aussi les binaires déjà installés
-  // sans attendre le rebuild natif.
-  if (/^[0-9a-fA-F]{40,}$/.test(token)) {
-    return NextResponse.json(
-      { error: "raw_apns_token_rejected" },
-      { status: 422 }
-    );
+  // Un token FCM contient TOUJOURS un « : » (format `<id>:<APA91b…>`). Un token
+  // UNIQUEMENT hexadécimal est un token APNs BRUT — bug iOS historique
+  // (AppDelegate < build 30 relayait l'APNs au lieu du FCM ; l'API v1 le refuse
+  // en INVALID_ARGUMENT puis il est purgé). Le binaire App Store approuvé le
+  // 22/07/2026 a ce bug : au lieu de rejeter (aucune push iOS n'arrivait), on
+  // CONVERTIT serveur via l'API IID batchImport → token FCM valide. Les
+  // binaires déjà installés remarchent sans nouvelle revue Apple.
+  let storedToken = token;
+  if (isRawApnsToken(token)) {
+    const fcm = await importApnsToken(token);
+    if (!fcm) {
+      return NextResponse.json(
+        { error: "raw_apns_token_unconvertible" },
+        { status: 422 }
+      );
+    }
+    storedToken = fcm;
   }
 
   const admin = createAdminClient();
@@ -70,7 +76,7 @@ export async function POST(req: Request) {
     {
       user_id: user.id,
       role,
-      token,
+      token: storedToken,
       platform,
       last_seen_at: new Date().toISOString(),
     },

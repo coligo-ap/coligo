@@ -114,6 +114,15 @@ const config: CapacitorConfig = {
       "@capgo/capacitor-social-login",
     ],
   },
+  plugins: {
+    // iOS UNIQUEMENT (ignoré par Android) : sans `presentationOptions`, une
+    // push reçue APP OUVERTE n'affiche NI bannière NI son sur iOS — le client
+    // croyait ne « jamais recevoir » les promos quand l'app était au premier
+    // plan. Android affiche déjà via le channel `coligo_orders`.
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"],
+    },
+  },
   android: {
     // Géré côté Android — pas d'override mode debug ici.
     allowMixedContent: false,

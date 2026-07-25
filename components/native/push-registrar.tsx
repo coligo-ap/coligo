@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
-import { BellRing, X } from "lucide-react";
+import { BellRing, SquarePlus, X } from "lucide-react";
 import {
   attachPushNavigation,
   isPushAvailable,
@@ -69,6 +69,10 @@ export function PushRegistrar({ role }: { role: PushRole }) {
   const router = useRouter();
   const t = useTranslations("push");
   const [showPrompt, setShowPrompt] = useState(false);
+  /** `enable` = demander la permission (geste requis) ; `install` = Safari iOS
+   *  en ONGLET : le push web n'existe que dans la PWA installée → on guide
+   *  l'ajout à l'écran d'accueil au lieu de ne rien afficher. */
+  const [mode, setMode] = useState<"enable" | "install">("enable");
   const [enabling, setEnabling] = useState(false);
 
   useEffect(() => {
@@ -84,18 +88,29 @@ export function PushRegistrar({ role }: { role: PushRole }) {
       if (isPushAvailable()) return; // natif : permission gérée par l'OS
       if (!isWebPushConfigured()) return;
       if (!("serviceWorker" in navigator)) return;
+      const dismissedRecently = () => {
+        try {
+          const at = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
+          return Boolean(at && at > new Date().getTime() - DISMISS_TTL_MS);
+        } catch {
+          return false; // localStorage indisponible : on affiche quand même
+        }
+      };
       // Sur iOS, `Notification` n'existe QUE dans la PWA installée — en onglet
-      // Safari/Chrome il est absent et le push web est impossible : pas de
-      // bannière mensongère.
-      if (typeof Notification === "undefined") return;
-      if (Notification.permission !== "default") return;
-      try {
-        const dismissedAt = Number(localStorage.getItem(DISMISS_KEY) ?? 0);
-        if (dismissedAt && dismissedAt > new Date().getTime() - DISMISS_TTL_MS)
-          return;
-      } catch {
-        /* localStorage indisponible : on affiche quand même */
+      // Safari/Chrome le push web est IMPOSSIBLE. Plutôt que de se taire (le
+      // client croit alors que « les notifications ne marchent pas »), on
+      // explique le geste qui les rend possibles : Partager → Sur l'écran
+      // d'accueil.
+      if (typeof Notification === "undefined") {
+        if (!/iPhone|iPad|iPod/i.test(navigator.userAgent)) return;
+        if (dismissedRecently()) return;
+        setMode("install");
+        setShowPrompt(true);
+        return;
       }
+      if (Notification.permission !== "default") return;
+      if (dismissedRecently()) return;
+      setMode("enable");
       setShowPrompt(true);
     });
 
@@ -135,20 +150,30 @@ export function PushRegistrar({ role }: { role: PushRole }) {
     <div className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-md">
       <div className="border-border flex items-start gap-3 rounded-[14px] border bg-white p-4 shadow-lg">
         <span className="bg-primary-50 text-primary-600 flex size-9 shrink-0 items-center justify-center rounded-full">
-          <BellRing className="size-4.5" />
+          {mode === "install" ? (
+            <SquarePlus className="size-4.5" />
+          ) : (
+            <BellRing className="size-4.5" />
+          )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">{t("enableTitle")}</p>
-          <p className="text-muted mt-0.5 text-xs">{t("enableBody")}</p>
-          <button
-            type="button"
-            onClick={enable}
-            disabled={enabling}
-            className="bg-primary-600 hover:bg-primary-700 mt-2.5 inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
-          >
-            <BellRing className="size-3.5" />
-            {enabling ? "…" : t("enableCta")}
-          </button>
+          <p className="text-sm font-semibold">
+            {mode === "install" ? t("installTitle") : t("enableTitle")}
+          </p>
+          <p className="text-muted mt-0.5 text-xs">
+            {mode === "install" ? t("installBody") : t("enableBody")}
+          </p>
+          {mode === "enable" && (
+            <button
+              type="button"
+              onClick={enable}
+              disabled={enabling}
+              className="bg-primary-600 hover:bg-primary-700 mt-2.5 inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
+            >
+              <BellRing className="size-3.5" />
+              {enabling ? "…" : t("enableCta")}
+            </button>
+          )}
         </div>
         <button
           type="button"

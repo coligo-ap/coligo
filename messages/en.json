@@ -1544,6 +1544,8 @@
     "enableTitle": "Enable notifications",
     "enableBody": "Get real-time updates: order tracking, courier on the way, deals…",
     "enableCta": "Enable",
+    "installTitle": "Get Coligo notifications",
+    "installBody": "Add Coligo to your Home Screen: Share button → “Add to Home Screen”, then enable notifications.",
     "dismiss": "Later"
   },
   "appUpdate": {

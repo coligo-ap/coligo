@@ -107,6 +107,21 @@ async function obtainFcmToken(prompt = true): Promise<string | null> {
 }
 
 /**
+ * Signale (même onglet) qu'un token push vient d'être enregistré — permission
+ * tout juste accordée ou token rafraîchi. MarketingPush l'écoute pour abonner
+ * IMMÉDIATEMENT l'appareil au topic promo de sa wilaya : sans ce signal, la
+ * sync marketing tentée au boot (avant l'octroi de la permission) ne se
+ * rejouait qu'au prochain démarrage de l'app.
+ */
+function announcePushTokenRegistered() {
+  try {
+    window.dispatchEvent(new Event("coligo:push-token-registered"));
+  } catch {
+    /* environnement sans window/CustomEvent : signal facultatif */
+  }
+}
+
+/**
  * Récupère le token FCM et l'enregistre côté serveur pour ce user + role.
  * Idempotent : appelé à chaque montage du shell (commerçant / client), il
  * met simplement à jour `last_seen_at` si le token est déjà connu.
@@ -118,7 +133,9 @@ export async function registerPushToken(role: PushRole): Promise<boolean> {
   if (!isPushAvailable()) {
     try {
       const { registerWebPush } = await import("./push-web");
-      return await registerWebPush(role);
+      const ok = await registerWebPush(role);
+      if (ok) announcePushTokenRegistered();
+      return ok;
     } catch (err) {
       console.warn("[push] web fallback failed:", err);
       return false;
@@ -140,6 +157,7 @@ export async function registerPushToken(role: PushRole): Promise<boolean> {
       console.warn("[push] /api/device-tokens responded", res.status);
       return false;
     }
+    announcePushTokenRegistered();
     return true;
   } catch (err) {
     console.warn("[push] registerPushToken failed:", err);

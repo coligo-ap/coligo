@@ -1538,6 +1538,8 @@
     "enableTitle": "Activer les notifications",
     "enableBody": "Sois prévenu en temps réel : suivi de commande, livreur en route, promos…",
     "enableCta": "Activer",
+    "installTitle": "Reçois les notifications Coligo",
+    "installBody": "Ajoute Coligo à ton écran d'accueil : bouton Partager → « Sur l'écran d'accueil », puis active les notifications.",
     "dismiss": "Plus tard"
   },
   "appUpdate": {
