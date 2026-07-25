@@ -28,6 +28,7 @@ import { cn, formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { sharedCartChannel } from "@/lib/realtime/broadcast";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
+import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
 import { useConfirm } from "@/components/ui/confirm";
 import { AvatarDot } from "@/components/ui/avatar-dot";
 import { setLocale } from "@/i18n/actions";
@@ -92,6 +93,8 @@ export type SharedCartView = {
     expires_at: string;
     ordered: boolean;
     has_payment_link: boolean;
+    /** uuid de la commande liée (mig 0411) — la fiche reste gardée par RLS. */
+    order_id: string | null;
     payment_method: string | null;
     payment_status: string | null;
   };
@@ -171,6 +174,10 @@ export function CartRoom({
   const [resyncNonce, setResyncNonce] = useState(0);
   const seenItems = useRef<Set<string>>(new Set());
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
+  // Pop-up « Commande payée » : déclenchée sur la TRANSITION impayé→payé vue
+  // en direct (bump du webhook, poll filet) — montrée UNE fois (anti-flash).
+  const prevPayStatus = useRef<string | null>(null);
+  const [paidPopup, setPaidPopup] = useState(false);
 
   // ── Lecture (RPC anon token-validée — la même pour capitaine et invités) ──
   const fetchView = useCallback(async () => {
@@ -235,6 +242,21 @@ export function CartRoom({
       if (cap) setMyMemberId(cap.id);
     }
   }, [isCaptain, view]);
+
+  // Paiement CONFIRMÉ pendant qu'on regarde la room → pop-up célébration
+  // (même sync bump + poll : la transition est détectée quel que soit le canal).
+  useEffect(() => {
+    if (!view || view === "notfound") return;
+    const st = view.cart.payment_status;
+    if (
+      prevPayStatus.current === "pending" &&
+      st === "paid" &&
+      view.cart.payment_method === "online"
+    ) {
+      setPaidPopup(true);
+    }
+    prevPayStatus.current = st;
+  }, [view]);
 
   // Invité pas encore membre → feuille de bienvenue (panier encore ouvert).
   useEffect(() => {
@@ -554,10 +576,15 @@ export function CartRoom({
         ) : (
           cart.ordered && (
             <Banner icon={PackageCheck} tone="success">
-              {t("orderedBanner")}
+              {cart.payment_status === "paid" ||
+              cart.payment_status === "refunded"
+                ? t("roomPaidBanner")
+                : t("orderedBanner")}
               {isCaptain && (
                 <Link
-                  href="/commandes"
+                  href={
+                    cart.order_id ? `/commandes/${cart.order_id}` : "/commandes"
+                  }
                   className="ms-1 font-extrabold underline underline-offset-2"
                 >
                   {t("seeOrder")}
@@ -992,6 +1019,64 @@ export function CartRoom({
           </div>
         </div>
       </div>
+
+      {/* ── FEUILLE « COMMANDE PAYÉE » — transition impayé→payé vue en direct.
+          La nav du bas reste en place (feuille par-dessus, comme le reste de
+          l'app) ; capitaine → bouton vers SA commande, invité → fermer. ── */}
+      {paidPopup && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-[rgba(11,11,15,0.5)] backdrop-blur-[2px] sm:items-center"
+          onClick={() => setPaidPopup(false)}
+        >
+          <style>{`@keyframes scPaidPop{from{opacity:0;transform:translateY(28px) scale(.95)}to{opacity:1;transform:none}}`}</style>
+          <div
+            className="bg-surface w-full max-w-[420px] [animation:scPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] rounded-t-[26px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[26px] sm:pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />
+            <ColigoCelebration variant="verified" />
+            <h3 className="text-foreground mt-2 text-center text-[18px] font-extrabold tracking-[-0.4px]">
+              {t("roomPaidTitle")}
+            </h3>
+            <p className="text-muted mx-auto mt-1.5 max-w-[320px] text-center text-[13px] font-semibold">
+              {isCaptain ? t("roomPaidDescCaptain") : t("roomPaidDescGuest")}
+            </p>
+            <div className="mt-4 flex flex-col gap-2">
+              {isCaptain && cart.order_id ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPaidPopup(false);
+                    router.push(`/commandes/${cart.order_id}`);
+                  }}
+                  className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+                >
+                  {t("seeOrder")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setPaidPopup(false)}
+                  className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+                >
+                  {t("paidPopupClose")}
+                </button>
+              )}
+              {isCaptain && cart.order_id && (
+                <button
+                  type="button"
+                  onClick={() => setPaidPopup(false)}
+                  className="text-muted hover:text-foreground rounded-[12px] py-2.5 text-sm font-bold transition"
+                >
+                  {t("paidPopupClose")}
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── FEUILLE « REJOINDRE » (invité, 1ʳᵉ visite) ── */}
       {joinOpen && (

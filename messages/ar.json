@@ -965,7 +965,15 @@
     "roomPayCta": "ادفع الطلب",
     "payCtaShort": "ادفع",
     "payAskSent": "تم إشعار {name} — بمجرد تأكيد الطلب، سيُفتح الدفع هنا.",
-    "payIntlSub": "فيزا / ماستركارد — دفع آمن باليورو"
+    "payIntlSub": "فيزا / ماستركارد — دفع آمن باليورو",
+    "paidPopupTitle": "تم قبول الدفع",
+    "paidPopupDesc": "تم تأكيد طلب {merchant} — التاجر يحضّره الآن.",
+    "paidOrderNo": "رقم الطلب",
+    "paidPopupClose": "حسناً",
+    "roomPaidBanner": "تم دفع الطلب.",
+    "roomPaidTitle": "تم دفع الطلب",
+    "roomPaidDescCaptain": "تم تأكيد الدفع — تابع التحضير والاستلام في طلبك.",
+    "roomPaidDescGuest": "تم تأكيد الدفع — التاجر يحضّر الطلب."
   },
   "referral": {
     "title": "برنامج الإحالة",

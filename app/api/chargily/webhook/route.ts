@@ -136,6 +136,13 @@ export async function POST(req: NextRequest) {
         // Tournée online payée : prévient les livreurs du commerçant (no-op si
         // ce n'est pas une tournée). Reçu même app fermée / hors ligne.
         void notifyDriversTour({ orderId: updated.id });
+        // Panier partagé : bump temps réel de la room (payeur + groupe voient
+        // « payé » instantanément) + push capitaine → sa commande. No-op sinon.
+        {
+          const { onSharedCartOrderPaid } =
+            await import("@/lib/shared-cart/on-paid");
+          void onSharedCartOrderPaid(updated.id);
+        }
         // Traçabilité client (mig 0394). Chargily n'expose PAS la marque ni les
         // 4 derniers chiffres — on enregistre donc ce qu'il donne réellement :
         // le moyen local (CIB / Edahabia). Mieux vaut un champ vide qu'une

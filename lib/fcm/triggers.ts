@@ -648,6 +648,51 @@ export async function notifySharedCartOrderPlaced(input: {
 }
 
 /**
+ * PANIER PARTAGÉ — paiement CONFIRMÉ (webhook Chargily/Stripe) : le capitaine
+ * est prévenu immédiatement, le lien ouvre directement SA commande (numéro,
+ * code de retrait, suivi). La room, elle, est rafraîchie par le bump.
+ */
+export async function notifySharedCartPaid(input: {
+  customerId: string;
+  merchantName: string;
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: customer } = await admin
+      .from("customers")
+      .select("user_id")
+      .eq("id", input.customerId)
+      .maybeSingle();
+    if (!customer?.user_id) return;
+
+    const title = "Commande payée";
+    const body = `Le paiement de ta commande ${input.merchantName} est confirmé — le commerçant prépare. Touche pour suivre.`;
+    const route = `/commandes/${input.orderId}`;
+
+    void storeAndPushNotification({
+      userId: customer.user_id,
+      audience: "customer",
+      kind: "shared_cart_paid",
+      title,
+      body,
+      route,
+      push: false,
+    });
+
+    const tokens = await tokensFor(customer.user_id, "customer");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      { title, body },
+      { route, kind: "customer_shared_cart" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifySharedCartPaid failed:", err);
+  }
+}
+
+/**
  * Rappel PANIER PARTAGÉ (cron quotidien, mig 0406) : le panier du capitaine
  * expire dans moins de 24 h avec des articles dedans — commander ou perdre.
  */

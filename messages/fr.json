@@ -965,7 +965,15 @@
     "roomPayCta": "Payer la commande",
     "payCtaShort": "Payer",
     "payAskSent": "{name} a été prévenu — dès qu'il valide la commande, le paiement s'ouvre ici.",
-    "payIntlSub": "Visa / Mastercard — paiement sécurisé en €"
+    "payIntlSub": "Visa / Mastercard — paiement sécurisé en €",
+    "paidPopupTitle": "Paiement accepté",
+    "paidPopupDesc": "La commande {merchant} est confirmée — le commerçant prépare.",
+    "paidOrderNo": "N° de commande",
+    "paidPopupClose": "Compris",
+    "roomPaidBanner": "Commande payée.",
+    "roomPaidTitle": "Commande payée",
+    "roomPaidDescCaptain": "Le paiement est confirmé — suis la préparation et le retrait sur ta commande.",
+    "roomPaidDescGuest": "Le paiement est confirmé — le commerçant prépare la commande."
   },
   "referral": {
     "title": "Parrainage",

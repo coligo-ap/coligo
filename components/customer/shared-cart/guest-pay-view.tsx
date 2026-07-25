@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   CheckCircle2,
@@ -13,8 +13,10 @@ import {
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
+import { sharedCartChannel } from "@/lib/realtime/broadcast";
 import { openCheckout } from "@/lib/payments/open-checkout";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
+import { QrZoom } from "@/components/shared/qr-zoom";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
 import {
   startGuestIntlPayment,
@@ -42,6 +44,9 @@ type PayInfo = {
   payment_status: string;
   order_status: string;
   share_token: string;
+  /** Révélés par la RPC APRÈS confirmation du paiement seulement (mig 0411). */
+  order_number: string | null;
+  pickup_code: string | null;
 };
 
 export function GuestPayView({
@@ -55,6 +60,7 @@ export function GuestPayView({
   intlStatus: FeatureStatus;
 }) {
   const t = useTranslations("sharedCart");
+  const tOrders = useTranslations("orders");
   const [info, setInfo] = useState<PayInfo | null | "notfound">(null);
   const [paying, setPaying] = useState(false);
   const [payError, setPayError] = useState<string | null>(null);
@@ -65,6 +71,11 @@ export function GuestPayView({
   );
   const [stripeDone, setStripeDone] = useState(false);
   const [resyncNonce, setResyncNonce] = useState(0);
+  // Pop-up « Paiement accepté » : montrée au PAYEUR qui revient (st=success /
+  // Stripe validé) ou à quiconque VOIT la transition impayé→payé en direct —
+  // jamais à un visiteur qui arrive après coup (carte statique suffisante).
+  const sawUnpaid = useRef(false);
+  const [paidPopupClosed, setPaidPopupClosed] = useState(false);
 
   const fetchInfo = useCallback(async () => {
     try {
@@ -77,6 +88,13 @@ export function GuestPayView({
       const { data } = await rpc("shared_cart_payment_info", {
         p_payment_token: ptoken,
       });
+      if (
+        data &&
+        data.payment_status !== "paid" &&
+        data.payment_status !== "refunded"
+      ) {
+        sawUnpaid.current = true;
+      }
       setInfo(data ?? "notfound");
     } catch {
       /* réseau : le poll réessaie */
@@ -89,6 +107,21 @@ export function GuestPayView({
     return () => clearInterval(poll);
   }, [fetchInfo, resyncNonce]);
   useResumeResync(() => setResyncNonce((n) => n + 1));
+
+  // Temps réel : le webhook bump le canal du panier à la CONFIRMATION du
+  // paiement → « Paiement accepté » apparaît sans attendre le poll (5 s).
+  const shareToken = info && info !== "notfound" ? info.share_token : null;
+  useEffect(() => {
+    if (!shareToken) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(sharedCartChannel(shareToken))
+      .on("broadcast", { event: "bump" }, () => void fetchInfo())
+      .subscribe();
+    return () => {
+      void supabase.removeChannel(channel);
+    };
+  }, [shareToken, fetchInfo, resyncNonce]);
 
   const pay = async () => {
     setPayError(null);
@@ -164,14 +197,58 @@ export function GuestPayView({
   const confirming =
     !paid && !expired && (returnState === "success" || stripeDone);
 
-  // ── DÉJÀ PAYÉ — premier paiement gagne, tout autre payeur voit ceci. ──
+  // ── PAYÉ — payeur de retour (pop-up « Paiement accepté ») ou 2ᵉ visiteur. ──
   if (paid) {
+    const freshPayment =
+      returnState === "success" || stripeDone || sawUnpaid.current;
+    const showPopup = freshPayment && !paidPopupClosed;
+    // Numéro + code de retrait + QR — mêmes gabarits que la fiche commande.
+    const paidDetails = (
+      <div className="mt-4 space-y-2.5">
+        {info.order_number && (
+          <div className="bg-surface-2 flex items-center justify-between rounded-[14px] px-4 py-2.5">
+            <span className="text-muted text-xs font-bold">
+              {t("paidOrderNo")}
+            </span>
+            <span className="text-foreground text-base font-black tabular-nums">
+              {info.order_number}
+            </span>
+          </div>
+        )}
+        {info.pickup_code && (
+          <div className="border-primary-100 bg-primary-50 rounded-[16px] border p-3.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-primary-800 text-[12.5px] font-extrabold">
+                {tOrders("codeToGiveMerchant")}
+              </span>
+              <span className="text-primary-600 text-[26px] leading-none font-black tracking-[6px] tabular-nums">
+                {info.pickup_code}
+              </span>
+            </div>
+            <div className="border-primary-100 mt-3 flex items-center gap-3.5 border-t pt-3">
+              <QrZoom
+                value={info.pickup_code}
+                size={92}
+                fullValue={info.pickup_code}
+                caption={tOrders("codeScanHintMerchant")}
+              />
+              <p className="text-primary-700/90 text-[12px] font-semibold">
+                {tOrders("codeScanHintMerchant")}
+                <span className="mt-1 block text-[11px] font-bold opacity-80">
+                  {tOrders("tapToEnlarge")}
+                </span>
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+    );
     return (
       <Screen>
         <Card>
           <ColigoCelebration variant="verified" />
           <h1 className="text-foreground mt-2 text-center text-xl font-extrabold">
-            {t("alreadyPaid")}
+            {freshPayment ? t("paidPopupTitle") : t("alreadyPaid")}
           </h1>
           <p className="text-muted mt-1 text-center text-sm">
             {t("alreadyPaidDesc", {
@@ -184,7 +261,39 @@ export function GuestPayView({
           <p className="text-subtle mt-0.5 text-center text-xs font-semibold">
             {info.merchant?.name}
           </p>
+          {paidDetails}
         </Card>
+
+        {/* Pop-up célébration — uniquement pour un paiement FRAIS (retour
+            Chargily/Stripe ou transition vue en direct), jamais en revisite. */}
+        {showPopup && (
+          <div
+            role="dialog"
+            aria-modal="true"
+            className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-[2px] sm:items-center"
+          >
+            <style>{`@keyframes gpPaidPop{from{opacity:0;transform:translateY(28px) scale(.95)}to{opacity:1;transform:none}}`}</style>
+            <div className="bg-surface w-full max-w-sm [animation:gpPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] rounded-[22px] p-5 shadow-[0_24px_60px_-18px_rgba(20,10,60,.55)]">
+              <ColigoCelebration variant="verified" />
+              <h2 className="text-foreground mt-2 text-center text-xl font-extrabold">
+                {t("paidPopupTitle")}
+              </h2>
+              <p className="text-muted mt-1 text-center text-sm">
+                {t("paidPopupDesc", {
+                  merchant: info.merchant?.name ?? "Coligo",
+                })}
+              </p>
+              {paidDetails}
+              <button
+                type="button"
+                onClick={() => setPaidPopupClosed(true)}
+                className="bg-primary-600 hover:bg-primary-700 mt-4 w-full rounded-[14px] px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
+              >
+                {t("paidPopupClose")}
+              </button>
+            </div>
+          </div>
+        )}
       </Screen>
     );
   }

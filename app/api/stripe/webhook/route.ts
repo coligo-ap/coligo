@@ -574,6 +574,12 @@ export async function POST(req: NextRequest) {
         totalDa: updated.total_da,
       });
       void notifyDriversTour({ orderId: updated.id });
+      // Panier partagé : bump temps réel de la room + push capitaine. No-op sinon.
+      {
+        const { onSharedCartOrderPaid } =
+          await import("@/lib/shared-cart/on-paid");
+        void onSharedCartOrderPaid(updated.id);
+      }
       // Traçabilité client (mig 0394) : fournisseur, montant €, carte.
       const { recordStripeReceipt } = await import("@/lib/payments/receipts");
       void recordStripeReceipt({
@@ -918,6 +924,12 @@ export async function POST(req: NextRequest) {
         totalDa: updated.total_da,
       });
       void notifyDriversTour({ orderId: updated.id });
+      // Panier partagé : bump temps réel de la room + push capitaine. No-op sinon.
+      {
+        const { onSharedCartOrderPaid } =
+          await import("@/lib/shared-cart/on-paid");
+        void onSharedCartOrderPaid(updated.id);
+      }
       await recordEvent(sess.id);
       return NextResponse.json({ ok: true });
     }

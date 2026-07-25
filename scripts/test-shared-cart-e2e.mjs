@@ -233,6 +233,12 @@ async function main() {
     "page /payer : infos rassurantes (capitaine, montant, pending)",
     JSON.stringify(payInfo)
   );
+  // mig 0411 : le code de retrait n'existe pour le groupe qu'APRÈS paiement.
+  assert(
+    payInfo?.pickup_code == null && payInfo?.order_number == null,
+    "page /payer : code de retrait JAMAIS révélé avant paiement",
+    JSON.stringify(payInfo)
+  );
 
   // PAIEMENT OUVERT AU GROUPE (mig 0409) : quiconque a le lien famille obtient
   // LE MÊME lien de paiement, et la room expose l'état de paiement.
@@ -374,6 +380,25 @@ async function main() {
     paidInfo?.payment_status === "paid",
     "page /payer d'un 2ᵉ payeur → « Déjà payé »",
     JSON.stringify(paidInfo)
+  );
+  // mig 0411 : pop-up « Paiement accepté » — numéro + code de retrait révélés.
+  const pinRow = (
+    await db.query("select pickup_code from orders where id = $1", [orderId])
+  ).rows[0];
+  assert(
+    paidInfo?.pickup_code === pinRow.pickup_code &&
+      paidInfo?.order_number === paidRow.order_number,
+    "page /payer APRÈS paiement : numéro + code de retrait révélés (pop-up)",
+    JSON.stringify({ code: paidInfo?.pickup_code, no: paidInfo?.order_number })
+  );
+  const { data: viewPaid } = await guest.rpc("shared_cart_by_token", {
+    p_token: token,
+  });
+  assert(
+    viewPaid?.cart?.payment_status === "paid" &&
+      viewPaid?.cart?.order_id === orderId,
+    "room APRÈS paiement : payé + order_id exposé (bouton capitaine → commande)",
+    JSON.stringify(viewPaid?.cart)
   );
   const { data: roomPayPaid } = await guest.rpc("shared_cart_room_pay_token", {
     p_token: token,
