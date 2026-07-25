@@ -311,6 +311,25 @@ export async function createRoomOrder(
     .select("id, pickup_code")
     .single();
   if (orderErr || !order) {
+    // Mêmes mappings que createOrder : les triggers DB (gates par client,
+    // kill-switch…) tournent aussi pour service_role — on explique la vraie
+    // cause au lieu d'un « réessaye » mensonger, et on trace l'erreur brute.
+    console.error("[room-order] insert orders:", orderErr?.message);
+    if (orderErr?.message?.includes("feature_disabled:online_payment")) {
+      // Coupure PAR CLIENT (mig 0397) sur le compte du capitaine : la commande
+      // de groupe porte sur SON compte. On le dit explicitement — le capitaine
+      // peut toujours commander lui-même en payant au retrait.
+      return fail(
+        "online_cut",
+        "Le paiement en ligne est désactivé sur le compte du capitaine. Il peut quand même commander en payant au retrait."
+      );
+    }
+    if (orderErr?.message?.includes("account_blocked")) {
+      return fail(
+        "blocked",
+        "Le compte du capitaine est suspendu : commande impossible. Contactez le support Coligo."
+      );
+    }
     return fail("error", "Création de la commande impossible. Réessaye.");
   }
 
@@ -332,6 +351,7 @@ export async function createRoomOrder(
     .insert(itemsRows)
     .select("id");
   if (itemsErr || !insertedItems) {
+    console.error("[room-order] insert order_items:", itemsErr?.message);
     await admin.from("orders").delete().eq("id", order.id);
     return fail("error", "Erreur d'ajout des articles. Réessaye.");
   }
