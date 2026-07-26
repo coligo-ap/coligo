@@ -23,12 +23,10 @@ function parseStatusFilter(raw?: string): {
   key: string;
   statuses: OrderStatus[];
 } {
-  // Sans paramètre → on ouvre directement sur « À confirmer » : ce sont les
-  // commandes qui demandent une action immédiate du commerçant.
-  if (raw === undefined)
-    return { key: "pending", statuses: STATUS_FILTERS.pending };
-  // « Toutes » (status=all) reste explicitement disponible via son onglet.
-  if (raw === "all") return { key: "all", statuses: [] };
+  // Sans paramètre → « Toutes » : le commerçant voit TOUTES les commandes du
+  // jour à l'ouverture (jamais un onglet vide parce qu'il n'y a rien « À
+  // confirmer » alors qu'une commande est en préparation), puis affine.
+  if (raw === undefined || raw === "all") return { key: "all", statuses: [] };
   const key = raw in STATUS_FILTERS ? raw : "all";
   return { key, statuses: STATUS_FILTERS[key] ?? [] };
 }
@@ -39,9 +37,9 @@ function parsePage(raw?: string): number {
 }
 
 function parsePeriod(raw?: string): OrdersPeriod {
-  // Défaut : 7 jours — couvre l'opérationnel ET l'historique récent ;
-  // « Personnalisé » (from/to) prend le relais pour le reste.
-  return raw === "today" || raw === "custom" ? raw : "7d";
+  // Défaut : AUJOURD'HUI — la page s'ouvre sur les commandes du jour
+  // (opérationnel d'abord) ; « 7 jours » et « Personnalisé » pour l'historique.
+  return raw === "7d" || raw === "custom" ? raw : "today";
 }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;

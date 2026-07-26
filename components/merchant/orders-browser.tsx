@@ -156,7 +156,7 @@ export function OrdersBrowser({
     const qq = over.q !== undefined ? over.q : q;
     if (qq) p.set("q", qq);
     const pe = over.period ?? period;
-    if (pe !== "7d") p.set("period", pe);
+    if (pe !== "today") p.set("period", pe);
     // Les bornes de dates n'ont de sens qu'en période personnalisée.
     if (pe === "custom") {
       const df = over.from !== undefined ? over.from : from;
