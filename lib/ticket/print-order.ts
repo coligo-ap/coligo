@@ -8,7 +8,7 @@ import {
 } from "@/lib/ticket/build-ticket-html";
 import { buildTicketSunmiCommands } from "@/lib/ticket/build-ticket-sunmi";
 import { renderTicketCanvasBase64 } from "@/lib/ticket/render-ticket-canvas";
-import type { PrintWidth } from "@/lib/types";
+import type { PrintLang, PrintWidth } from "@/lib/types";
 
 /**
  * Imprime un ticket de commande. Si `copies > 1`, lance l'impression N fois
@@ -27,7 +27,13 @@ import type { PrintWidth } from "@/lib/types";
  */
 export async function printOrderTicket(
   order: TicketOrder,
-  opts: { width: PrintWidth; copies?: number; appName?: string }
+  opts: {
+    width: PrintWidth;
+    copies?: number;
+    appName?: string;
+    /** Langue UNIQUE du ticket (jamais FR/AR mélangés) — défaut 'fr'. */
+    lang?: PrintLang;
+  }
 ): Promise<void> {
   const copies = Math.max(1, Math.min(3, opts.copies ?? 1));
   // Détection sync : si le plugin natif est chargé, on génère AUSSI les
@@ -48,7 +54,11 @@ export async function printOrderTicket(
       width: opts.width,
       appName: opts.appName,
       copyLabel,
+      lang: opts.lang,
     });
+    // NB : les commandes TEXTE Sunmi restent FR (l'API AIDL texte ne shape pas
+    // l'arabe) — ce n'est qu'un repli si le bitmap échoue, et il reste
+    // monolingue. Le rendu normal (bitmap canvas) porte la langue choisie.
     const sunmiCommands = wantNative
       ? buildTicketSunmiCommands(order, {
           width: opts.width,
@@ -67,6 +77,7 @@ export async function printOrderTicket(
           width: opts.width,
           appName: opts.appName,
           copyLabel,
+          lang: opts.lang,
         });
         bitmapBase64 = rendered?.base64;
       } catch (err) {

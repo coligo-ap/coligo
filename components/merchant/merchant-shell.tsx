@@ -60,6 +60,7 @@ export async function MerchantShell({
     closure_end: string | null;
     approval_status: "pending" | "approved" | "rejected" | null;
     rejected_reason: string | null;
+    print_lang: string | null;
   };
   // UNE seule requête `merchants` (fusion des colonnes shop + approbation) —
   // avant : deux SELECT séquentiels sur la MÊME ligne (même `eq(user_id)`),
@@ -87,7 +88,7 @@ export async function MerchantShell({
   };
   const { data: merchant, error } = await merchantQuery("merchants")
     .select(
-      "id, name, auto_accept_orders, auto_print, print_copies, print_width, orders_paused, paused_until, closure_start, closure_end, approval_status, rejected_reason"
+      "id, name, auto_accept_orders, auto_print, print_copies, print_width, print_lang, orders_paused, paused_until, closure_start, closure_end, approval_status, rejected_reason"
     )
     .eq("user_id", user.id)
     .maybeSingle();
@@ -163,6 +164,8 @@ export async function MerchantShell({
         auto_print: merchant.auto_print,
         print_copies: merchant.print_copies,
         print_width: merchant.print_width,
+        // Langue unique du ticket (jamais FR/AR mélangés) — 'fr' par défaut.
+        print_lang: merchant.print_lang === "ar" ? "ar" : "fr",
       }
     : DEFAULT_PRINT_SETTINGS;
 

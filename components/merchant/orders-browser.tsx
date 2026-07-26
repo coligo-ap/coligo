@@ -35,7 +35,7 @@ import {
 } from "@/lib/types";
 import { Pagination } from "@/components/ui/pagination";
 
-export type OrdersPeriod = "today" | "7d" | "30d" | "all";
+export type OrdersPeriod = "today" | "7d" | "custom";
 export type OrdersType = "all" | "delivery" | "pickup";
 
 type StatusCounts = {
@@ -59,16 +59,16 @@ const FILTERS: { key: string; label: string }[] = [
 const PERIODS: { key: OrdersPeriod; label: string }[] = [
   { key: "today", label: "Aujourd'hui" },
   { key: "7d", label: "7 jours" },
-  { key: "30d", label: "30 jours" },
-  { key: "all", label: "Tout" },
+  { key: "custom", label: "Personnalisé" },
 ];
 
+// Chips BASCULE (pas de « Tous ») : aucune active = les deux types affichés ;
+// re-taper la chip active la désélectionne.
 const TYPES: {
-  key: OrdersType;
+  key: Exclude<OrdersType, "all">;
   label: string;
-  icon?: React.ComponentType<{ className?: string }>;
+  icon: React.ComponentType<{ className?: string }>;
 }[] = [
-  { key: "all", label: "Tous" },
   { key: "delivery", label: "Livraison", icon: Bike },
   { key: "pickup", label: "Retrait", icon: Package },
 ];
@@ -118,6 +118,8 @@ export function OrdersBrowser({
   q,
   period,
   type,
+  from,
+  to,
 }: {
   orders: OrderWithItems[];
   page: number;
@@ -128,6 +130,8 @@ export function OrdersBrowser({
   q: string;
   period: OrdersPeriod;
   type: OrdersType;
+  from: string;
+  to: string;
 }) {
   const router = useRouter();
   const [input, setInput] = useState(q);
@@ -142,6 +146,8 @@ export function OrdersBrowser({
     q?: string;
     period?: OrdersPeriod;
     type?: OrdersType;
+    from?: string;
+    to?: string;
   }): string => {
     const p = new URLSearchParams();
     // `status` TOUJOURS présent : sans paramètre le serveur ouvre « À
@@ -150,7 +156,14 @@ export function OrdersBrowser({
     const qq = over.q !== undefined ? over.q : q;
     if (qq) p.set("q", qq);
     const pe = over.period ?? period;
-    if (pe !== "all") p.set("period", pe);
+    if (pe !== "7d") p.set("period", pe);
+    // Les bornes de dates n'ont de sens qu'en période personnalisée.
+    if (pe === "custom") {
+      const df = over.from !== undefined ? over.from : from;
+      const dt = over.to !== undefined ? over.to : to;
+      if (df) p.set("from", df);
+      if (dt) p.set("to", dt);
+    }
     const ty = over.type ?? type;
     if (ty !== "all") p.set("type", ty);
     const pg = over.page ?? 1;
@@ -298,7 +311,8 @@ export function OrdersBrowser({
           return (
             <Link
               key={tOpt.key}
-              href={hrefFor({ type: tOpt.key })}
+              // BASCULE : re-taper la chip active revient à « tous les types ».
+              href={hrefFor({ type: activeType ? "all" : tOpt.key })}
               className={cn(
                 "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors",
                 activeType
@@ -306,21 +320,50 @@ export function OrdersBrowser({
                   : "border-border text-muted hover:bg-surface-2 bg-white"
               )}
             >
-              {TypeIcon && <TypeIcon className="size-3" />}
+              <TypeIcon className="size-3" />
               {tOpt.label}
+              {activeType && <X className="size-3" />}
             </Link>
           );
         })}
       </div>
+
+      {/* Plage personnalisée : deux bornes de jour, appliquées dès la saisie. */}
+      {period === "custom" && (
+        <div className="mb-4 flex items-center gap-2">
+          <DayInput
+            label="Du"
+            value={from}
+            max={to || undefined}
+            onChange={(v) =>
+              startSearch(() => {
+                router.replace(hrefFor({ from: v, page: 1 }), {
+                  scroll: false,
+                });
+              })
+            }
+          />
+          <DayInput
+            label="Au"
+            value={to}
+            min={from || undefined}
+            onChange={(v) =>
+              startSearch(() => {
+                router.replace(hrefFor({ to: v, page: 1 }), { scroll: false });
+              })
+            }
+          />
+        </div>
+      )}
 
       {/* Liste groupée par jour */}
       {filtered.length === 0 ? (
         <div className="border-border text-subtle flex flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed py-16">
           <Package className="size-6" />
           <p className="text-sm">
-            {input.trim() || period !== "all" || type !== "all"
+            {input.trim() || type !== "all" || period === "custom"
               ? "Aucune commande ne correspond à ces filtres"
-              : "Aucune commande"}
+              : "Aucune commande sur cette période"}
           </p>
         </div>
       ) : (
@@ -432,5 +475,34 @@ function OrderRow({ order: o }: { order: OrderWithItems }) {
         <ChevronRight className="text-subtle size-4 shrink-0 rtl:-scale-x-100" />
       </Link>
     </li>
+  );
+}
+
+/** Borne de jour (période personnalisée) — input date natif, libellé intégré. */
+function DayInput({
+  label,
+  value,
+  min,
+  max,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  min?: string;
+  max?: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="border-border bg-surface focus-within:border-primary-500 flex h-10 flex-1 items-center gap-2 rounded-[12px] border px-3">
+      <span className="text-muted shrink-0 text-[11px] font-bold">{label}</span>
+      <input
+        type="date"
+        value={value}
+        min={min}
+        max={max}
+        onChange={(e) => onChange(e.target.value)}
+        className="text-foreground w-full min-w-0 bg-transparent text-sm font-semibold outline-none"
+      />
+    </label>
   );
 }

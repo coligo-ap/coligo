@@ -104,12 +104,13 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
     { key: "cancelled", label: t("tabCancelled"), n: counts.cancelled },
   ];
 
+  // Chips BASCULE (pas de « Tous ») : aucune active = tout est affiché ;
+  // re-taper la chip active la désélectionne.
   const types: {
-    key: TypeKey;
+    key: Exclude<TypeKey, "all">;
     label: string;
-    icon?: React.ComponentType<{ className?: string }>;
+    icon: React.ComponentType<{ className?: string }>;
   }[] = [
-    { key: "all", label: t("typeAll") },
     { key: "delivery", label: t("delivery"), icon: Bike },
     { key: "pickup", label: t("pickup"), icon: Package },
   ];
@@ -177,7 +178,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
               <button
                 key={tp.key}
                 type="button"
-                onClick={() => setType(tp.key)}
+                onClick={() => setType(active ? "all" : tp.key)}
                 className={cn(
                   "inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-xs font-semibold whitespace-nowrap transition-colors",
                   active
@@ -185,8 +186,9 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
                     : "border-border bg-surface text-muted hover:bg-surface-2"
                 )}
               >
-                {TypeIcon && <TypeIcon className="size-3.5" />}
+                <TypeIcon className="size-3.5" />
                 {tp.label}
+                {active && <X className="size-3" />}
               </button>
             );
           })}

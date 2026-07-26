@@ -57,7 +57,7 @@ export default async function SettingsPage() {
        logo_url, cover_url, phone_public, opening_hours,
        min_order_da, prep_time_min, accepts_cash, accepts_online,
        pickup_slot_minutes, max_orders_per_slot, is_active,
-       commission_rate, auto_accept_orders, auto_print, print_copies, print_width,
+       commission_rate, auto_accept_orders, auto_print, print_copies, print_width, print_lang,
        delivery_enabled, express_enabled, tours_enabled, delivery_radius_km,
        closure_start, closure_end, tags, catalog_display,
        payout_auto, payout_method, payout_details`
@@ -73,6 +73,9 @@ export default async function SettingsPage() {
     print_copies: m.print_copies ?? DEFAULT_PRINT_SETTINGS.print_copies,
     print_width: (m.print_width ??
       DEFAULT_PRINT_SETTINGS.print_width) as PrintWidth,
+    // Langue unique du ticket — 'fr' par défaut, jamais FR/AR mélangés.
+    print_lang:
+      (m as { print_lang?: string | null }).print_lang === "ar" ? "ar" : "fr",
   };
 
   const deliverySettings: MerchantDeliverySettings & {
@@ -386,7 +389,9 @@ function PrintSummary({ settings }: { settings: PrintSettings }) {
   const parts: string[] = [
     settings.auto_accept_orders ? "Auto-accept ON" : "Auto-accept OFF",
     `Print : ${AUTO_PRINT_LABEL[settings.auto_print]}`,
-    `${settings.print_copies}× · ${settings.print_width} mm`,
+    `${settings.print_copies}× · ${settings.print_width} mm · ${
+      settings.print_lang === "ar" ? "AR" : "FR"
+    }`,
   ];
   return (
     <span className="text-muted mr-2 text-xs tabular-nums">

@@ -27,7 +27,7 @@
  */
 
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
-import type { PrintWidth } from "@/lib/types";
+import type { PrintLang, PrintWidth } from "@/lib/types";
 import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
 import {
@@ -39,9 +39,13 @@ import {
   formatTime,
   groupByCategory,
   groupCount,
+  itemDisplayName,
   loyaltyInfo,
+  optionDisplayName,
   orderRef,
+  promoDisplayTitle,
   promoTypeLabel,
+  ticketStrings,
   totalUnits,
 } from "@/lib/ticket/ticket-format";
 
@@ -49,6 +53,8 @@ export type RenderTicketCanvasOptions = {
   width: PrintWidth;
   appName?: string;
   copyLabel?: string;
+  /** Langue UNIQUE du ticket (jamais FR/AR mélangés) — défaut 'fr'. */
+  lang?: PrintLang;
 };
 
 /** Largeur imprimable en dots selon la laize (tête 8 dots/mm). */
@@ -94,6 +100,9 @@ export async function renderTicketCanvasBase64(
     `${bold ? "bold " : ""}${Math.round(px * S)}px ${SANS}`;
 
   const meta = deriveTicketMeta(order);
+  const lang: PrintLang = opts.lang ?? "fr";
+  const L = ticketStrings(lang);
+  const isAr = lang === "ar";
 
   // QR de la référence publique (jamais le PIN). Échec → pas de QR (non bloquant).
   let qr: boolean[][] | null = null;
@@ -137,27 +146,37 @@ export async function renderTicketCanvasBase64(
     ctx.fillText(r, W - PAD - ctx.measureText(r).width, yTop);
   };
 
-  /** Dessine `txt` en passant à la ligne ≤ largeur utile ; renvoie le y final. */
-  const wrapDraw = (txt: string, font: string, yTop: number, lh: number) => {
+  /**
+   * Dessine `txt` en passant à la ligne ≤ largeur utile ; renvoie le y final.
+   * `align` : "right" pour l'arabe (ticket AR = texte calé à droite).
+   */
+  const wrapDraw = (
+    txt: string,
+    font: string,
+    yTop: number,
+    lh: number,
+    align: "left" | "right" = isAr ? "right" : "left"
+  ) => {
     ctx.font = font;
     ctx.textBaseline = "top";
     const words = txt.split(/\s+/).filter(Boolean);
     let line = "";
     let yy = yTop;
+    const flush = () => {
+      const x = align === "right" ? W - PAD - ctx.measureText(line).width : PAD;
+      ctx.fillText(line, x, yy);
+      yy += lh;
+    };
     for (const w of words) {
       const t = line ? line + " " + w : w;
       if (ctx.measureText(t).width > W - 2 * PAD && line) {
-        ctx.fillText(line, PAD, yy);
-        yy += lh;
+        flush();
         line = w;
       } else {
         line = t;
       }
     }
-    if (line) {
-      ctx.fillText(line, PAD, yy);
-      yy += lh;
-    }
+    if (line) flush();
     return yy;
   };
 
@@ -179,12 +198,12 @@ export async function renderTicketCanvasBase64(
     y += Math.round(20 * S);
   }
 
-  // === 0. BANDEAU COMMANDE PROGRAMMÉE (bilingue, le canvas shape l'arabe) ===
+  // === 0. BANDEAU COMMANDE PROGRAMMÉE (LANGUE UNIQUE, le canvas shape l'arabe) ===
   if (order.scheduled_for) {
-    textAt("COMMANDE PROGRAMMEE / طلب مبرمج", f(19, true), "center", y);
+    textAt(L.scheduledBanner.replace("⚠ ", ""), f(19, true), "center", y);
     y += Math.round(24 * S);
     textAt(
-      `A preparer pour ${formatScheduleClock(order.scheduled_for)}`,
+      `${L.scheduledFor} ${formatScheduleClock(order.scheduled_for)}`,
       f(18, true),
       "center",
       y
@@ -213,7 +232,12 @@ export async function renderTicketCanvasBase64(
   ctx.fillStyle = "#000";
   ctx.fillRect(PAD, y, W - 2 * PAD, bh);
   ctx.fillStyle = "#fff";
-  textAt(meta.bannerText, f(22, true), "center", y + Math.round(6 * S));
+  textAt(
+    isAr ? meta.bannerTextAr : meta.bannerText,
+    f(22, true),
+    "center",
+    y + Math.round(6 * S)
+  );
   ctx.fillStyle = "#000";
   y += bh + Math.round(12 * S);
 
@@ -223,9 +247,9 @@ export async function renderTicketCanvasBase64(
 
   // === 4. Heure de retrait / livraison ===
   textAt(
-    `${meta.timeLineLabel} : ${formatTime(order.pickup_slot_at)}`,
+    `${isAr ? meta.timeLineLabelAr : meta.timeLineLabel} : ${formatTime(order.pickup_slot_at)}`,
     f(22, true),
-    "left",
+    isAr ? "right" : "left",
     y
   );
   y += Math.round(28 * S);
@@ -234,48 +258,44 @@ export async function renderTicketCanvasBase64(
   // === 5. PRÉCISIONS (note client) ===
   const note = order.notes && order.notes !== "seed" ? order.notes : null;
   if (note) {
-    textAt("Precisions particulieres", f(21, true), "left", y);
+    textAt(L.notesTitle, f(21, true), isAr ? "right" : "left", y);
     y += Math.round(26 * S);
     y = wrapDraw(note, f(21), y, Math.round(26 * S));
     y = divider(y);
   }
 
   // === 6. ARTICLES par catégorie (sans prix) ===
+  // LANGUE UNIQUE : nom + options dans LA langue du ticket (plus de ligne AR
+  // sous le nom FR, plus de suffixe bilingue).
   const groups = groupByCategory(order.items);
   if (groups.length === 0) {
-    textAt("(aucun article)", f(21), "left", y);
+    textAt(L.noItems, f(21), isAr ? "right" : "left", y);
     y += Math.round(26 * S);
   } else {
     for (const g of groups) {
       textAt(
         `${g.title.toUpperCase()} (${groupCount(g.items)})`,
         f(21, true),
-        "left",
+        isAr ? "right" : "left",
         y
       );
       y += Math.round(26 * S);
       for (const it of g.items) {
         const qty = formatQtyUnit(it.quantity, it.unit);
-        const free = it.is_free ? "  (OFFERT/مجاني)" : "";
+        const free = it.is_free ? `  (${L.offered})` : "";
         y = wrapDraw(
-          `${qty} ${it.product_name}${free}`,
+          `${qty} ${itemDisplayName(it, lang)}${free}`,
           f(23, true),
           y,
           Math.round(27 * S)
         );
-        // Nom AR (le canvas navigateur shape l'arabe) aligné à droite.
-        if (it.product_name_ar) {
-          textAt(it.product_name_ar, f(20), "right", y);
-          y += Math.round(24 * S);
-        }
-        // Options/variantes bilingues sous l'article.
+        // Options/variantes sous l'article — même langue que le nom.
         for (const o of it.options ?? []) {
           const delta = o.price_delta_da
             ? ` (${o.price_delta_da > 0 ? "+" : ""}${formatDA(o.price_delta_da)})`
             : "";
-          const arOpt = o.option_name_ar ? ` / ${o.option_name_ar}` : "";
           y = wrapDraw(
-            `+ ${o.option_name_fr}${arOpt}${delta}`,
+            `+ ${optionDisplayName(o, lang)}${delta}`,
             f(19),
             y,
             Math.round(23 * S)
@@ -291,33 +311,42 @@ export async function renderTicketCanvasBase64(
     lineLR(l, r, f(21), y);
     y += Math.round(26 * S);
   };
-  recap("Nombre de produits", String(totalUnits(order.items)));
-  recap("Sous-total", formatDA(meta.subtotalDa));
+  recap(L.productsCount, String(totalUnits(order.items)));
+  recap(L.subtotal, formatDA(meta.subtotalDa));
   if (order.service_fee_da > 0)
-    recap(meta.feeLabel, formatDA(order.service_fee_da));
+    recap(
+      isAr ? meta.feeLabelAr : meta.feeLabel,
+      formatDA(order.service_fee_da)
+    );
   if (meta.discountDa > 0 && (order.promotions?.length ?? 0) === 0) {
     const pct =
       meta.subtotalDa > 0
         ? Math.round((meta.discountDa / meta.subtotalDa) * 100)
         : 0;
     recap(
-      pct > 0 ? `Reduction -${pct}%` : "Reduction",
+      pct > 0 ? L.reductionPct(pct) : L.reduction,
       `-${formatDA(meta.discountDa)}`
     );
   }
   for (const p of order.promotions ?? []) {
     const right =
-      p.free_qty > 0 ? `${p.free_qty}x offert` : `-${formatDA(p.discount_da)}`;
-    recap(`${promoTypeLabel(p.type).fr} ${p.title_fr}`, right);
+      p.free_qty > 0 ? L.promoFree(p.free_qty) : `-${formatDA(p.discount_da)}`;
+    const lbl = promoTypeLabel(p.type);
+    recap(`${isAr ? lbl.ar : lbl.fr} ${promoDisplayTitle(p, lang)}`, right);
   }
   if (order.cashback_da > 0)
-    recap("Cashback", `-${formatDA(order.cashback_da)}`);
+    recap(L.cashback, `-${formatDA(order.cashback_da)}`);
 
   // === 8. TOTAL / À ENCAISSER ===
-  lineLR(meta.totalLabel, formatDA(order.total_da), f(27, true), y);
+  lineLR(
+    isAr ? meta.totalLabelAr : meta.totalLabel,
+    formatDA(order.total_da),
+    f(27, true),
+    y
+  );
   y += Math.round(32 * S);
   if (meta.isCash) {
-    textAt(`paiement en especes ${meta.handoffWord}`, f(17), "center", y);
+    textAt(L.cashNotice(meta.isDelivery), f(17), "center", y);
     y += Math.round(24 * S);
   }
   y = divider(y);
@@ -325,18 +354,18 @@ export async function renderTicketCanvasBase64(
   // === 9. BLOC INFOS ===
   const info = (label: string, value: string) =>
     (y = wrapDraw(`${label} : ${value}`, f(20), y, Math.round(25 * S)));
-  info("Heure commande", formatOrderClock(order.created_at));
-  info("Client", order.customer_name);
+  info(L.orderClock, formatOrderClock(order.created_at));
+  info(L.customer, order.customer_name);
   info(
-    "Telephone",
+    L.phone,
     meta.isDelivery
       ? (order.delivery_phone ?? order.customer_phone)
       : order.customer_phone
   );
   if (meta.isDelivery && order.delivery_address)
-    info("Adresse", order.delivery_address);
+    info(L.address, order.delivery_address);
   if (meta.isDelivery && order.delivery_note)
-    info("Acces", order.delivery_note);
+    info(L.access, order.delivery_note);
   y = divider(y);
 
   // === 10. QR (référence publique) ===
@@ -412,14 +441,9 @@ export async function renderTicketCanvasBase64(
   if (loyalty) {
     y += Math.round(4 * S);
     if (loyalty.first) {
-      y = wrapCenter("Premiere commande", f(22, true), y, Math.round(26 * S));
+      y = wrapCenter(L.firstOrder, f(22, true), y, Math.round(26 * S));
     } else {
-      textAt(
-        `${loyalty.count}e commande de ce client`,
-        f(19, true),
-        "center",
-        y
-      );
+      textAt(L.nthOrder(loyalty.count), f(19, true), "center", y);
       y += Math.round(24 * S);
       const showBaskets = Math.min(3, loyalty.count);
       const overflow = loyalty.count > 3;
@@ -445,16 +469,16 @@ export async function renderTicketCanvasBase64(
 
   // Espace papier au-dessus de « Merci » → déchirure sans couper la phrase.
   y += Math.round(12 * S);
-  y = wrapCenter(
-    "Merci pour votre confiance",
-    f(20, true),
-    y,
-    Math.round(25 * S)
-  );
+  y = wrapCenter(L.thanks, f(20, true), y, Math.round(25 * S));
   // En livraison, garder la note opérationnelle (code non imprimé…).
-  if (meta.isDelivery && meta.footerText) {
+  if (meta.isDelivery) {
     y += Math.round(2 * S);
-    y = wrapCenter(meta.footerText, f(16), y, Math.round(20 * S));
+    y = wrapCenter(
+      isAr ? L.deliveryFooter : meta.footerText,
+      f(16),
+      y,
+      Math.round(20 * S)
+    );
   }
   // 3 lignes vides imprimables APRÈS « Merci pour votre confiance » : un blanc
   // où le commerçant déchire le papier sans couper la phrase (demande proprio).

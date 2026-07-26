@@ -39,7 +39,15 @@ function parsePage(raw?: string): number {
 }
 
 function parsePeriod(raw?: string): OrdersPeriod {
-  return raw === "today" || raw === "7d" || raw === "30d" ? raw : "all";
+  // Défaut : 7 jours — couvre l'opérationnel ET l'historique récent ;
+  // « Personnalisé » (from/to) prend le relais pour le reste.
+  return raw === "today" || raw === "custom" ? raw : "7d";
+}
+
+const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function parseDay(raw?: string): string | null {
+  return raw && DAY_RE.test(raw) ? raw : null;
 }
 
 function parseType(raw?: string): OrdersType {
@@ -55,24 +63,41 @@ function sanitizeSearch(raw?: string): string {
 }
 
 /**
- * Borne basse de la période. L'Algérie est en UTC+1 toute l'année (pas d'heure
- * d'été) → « aujourd'hui » = minuit Africa/Algiers calculé sans dépendance.
+ * Bornes de la période. L'Algérie est en UTC+1 toute l'année (pas d'heure
+ * d'été) → un jour Africa/Algiers = [minuit locale, minuit locale + 24 h[.
  */
-function periodStart(period: OrdersPeriod): string | null {
+function periodBounds(
+  period: OrdersPeriod,
+  from: string | null,
+  to: string | null
+): { start: string | null; end: string | null } {
   const now = Date.now();
-  if (period === "7d") return new Date(now - 7 * 86_400_000).toISOString();
-  if (period === "30d") return new Date(now - 30 * 86_400_000).toISOString();
+  if (period === "7d")
+    return { start: new Date(now - 7 * 86_400_000).toISOString(), end: null };
   if (period === "today") {
     const algiers = new Date(now + 3_600_000);
     algiers.setUTCHours(0, 0, 0, 0);
-    return new Date(algiers.getTime() - 3_600_000).toISOString();
+    return {
+      start: new Date(algiers.getTime() - 3_600_000).toISOString(),
+      end: null,
+    };
   }
-  return null;
+  // Personnalisé : bornes de jours choisies par le commerçant (l'une ou
+  // l'autre peut manquer pendant la saisie → pas de borne de ce côté).
+  return {
+    start: from
+      ? new Date(Date.parse(`${from}T00:00:00+01:00`)).toISOString()
+      : null,
+    end: to
+      ? new Date(Date.parse(`${to}T00:00:00+01:00`) + 86_400_000).toISOString()
+      : null,
+  };
 }
 
 type SearchContext = {
   search: string;
   start: string | null;
+  end: string | null;
   type: OrdersType;
 };
 
@@ -83,12 +108,14 @@ type SearchContext = {
 function applyContext<
   Q extends {
     gte(col: string, v: string): Q;
+    lt(col: string, v: string): Q;
     eq(col: string, v: string): Q;
     or(filters: string): Q;
   },
 >(query: Q, ctx: SearchContext): Q {
   let q = query;
   if (ctx.start) q = q.gte("created_at", ctx.start);
+  if (ctx.end) q = q.lt("created_at", ctx.end);
   if (ctx.type !== "all") q = q.eq("fulfillment_type", ctx.type);
   if (ctx.search) {
     // Recherche SERVEUR sur TOUT l'historique (pas seulement la page courante) :
@@ -109,6 +136,8 @@ export default async function OrdersPage({
     q?: string;
     period?: string;
     type?: string;
+    from?: string;
+    to?: string;
   }>;
 }) {
   const {
@@ -117,13 +146,23 @@ export default async function OrdersPage({
     q: qParam,
     period: periodParam,
     type: typeParam,
+    from: fromParam,
+    to: toParam,
   } = await searchParams;
   const page = parsePage(pageParam);
   const filter = parseStatusFilter(statusParam);
   const period = parsePeriod(periodParam);
   const type = parseType(typeParam);
   const search = sanitizeSearch(qParam);
-  const ctx: SearchContext = { search, start: periodStart(period), type };
+  const from = period === "custom" ? parseDay(fromParam) : null;
+  const to = period === "custom" ? parseDay(toParam) : null;
+  const bounds = periodBounds(period, from, to);
+  const ctx: SearchContext = {
+    search,
+    start: bounds.start,
+    end: bounds.end,
+    type,
+  };
 
   const supabase = await createClient();
 
@@ -205,6 +244,8 @@ export default async function OrdersPage({
       q={search}
       period={period}
       type={type}
+      from={from ?? ""}
+      to={to ?? ""}
     />
   );
 }

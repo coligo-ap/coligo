@@ -44,6 +44,8 @@ const SettingsSchema = z.object({
   auto_print: z.enum(["off", "on_receive", "on_accept"]),
   print_copies: z.number().int().min(1).max(3),
   print_width: z.union([z.literal(50), z.literal(58), z.literal(80)]),
+  // Langue UNIQUE du ticket (jamais FR/AR mélangés) — 'fr' par défaut.
+  print_lang: z.enum(["fr", "ar"]),
 });
 
 export type SettingsResult = { error?: string; success?: string; ok?: boolean };
@@ -129,6 +131,7 @@ export async function setPrintSettings(
       auto_print: parsed.data.auto_print,
       print_copies: parsed.data.print_copies,
       print_width: parsed.data.print_width,
+      print_lang: parsed.data.print_lang,
     })
     .eq("user_id", user.id);
 

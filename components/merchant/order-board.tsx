@@ -22,6 +22,7 @@ import { useRouter } from "next/navigation";
 import {
   Bike,
   Check,
+  ChefHat,
   Clock,
   Inbox,
   Loader2,
@@ -56,10 +57,12 @@ type Column = {
   key: "pending" | "preparing" | "ready";
   title: string;
   statuses: OrderWithItems["status"][];
+  /** Illustration de la section : icône évocatrice dans une tuile colorée. */
   icon: React.ComponentType<{ className?: string }>;
   /** classes accent de l'en-tête de colonne */
   accent: string;
-  dot: string;
+  /** classes de la tuile d'illustration (fond doux + icône teintée) */
+  tile: string;
 };
 
 const COLUMNS: Column[] = [
@@ -69,15 +72,15 @@ const COLUMNS: Column[] = [
     statuses: ["pending"],
     icon: Inbox,
     accent: "text-warning-700",
-    dot: "bg-warning-500",
+    tile: "bg-warning-50 text-warning-700",
   },
   {
     key: "preparing",
     title: "En préparation",
     statuses: ["accepted", "preparing"],
-    icon: Package,
+    icon: ChefHat,
     accent: "text-primary-700",
-    dot: "bg-primary-500",
+    tile: "bg-primary-50 text-primary-700",
   },
   {
     key: "ready",
@@ -85,7 +88,7 @@ const COLUMNS: Column[] = [
     statuses: ["ready"],
     icon: ShoppingBag,
     accent: "text-success-700",
-    dot: "bg-success-500",
+    tile: "bg-success-50 text-success-700",
   },
 ];
 
@@ -179,13 +182,19 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
                 {alertCount.preparing}
               </span>
             )}
-            <span className="flex items-center gap-1.5">
-              <span className={cn("size-1.5 rounded-full", c.dot)} />
-              {c.title}
-            </span>
+            {/* Illustration de la section — comprendre d'un coup d'œil. */}
             <span
               className={cn(
-                "text-base font-bold tabular-nums",
+                "grid size-8 place-items-center rounded-[10px]",
+                c.tile
+              )}
+            >
+              <c.icon className="size-4.5" />
+            </span>
+            <span className="text-[11px] leading-tight">{c.title}</span>
+            <span
+              className={cn(
+                "text-base leading-none font-bold tabular-nums",
                 c.key === "pending" &&
                   alertCount.pending > 0 &&
                   "text-danger-600 animate-pulse"
@@ -212,7 +221,15 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
                 l'alerte clignotante ; « En préparation » gagne un badge
                 « N en retard » (info différente du total). */}
             <div className="mb-2 hidden items-center gap-2 px-1 lg:flex">
-              <span className={cn("size-2 rounded-full", c.dot)} />
+              {/* Illustration de la section (remplace le simple point coloré). */}
+              <span
+                className={cn(
+                  "grid size-6 place-items-center rounded-[8px]",
+                  c.tile
+                )}
+              >
+                <c.icon className="size-3.5" />
+              </span>
               <h2 className={cn("text-sm font-bold tracking-tight", c.accent)}>
                 {c.title}
               </h2>

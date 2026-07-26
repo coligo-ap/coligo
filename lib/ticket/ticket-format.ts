@@ -11,8 +11,13 @@
  * formatters et la dérivation des libellés (mode / paiement / footer).
  */
 
-import type { PrintWidth } from "@/lib/types";
-import type { TicketItem, TicketOrder } from "@/lib/ticket/build-ticket-html";
+import type { PrintLang, PrintWidth } from "@/lib/types";
+import type {
+  TicketItem,
+  TicketItemOption,
+  TicketOrder,
+  TicketPromotion,
+} from "@/lib/ticket/build-ticket-html";
 
 /**
  * Caractères par ligne en police par défaut (Font A, 12 dots/car) selon la
@@ -287,4 +292,104 @@ export function loyaltyInfo(
 /** Ordinal français court : 1 → « 1re », n → « ne » (2e, 3e…). */
 export function ordinalFr(n: number): string {
   return n === 1 ? "1re" : `${n}e`;
+}
+
+// ===========================================================================
+// Langue UNIQUE du ticket (règle produit : jamais FR et AR mélangés)
+// ===========================================================================
+
+/**
+ * Libellés statiques du ticket dans UNE seule langue. Les deux rendus
+ * (HTML et bitmap canvas) consomment ce pack → un seul point de vérité,
+ * aucun mélange FR/AR possible sur un même ticket.
+ */
+export function ticketStrings(lang: PrintLang) {
+  if (lang === "ar") {
+    return {
+      scheduledBanner: "⚠ طلب مبرمج",
+      scheduledFor: "للتحضير في",
+      newCustomer: "زبون جديد",
+      notesTitle: "ملاحظات خاصة",
+      noItems: "(لا توجد منتجات)",
+      offered: "مجاني",
+      productsCount: "عدد المنتجات",
+      subtotal: "المجموع الفرعي",
+      reduction: "تخفيض",
+      reductionPct: (pct: number) => `تخفيض ${pct}%-`,
+      cashback: "كاشباك",
+      promosTitle: "العروض",
+      promoFree: (n: number) => `${n}× مجاني`,
+      cashNotice: (delivery: boolean) =>
+        delivery ? "الدفع نقدا عند التوصيل" : "الدفع نقدا عند الاستلام",
+      orderClock: "وقت الطلب",
+      customer: "الزبون",
+      phone: "الهاتف",
+      address: "العنوان",
+      access: "ملاحظة الدخول",
+      firstOrder: "أول طلبية",
+      nthOrder: (n: number) => `الطلبية رقم ${n} لهذا الزبون`,
+      thanks: "شكرا لثقتكم",
+      deliveryFooter: "الرمز يسلمه الزبون للموصل (غير مطبوع)",
+      pickupFooter: "شكرا لثقتكم !",
+    };
+  }
+  return {
+    scheduledBanner: "⚠ COMMANDE PROGRAMMÉE",
+    scheduledFor: "À préparer pour",
+    newCustomer: "NOUVEAU CLIENT",
+    notesTitle: "Précisions particulières",
+    noItems: "(aucun article)",
+    offered: "OFFERT",
+    productsCount: "Nombre de produits",
+    subtotal: "Sous-total",
+    reduction: "Réduction",
+    reductionPct: (pct: number) => `Réduction -${pct}%`,
+    cashback: "Cashback",
+    promosTitle: "Promotions",
+    promoFree: (n: number) => `${n}× offert`,
+    cashNotice: (delivery: boolean) =>
+      delivery
+        ? "paiement en espèces à la livraison"
+        : "paiement en espèces au retrait",
+    orderClock: "Heure commande",
+    customer: "Client",
+    phone: "Téléphone",
+    address: "Adresse",
+    access: "Accès",
+    firstOrder: "Première commande",
+    nthOrder: (n: number) => `${ordinalFr(n)} commande de ce client`,
+    thanks: "Merci pour votre confiance",
+    deliveryFooter: "Code remis par le client au livreur (non imprimé)",
+    pickupFooter: "Merci pour votre confiance !",
+  };
+}
+
+export type TicketStrings = ReturnType<typeof ticketStrings>;
+
+/** Nom d'article dans LA langue du ticket (repli FR si l'AR manque). */
+export function itemDisplayName(
+  it: Pick<TicketItem, "product_name" | "product_name_ar">,
+  lang: PrintLang
+): string {
+  return lang === "ar"
+    ? (it.product_name_ar ?? it.product_name)
+    : it.product_name;
+}
+
+/** Nom d'option dans LA langue du ticket (repli FR si l'AR manque). */
+export function optionDisplayName(
+  o: Pick<TicketItemOption, "option_name_fr" | "option_name_ar">,
+  lang: PrintLang
+): string {
+  return lang === "ar"
+    ? (o.option_name_ar ?? o.option_name_fr)
+    : o.option_name_fr;
+}
+
+/** Titre de promotion dans LA langue du ticket (repli FR si l'AR manque). */
+export function promoDisplayTitle(
+  p: Pick<TicketPromotion, "title_fr" | "title_ar">,
+  lang: PrintLang
+): string {
+  return lang === "ar" ? (p.title_ar ?? p.title_fr) : p.title_fr;
 }

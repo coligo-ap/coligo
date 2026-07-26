@@ -92,9 +92,15 @@ export async function GET(
 
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("name, city, wilaya_code")
+    .select("name, city, wilaya_code, print_lang")
     .eq("id", order.merchant_id)
     .maybeSingle();
+  // Langue unique du ticket (jamais FR/AR mélangés) — relue en DB, source de
+  // vérité des réglages d'impression du commerçant.
+  const printLang =
+    (merchant as { print_lang?: string | null } | null)?.print_lang === "ar"
+      ? ("ar" as const)
+      : ("fr" as const);
 
   const categoryMap = await fetchCategoryMap(
     supabase,
@@ -147,6 +153,7 @@ export async function GET(
       width: widthMm,
       appName: APP_CONFIG.name,
       copyLabel,
+      lang: printLang,
     });
     copiesHtml.push(`<div class="ticket-page">${html}</div>`);
   }

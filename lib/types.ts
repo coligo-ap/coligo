@@ -587,11 +587,19 @@ export type AutoPrintMode = "off" | "on_receive" | "on_accept";
 
 export type PrintWidth = 50 | 58 | 80;
 
+/**
+ * Langue d'impression des tickets : UNE seule langue par ticket, JAMAIS
+ * FR/AR mélangés (illisible en thermique). 'fr' par défaut ; 'ar' seulement
+ * si le commerçant l'a choisi dans les paramètres d'impression.
+ */
+export type PrintLang = "fr" | "ar";
+
 export type PrintSettings = {
   auto_accept_orders: boolean;
   auto_print: AutoPrintMode;
   print_copies: number;
   print_width: PrintWidth;
+  print_lang: PrintLang;
 };
 
 export const AUTO_PRINT_LABEL: Record<AutoPrintMode, string> = {
@@ -607,4 +615,5 @@ export const DEFAULT_PRINT_SETTINGS: PrintSettings = {
   // Sunmi V3 (terminal cible) = rouleaux 50mm → 384 dots → 32 car./ligne.
   // Migration 0062 a aligné la DB (l'ancien 80mm était erroné).
   print_width: 50,
+  print_lang: "fr",
 };

@@ -464,6 +464,7 @@ export type Database = {
           auto_print: Database["public"]["Enums"]["auto_print_mode"];
           print_copies: number;
           print_width: number;
+          print_lang: string;
           delivery_enabled: boolean;
           express_enabled: boolean;
           tours_enabled: boolean;
@@ -520,6 +521,7 @@ export type Database = {
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
+          print_lang?: string;
           delivery_enabled?: boolean;
           express_enabled?: boolean;
           tours_enabled?: boolean;
@@ -576,6 +578,7 @@ export type Database = {
           auto_print?: Database["public"]["Enums"]["auto_print_mode"];
           print_copies?: number;
           print_width?: number;
+          print_lang?: string;
           delivery_enabled?: boolean;
           express_enabled?: boolean;
           tours_enabled?: boolean;

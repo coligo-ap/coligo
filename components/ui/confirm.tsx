@@ -117,7 +117,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
         {children}
         {req && (
           <div
-            className="fixed inset-0 z-[200] grid place-items-center bg-black/40 p-4"
+            className="fixed inset-0 z-[200] grid place-items-center bg-black/40 px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
             role="dialog"
             aria-modal="true"
             onClick={cancel}

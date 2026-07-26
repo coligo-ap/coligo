@@ -262,7 +262,7 @@ function ReadyPromptModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 p-4"
+      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
       role="alertdialog"
       aria-modal="true"
       onClick={onDismiss}
@@ -333,7 +333,7 @@ function ErrorModal({
 }) {
   return (
     <div
-      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 p-4"
+      className="fixed inset-0 z-[200] grid place-items-center bg-black/50 px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)]"
       role="alertdialog"
       aria-modal="true"
       onClick={onDismiss}

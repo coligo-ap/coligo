@@ -5,6 +5,7 @@ import {
   Bot,
   Check,
   Eye,
+  Languages,
   Layers,
   Loader2,
   Printer,
@@ -17,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import {
   type AutoPrintMode,
+  type PrintLang,
   type PrintSettings,
   type PrintWidth,
 } from "@/lib/types";
@@ -43,7 +45,8 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
     state.auto_accept_orders !== initial.auto_accept_orders ||
     state.auto_print !== initial.auto_print ||
     state.print_copies !== initial.print_copies ||
-    state.print_width !== initial.print_width;
+    state.print_width !== initial.print_width ||
+    state.print_lang !== initial.print_lang;
 
   function save() {
     startTransition(async () => {
@@ -60,6 +63,7 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
       await printOrderTicket(fake, {
         width: state.print_width,
         copies: state.print_copies,
+        lang: state.print_lang,
       });
     } catch {
       setNote({ ok: false, text: "Impression impossible." });
@@ -138,6 +142,21 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
             onChange={(v) => setState((s) => ({ ...s, print_width: v }))}
           />
         </SettingRow>
+
+        <SettingRow
+          icon={Languages}
+          label="Langue du ticket"
+          help="Le ticket s'imprime dans UNE seule langue — jamais français et arabe mélangés."
+        >
+          <SegmentedSelect<PrintLang>
+            value={state.print_lang}
+            options={[
+              { value: "fr", label: "Français" },
+              { value: "ar", label: "العربية" },
+            ]}
+            onChange={(v) => setState((s) => ({ ...s, print_lang: v }))}
+          />
+        </SettingRow>
       </div>
 
       {/* Actions */}
@@ -191,7 +210,11 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
             Aperçu ({state.print_width} mm) —{" "}
             {previewCash ? "Cash" : "Payé en ligne"}
           </p>
-          <OrderTicket order={previewOrder} width={state.print_width} />
+          <OrderTicket
+            order={previewOrder}
+            width={state.print_width}
+            lang={state.print_lang}
+          />
         </div>
       )}
     </div>

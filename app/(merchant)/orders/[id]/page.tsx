@@ -99,7 +99,7 @@ export default async function OrderDetailPage({
   // sur le commerçant connecté.
   const { data: merchant } = await supabase
     .from("merchants")
-    .select("name, print_width, print_copies, commission_rate")
+    .select("name, print_width, print_copies, print_lang, commission_rate")
     .eq("id", o.merchant_id)
     .maybeSingle();
   // Enrichit chaque item avec sa catégorie (best-effort, fallback « ARTICLES »).
@@ -140,6 +140,11 @@ export default async function OrderDetailPage({
   );
   const printWidth = (merchant?.print_width ?? 50) as PrintWidth;
   const printCopies = merchant?.print_copies ?? 1;
+  // Langue unique du ticket (jamais FR/AR mélangés) — 'fr' par défaut.
+  const printLang =
+    (merchant as { print_lang?: string | null } | null)?.print_lang === "ar"
+      ? ("ar" as const)
+      : ("fr" as const);
   const orderEvents = (events ?? []) as OrderEvent[];
   const meta = ORDER_STATUS_META[o.status];
   // Référence publique affichée : numéro de commande (#A073), jamais le hash interne.
@@ -214,6 +219,7 @@ export default async function OrderDetailPage({
               order={ticketOrder}
               width={printWidth}
               copies={printCopies}
+              lang={printLang}
               size="sm"
               label="Imprimer"
             />

@@ -6,13 +6,15 @@ import {
   type TicketOrder,
   type BuildTicketOptions,
 } from "@/lib/ticket/build-ticket-html";
-import type { PrintWidth } from "@/lib/types";
+import type { PrintLang, PrintWidth } from "@/lib/types";
 
 type Props = {
   order: TicketOrder;
   width: PrintWidth;
   appName?: string;
   copyLabel?: string;
+  /** Langue UNIQUE du ticket (jamais FR/AR mélangés) — défaut 'fr'. */
+  lang?: PrintLang;
   /** Hauteur d'aperçu en pixels (le ticket est sinon fluide). */
   className?: string;
 };
@@ -30,13 +32,14 @@ export function OrderTicket({
   width,
   appName,
   copyLabel,
+  lang,
   className,
 }: Props) {
   const [srcDoc, setSrcDoc] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
-    const opts: BuildTicketOptions = { width, appName, copyLabel };
+    const opts: BuildTicketOptions = { width, appName, copyLabel, lang };
     buildTicketHTML(order, opts).then(({ html }) => {
       if (cancelled) return;
       // L'iframe reproduit le contexte d'impression : même font sans-serif
@@ -61,7 +64,7 @@ export function OrderTicket({
     return () => {
       cancelled = true;
     };
-  }, [order, width, appName, copyLabel]);
+  }, [order, width, appName, copyLabel, lang]);
 
   return (
     <iframe

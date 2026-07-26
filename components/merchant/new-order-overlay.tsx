@@ -324,9 +324,12 @@ export function NewOrderOverlay({
       role="alertdialog"
       aria-modal="true"
       aria-label="Nouvelle commande reçue"
-      className="bg-primary-700/95 fixed inset-0 z-[95] flex items-center justify-center p-3 backdrop-blur-sm sm:p-4"
+      // RÈGLE safe-area (APK edge-to-edge) : la carte peut occuper presque tout
+      // l'écran → le conteneur réserve les barres système (statut + gestes) et
+      // la carte se borne au conteneur (max-h-full), plus jamais dessous.
+      className="bg-primary-700/95 fixed inset-0 z-[95] flex items-center justify-center px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur-sm sm:px-4"
     >
-      <div className="flex max-h-[94vh] w-full max-w-md flex-col overflow-hidden rounded-[20px] bg-white shadow-2xl">
+      <div className="flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-[20px] bg-white shadow-2xl">
         {/* ─── En-tête (fixe) ─── */}
         <div className="bg-primary-700 relative shrink-0 px-5 py-4 text-white">
           {queued > 0 && (

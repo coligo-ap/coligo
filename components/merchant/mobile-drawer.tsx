@@ -119,7 +119,10 @@ export function MobileDrawer({
         aria-modal="true"
         aria-label="Menu de navigation"
         className={cn(
-          "fixed inset-y-0 right-0 z-50 flex w-[82%] max-w-xs flex-col bg-white shadow-xl transition-transform duration-200 ease-out",
+          // RÈGLE safe-area (APK edge-to-edge) : panneau `inset-y-0` → le FOND
+          // blanc se prolonge sous la barre de statut, mais le CONTENU (en-tête,
+          // bouton X) démarre dessous. Idem encoche latérale en paysage.
+          "fixed inset-y-0 right-0 z-50 flex w-[82%] max-w-xs flex-col bg-white pt-[env(safe-area-inset-top)] pr-[env(safe-area-inset-right)] shadow-xl transition-transform duration-200 ease-out",
           slidIn ? "translate-x-0" : "translate-x-full"
         )}
       >

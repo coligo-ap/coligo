@@ -3,7 +3,7 @@
 import { useState } from "react";
 import { Loader2, Printer } from "lucide-react";
 import type { TicketOrder } from "@/lib/ticket/build-ticket-html";
-import type { PrintWidth } from "@/lib/types";
+import type { PrintLang, PrintWidth } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { hasNativePrinterBridge } from "@/lib/native/context";
 import { printOrderTicket } from "@/lib/ticket/print-order";
@@ -13,6 +13,9 @@ type Props = {
   width: PrintWidth;
   copies?: number;
   appName?: string;
+  /** Langue UNIQUE du ticket (jamais FR/AR mélangés) — défaut 'fr'. La voie
+   *  web (/print/orders/[id]) relit la langue en DB, pas besoin de la passer. */
+  lang?: PrintLang;
   variant?: "primary" | "outline" | "icon";
   size?: "sm" | "md";
   label?: string;
@@ -45,6 +48,7 @@ export function PrintOrderButton({
   width,
   copies = 1,
   appName,
+  lang,
   variant = "outline",
   size = "md",
   label = "Imprimer le ticket",
@@ -73,7 +77,7 @@ export function PrintOrderButton({
     // JS↔natif (window.print() est no-op dans le WebView Capacitor).
     if (nativeBridge) {
       try {
-        await printOrderTicket(order, { width, copies, appName });
+        await printOrderTicket(order, { width, copies, appName, lang });
       } finally {
         setBusy(false);
       }

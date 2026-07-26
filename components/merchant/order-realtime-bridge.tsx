@@ -196,6 +196,7 @@ export function OrderRealtimeBridge({
         await printOrderTicket(ticket, {
           width: settingsRef.current.print_width,
           copies: settingsRef.current.print_copies,
+          lang: settingsRef.current.print_lang,
         });
       } catch {
         // Pas de toast bruyant : l'impression auto est silencieuse par
@@ -477,7 +478,7 @@ export function OrderRealtimeBridge({
           role="alertdialog"
           aria-modal="true"
           aria-label="Commande annulée par le client"
-          className="bg-danger-700/95 fixed inset-0 z-[97] flex items-center justify-center p-4 backdrop-blur-sm"
+          className="bg-danger-700/95 fixed inset-0 z-[97] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-sm"
         >
           <div className="w-full max-w-sm rounded-[20px] bg-white p-6 text-center shadow-2xl">
             <div className="bg-danger-100 text-danger-700 mx-auto grid size-14 place-items-center rounded-full">

@@ -17,7 +17,7 @@
  * (order_number) apparaît.
  */
 
-import type { FulfillmentType, PrintWidth } from "@/lib/types";
+import type { FulfillmentType, PrintLang, PrintWidth } from "@/lib/types";
 import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import {
   deriveTicketMeta,
@@ -28,12 +28,16 @@ import {
   formatTime,
   groupByCategory,
   groupCount,
+  itemDisplayName,
   loyaltyInfo,
+  optionDisplayName,
   orderRef,
-  ordinalFr,
+  promoDisplayTitle,
   promoTypeLabel,
+  ticketStrings,
   totalUnits,
   truncateName,
+  type TicketStrings,
 } from "@/lib/ticket/ticket-format";
 import { qrSvg } from "@/lib/ticket/qr-svg";
 
@@ -125,6 +129,12 @@ export type BuildTicketOptions = {
   appName?: string;
   /** Mention « COPIE k/N » sur les multi-exemplaires. */
   copyLabel?: string;
+  /**
+   * Langue UNIQUE du ticket (règle produit : jamais FR/AR mélangés).
+   * Défaut 'fr' ; 'ar' seulement si le commerçant l'a choisi dans ses
+   * paramètres d'impression.
+   */
+  lang?: PrintLang;
 };
 
 export type BuiltTicket = {
@@ -150,17 +160,19 @@ function escapeHtml(s: string): string {
  * Bloc fidélité imprimé sous le QR. Première commande → message dédié ; sinon
  * des paniers 🛒 (jusqu'à 3), au-delà « N× 🛒 », avec le rang en légende.
  */
-function loyaltyHtml(order: TicketOrder): string {
+function loyaltyHtml(order: TicketOrder, L: TicketStrings): string {
   const info = loyaltyInfo(order.customer_order_count);
   if (!info) return "";
   if (info.first) {
-    return `  <div class="t-loyalty"><div class="t-loyalty-first">Première commande</div></div>\n`;
+    return `  <div class="t-loyalty"><div class="t-loyalty-first">${escapeHtml(
+      L.firstOrder
+    )}</div></div>\n`;
   }
   const baskets =
     info.count <= 3 ? "🛒".repeat(info.count) : `${info.count}× 🛒`;
-  return `  <div class="t-loyalty"><div class="t-loyalty-baskets">${baskets}</div><div class="t-loyalty-cap">${ordinalFr(
-    info.count
-  )} commande de ce client</div></div>\n`;
+  return `  <div class="t-loyalty"><div class="t-loyalty-baskets">${baskets}</div><div class="t-loyalty-cap">${escapeHtml(
+    L.nthOrder(info.count)
+  )}</div></div>\n`;
 }
 
 /** Une ligne récap label/valeur. */
@@ -179,6 +191,9 @@ export async function buildTicketHTML(
   opts: BuildTicketOptions
 ): Promise<BuiltTicket> {
   const w = opts.width;
+  const lang: PrintLang = opts.lang ?? "fr";
+  const L = ticketStrings(lang);
+  const isAr = lang === "ar";
   const meta = deriveTicketMeta(order);
   const groups = groupByCategory(order.items);
   // QR de la RÉFÉRENCE publique de commande (jamais le PIN secret). Court →
@@ -186,6 +201,8 @@ export async function buildTicketHTML(
   const qr = await qrSvg(orderRef(order), { margin: 2 });
 
   // ─── Articles groupés (SANS prix — ticket cuisine façon Deliveroo) ───────
+  // LANGUE UNIQUE : le nom (et les options) s'impriment dans LA langue du
+  // ticket — plus jamais de ligne AR sous le nom FR.
   const itemsHtml =
     groups.length === 0
       ? `<div class="t-cat">ARTICLES (0)</div>`
@@ -194,14 +211,11 @@ export async function buildTicketHTML(
             const rows = g.items
               .map((it) => {
                 const qty = escapeHtml(formatQtyUnit(it.quantity, it.unit));
-                const nameFr = escapeHtml(truncateName(it.product_name, 28));
+                const name = escapeHtml(
+                  truncateName(itemDisplayName(it, lang), 28)
+                );
                 const free = it.is_free
-                  ? ` <span class="t-free">OFFERT / مجاني</span>`
-                  : "";
-                const ar = it.product_name_ar
-                  ? `<div class="t-item-ar" dir="rtl">${escapeHtml(
-                      truncateName(it.product_name_ar, 28)
-                    )}</div>`
+                  ? ` <span class="t-free">${escapeHtml(L.offered)}</span>`
                   : "";
                 const opts = (it.options ?? [])
                   .map((o) => {
@@ -210,17 +224,12 @@ export async function buildTicketHTML(
                           o.price_delta_da
                         )})`
                       : "";
-                    const arOpt = o.option_name_ar
-                      ? ` / <span dir="rtl">${escapeHtml(
-                          o.option_name_ar
-                        )}</span>`
-                      : "";
                     return `<div class="t-opt">+ ${escapeHtml(
-                      o.option_name_fr
-                    )}${arOpt}${escapeHtml(delta)}</div>`;
+                      optionDisplayName(o, lang)
+                    )}${escapeHtml(delta)}</div>`;
                   })
                   .join("");
-                return `<div class="t-item">${qty} ${nameFr}${free}</div>${ar}${opts}`;
+                return `<div class="t-item">${qty} ${name}${free}</div>${opts}`;
               })
               .join("");
             return `<div class="t-cat">${escapeHtml(
@@ -231,11 +240,16 @@ export async function buildTicketHTML(
 
   // ─── Récap ────────────────────────────────────────────────────────────
   const recapRows: string[] = [
-    rowLR("Nombre de produits", String(totalUnits(order.items))),
-    rowLR("Sous-total", formatDA(meta.subtotalDa)),
+    rowLR(L.productsCount, String(totalUnits(order.items))),
+    rowLR(L.subtotal, formatDA(meta.subtotalDa)),
   ];
   if (order.service_fee_da > 0) {
-    recapRows.push(rowLR(meta.feeLabel, formatDA(order.service_fee_da)));
+    recapRows.push(
+      rowLR(
+        isAr ? meta.feeLabelAr : meta.feeLabel,
+        formatDA(order.service_fee_da)
+      )
+    );
   }
   // Réduction générique : seulement pour les anciennes commandes SANS détail
   // promo itémisé (sinon le bloc « Promotions » ci-dessous fait foi).
@@ -246,41 +260,46 @@ export async function buildTicketHTML(
         : 0;
     recapRows.push(
       rowLR(
-        pct > 0 ? `Réduction -${pct}%` : "Réduction",
+        pct > 0 ? L.reductionPct(pct) : L.reduction,
         `-${formatDA(meta.discountDa)}`
       )
     );
   }
   if (order.cashback_da > 0) {
-    recapRows.push(rowLR("Cashback", `-${formatDA(order.cashback_da)}`));
+    recapRows.push(rowLR(L.cashback, `-${formatDA(order.cashback_da)}`));
   }
-  recapRows.push(rowLR(meta.totalLabel, formatDA(order.total_da), true));
+  recapRows.push(
+    rowLR(
+      isAr ? meta.totalLabelAr : meta.totalLabel,
+      formatDA(order.total_da),
+      true
+    )
+  );
   if (meta.isCash) {
     recapRows.push(
-      `<div class="t-p t-center">paiement en espèces ${escapeHtml(
-        meta.handoffWord
+      `<div class="t-p t-center">${escapeHtml(
+        L.cashNotice(meta.isDelivery)
       )}</div>`
     );
   }
 
-  // ─── Promotions appliquées (résumé bilingue par type + offerts) ─────────
+  // ─── Promotions appliquées (résumé LANGUE UNIQUE par type + offerts) ────
   const promoBlock =
     order.promotions && order.promotions.length > 0
       ? `<hr class="t-sep">
-  <div class="t-h">Promotions / العروض</div>
+  <div class="t-h">${escapeHtml(L.promosTitle)}</div>
   ${order.promotions
     .map((p) => {
       const lbl = promoTypeLabel(p.type);
       const right =
         p.free_qty > 0
-          ? `${p.free_qty}× offert / مجاني`
+          ? L.promoFree(p.free_qty)
           : `-${formatDA(p.discount_da)}`;
-      const arTitle = p.title_ar
-        ? ` <span dir="rtl">${escapeHtml(p.title_ar)}</span>`
-        : "";
-      return `<div class="t-row"><span>${escapeHtml(lbl.fr)} · ${escapeHtml(
-        p.title_fr
-      )}${arTitle}</span><span>${escapeHtml(right)}</span></div>`;
+      return `<div class="t-row"><span>${escapeHtml(
+        isAr ? lbl.ar : lbl.fr
+      )} · ${escapeHtml(
+        promoDisplayTitle(p, lang)
+      )}</span><span>${escapeHtml(right)}</span></div>`;
     })
     .join("\n  ")}`
       : "";
@@ -289,7 +308,7 @@ export async function buildTicketHTML(
   const note = order.notes && order.notes !== "seed" ? order.notes : null;
   const noteBlock = note
     ? `<hr class="t-sep">
-  <div class="t-h">Précisions particulières</div>
+  <div class="t-h">${escapeHtml(L.notesTitle)}</div>
   <div class="t-p">${escapeHtml(note)}</div>`
     : "";
 
@@ -300,26 +319,28 @@ export async function buildTicketHTML(
       : order.customer_phone;
   const addressRow =
     meta.isDelivery && order.delivery_address
-      ? `<br><b>Adresse :</b> ${escapeHtml(order.delivery_address)}`
+      ? `<br><b>${escapeHtml(L.address)} :</b> ${escapeHtml(order.delivery_address)}`
       : "";
   const accessRow =
     meta.isDelivery && order.delivery_note
-      ? `<br><b>Accès :</b> ${escapeHtml(order.delivery_note)}`
+      ? `<br><b>${escapeHtml(L.access)} :</b> ${escapeHtml(order.delivery_note)}`
       : "";
 
   const copyBanner = opts.copyLabel
     ? `<div class="t-copy">${escapeHtml(opts.copyLabel)}</div>`
     : "";
 
-  // Bandeau COMMANDE PROGRAMMÉE (très visible, en haut) — bilingue. Empêche le
-  // préparateur de la lancer trop tôt.
+  // Bandeau COMMANDE PROGRAMMÉE (très visible, en haut) — LANGUE UNIQUE.
+  // Empêche le préparateur de la lancer trop tôt.
   const scheduledBanner = order.scheduled_for
-    ? `<div class="t-sched">⚠ COMMANDE PROGRAMMÉE · طلب مبرمج<div class="t-sched-time">À préparer pour / للتحضير في ${escapeHtml(
+    ? `<div class="t-sched">${escapeHtml(
+        L.scheduledBanner
+      )}<div class="t-sched-time">${escapeHtml(L.scheduledFor)} ${escapeHtml(
         formatScheduleClock(order.scheduled_for)
       )}</div></div>`
     : "";
   const badgeNewClient = order.is_new_customer
-    ? `<div class="t-badge">NOUVEAU CLIENT</div>`
+    ? `<div class="t-badge">${escapeHtml(L.newCustomer)}</div>`
     : "";
 
   // ─── Styles : repris de la maquette cible (sans-serif Deliveroo) ─────────
@@ -415,7 +436,7 @@ export async function buildTicketHTML(
   `;
 
   const html = `
-<div class="tk">
+<div class="tk"${isAr ? ' dir="rtl"' : ""}>
   ${copyBanner}
   ${scheduledBanner}
 
@@ -425,18 +446,18 @@ export async function buildTicketHTML(
   )}"></div>
   <div class="t-shop">${escapeHtml(order.merchant_name)}</div>
 
-  <!-- 2. Bandeau inversé mode + paiement -->
-  <div class="t-mode">${escapeHtml(meta.bannerText)}<span class="t-mode-ar" dir="rtl">${escapeHtml(
-    meta.bannerTextAr
-  )}</span></div>
+  <!-- 2. Bandeau inversé mode + paiement — LANGUE UNIQUE -->
+  <div class="t-mode">${escapeHtml(
+    isAr ? meta.bannerTextAr : meta.bannerText
+  )}</div>
 
   <!-- 3. Numéro de commande énorme (référence publique) -->
   <div class="t-num">#${escapeHtml(orderRef(order))}</div>
 
   <!-- 4. Heure de retrait / livraison -->
-  <div class="t-for">${escapeHtml(meta.timeLineLabel)} : ${escapeHtml(
-    formatTime(order.pickup_slot_at)
-  )}</div>
+  <div class="t-for">${escapeHtml(
+    isAr ? meta.timeLineLabelAr : meta.timeLineLabel
+  )} : ${escapeHtml(formatTime(order.pickup_slot_at))}</div>
 
   ${badgeNewClient}
 
@@ -458,25 +479,33 @@ export async function buildTicketHTML(
 
   <!-- 8. Bloc infos client (adresse uniquement en livraison) -->
   <div class="t-info">
-    <b>Heure commande :</b> ${escapeHtml(formatOrderClock(order.created_at))}<br>
-    <b>Client :</b> ${escapeHtml(order.customer_name)}<br>
-    <b>Téléphone :</b> ${escapeHtml(contactPhone)}${addressRow}${accessRow}
+    <b>${escapeHtml(L.orderClock)} :</b> ${escapeHtml(
+      formatOrderClock(order.created_at)
+    )}<br>
+    <b>${escapeHtml(L.customer)} :</b> ${escapeHtml(order.customer_name)}<br>
+    <b>${escapeHtml(L.phone)} :</b> ${escapeHtml(contactPhone)}${addressRow}${accessRow}
   </div>
 
   <hr class="t-sep">
 
-  <!-- 9. Pied dépendant du mode -->
-  <div class="t-foot">${escapeHtml(meta.footerText)}</div>
+  <!-- 9. Pied dépendant du mode — LANGUE UNIQUE -->
+  <div class="t-foot">${escapeHtml(
+    isAr
+      ? meta.isDelivery
+        ? L.deliveryFooter
+        : L.pickupFooter
+      : meta.footerText
+  )}</div>
 
   <!-- 10. QR de la référence de commande (centré) -->
   <div class="t-qr-wrap">
     <div class="t-qr">${qr}</div>
     <div class="t-qr-cap">N° ${escapeHtml(orderRef(order))}</div>
   </div>
-${loyaltyHtml(order)}
+${loyaltyHtml(order, L)}
   <!-- Remerciement, avec de l'espace au-dessus pour déchirer sans le couper -->
   <div class="t-thanks-pad"></div>
-  <div class="t-thanks">Merci pour votre confiance</div>
+  <div class="t-thanks">${escapeHtml(L.thanks)}</div>
 
   <!-- Marge de découpe : lignes vides en bas -->
   <div class="t-foot-pad"></div>
