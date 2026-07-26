@@ -23,24 +23,23 @@ export default async function DashboardPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("id, name, orders_paused, prep_time_min")
-    .eq("user_id", user?.id ?? "")
-    .maybeSingle();
+  // PERF : lookup merchant ∥ auto-refus (mig 0244, RPC scopée session — le
+  // wrapper résout merchant_id tout seul) → un aller-retour séquentiel de
+  // moins sur l'accueil. L'auto-refus reste AVANT la lecture des commandes
+  // (compteurs exacts). Best-effort : n'échoue jamais le rendu du board.
+  const [{ data: merchant }] = await Promise.all([
+    supabase
+      .from("merchants")
+      .select("id, name, orders_paused, prep_time_min")
+      .eq("user_id", user?.id ?? "")
+      .maybeSingle(),
+    supabase.rpc("expire_my_stale_pending_orders" as never).then(
+      () => {},
+      () => {}
+    ),
+  ]);
   const prepTimeMin =
     (merchant as { prep_time_min?: number } | null)?.prep_time_min ?? 0;
-
-  // Auto-refus (mig 0244) : annule + rembourse les commandes IMMÉDIATES restées
-  // « À confirmer » au-delà du seuil (défaut 15 min). Poll gaté — le board se
-  // rafraîchit en continu (Realtime), donc l'auto-refus promis par l'UI est
-  // appliqué en quasi temps réel pour le commerçant actif. Scopé à SES commandes
-  // (wrapper résout merchant_id depuis la session) ; un cron global couvre les
-  // commerçants absents. Best-effort : n'échoue jamais le rendu du board.
-  await supabase.rpc("expire_my_stale_pending_orders" as never).then(
-    () => {},
-    () => {}
-  );
 
   const { data: orders, error } = await supabase
     .from("orders")

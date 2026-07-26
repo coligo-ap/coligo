@@ -292,7 +292,16 @@ export function OrdersBrowser({
           {PERIODS.map((pOpt) => (
             <Link
               key={pOpt.key}
-              href={hrefFor({ period: pOpt.key })}
+              // Passage en « Personnalisé » ⇒ statut « Toutes » d'office :
+              // le commerçant part de TOUT l'historique de la plage choisie,
+              // puis affine (statut, recherche) — pas de résultat vide parce
+              // qu'on était resté sur « À confirmer ».
+              href={hrefFor({
+                period: pOpt.key,
+                ...(pOpt.key === "custom" && period !== "custom"
+                  ? { status: "all" }
+                  : {}),
+              })}
               className={cn(
                 "rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors",
                 period === pOpt.key

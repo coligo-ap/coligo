@@ -103,7 +103,10 @@ export function CustomerChrome({
       {bare ? (
         <CartMonoProvider>{children}</CartMonoProvider>
       ) : (
-        <main className="pb-20 lg:pb-0">
+        /* RÈGLE safe-area : bas de page AU-DESSUS de la bottom-nav (+ inset
+           système) + une ligne d'air — les derniers composants restent
+           entièrement visibles et tapables sur tous les téléphones. */
+        <main className="pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
           {/* Hors ligne : le contenu (souvent périmé) est flouté/atténué mais
               reste là ; header + nav du bas + bandeau restent nets et
               utilisables. On ne fige jamais tout l'écran. */}

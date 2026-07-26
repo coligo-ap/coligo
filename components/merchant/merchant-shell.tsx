@@ -86,12 +86,20 @@ export async function MerchantShell({
       };
     };
   };
-  const { data: merchant, error } = await merchantQuery("merchants")
-    .select(
-      "id, name, auto_accept_orders, auto_print, print_copies, print_width, print_lang, orders_paused, paused_until, closure_start, closure_end, approval_status, rejected_reason"
-    )
-    .eq("user_id", user.id)
-    .maybeSingle();
+  // PERF : l'expiration paresseuse (RPC scopée SESSION, indépendante de la
+  // ligne merchants) part EN PARALLÈLE du lookup merchant — un aller-retour
+  // séquentiel de moins sur CHAQUE page commerçant.
+  const [{ data: merchant, error }] = await Promise.all([
+    merchantQuery("merchants")
+      .select(
+        "id, name, auto_accept_orders, auto_print, print_copies, print_width, print_lang, orders_paused, paused_until, closure_start, closure_end, approval_status, rejected_reason"
+      )
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    // Refuse les commandes restées « à confirmer » > 15 min (rejouée à chaque
+    // accès + refresh Realtime → robuste sans cron, cf. Express timing).
+    expireStalePendingOrders(supabase),
+  ]);
 
   if (error) {
     console.error("[merchant-shell] merchants query error:", {
@@ -125,12 +133,6 @@ export async function MerchantShell({
       />
     );
   }
-
-  // Expiration paresseuse : refuse les commandes restées « à confirmer » plus
-  // de 15 min. Rejouée à chaque accès commerçant (et via le refresh périodique
-  // du pont Realtime) → robuste même sans la minuterie client. Sans cron, en
-  // cohérence avec l'approche Express timing du projet.
-  await expireStalePendingOrders(supabase);
 
   // Commandes ACTIVES (après expiration → compteurs exacts) : une seule
   // requête légère qui alimente à la fois le badge « à confirmer » du header
@@ -204,8 +206,12 @@ export async function MerchantShell({
               pauseInput={pauseInput}
             />
 
-            {/* Content — flouté hors ligne (contenu périmé), coque nette. */}
-            <main className="flex-1 pb-20 lg:pb-0">
+            {/* Content — flouté hors ligne (contenu périmé), coque nette.
+                RÈGLE safe-area : le bas de page se termine AU-DESSUS de la
+                bottom-nav (4 rem + inset système) + une ligne d'air (1,5 rem)
+                pour que les derniers composants (pagination…) restent
+                entièrement visibles et tapables sur tous les téléphones. */}
+            <main className="flex-1 pb-[calc(5.5rem+env(safe-area-inset-bottom))] lg:pb-0">
               <OfflineDim>{children}</OfflineDim>
             </main>
           </div>

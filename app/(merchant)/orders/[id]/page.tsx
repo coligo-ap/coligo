@@ -109,29 +109,34 @@ export default async function OrderDetailPage({
     delivery_delivered_at: string | null;
   };
 
-  // Réglages d'impression + nom du commerce pour le ticket. RLS filtre déjà
-  // sur le commerçant connecté.
-  const { data: merchant } = await supabase
-    .from("merchants")
-    .select("name, print_width, print_copies, print_lang, commission_rate")
-    .eq("id", o.merchant_id)
-    .maybeSingle();
-  // Enrichit chaque item avec sa catégorie (best-effort, fallback « ARTICLES »).
-  const categoryMap = await fetchCategoryMap(
-    supabase,
-    o.merchant_id,
-    o.order_items.map((it) => it.product_name)
-  );
-  const customerOrderCount = await fetchCustomerOrderCount(
-    supabase,
-    o.merchant_id,
-    o.customer_phone
-  );
-  const { data: promoRows } = await supabase
-    .from("order_promotions")
-    .select("type, title_fr, title_ar, discount_da, free_qty, position")
-    .eq("order_id", id)
-    .order("position", { ascending: true });
+  // PERF : ces 4 lectures ne dépendent QUE de la commande déjà chargée →
+  // UN aller-retour groupé au lieu de 4 en cascade (c'était la cause des
+  // ouvertures de détail à 2-3 s). RLS filtre déjà sur le commerçant connecté.
+  const [
+    { data: merchant },
+    categoryMap,
+    customerOrderCount,
+    { data: promoRows },
+  ] = await Promise.all([
+    // Réglages d'impression + nom du commerce pour le ticket.
+    supabase
+      .from("merchants")
+      .select("name, print_width, print_copies, print_lang, commission_rate")
+      .eq("id", o.merchant_id)
+      .maybeSingle(),
+    // Catégorie de chaque item (best-effort, fallback « ARTICLES »).
+    fetchCategoryMap(
+      supabase,
+      o.merchant_id,
+      o.order_items.map((it) => it.product_name)
+    ),
+    fetchCustomerOrderCount(supabase, o.merchant_id, o.customer_phone),
+    supabase
+      .from("order_promotions")
+      .select("type, title_fr, title_ar, discount_da, free_qty, position")
+      .eq("order_id", id)
+      .order("position", { ascending: true }),
+  ]);
   const ticketOrder = orderToTicket(
     o,
     merchant?.name ?? "Coligo",
