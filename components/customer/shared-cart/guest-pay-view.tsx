@@ -14,6 +14,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { sharedCartChannel } from "@/lib/realtime/broadcast";
+import { useBroadcastBump } from "@/lib/realtime/use-broadcast-bump";
 import { openCheckout } from "@/lib/payments/open-checkout";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { QrZoom } from "@/components/shared/qr-zoom";
@@ -110,18 +111,15 @@ export function GuestPayView({
 
   // Temps réel : le webhook bump le canal du panier à la CONFIRMATION du
   // paiement → « Paiement accepté » apparaît sans attendre le poll (5 s).
+  // Topic serveur FIXE partagé avec la room ⇒ abonnement anti-collision
+  // (reference_realtime_channel_topic_collision).
   const shareToken = info && info !== "notfound" ? info.share_token : null;
-  useEffect(() => {
-    if (!shareToken) return;
-    const supabase = createClient();
-    const channel = supabase
-      .channel(sharedCartChannel(shareToken))
-      .on("broadcast", { event: "bump" }, () => void fetchInfo())
-      .subscribe();
-    return () => {
-      void supabase.removeChannel(channel);
-    };
-  }, [shareToken, fetchInfo, resyncNonce]);
+  useBroadcastBump(
+    shareToken ? sharedCartChannel(shareToken) : null,
+    "bump",
+    () => void fetchInfo(),
+    resyncNonce
+  );
 
   const pay = async () => {
     setPayError(null);
@@ -191,11 +189,38 @@ export function GuestPayView({
     );
   }
 
-  const paid =
-    info.payment_status === "paid" || info.payment_status === "refunded";
-  const expired = info.order_status === "cancelled" && !paid;
+  // « refunded » n'est PAS un succès : commande annulée après paiement —
+  // écran dédié, jamais la célébration ni le code de retrait.
+  const paid = info.payment_status === "paid";
+  const refunded = info.payment_status === "refunded";
+  const expired = info.order_status === "cancelled" && !paid && !refunded;
   const confirming =
-    !paid && !expired && (returnState === "success" || stripeDone);
+    !paid && !refunded && !expired && (returnState === "success" || stripeDone);
+
+  // ── REMBOURSÉ — commande annulée après paiement (l'argent est rendu). ──
+  if (refunded) {
+    return (
+      <Screen>
+        <Card>
+          <span className="mx-auto grid size-14 place-items-center rounded-2xl bg-amber-50 text-amber-600">
+            <Hourglass className="size-7" />
+          </span>
+          <h1 className="text-foreground mt-3 text-center text-lg font-extrabold">
+            {t("payRefunded")}
+          </h1>
+          <p className="text-muted mt-1 text-center text-sm">
+            {t("payRefundedDesc")}
+          </p>
+          <p className="text-foreground mt-4 text-center text-2xl font-black tabular-nums">
+            {formatDA(info.total_da)}
+          </p>
+          <p className="text-subtle mt-0.5 text-center text-xs font-semibold">
+            {info.merchant?.name}
+          </p>
+        </Card>
+      </Screen>
+    );
+  }
 
   // ── PAYÉ — payeur de retour (pop-up « Paiement accepté ») ou 2ᵉ visiteur. ──
   if (paid) {

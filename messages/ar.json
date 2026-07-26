@@ -973,7 +973,10 @@
     "roomPaidBanner": "تم دفع الطلب.",
     "roomPaidTitle": "تم دفع الطلب",
     "roomPaidDescCaptain": "تم تأكيد الدفع — تابع التحضير والاستلام في طلبك.",
-    "roomPaidDescGuest": "تم تأكيد الدفع — التاجر يحضّر الطلب."
+    "roomPaidDescGuest": "تم تأكيد الدفع — التاجر يحضّر الطلب.",
+    "roomRefundedBanner": "أُلغي الطلب — تم إرجاع المبلغ.",
+    "payRefunded": "أُلغي الطلب",
+    "payRefundedDesc": "أُلغي هذا الطلب وتم إرجاع المبلغ المدفوع."
   },
   "referral": {
     "title": "برنامج الإحالة",

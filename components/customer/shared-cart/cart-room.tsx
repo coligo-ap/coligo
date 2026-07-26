@@ -27,6 +27,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { sharedCartChannel } from "@/lib/realtime/broadcast";
+import { useBroadcastBump } from "@/lib/realtime/use-broadcast-bump";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
 import { useConfirm } from "@/components/ui/confirm";
@@ -176,7 +177,11 @@ export function CartRoom({
   const [freshIds, setFreshIds] = useState<Set<string>>(new Set());
   // Pop-up « Commande payée » : déclenchée sur la TRANSITION impayé→payé vue
   // en direct (bump du webhook, poll filet) — montrée UNE fois (anti-flash).
-  const prevPayStatus = useRef<string | null>(null);
+  // `undefined` = rien observé encore (revisite d'une room déjà payée ⇒ pas
+  // de pop-up) ; `null` = observé SANS commande — le wallet intégral du
+  // capitaine attache une commande déjà payée sans passer par 'pending',
+  // la transition null→paid compte donc aussi.
+  const prevPayStatus = useRef<string | null | undefined>(undefined);
   const [paidPopup, setPaidPopup] = useState(false);
 
   // ── Lecture (RPC anon token-validée — la même pour capitaine et invités) ──
@@ -219,20 +224,20 @@ export function CartRoom({
     }
   }, [token, isCaptain]);
 
-  // Fetch initial + temps réel (bump public) + poll filet + reprise.
+  // Fetch initial + poll filet + reprise. Temps réel (bump public) : topic
+  // serveur FIXE partagé avec /payer ⇒ abonnement anti-collision
+  // (reference_realtime_channel_topic_collision).
   useEffect(() => {
     void fetchView();
-    const supabase = createClient();
-    const channel = supabase
-      .channel(sharedCartChannel(token))
-      .on("broadcast", { event: "bump" }, () => void fetchView())
-      .subscribe();
     const poll = setInterval(() => void fetchView(), 6000);
-    return () => {
-      clearInterval(poll);
-      void supabase.removeChannel(channel);
-    };
-  }, [token, fetchView, resyncNonce]);
+    return () => clearInterval(poll);
+  }, [fetchView, resyncNonce]);
+  useBroadcastBump(
+    sharedCartChannel(token),
+    "bump",
+    () => void fetchView(),
+    resyncNonce
+  );
   useResumeResync(() => setResyncNonce((n) => n + 1));
 
   // Capitaine : son member_id vient de la vue.
@@ -249,7 +254,7 @@ export function CartRoom({
     if (!view || view === "notfound") return;
     const st = view.cart.payment_status;
     if (
-      prevPayStatus.current === "pending" &&
+      (prevPayStatus.current === "pending" || prevPayStatus.current === null) &&
       st === "paid" &&
       view.cart.payment_method === "online"
     ) {
@@ -573,11 +578,26 @@ export function CartRoom({
           <Banner icon={Lock} tone="amber">
             {t("roomPayTitle")} — {t("roomPayDesc")}
           </Banner>
+        ) : cart.ordered && cart.payment_status === "refunded" ? (
+          /* Annulée APRÈS paiement (le cron 0406 garde la commande attachée) :
+             ne jamais affirmer « payée » — bandeau neutre dédié. */
+          <Banner icon={X} tone="muted">
+            {t("roomRefundedBanner")}
+            {isCaptain && (
+              <Link
+                href={
+                  cart.order_id ? `/commandes/${cart.order_id}` : "/commandes"
+                }
+                className="ms-1 font-extrabold underline underline-offset-2"
+              >
+                {t("seeOrder")}
+              </Link>
+            )}
+          </Banner>
         ) : (
           cart.ordered && (
             <Banner icon={PackageCheck} tone="success">
-              {cart.payment_status === "paid" ||
-              cart.payment_status === "refunded"
+              {cart.payment_status === "paid"
                 ? t("roomPaidBanner")
                 : t("orderedBanner")}
               {isCaptain && (

@@ -973,7 +973,10 @@
     "roomPaidBanner": "Commande payée.",
     "roomPaidTitle": "Commande payée",
     "roomPaidDescCaptain": "Le paiement est confirmé — suis la préparation et le retrait sur ta commande.",
-    "roomPaidDescGuest": "Le paiement est confirmé — le commerçant prépare la commande."
+    "roomPaidDescGuest": "Le paiement est confirmé — le commerçant prépare la commande.",
+    "roomRefundedBanner": "Commande annulée — paiement remboursé.",
+    "payRefunded": "Commande annulée",
+    "payRefundedDesc": "Cette commande a été annulée et le paiement remboursé."
   },
   "referral": {
     "title": "Parrainage",
