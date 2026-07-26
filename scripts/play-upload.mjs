@@ -93,18 +93,48 @@ async function commitEdit() {
   try {
     await api("POST", `${base}/edits/${edit.id}:commit`);
   } catch (e) {
-    if (
-      !String(e.message).includes("ReviewRequired") &&
-      !String(e.message).includes("NotSentForReview")
-    )
-      throw e;
-    await api(
-      "POST",
-      `${base}/edits/${edit.id}:commit?changesNotSentForReview=true`
-    );
-    console.log(
-      "(commit sans envoi en review — fiche Play incomplète, à finaliser dans la console)"
-    );
+    const msg = String(e.message);
+    const declarationBlock =
+      msg.includes("ReviewRequired") ||
+      msg.includes("NotSentForReview") ||
+      // Déclarations « Contenu de l'application » manquantes (intent plein
+      // écran, photos/vidéos…) : Google bloque l'envoi en review tant que le
+      // formulaire n'est pas rempli DANS LA CONSOLE — formulaire qui n'apparaît
+      // souvent qu'APRÈS qu'un artefact portant la permission a atterri. Le
+      // commit sans review casse ce cercle : la release arrive dans la console
+      // et fait apparaître la déclaration à remplir.
+      msg.includes("You must let us know");
+    if (!declarationBlock) throw e;
+    try {
+      await api(
+        "POST",
+        `${base}/edits/${edit.id}:commit?changesNotSentForReview=true`
+      );
+      console.log(
+        "(commit sans envoi en review — fiche Play incomplète, à finaliser dans la console)"
+      );
+    } catch (e2) {
+      // Compte en « review automatique » : le paramètre est INTERDIT
+      // (« must not be set »). Repli ultime VÉCU (26/07/2026, déclaration
+      // intent plein écran) : reposer la release en BROUILLON — un brouillon
+      // n'est pas envoyé en review, le commit passe, l'artefact atterrit dans
+      // la console (ce qui fait justement APPARAÎTRE la déclaration à remplir)
+      // et il ne restera qu'à publier depuis la console / relancer la CI.
+      if (!String(e2.message).includes("must not be set")) throw e2;
+      finalStatus = "draft";
+      for (const t of allTracks) {
+        await api("PUT", `${base}/edits/${edit.id}/tracks/${t}`, {
+          track: t,
+          releases: [
+            { status: "draft", versionCodes: [String(bundle.versionCode)] },
+          ],
+        });
+      }
+      await api("POST", `${base}/edits/${edit.id}:commit`);
+      console.log(
+        "(déclaration console manquante → release posée en BROUILLON ; remplir la déclaration dans Play Console puis republier)"
+      );
+    }
   }
 }
 
