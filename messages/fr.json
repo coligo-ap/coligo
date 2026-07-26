@@ -413,6 +413,9 @@
   },
   "orders": {
     "merchantFallback": "Commerce",
+    "typeAll": "Tous",
+    "searchPlaceholder": "Rechercher un commerce ou un n°…",
+    "clearSearch": "Effacer la recherche",
     "noShowLeftTitle": "Commande déposée à votre adresse",
     "noShowLeftBody": "Vous étiez absent lors de la livraison. Comme votre commande était déjà payée en ligne, le livreur l'a déposée en lieu sûr et a pris cette photo comme preuve.",
     "myOrders": "Mes commandes",
@@ -894,6 +897,9 @@
   },
   "sharedCart": {
     "notFoundTitle": "Panier introuvable",
+    "itemsCount": "{count, plural, one {# article} other {# articles}}",
+    "minOrderLeft": "Encore {amount} pour commander",
+    "minOrderReached": "Minimum de commande atteint",
     "notFoundDesc": "Ce lien n'est plus valide ou le panier a été supprimé.",
     "captain": "Capitaine",
     "guestN": "Invité {n}",

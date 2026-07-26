@@ -4,6 +4,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Home, ShoppingBag, Package, BarChart3, QrCode } from "lucide-react";
 import { cn } from "@/lib/utils";
+import {
+  NavAlertBadge,
+  type AlertOrderLite,
+} from "@/components/merchant/nav-alert-badge";
 
 type NavItem = {
   href: string;
@@ -22,7 +26,11 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/orders/validate", label: "Valider", icon: QrCode },
 ];
 
-export function MerchantMobileBottomNav() {
+export function MerchantMobileBottomNav({
+  alertOrders = [],
+}: {
+  alertOrders?: AlertOrderLite[];
+}) {
   const pathname = usePathname();
 
   return (
@@ -50,7 +58,17 @@ export function MerchantMobileBottomNav() {
                 active ? "text-primary-700" : "text-muted"
               )}
             >
-              <Icon className="size-5" />
+              <span className="relative">
+                <Icon className="size-5" />
+                {/* Alerte board (à confirmer + en retard) sur « Accueil » :
+                    visible depuis n'importe quelle page. */}
+                {item.href === "/dashboard" && (
+                  <NavAlertBadge
+                    orders={alertOrders}
+                    className="absolute -end-2.5 -top-1.5"
+                  />
+                )}
+              </span>
               <span>{item.label}</span>
             </Link>
           );

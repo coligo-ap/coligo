@@ -18,6 +18,10 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Logo } from "@/components/shared/logo";
+import {
+  NavAlertBadge,
+  type AlertOrderLite,
+} from "@/components/merchant/nav-alert-badge";
 
 type NavItem = {
   href: string;
@@ -40,7 +44,13 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/settings", label: "Paramètres", icon: Settings },
 ];
 
-export function MerchantSidebar({ merchantName }: { merchantName: string }) {
+export function MerchantSidebar({
+  merchantName,
+  alertOrders = [],
+}: {
+  merchantName: string;
+  alertOrders?: AlertOrderLite[];
+}) {
   const pathname = usePathname();
 
   return (
@@ -83,6 +93,10 @@ export function MerchantSidebar({ merchantName }: { merchantName: string }) {
             >
               <Icon className="size-4 shrink-0" />
               <span className="flex-1">{item.label}</span>
+              {/* Alerte board (à confirmer + en retard) sur le tableau de bord. */}
+              {item.href === "/dashboard" && (
+                <NavAlertBadge orders={alertOrders} />
+              )}
               {item.badge !== undefined && (
                 <span className="bg-primary-100 text-primary-800 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
                   {item.badge}

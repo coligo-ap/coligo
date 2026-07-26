@@ -319,12 +319,22 @@ export function CartRoom({
     t("waInvite", { merchant: merchant?.name ?? "Coligo", link })
   )}`;
 
+  // MA section EN PREMIER (mes steppers sous la main), puis le capitaine,
+  // puis les autres par ordre d'arrivée — chacun retrouve ses articles sans
+  // scroller (facilite la tâche des invités).
+  const memberRank = (m: SCMember) =>
+    m.id === myMemberId ? 0 : m.kind === "captain" ? 1 : 2;
   const itemsByMember = members
     .map((m) => ({
       member: m,
       items: items.filter((i) => i.member_id === m.id),
     }))
-    .filter((g) => g.items.length > 0);
+    .filter((g) => g.items.length > 0)
+    .sort(
+      (a, b) =>
+        memberRank(a.member) - memberRank(b.member) ||
+        a.member.member_number - b.member.member_number
+    );
 
   const doJoin = async (skip: boolean) => {
     if (!guest) return;
@@ -641,14 +651,16 @@ export function CartRoom({
 
         {/* ── CONTRÔLES CAPITAINE ── */}
         {isCaptain && (open || (cart.status === "locked" && !cart.ordered)) && (
-          <div className="flex flex-wrap gap-2">
+          /* Rangée d'actions DÉFILANTE (style Bolt) : une seule ligne compacte,
+             le panier reste visible sans pavé de boutons. */
+          <div className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-0.5">
             {open && (
               <>
                 <a
                   href={waHref}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold text-white transition-colors"
+                  className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap text-white transition-colors"
                 >
                   <MessageCircle className="size-3.5" />
                   {t("inviteCta")}
@@ -664,7 +676,7 @@ export function CartRoom({
                       /* clipboard indisponible */
                     }
                   }}
-                  className="bg-surface text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold shadow-sm"
+                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm"
                 >
                   {copied ? (
                     <Check className="text-success-600 size-3.5" />
@@ -681,7 +693,7 @@ export function CartRoom({
                     )
                   }
                   disabled={actionBusy === "invites"}
-                  className="bg-surface text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold shadow-sm disabled:opacity-60"
+                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm disabled:opacity-60"
                 >
                   {actionBusy === "invites" ? (
                     <Loader2 className="size-3.5 animate-spin" />
@@ -698,7 +710,7 @@ export function CartRoom({
                   type="button"
                   onClick={() => void run("lock", () => lockCart(cart.id))}
                   disabled={actionBusy === "lock"}
-                  className="bg-surface text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold shadow-sm disabled:opacity-60"
+                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm disabled:opacity-60"
                 >
                   {actionBusy === "lock" ? (
                     <Loader2 className="size-3.5 animate-spin" />
@@ -714,7 +726,7 @@ export function CartRoom({
                 type="button"
                 onClick={() => void run("unlock", () => unlockCart(cart.id))}
                 disabled={actionBusy === "unlock"}
-                className="bg-surface text-foreground inline-flex items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold shadow-sm disabled:opacity-60"
+                className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm disabled:opacity-60"
               >
                 {actionBusy === "unlock" ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -737,7 +749,7 @@ export function CartRoom({
                   if (ok) void run("cancel", () => cancelCart(cart.id));
                 }}
                 disabled={actionBusy === "cancel"}
-                className="inline-flex items-center gap-1.5 rounded-full bg-rose-50 px-3 py-2 text-xs font-extrabold text-rose-700 disabled:opacity-60"
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-rose-50 px-3 py-2 text-xs font-extrabold whitespace-nowrap text-rose-700 disabled:opacity-60"
               >
                 {actionBusy === "cancel" ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -956,19 +968,55 @@ export function CartRoom({
       >
         <div className="mx-auto max-w-lg">
           <div className="mb-2.5 flex items-baseline justify-between">
-            <span className="text-muted text-xs font-bold">{t("total")}</span>
+            <span className="text-muted text-xs font-bold">
+              {t("total")}
+              {items.length > 0 && (
+                <span className="text-subtle font-semibold">
+                  {" "}
+                  · {t("itemsCount", { count: items.length })}
+                </span>
+              )}
+            </span>
             <span className="text-foreground text-lg font-black tabular-nums">
               {formatDA(total_da)}
             </span>
           </div>
+          {/* Progression vers le minimum de commande (style Bolt) : le groupe
+              voit d'un coup d'œil combien il reste à ajouter — et la barre
+              avance en DIRECT avec les ajouts de chacun. */}
           {merchant?.min_order_da != null &&
             merchant.min_order_da > 0 &&
-            total_da < merchant.min_order_da &&
-            open && (
-              <p className="text-muted mb-2 text-[11px] font-semibold">
-                {t("minOrder", { amount: formatDA(merchant.min_order_da) })}
+            open &&
+            (total_da < merchant.min_order_da ? (
+              <div className="mb-2">
+                <div className="flex items-baseline justify-between gap-2 text-[11px] font-semibold">
+                  <span className="text-muted">
+                    {t("minOrderLeft", {
+                      amount: formatDA(merchant.min_order_da - total_da),
+                    })}
+                  </span>
+                  <span className="text-subtle shrink-0 tabular-nums">
+                    {formatDA(merchant.min_order_da)}
+                  </span>
+                </div>
+                <div className="bg-surface-3 mt-1 h-1.5 overflow-hidden rounded-full">
+                  <div
+                    className="bg-primary-500 h-full rounded-full transition-[width] duration-500"
+                    style={{
+                      width: `${Math.min(
+                        100,
+                        Math.round((total_da / merchant.min_order_da) * 100)
+                      )}%`,
+                    }}
+                  />
+                </div>
+              </div>
+            ) : total_da > 0 ? (
+              <p className="text-success-700 mb-2 inline-flex items-center gap-1 text-[11px] font-bold">
+                <Check className="size-3.5" />
+                {t("minOrderReached")}
               </p>
-            )}
+            ) : null)}
           {/* DEUX boutons, même design, couleurs différentes :
               « Ajouter des produits » (violet contour) + « Payer » (rose). */}
           <div className="flex gap-2">

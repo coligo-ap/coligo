@@ -137,14 +137,17 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
     return map;
   }, [orders]);
 
-  // Nombre de commandes « à traiter MAINTENANT » par colonne (mêmes seuils que
-  // le clignotement des cartes). Sert à pointer la colonne concernée — sur
-  // mobile surtout, où une seule colonne est visible à la fois.
+  // Nombre de commandes « à traiter MAINTENANT » par colonne — logique métier
+  // type Uber Eats : TOUTE commande à confirmer exige une action immédiate
+  // (clignote dès la première, avant l'auto-refus 15 min) ; en préparation,
+  // seules celles dont l'heure « prête pour » est dépassée (≥ 1 min) comptent.
+  // Sert à pointer la colonne concernée — sur mobile surtout, où une seule
+  // colonne est visible à la fois.
   const alertCount = useMemo(() => {
     const min = (from: string) =>
       now === null ? -Infinity : (now - new Date(from).getTime()) / 60_000;
     return {
-      pending: byColumn.pending.filter((o) => min(o.created_at) >= 11).length,
+      pending: byColumn.pending.length,
       preparing: byColumn.preparing.filter((o) => min(o.pickup_slot_at) >= 1)
         .length,
       ready: 0,
@@ -153,7 +156,10 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
 
   return (
     <div>
-      {/* Sélecteur de colonne — mobile uniquement */}
+      {/* Sélecteur de colonne — mobile uniquement. « À confirmer » : le
+          compteur de colonne EST l'alerte (même nombre) → c'est LUI qui
+          clignote, pas de pastille doublon. « En préparation » : la pastille
+          porte le nombre EN RETARD (info différente du total de colonne). */}
       <div className="mb-3 grid grid-cols-3 gap-1.5 lg:hidden">
         {COLUMNS.map((c) => (
           <button
@@ -168,16 +174,23 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
               alertCount[c.key] > 0 && "border-danger-400 bg-danger-50"
             )}
           >
-            {alertCount[c.key] > 0 && (
-              <span className="bg-danger-500 absolute -top-1.5 -right-1.5 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
-                {alertCount[c.key]}
+            {c.key === "preparing" && alertCount.preparing > 0 && (
+              <span className="bg-danger-500 absolute -end-1.5 -top-1.5 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                {alertCount.preparing}
               </span>
             )}
             <span className="flex items-center gap-1.5">
               <span className={cn("size-1.5 rounded-full", c.dot)} />
               {c.title}
             </span>
-            <span className="text-base font-bold tabular-nums">
+            <span
+              className={cn(
+                "text-base font-bold tabular-nums",
+                c.key === "pending" &&
+                  alertCount.pending > 0 &&
+                  "text-danger-600 animate-pulse"
+              )}
+            >
               {byColumn[c.key].length}
             </span>
           </button>
@@ -194,18 +207,28 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
               active === c.key ? "block" : "hidden lg:block"
             )}
           >
-            {/* En-tête colonne — desktop */}
+            {/* En-tête colonne — desktop. Même règle anti-doublon que le
+                sélecteur mobile : le total « À confirmer » devient lui-même
+                l'alerte clignotante ; « En préparation » gagne un badge
+                « N en retard » (info différente du total). */}
             <div className="mb-2 hidden items-center gap-2 px-1 lg:flex">
               <span className={cn("size-2 rounded-full", c.dot)} />
               <h2 className={cn("text-sm font-bold tracking-tight", c.accent)}>
                 {c.title}
               </h2>
-              {alertCount[c.key] > 0 && (
+              {c.key === "preparing" && alertCount.preparing > 0 && (
                 <span className="bg-danger-100 text-danger-700 inline-flex animate-pulse items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums">
-                  {alertCount[c.key]} à traiter
+                  {alertCount.preparing} en retard
                 </span>
               )}
-              <span className="text-muted bg-surface-3 ml-auto rounded-full px-2 py-0.5 text-xs font-bold tabular-nums">
+              <span
+                className={cn(
+                  "ml-auto rounded-full px-2 py-0.5 text-xs font-bold tabular-nums",
+                  c.key === "pending" && alertCount.pending > 0
+                    ? "bg-danger-100 text-danger-700 animate-pulse"
+                    : "text-muted bg-surface-3"
+                )}
+              >
                 {byColumn[c.key].length}
               </span>
             </div>

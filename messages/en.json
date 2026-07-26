@@ -413,6 +413,9 @@
   },
   "orders": {
     "merchantFallback": "Shop",
+    "typeAll": "All",
+    "searchPlaceholder": "Search by store or order no…",
+    "clearSearch": "Clear search",
     "noShowLeftTitle": "Order left at your address",
     "noShowLeftBody": "You were away during delivery. Since your order was already paid online, the courier left it in a safe place and took this photo as proof.",
     "myOrders": "My orders",
@@ -894,6 +897,9 @@
   },
   "sharedCart": {
     "notFoundTitle": "Cart not found",
+    "itemsCount": "{count, plural, one {# item} other {# items}}",
+    "minOrderLeft": "Add {amount} more to order",
+    "minOrderReached": "Minimum order reached",
     "notFoundDesc": "This link is no longer valid or the cart was deleted.",
     "captain": "Host",
     "guestN": "Guest {n}",

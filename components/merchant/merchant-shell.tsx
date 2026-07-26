@@ -131,12 +131,23 @@ export async function MerchantShell({
   // cohérence avec l'approche Express timing du projet.
   await expireStalePendingOrders(supabase);
 
-  // Count pending pour notifs (après expiration → badge exact)
-  const { count: pendingCount } = await supabase
+  // Commandes ACTIVES (après expiration → compteurs exacts) : une seule
+  // requête légère qui alimente à la fois le badge « à confirmer » du header
+  // ET les pastilles d'alerte clignotantes de la nav (à confirmer + en retard
+  // de préparation). Re-synchronisée par le `router.refresh()` du pont
+  // Realtime → le commerçant voit l'alerte où qu'il soit dans l'app.
+  const { data: activeRows } = await supabase
     .from("orders")
-    .select("id", { count: "exact", head: true })
+    .select("status, created_at, pickup_slot_at")
     .eq("merchant_id", merchant.id)
-    .eq("status", "pending");
+    .in("status", ["pending", "accepted", "preparing"])
+    .limit(300);
+  const alertOrders = (activeRows ?? []).map((o) => ({
+    status: o.status as string,
+    created_at: o.created_at as string,
+    pickup_slot_at: o.pickup_slot_at as string,
+  }));
+  const pendingCount = alertOrders.filter((o) => o.status === "pending").length;
 
   // Verrous de pause / fermeture — partagés avec le bouton statut (header).
   const pauseInput = {
@@ -168,12 +179,15 @@ export async function MerchantShell({
               bannière unique « hors ligne » + jamais de faux « en ligne ». */}
           <ConnectionGuard />
           {/* Desktop sidebar */}
-          <MerchantSidebar merchantName={merchant.name} />
+          <MerchantSidebar
+            merchantName={merchant.name}
+            alertOrders={alertOrders}
+          />
 
           {/* Mobile header */}
           <MerchantMobileHeader
             merchantName={merchant.name}
-            pendingCount={pendingCount ?? 0}
+            pendingCount={pendingCount}
             pauseInput={pauseInput}
           />
 
@@ -183,7 +197,7 @@ export async function MerchantShell({
             <MerchantTopbar
               userEmail={user.email ?? ""}
               merchantName={merchant.name}
-              pendingCount={pendingCount ?? 0}
+              pendingCount={pendingCount}
               pauseInput={pauseInput}
             />
 
@@ -194,7 +208,7 @@ export async function MerchantShell({
           </div>
 
           {/* Mobile bottom nav + drawer (le hamburger du header ouvre le drawer) */}
-          <MerchantMobileBottomNav />
+          <MerchantMobileBottomNav alertOrders={alertOrders} />
           <MobileDrawer merchantName={merchant.name} email={user.email ?? ""} />
 
           {/* Bandeau install PWA — auto-caché si déjà installée ou refusée < 14j */}

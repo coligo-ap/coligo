@@ -413,6 +413,9 @@
   },
   "orders": {
     "merchantFallback": "متجر",
+    "typeAll": "الكل",
+    "searchPlaceholder": "ابحث عن متجر أو رقم طلب…",
+    "clearSearch": "مسح البحث",
     "noShowLeftTitle": "تم إيداع الطلب في عنوانك",
     "noShowLeftBody": "كنت غائباً وقت التسليم. وبما أن طلبك كان مدفوعاً مسبقاً عبر الإنترنت، تركه السائق في مكان آمن والتقط هذه الصورة كإثبات.",
     "myOrders": "طلباتي",
@@ -894,6 +897,9 @@
   },
   "sharedCart": {
     "notFoundTitle": "السلة غير موجودة",
+    "itemsCount": "{count, plural, one {منتج واحد} two {منتجان} few {# منتجات} many {# منتجًا} other {# منتج}}",
+    "minOrderLeft": "أضف {amount} لإتمام الطلب",
+    "minOrderReached": "تم بلوغ الحد الأدنى للطلب",
     "notFoundDesc": "هذا الرابط لم يعد صالحاً أو تم حذف السلة.",
     "captain": "المسؤول",
     "guestN": "ضيف {n}",
