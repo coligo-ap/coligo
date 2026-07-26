@@ -20,6 +20,7 @@ import { Badge } from "@/components/ui/badge";
 import { deliveryPhase } from "@/lib/delivery/merchant-status";
 import { OrderStatusTimeline } from "@/components/merchant/order-status-timeline";
 import { OrderActions } from "@/components/merchant/order-actions";
+import { OrderCallButton } from "@/components/merchant/order-call-button";
 import { PrintOrderButton } from "@/components/ticket/print-order-button";
 import { orderToTicket } from "@/lib/ticket/order-to-ticket";
 import { isScheduled } from "@/lib/orders/scheduled";
@@ -195,7 +196,7 @@ export default async function OrderDetailPage({
   });
 
   return (
-    <div className="mx-auto max-w-[1100px] p-4 pb-[calc(13rem+env(safe-area-inset-bottom))] lg:p-6 lg:px-8 lg:pb-6">
+    <div className="mx-auto max-w-[1100px] p-4 pb-[calc(13rem+env(safe-area-inset-bottom))] md:pb-4 lg:p-6 lg:px-8">
       <Link
         href="/orders"
         className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
@@ -270,25 +271,38 @@ export default async function OrderDetailPage({
           <span>Créée {formatRelativeTime(o.created_at)}</span>
         </div>
 
-        {/* Client — toujours visible, appel en un tap */}
-        <div className="border-border mt-3 flex items-center justify-between gap-3 border-t pt-3">
+        {/* Client — toujours visible, appel en un tap. flex-wrap : sur très
+            petit écran, le bouton d'appel passe SOUS le nom (jamais coupé). */}
+        <div className="border-border mt-3 flex flex-wrap items-center justify-between gap-2 border-t pt-3">
           <span className="flex min-w-0 items-center gap-2 text-sm font-semibold">
             <User className="text-subtle size-4 shrink-0" />
             <span className="truncate">{o.customer_name}</span>
           </span>
-          <a
-            href={`tel:${o.customer_phone}`}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-bold text-white transition-colors"
-          >
-            <Phone className="size-4" />
-            <span className="tabular-nums">{o.customer_phone}</span>
-          </a>
+          <span className="flex shrink-0 flex-wrap items-center gap-2">
+            {/* Appel IN-APP (sonne plein écran chez le client, même app
+                fermée) — seulement tant que la commande est active. */}
+            {["pending", "accepted", "preparing", "ready"].includes(
+              o.status
+            ) && (
+              <OrderCallButton orderId={o.id} customerName={o.customer_name} />
+            )}
+            <a
+              href={`tel:${o.customer_phone}`}
+              className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-full px-3.5 py-2 text-sm font-bold text-white transition-colors"
+            >
+              <Phone className="size-4" />
+              <span className="tabular-nums">{o.customer_phone}</span>
+            </a>
+          </span>
         </div>
       </header>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
+      {/* RESPONSIVE : 2 colonnes dès la TABLETTE (md), pas seulement desktop ;
+          min-w-0 sur chaque colonne (un enfant de grille ne rétrécit pas sans
+          ça → débordement horizontal sur petits écrans). */}
+      <div className="grid gap-4 md:grid-cols-[1fr_340px] lg:grid-cols-[1fr_360px]">
         {/* Colonne gauche : note (critique pour préparer) + items + timeline */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Note du client EN PREMIER — c'est ce qui change la préparation. */}
           {o.notes && o.notes !== "seed" && (
             <section className="border-warning-200 bg-warning-50 rounded-[14px] border p-3.5">
@@ -296,7 +310,7 @@ export default async function OrderDetailPage({
                 <StickyNote className="size-3.5" />
                 Note du client
               </p>
-              <p className="text-foreground mt-1 text-sm font-medium">
+              <p className="text-foreground mt-1 text-sm font-medium break-words">
                 {o.notes}
               </p>
             </section>
@@ -397,7 +411,7 @@ export default async function OrderDetailPage({
 
         {/* Colonne droite : remise + gains + actions (le client vit dans le
             héro, toujours visible — plus de carte dédiée). */}
-        <div className="space-y-4">
+        <div className="min-w-0 space-y-4">
           {/* Retrait OU Livraison : pour la livraison, le code est MASQUÉ
               côté commerçant (cf. PROMPT 9 anti-fraude — le client communique
               son code au livreur, le commerçant ne doit JAMAIS le voir). */}
@@ -427,7 +441,7 @@ export default async function OrderDetailPage({
                 </p>
               )}
               {o.delivery_address_text && (
-                <p className="text-muted mt-1 text-xs">
+                <p className="text-muted mt-1 text-xs break-words">
                   {o.delivery_address_text}
                   {o.delivery_distance_km != null &&
                     ` · ${o.delivery_distance_km} km`}
@@ -462,10 +476,11 @@ export default async function OrderDetailPage({
           {/* Vos gains — le chiffre VRAI, qui réconcilie avec /finances. */}
           <EarningsCard e={earnings} />
 
-          {/* Actions — sticky en bas sur mobile, carte sur desktop */}
-          <section className="border-border bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:static lg:bottom-auto lg:rounded-[16px] lg:border lg:p-5 lg:shadow-none">
-            <h2 className="mb-3 hidden text-sm font-bold lg:block">Action</h2>
-            <div className="mx-auto max-w-[1100px] lg:max-w-none">
+          {/* Actions — barre fixe en bas sur TÉLÉPHONE seulement ; carte
+              normale dès la tablette (md, la colonne droite existe). */}
+          <section className="border-border bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] md:static md:bottom-auto md:rounded-[16px] md:border md:p-4 md:shadow-none lg:p-5">
+            <h2 className="mb-3 hidden text-sm font-bold md:block">Action</h2>
+            <div className="mx-auto max-w-[1100px] md:max-w-none">
               <OrderActions
                 orderId={o.id}
                 status={o.status}

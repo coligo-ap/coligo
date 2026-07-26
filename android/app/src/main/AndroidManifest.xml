@@ -24,6 +24,22 @@
 
         </activity>
 
+        <!-- Appels entrants plein écran (style Messenger) : notre service FCM
+             intercepte les pushes DATA type=coligo_call même app tuée, et
+             affiche la notification CallStyle + full-screen intent. Déclaré
+             ici (app) → prioritaire sur le service du plugin Capacitor au
+             merge des manifests ; tout le reste lui est délégué. -->
+        <service
+            android:name=".calls.CallMessagingService"
+            android:exported="false">
+            <intent-filter android:priority="1">
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <receiver
+            android:name=".calls.CallDismissReceiver"
+            android:exported="false" />
+
         <provider
             android:name="androidx.core.content.FileProvider"
             android:authorities="${applicationId}.fileprovider"
@@ -46,6 +62,11 @@
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <!-- Push notifications (FCM) — Android 13+ exige un runtime grant. -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Appels entrants plein écran (notification CallStyle même app fermée /
+         écran verrouillé) + sonnerie/vibration insistantes. -->
+    <uses-permission android:name="android.permission.USE_FULL_SCREEN_INTENT" />
+    <uses-permission android:name="android.permission.VIBRATE" />
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Géolocalisation : « Ma position » (sélecteur d'adresse) + suivi livreur
          temps réel. @capacitor/geolocation gère le runtime grant. -->
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />

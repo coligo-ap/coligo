@@ -1,8 +1,10 @@
 package com.coligo.app;
 
 import android.Manifest;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
@@ -16,6 +18,7 @@ import androidx.core.content.ContextCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 
+import com.coligo.app.calls.IncomingCallNotifier;
 import com.coligo.app.intro.IntroSplashView;
 import com.coligo.app.sunmi.SunmiPrinterPlugin;
 import com.getcapacitor.BridgeActivity;
@@ -79,6 +82,45 @@ public class MainActivity extends BridgeActivity {
       ActivityCompat.requestPermissions(this,
           new String[] {Manifest.permission.CAMERA}, 1001);
     }
+
+    // Appel entrant : lancée par la notification plein écran → l'activité
+    // doit s'afficher PAR-DESSUS l'écran verrouillé, écran rallumé.
+    maybeShowOverLockscreen(getIntent());
+  }
+
+  /**
+   * Ouverture depuis la notification d'appel (full-screen intent / Répondre) :
+   * s'afficher sur l'écran verrouillé et rallumer l'écran — comportement
+   * téléphone standard (Messenger/WhatsApp). API 27+ ; en dessous, l'utilisateur
+   * déverrouille normalement, l'invitation ré-émise affiche l'appel entrant.
+   */
+  private void maybeShowOverLockscreen(Intent intent) {
+    try {
+      if (intent == null
+          || !intent.getBooleanExtra(IncomingCallNotifier.EXTRA_CALL, false)) {
+        return;
+      }
+      if (Build.VERSION.SDK_INT >= 27) {
+        setShowWhenLocked(true);
+        setTurnScreenOn(true);
+      }
+    } catch (Throwable e) {
+      Log.w(TAG, "showWhenLocked impossible", e);
+    }
+  }
+
+  @Override
+  public void onNewIntent(Intent intent) {
+    super.onNewIntent(intent);
+    maybeShowOverLockscreen(intent);
+  }
+
+  @Override
+  public void onResume() {
+    super.onResume();
+    // App au premier plan → la sonnerie in-app (overlay web) prend le relais :
+    // on efface la notification d'appel native (son + vibration stoppés).
+    IncomingCallNotifier.cancel(this);
   }
 
   /**

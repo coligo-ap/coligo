@@ -56,14 +56,18 @@ type RtcClient = {
 };
 
 export function CallOverlay({
-  rideId,
+  callId,
+  kind = "ride",
   role,
   peerName,
   startWithVideo,
   onEnd,
 }: {
-  rideId: string;
-  role: "client" | "chauffeur";
+  /** Id de l'objet appelé : rideId (course) ou orderId (commande). */
+  callId: string;
+  /** "ride" = course Drive ; "order" = commande (commerçant → client). */
+  kind?: "ride" | "order";
+  role: string;
   peerName: string;
   /** Démarrer caméra allumée (sinon audio seul, cam activable au bouton). */
   startWithVideo?: boolean;
@@ -104,11 +108,16 @@ export function CallOverlay({
         if (cancelled) return;
         sdkRef.current = { AgoraRTC };
 
-        // Jeton + canal sécurisés (la route vérifie que je suis partie à la course).
+        // Jeton + canal sécurisés (la route vérifie que je suis bien PARTIE à
+        // la course / à la commande demandée).
         const res = await fetch("/api/agora/token", {
           method: "POST",
           headers: { "content-type": "application/json" },
-          body: JSON.stringify({ rideId, role }),
+          body: JSON.stringify(
+            kind === "order"
+              ? { orderId: callId, role }
+              : { rideId: callId, role }
+          ),
         });
         if (!res.ok) throw new Error("token_" + res.status);
         const { appId, channel, uid, token } = (await res.json()) as {

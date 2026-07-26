@@ -24,7 +24,7 @@ import {
   broadcastToCouriers,
 } from "@/lib/realtime/broadcast";
 import { storeAndPushNotification } from "@/lib/notifications/notify";
-import { sendFcm } from "./send";
+import { sendFcm, sendFcmCall } from "./send";
 
 async function tokensFor(
   userId: string,
@@ -1366,16 +1366,18 @@ export async function notifyRideIncomingCall(input: {
       if (!ch?.user_id) return;
       const tokens = await tokensFor(ch.user_id, "chauffeur");
       if (tokens.length === 0) return;
-      await sendFcm(
+      // Push APPEL (data-only Android → sonnerie CallStyle plein écran même
+      // app fermée, cf. sendFcmCall).
+      const callerName = first(cu?.full_name) ?? "Le client";
+      await sendFcmCall(
         tokens,
-        {
-          title: "Appel entrant 📞",
-          body: `${first(cu?.full_name) ?? "Le client"} vous appelle`,
-        },
+        { title: "Appel entrant 📞", body: `${callerName} vous appelle` },
         {
           route: "/chauffeur/course",
           kind: "ride_call",
           rideId: input.rideId,
+          caller: callerName,
+          video: "0",
         }
       );
     } else {
@@ -1395,17 +1397,72 @@ export async function notifyRideIncomingCall(input: {
       if (!cu?.user_id) return;
       const tokens = await tokensFor(cu.user_id, "customer");
       if (tokens.length === 0) return;
-      await sendFcm(
+      const callerName = first(ch?.full_name) ?? "Votre chauffeur";
+      await sendFcmCall(
         tokens,
+        { title: "Appel entrant 📞", body: `${callerName} vous appelle` },
         {
-          title: "Appel entrant 📞",
-          body: `${first(ch?.full_name) ?? "Votre chauffeur"} vous appelle`,
-        },
-        { route: "/drive", kind: "ride_call", rideId: input.rideId }
+          route: "/drive",
+          kind: "ride_call",
+          rideId: input.rideId,
+          caller: callerName,
+          video: "0",
+        }
       );
     }
   } catch (err) {
     console.warn("[fcm] notifyRideIncomingCall failed:", err);
+  }
+}
+
+/**
+ * Appel in-app COMMERÇANT → CLIENT (sens unique — le client ne peut pas
+ * appeler le commerçant). Push APPEL au client : sonnerie plein écran même
+ * app fermée (Android, cf. sendFcmCall) ; le tap ouvre le suivi de commande
+ * où l'invitation ré-émise affiche l'appel entrant.
+ */
+export async function notifyOrderIncomingCall(input: {
+  orderId: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    const { data: order } = await admin
+      .from("orders")
+      .select("customer_id, merchant_id")
+      .eq("id", input.orderId)
+      .maybeSingle();
+    if (!order?.customer_id) return;
+
+    const [{ data: cu }, { data: m }] = await Promise.all([
+      admin
+        .from("customers")
+        .select("user_id")
+        .eq("id", order.customer_id)
+        .maybeSingle(),
+      admin
+        .from("merchants")
+        .select("name")
+        .eq("id", order.merchant_id)
+        .maybeSingle(),
+    ]);
+    if (!cu?.user_id) return;
+    const tokens = await tokensFor(cu.user_id, "customer");
+    if (tokens.length === 0) return;
+
+    const callerName = m?.name ?? "Le commerçant";
+    await sendFcmCall(
+      tokens,
+      { title: "Appel entrant 📞", body: `${callerName} vous appelle` },
+      {
+        route: `/commandes/${input.orderId}`,
+        kind: "order_call",
+        orderId: input.orderId,
+        caller: callerName,
+        video: "0",
+      }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyOrderIncomingCall failed:", err);
   }
 }
 

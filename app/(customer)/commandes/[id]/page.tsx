@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
+import { OrderCallListener } from "@/components/customer/order-call-listener";
 import { OrderShareCard } from "@/components/customer/referral/order-share-card";
 import { getMyReferralOverview } from "@/lib/referral/overview";
 import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tracking";
@@ -437,6 +438,10 @@ export default async function CustomerOrderDetailPage({
     <CustomerShell>
       {/* Suivi live (Realtime + polling) : pop-up + son sur changement de statut. */}
       <CustomerOrderLive orderId={order.id} initialStatus={status} />
+
+      {/* Appel in-app entrant du COMMERÇANT (sens unique — le client ne peut
+          pas appeler) : écran accepter/refuser + audio Agora. */}
+      <OrderCallListener orderId={order.id} merchantName={merchant.name} />
 
       {/* GA4 — purchase (dédupliqué) sur la page de confirmation. Online non payé
           ne parvient jamais ici (redirige au-dessus) → revenu réel uniquement. */}

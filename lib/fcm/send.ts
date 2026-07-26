@@ -233,6 +233,112 @@ export async function sendFcm(
 }
 
 /**
+ * Push « APPEL ENTRANT » — différente d'une push classique :
+ *
+ *  - ANDROID : DATA-ONLY haute priorité, SANS bloc `notification` → réveille
+ *    notre `CallMessagingService` natif MÊME APP TUÉE, qui affiche la
+ *    notification CallStyle plein écran avec SONNERIE système (style
+ *    Messenger/WhatsApp). Une push `notification` classique finirait muette
+ *    dans le tiroir système, sans sonnerie ni plein écran.
+ *  - iOS : alerte time-sensitive avec son (CallKit/PushKit = chantier natif
+ *    séparé) — bannière + son immédiats, tap → écran d'appel.
+ *
+ * `data.type` est forcé à "coligo_call" (contrat avec le service Android).
+ * TTL court (45 s) : une sonnerie n'a aucun sens en livraison différée.
+ */
+export async function sendFcmCall(
+  tokens: string[],
+  alert: FcmNotification,
+  data: FcmData = {}
+): Promise<SendResult> {
+  if (tokens.length === 0) return { ok: 0, invalidTokens: [], errors: [] };
+  const ctx = await getFcmAccessToken();
+  if (!ctx) return { ok: 0, invalidTokens: [], errors: [] };
+  const { accessToken, projectId } = ctx;
+
+  const url = `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`;
+  const invalidTokens: string[] = [];
+  const errors: string[] = [];
+  let ok = 0;
+
+  await Promise.all(
+    tokens.map(async (deviceToken) => {
+      try {
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            message: {
+              token: deviceToken,
+              data: {
+                ...data,
+                type: "coligo_call",
+                title: alert.title,
+                body: alert.body,
+              },
+              android: { priority: "HIGH", ttl: "45s" },
+              apns: {
+                headers: {
+                  "apns-priority": "10",
+                  "apns-push-type": "alert",
+                },
+                payload: {
+                  aps: {
+                    alert: { title: alert.title, body: alert.body },
+                    sound: "default",
+                    "interruption-level": "time-sensitive",
+                  },
+                },
+              },
+            },
+          }),
+        });
+        if (res.ok) {
+          ok++;
+          return;
+        }
+        const body = (await res.json().catch(() => null)) as {
+          error?: { details?: Array<{ errorCode?: string }>; status?: string };
+        } | null;
+        const errCode =
+          body?.error?.details?.find((d) => d.errorCode)?.errorCode ??
+          body?.error?.status ??
+          "";
+        if (errCode) errors.push(errCode);
+        if (
+          res.status === 404 ||
+          errCode === "UNREGISTERED" ||
+          errCode === "NOT_FOUND" ||
+          errCode === "INVALID_ARGUMENT"
+        ) {
+          invalidTokens.push(deviceToken);
+        } else if (process.env.NODE_ENV !== "production") {
+          console.warn("[fcm] call send failed", res.status, errCode, body);
+        }
+      } catch (err) {
+        console.warn("[fcm] call fetch error:", err);
+      }
+    })
+  );
+
+  if (invalidTokens.length > 0) {
+    const admin = createAdminClient();
+    await admin
+      .from("device_tokens")
+      .delete()
+      .in("token", invalidTokens)
+      .then(({ error }) => {
+        if (error) console.warn("[fcm] purge invalid tokens failed:", error);
+      });
+  }
+
+  return { ok, invalidTokens, errors };
+}
+
+/**
  * Envoie une push à un TOPIC (ex. marketing géo `promo_wilaya_16`). Atteint TOUS
  * les appareils abonnés au topic, INDÉPENDAMMENT de leur session : c'est le canal
  * du MARKETING (les promos de zone continuent même déconnecté), séparé du
