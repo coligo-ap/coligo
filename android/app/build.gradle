@@ -93,6 +93,14 @@ dependencies {
     implementation "androidx.coordinatorlayout:coordinatorlayout:$androidxCoordinatorLayoutVersion"
     implementation "androidx.core:core-splashscreen:$coreSplashScreenVersion"
     implementation project(':capacitor-android')
+    // Appels entrants plein écran : CallMessagingService étend le service du
+    // plugin @capacitor/push-notifications (FirebaseMessagingService). Le
+    // plugin déclare firebase-messaging en `implementation` (non transitif) →
+    // le module app doit compiler contre la MÊME version (25.0.1 = défaut du
+    // plugin, surchargée par rootProject.ext.firebaseMessagingVersion si posée).
+    implementation "com.google.firebase:firebase-messaging:" +
+        (project.rootProject.ext.has('firebaseMessagingVersion')
+            ? project.rootProject.ext.firebaseMessagingVersion : '25.0.1')
     testImplementation "junit:junit:$junitVersion"
     // Rendu hors appareil de l'écran de lancement. Cette machine n'a pas
     // d'hyperviseur : l'émulateur y est inexploitable. Robolectric en mode
