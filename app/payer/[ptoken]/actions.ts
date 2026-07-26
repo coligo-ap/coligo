@@ -1,6 +1,8 @@
 "use server";
 
+import { createHash, randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sharedCarts } from "@/lib/shared-cart/db";
 import {
   createCheckout as createChargilyCheckout,
   buildCallbackUrls,
@@ -29,12 +31,13 @@ import {
 // =============================================================================
 
 export type StartGuestPaymentResult =
-  | { ok: true; url: string }
+  | { ok: true; url: string; reveal: string }
   | { ok: false; reason: "not_found" | "already_paid" | "expired" | "error" };
 
 export type StartGuestIntlResult =
   | {
       ok: true;
+      reveal: string;
       intent: {
         client_secret: string;
         publishable_key: string;
@@ -47,6 +50,26 @@ export type StartGuestIntlResult =
       reason: "not_found" | "already_paid" | "expired" | "ineligible" | "error";
       message?: string;
     };
+
+/**
+ * SECRET DE RÉVÉLATION (mig 0412) : généré au démarrage du paiement et remis
+ * au SEUL navigateur du payeur — après confirmation, la RPC ne révèle numéro
+ * + code de retrait qu'à lui (le lien public, lui, continue de circuler).
+ * Deux payeurs simultanés : le dernier à démarrer gagne le secret, l'autre
+ * verra « payé » sans les codes (le capitaine a tout sur SA commande).
+ */
+async function mintRevealSecret(
+  admin: unknown,
+  cartId: string
+): Promise<string> {
+  const reveal = randomUUID().replace(/-/g, "");
+  await sharedCarts(admin)
+    .update({
+      payer_reveal_hash: createHash("sha256").update(reveal).digest("hex"),
+    })
+    .eq("id", cartId);
+  return reveal;
+}
 
 function intlRefusalText(reason: IntlRefusal): string {
   switch (reason) {
@@ -78,19 +101,7 @@ export async function startGuestIntlPayment(
 ): Promise<StartGuestIntlResult> {
   try {
     const admin = createAdminClient();
-    const from = admin.from.bind(admin) as unknown as (t: string) => {
-      select: (c: string) => {
-        eq: (
-          col: string,
-          v: string
-        ) => {
-          maybeSingle: () => Promise<{
-            data: Record<string, unknown> | null;
-          }>;
-        };
-      };
-    };
-    const { data: cart } = await from("shared_carts")
+    const { data: cart } = await sharedCarts(admin)
       .select("id, order_id")
       .eq("payment_token", ptoken)
       .maybeSingle();
@@ -188,6 +199,7 @@ export async function startGuestIntlPayment(
 
     return {
       ok: true,
+      reveal: await mintRevealSecret(admin, cart.id as string),
       intent: {
         client_secret: intent.clientSecret,
         publishable_key: publishableKey,
@@ -206,20 +218,7 @@ export async function startGuestPayment(
 ): Promise<StartGuestPaymentResult> {
   try {
     const admin = createAdminClient();
-    // Table hors types générés → cast local du builder.
-    const from = admin.from.bind(admin) as unknown as (t: string) => {
-      select: (c: string) => {
-        eq: (
-          col: string,
-          v: string
-        ) => {
-          maybeSingle: () => Promise<{
-            data: Record<string, unknown> | null;
-          }>;
-        };
-      };
-    };
-    const { data: cart } = await from("shared_carts")
+    const { data: cart } = await sharedCarts(admin)
       .select("id, order_id, share_token")
       .eq("payment_token", ptoken)
       .maybeSingle();
@@ -278,7 +277,11 @@ export async function startGuestPayment(
         customer_id: order.customer_id ?? null,
       },
     });
-    return { ok: true, url: checkout.checkout_url };
+    return {
+      ok: true,
+      url: checkout.checkout_url,
+      reveal: await mintRevealSecret(admin, cart.id as string),
+    };
   } catch (e) {
     console.error("[guest-pay] startGuestPayment:", e);
     return { ok: false, reason: "error" };

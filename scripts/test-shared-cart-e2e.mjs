@@ -381,15 +381,37 @@ async function main() {
     "page /payer d'un 2ᵉ payeur → « Déjà payé »",
     JSON.stringify(paidInfo)
   );
-  // mig 0411 : pop-up « Paiement accepté » — numéro + code de retrait révélés.
+  // mig 0412 : SANS le secret de révélation (simple porteur du lien), numéro
+  // et code de retrait restent ABSENTS même une fois payé.
+  assert(
+    paidInfo?.pickup_code == null && paidInfo?.order_number == null,
+    "page /payer APRÈS paiement SANS secret : numéro + code JAMAIS révélés",
+    JSON.stringify({ code: paidInfo?.pickup_code, no: paidInfo?.order_number })
+  );
+  // mig 0412 : AVEC le secret du payeur (posé par startGuestPayment — ici on
+  // le pose directement en DB), la pop-up révèle numéro + code NON NULS.
+  const revealSecret = "e2e-reveal-secret";
+  await db.query(
+    "update shared_carts set payer_reveal_hash = encode(extensions.digest($1::text,'sha256'),'hex') where payment_token = $2",
+    [revealSecret, ptoken]
+  );
+  const { data: paidInfoReveal } = await guest.rpc("shared_cart_payment_info", {
+    p_payment_token: ptoken,
+    p_reveal: revealSecret,
+  });
   const pinRow = (
     await db.query("select pickup_code from orders where id = $1", [orderId])
   ).rows[0];
   assert(
-    paidInfo?.pickup_code === pinRow.pickup_code &&
-      paidInfo?.order_number === paidRow.order_number,
-    "page /payer APRÈS paiement : numéro + code de retrait révélés (pop-up)",
-    JSON.stringify({ code: paidInfo?.pickup_code, no: paidInfo?.order_number })
+    Boolean(pinRow.pickup_code) &&
+      paidInfoReveal?.pickup_code === pinRow.pickup_code &&
+      Boolean(paidRow.order_number) &&
+      paidInfoReveal?.order_number === paidRow.order_number,
+    "page /payer APRÈS paiement AVEC secret : numéro + code révélés (pop-up)",
+    JSON.stringify({
+      code: paidInfoReveal?.pickup_code,
+      no: paidInfoReveal?.order_number,
+    })
   );
   const { data: viewPaid } = await guest.rpc("shared_cart_by_token", {
     p_token: token,

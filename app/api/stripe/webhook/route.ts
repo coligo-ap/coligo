@@ -24,7 +24,6 @@ import type Stripe from "stripe";
 import { constructStripeEvent } from "@/lib/payments/stripe";
 import { auditIntl } from "@/lib/payments/intl";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { notifyMerchantNewOrder, notifyDriversTour } from "@/lib/fcm/triggers";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -567,22 +566,14 @@ export async function POST(req: NextRequest) {
       );
     }
     if (updated) {
-      void notifyMerchantNewOrder({
-        merchantId: updated.merchant_id,
-        orderId: updated.id,
-        customerName: updated.customer_name,
-        totalDa: updated.total_da,
-      });
-      void notifyDriversTour({ orderId: updated.id });
-      // Panier partagé : bump temps réel de la room + push capitaine. No-op sinon.
-      {
-        const { onSharedCartOrderPaid } =
-          await import("@/lib/shared-cart/on-paid");
-        void onSharedCartOrderPaid(updated.id);
-      }
+      // Effets post-paiement — chaîne PARTAGÉE des 3 branches webhook,
+      // ATTENDUE (un `void` gelé en serverless perdait push capitaine + cloche).
+      const { runOrderPaidSideEffects } =
+        await import("@/lib/orders/paid-side-effects");
+      await runOrderPaidSideEffects(updated);
       // Traçabilité client (mig 0394) : fournisseur, montant €, carte.
       const { recordStripeReceipt } = await import("@/lib/payments/receipts");
-      void recordStripeReceipt({
+      await recordStripeReceipt({
         kind: "order",
         externalId: pi.id,
         status: "paid",
@@ -590,7 +581,7 @@ export async function POST(req: NextRequest) {
         eurCents: sess.eur_cents,
         customerId: sess.customer_id,
         orderId,
-      });
+      }).catch((e) => console.warn("[stripe/webhook] receipt:", e));
       await recordEvent(sess.id);
       return NextResponse.json({ ok: true });
     }
@@ -917,19 +908,11 @@ export async function POST(req: NextRequest) {
       );
     }
     if (updated) {
-      void notifyMerchantNewOrder({
-        merchantId: updated.merchant_id,
-        orderId: updated.id,
-        customerName: updated.customer_name,
-        totalDa: updated.total_da,
-      });
-      void notifyDriversTour({ orderId: updated.id });
-      // Panier partagé : bump temps réel de la room + push capitaine. No-op sinon.
-      {
-        const { onSharedCartOrderPaid } =
-          await import("@/lib/shared-cart/on-paid");
-        void onSharedCartOrderPaid(updated.id);
-      }
+      // Effets post-paiement — chaîne PARTAGÉE des 3 branches webhook,
+      // ATTENDUE (un `void` gelé en serverless perdait push capitaine + cloche).
+      const { runOrderPaidSideEffects } =
+        await import("@/lib/orders/paid-side-effects");
+      await runOrderPaidSideEffects(updated);
       await recordEvent(sess.id);
       return NextResponse.json({ ok: true });
     }

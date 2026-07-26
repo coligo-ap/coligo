@@ -19,6 +19,7 @@ import { openCheckout } from "@/lib/payments/open-checkout";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { QrZoom } from "@/components/shared/qr-zoom";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
+import { PaidCelebrationSheet } from "@/components/customer/shared-cart/paid-celebration-sheet";
 import {
   startGuestIntlPayment,
   startGuestPayment,
@@ -45,10 +46,32 @@ type PayInfo = {
   payment_status: string;
   order_status: string;
   share_token: string;
-  /** Révélés par la RPC APRÈS confirmation du paiement seulement (mig 0411). */
+  /** Livraison : le PIN est le code LIVREUR du destinataire — jamais ici. */
+  is_delivery: boolean;
+  /** Révélés APRÈS paiement et AU PAYEUR seulement (secret mig 0412). */
   order_number: string | null;
   pickup_code: string | null;
 };
+
+/** Secret de révélation (mig 0412) — remis au navigateur qui DÉMARRE le
+ * paiement, seul habilité à voir numéro + code après confirmation. */
+function revealKey(ptoken: string) {
+  return `coligo_reveal_${ptoken}`;
+}
+function readReveal(ptoken: string): string | null {
+  try {
+    return localStorage.getItem(revealKey(ptoken));
+  } catch {
+    return null;
+  }
+}
+function saveReveal(ptoken: string, secret: string) {
+  try {
+    localStorage.setItem(revealKey(ptoken), secret);
+  } catch {
+    /* stockage indispo : le payeur verra « payé » sans les codes */
+  }
+}
 
 export function GuestPayView({
   ptoken,
@@ -77,8 +100,15 @@ export function GuestPayView({
   // jamais à un visiteur qui arrive après coup (carte statique suffisante).
   const sawUnpaid = useRef(false);
   const [paidPopupClosed, setPaidPopupClosed] = useState(false);
+  // Ordonnancement des réponses : une réponse PÉRIMÉE (poll parti avant le
+  // paiement, arrivé après le bump) ne doit ni écraser l'état « payé » ni
+  // réarmer la pop-up via sawUnpaid — on n'applique que les réponses plus
+  // récentes que la dernière appliquée.
+  const fetchSeq = useRef(0);
+  const fetchApplied = useRef(0);
 
   const fetchInfo = useCallback(async () => {
+    const seq = ++fetchSeq.current;
     try {
       const supabase = createClient();
       // RPC hors types générés → bind OBLIGATOIRE (reference_supabase_rpc_bind).
@@ -88,7 +118,10 @@ export function GuestPayView({
       ) => Promise<{ data: PayInfo | null }>;
       const { data } = await rpc("shared_cart_payment_info", {
         p_payment_token: ptoken,
+        p_reveal: readReveal(ptoken),
       });
+      if (seq < fetchApplied.current) return; // réponse périmée
+      fetchApplied.current = seq;
       if (
         data &&
         data.payment_status !== "paid" &&
@@ -130,6 +163,7 @@ export function GuestPayView({
       const res = await startGuestIntlPayment(ptoken);
       setPaying(false);
       if (res.ok) {
+        saveReveal(ptoken, res.reveal);
         setIntlIntent(res.intent);
         return;
       }
@@ -148,6 +182,7 @@ export function GuestPayView({
     }
     const res = await startGuestPayment(ptoken);
     if (res.ok) {
+      saveReveal(ptoken, res.reveal);
       // STANDARD in-app (lib/payments/open-checkout) : web → redirection,
       // APK → navigateur intégré (le poll confirmera au retour).
       await openCheckout(res.url);
@@ -227,7 +262,9 @@ export function GuestPayView({
     const freshPayment =
       returnState === "success" || stripeDone || sawUnpaid.current;
     const showPopup = freshPayment && !paidPopupClosed;
-    // Numéro + code de retrait + QR — mêmes gabarits que la fiche commande.
+    // Numéro + code de retrait + QR (retrait seulement — en livraison le PIN
+    // est le code LIVREUR du destinataire, la RPC ne le renvoie jamais ici).
+    // Non-payeur (sans secret mig 0412) : la RPC ne renvoie aucun des deux.
     const paidDetails = (
       <div className="mt-4 space-y-2.5">
         {info.order_number && (
@@ -237,6 +274,13 @@ export function GuestPayView({
             </span>
             <span className="text-foreground text-base font-black tabular-nums">
               {info.order_number}
+            </span>
+          </div>
+        )}
+        {info.is_delivery && (
+          <div className="bg-surface-2 rounded-[14px] px-4 py-2.5 text-center">
+            <span className="text-muted text-xs font-bold">
+              {t("paidDeliveryInfo")}
             </span>
           </div>
         )}
@@ -271,14 +315,21 @@ export function GuestPayView({
     return (
       <Screen>
         <Card>
-          <ColigoCelebration variant="verified" />
+          {/* Pop-up ouverte ⇒ la carte reste minimale (jamais la même info
+              deux fois sur un écran : célébration/détails vivent dans la
+              feuille tant qu'elle est affichée). */}
+          {!showPopup && <ColigoCelebration variant="verified" />}
           <h1 className="text-foreground mt-2 text-center text-xl font-extrabold">
             {freshPayment ? t("paidPopupTitle") : t("alreadyPaid")}
           </h1>
           <p className="text-muted mt-1 text-center text-sm">
-            {t("alreadyPaidDesc", {
-              name: info.captain_name ?? t("captain"),
-            })}
+            {freshPayment
+              ? t("paidPopupDesc", {
+                  merchant: info.merchant?.name ?? "Coligo",
+                })
+              : t("alreadyPaidDesc", {
+                  name: info.captain_name ?? t("captain"),
+                })}
           </p>
           <p className="text-foreground mt-4 text-center text-2xl font-black tabular-nums">
             {formatDA(info.total_da)}
@@ -286,38 +337,29 @@ export function GuestPayView({
           <p className="text-subtle mt-0.5 text-center text-xs font-semibold">
             {info.merchant?.name}
           </p>
-          {paidDetails}
+          {!showPopup && paidDetails}
         </Card>
 
-        {/* Pop-up célébration — uniquement pour un paiement FRAIS (retour
-            Chargily/Stripe ou transition vue en direct), jamais en revisite. */}
+        {/* Feuille célébration PARTAGÉE — uniquement pour un paiement FRAIS
+            (retour Chargily/Stripe ou transition vue en direct), jamais en
+            revisite. */}
         {showPopup && (
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/45 px-4 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-[2px] sm:items-center"
+          <PaidCelebrationSheet
+            title={t("paidPopupTitle")}
+            desc={t("paidPopupDesc", {
+              merchant: info.merchant?.name ?? "Coligo",
+            })}
+            onClose={() => setPaidPopupClosed(true)}
           >
-            <style>{`@keyframes gpPaidPop{from{opacity:0;transform:translateY(28px) scale(.95)}to{opacity:1;transform:none}}`}</style>
-            <div className="bg-surface w-full max-w-sm [animation:gpPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] rounded-[22px] p-5 shadow-[0_24px_60px_-18px_rgba(20,10,60,.55)]">
-              <ColigoCelebration variant="verified" />
-              <h2 className="text-foreground mt-2 text-center text-xl font-extrabold">
-                {t("paidPopupTitle")}
-              </h2>
-              <p className="text-muted mt-1 text-center text-sm">
-                {t("paidPopupDesc", {
-                  merchant: info.merchant?.name ?? "Coligo",
-                })}
-              </p>
-              {paidDetails}
-              <button
-                type="button"
-                onClick={() => setPaidPopupClosed(true)}
-                className="bg-primary-600 hover:bg-primary-700 mt-4 w-full rounded-[14px] px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
-              >
-                {t("paidPopupClose")}
-              </button>
-            </div>
-          </div>
+            {paidDetails}
+            <button
+              type="button"
+              onClick={() => setPaidPopupClosed(true)}
+              className="bg-primary-600 hover:bg-primary-700 mt-4 w-full rounded-[14px] px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
+            >
+              {t("paidPopupClose")}
+            </button>
+          </PaidCelebrationSheet>
         )}
       </Screen>
     );

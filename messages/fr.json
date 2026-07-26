@@ -976,7 +976,8 @@
     "roomPaidDescGuest": "Le paiement est confirmé — le commerçant prépare la commande.",
     "roomRefundedBanner": "Commande annulée — paiement remboursé.",
     "payRefunded": "Commande annulée",
-    "payRefundedDesc": "Cette commande a été annulée et le paiement remboursé."
+    "payRefundedDesc": "Cette commande a été annulée et le paiement remboursé.",
+    "paidDeliveryInfo": "En livraison — le livreur remet la commande au capitaine."
   },
   "referral": {
     "title": "Parrainage",

@@ -558,14 +558,17 @@ export async function notifyCustomerTopup(input: {
 }
 
 /**
- * PANIER PARTAGÉ — « un proche veut payer » (mig 0410) : un invité a tapé
- * « Payer » alors que la commande n'est pas encore validée → on prévient le
- * capitaine (rate-limité côté SQL à 1 / 10 min par panier).
+ * PANIER PARTAGÉ — socle COMMUN des notifications capitaine (cloche + push
+ * FCM) : trois événements, une seule mécanique. Tout est ATTENDU (cloche
+ * comprise) : appelé depuis webhooks/actions serverless où une promesse
+ * orpheline peut être gelée avec la réponse déjà rendue.
  */
-export async function notifySharedCartPayRequest(input: {
+async function notifySharedCartCaptain(input: {
   customerId: string;
-  merchantName: string;
-  shareToken: string;
+  kind: string;
+  title: string;
+  body: string;
+  route: string;
 }): Promise<void> {
   try {
     const admin = createAdminClient();
@@ -576,17 +579,13 @@ export async function notifySharedCartPayRequest(input: {
       .maybeSingle();
     if (!customer?.user_id) return;
 
-    const title = "Un proche veut payer";
-    const body = `Quelqu'un du panier ${input.merchantName} attend pour régler — valide la commande pour lui ouvrir le paiement.`;
-    const route = `/p/${input.shareToken}`;
-
-    void storeAndPushNotification({
+    await storeAndPushNotification({
       userId: customer.user_id,
       audience: "customer",
-      kind: "shared_cart_pay_request",
-      title,
-      body,
-      route,
+      kind: input.kind,
+      title: input.title,
+      body: input.body,
+      route: input.route,
       push: false,
     });
 
@@ -594,12 +593,31 @@ export async function notifySharedCartPayRequest(input: {
     if (tokens.length === 0) return;
     await sendFcm(
       tokens,
-      { title, body },
-      { route, kind: "customer_shared_cart" }
+      { title: input.title, body: input.body },
+      { route: input.route, kind: "customer_shared_cart" }
     );
   } catch (err) {
-    console.warn("[fcm] notifySharedCartPayRequest failed:", err);
+    console.warn("[fcm] notifySharedCartCaptain failed:", err);
   }
+}
+
+/**
+ * PANIER PARTAGÉ — « un proche veut payer » (mig 0410) : un invité a tapé
+ * « Payer » alors que la commande n'est pas encore validée → on prévient le
+ * capitaine (rate-limité côté SQL à 1 / 10 min par panier).
+ */
+export async function notifySharedCartPayRequest(input: {
+  customerId: string;
+  merchantName: string;
+  shareToken: string;
+}): Promise<void> {
+  await notifySharedCartCaptain({
+    customerId: input.customerId,
+    kind: "shared_cart_pay_request",
+    title: "Un proche veut payer",
+    body: `Quelqu'un du panier ${input.merchantName} attend pour régler — valide la commande pour lui ouvrir le paiement.`,
+    route: `/p/${input.shareToken}`,
+  });
 }
 
 /**
@@ -612,39 +630,13 @@ export async function notifySharedCartOrderPlaced(input: {
   merchantName: string;
   shareToken: string;
 }): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    const { data: customer } = await admin
-      .from("customers")
-      .select("user_id")
-      .eq("id", input.customerId)
-      .maybeSingle();
-    if (!customer?.user_id) return;
-
-    const title = "Un proche règle la commande";
-    const body = `La commande ${input.merchantName} de ton panier partagé a été lancée (retrait) — elle démarre dès le paiement confirmé.`;
-    const route = `/p/${input.shareToken}`;
-
-    void storeAndPushNotification({
-      userId: customer.user_id,
-      audience: "customer",
-      kind: "shared_cart_order_placed",
-      title,
-      body,
-      route,
-      push: false,
-    });
-
-    const tokens = await tokensFor(customer.user_id, "customer");
-    if (tokens.length === 0) return;
-    await sendFcm(
-      tokens,
-      { title, body },
-      { route, kind: "customer_shared_cart" }
-    );
-  } catch (err) {
-    console.warn("[fcm] notifySharedCartOrderPlaced failed:", err);
-  }
+  await notifySharedCartCaptain({
+    customerId: input.customerId,
+    kind: "shared_cart_order_placed",
+    title: "Un proche règle la commande",
+    body: `La commande ${input.merchantName} de ton panier partagé a été lancée (retrait) — elle démarre dès le paiement confirmé.`,
+    route: `/p/${input.shareToken}`,
+  });
 }
 
 /**
@@ -657,39 +649,13 @@ export async function notifySharedCartPaid(input: {
   merchantName: string;
   orderId: string;
 }): Promise<void> {
-  try {
-    const admin = createAdminClient();
-    const { data: customer } = await admin
-      .from("customers")
-      .select("user_id")
-      .eq("id", input.customerId)
-      .maybeSingle();
-    if (!customer?.user_id) return;
-
-    const title = "Commande payée";
-    const body = `Le paiement de ta commande ${input.merchantName} est confirmé — le commerçant prépare. Touche pour suivre.`;
-    const route = `/commandes/${input.orderId}`;
-
-    void storeAndPushNotification({
-      userId: customer.user_id,
-      audience: "customer",
-      kind: "shared_cart_paid",
-      title,
-      body,
-      route,
-      push: false,
-    });
-
-    const tokens = await tokensFor(customer.user_id, "customer");
-    if (tokens.length === 0) return;
-    await sendFcm(
-      tokens,
-      { title, body },
-      { route, kind: "customer_shared_cart" }
-    );
-  } catch (err) {
-    console.warn("[fcm] notifySharedCartPaid failed:", err);
-  }
+  await notifySharedCartCaptain({
+    customerId: input.customerId,
+    kind: "shared_cart_paid",
+    title: "Commande payée",
+    body: `Le paiement de ta commande ${input.merchantName} est confirmé — le commerçant prépare. Touche pour suivre.`,
+    route: `/commandes/${input.orderId}`,
+  });
 }
 
 /**

@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sharedCarts } from "@/lib/shared-cart/db";
 import { loadLineOptions } from "@/lib/checkout/option-pricing";
 import { computeCart, type EnginePromotion } from "@/lib/promotions/engine";
 import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
@@ -41,36 +42,9 @@ export async function createRoomOrder(
   shareToken: string
 ): Promise<RoomOrderResult> {
   const admin = createAdminClient();
-  const from = admin.from.bind(admin) as unknown as (t: string) => {
-    select: (c: string) => {
-      eq: (
-        col: string,
-        v: string
-      ) => {
-        maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
-      };
-    };
-    update: (v: Record<string, unknown>) => {
-      eq: (
-        col: string,
-        v2: string
-      ) => {
-        is: (
-          col2: string,
-          v3: null
-        ) => {
-          select: (c: string) => {
-            maybeSingle: () => Promise<{
-              data: Record<string, unknown> | null;
-            }>;
-          };
-        };
-      };
-    };
-  };
 
   // ── 1. Panier + gates ──────────────────────────────────────────────────────
-  const { data: cart } = await from("shared_carts")
+  const { data: cart } = await sharedCarts(admin)
     .select(
       "id, share_token, status, order_id, payment_token, expires_at, merchant_id, captain_customer_id"
     )
@@ -372,7 +346,7 @@ export async function createRoomOrder(
 
   // ── 6. Liaison au panier — UN SEUL gagnant (order_id IS NULL) ─────────────
   const ptoken = randomUUID().replace(/-/g, "").slice(0, 16);
-  const { data: attached } = await from("shared_carts")
+  const { data: attached } = await sharedCarts(admin)
     .update({
       status: "ordered",
       order_id: order.id,
@@ -389,7 +363,7 @@ export async function createRoomOrder(
     // Course perdue : un autre payeur (ou le capitaine) a déjà lié SA
     // commande — on supprime la nôtre (pending, impayée) et on suit la sienne.
     await admin.from("orders").delete().eq("id", order.id);
-    const { data: again } = await from("shared_carts")
+    const { data: again } = await sharedCarts(admin)
       .select(
         "id, share_token, status, order_id, payment_token, expires_at, merchant_id, captain_customer_id"
       )
@@ -425,34 +399,7 @@ async function reuseExistingOrder(
     return { ok: true, ptoken: cart.payment_token as string };
   }
   const ptoken = randomUUID().replace(/-/g, "").slice(0, 16);
-  const from = admin.from.bind(admin) as unknown as (t: string) => {
-    update: (v: Record<string, unknown>) => {
-      eq: (
-        col: string,
-        v2: string
-      ) => {
-        is: (
-          col2: string,
-          v3: null
-        ) => {
-          select: (c: string) => {
-            maybeSingle: () => Promise<{
-              data: Record<string, unknown> | null;
-            }>;
-          };
-        };
-      };
-    };
-    select: (c: string) => {
-      eq: (
-        col: string,
-        v: string
-      ) => {
-        maybeSingle: () => Promise<{ data: Record<string, unknown> | null }>;
-      };
-    };
-  };
-  const { data: set } = await from("shared_carts")
+  const { data: set } = await sharedCarts(admin)
     .update({
       payment_token: ptoken,
       payment_token_created_at: new Date().toISOString(),
@@ -462,7 +409,7 @@ async function reuseExistingOrder(
     .select("id")
     .maybeSingle();
   if (set) return { ok: true, ptoken };
-  const { data: again } = await from("shared_carts")
+  const { data: again } = await sharedCarts(admin)
     .select("payment_token")
     .eq("id", cart.id as string)
     .maybeSingle();

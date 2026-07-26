@@ -1,4 +1,5 @@
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sharedCarts } from "@/lib/shared-cart/db";
 
 /**
  * Auto-guérison IN-BAND d'un panier partagé (appelée à l'ouverture de la room,
@@ -10,38 +11,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 export async function selfHealSharedCart(shareToken: string): Promise<void> {
   try {
     const admin = createAdminClient();
-    // Tables hors types générés → cast local du builder.
-    const from = admin.from.bind(admin) as unknown as (t: string) => {
-      select: (c: string) => {
-        eq: (
-          col: string,
-          v: string
-        ) => {
-          eq: (
-            col2: string,
-            v2: string
-          ) => {
-            maybeSingle: () => Promise<{
-              data: { id: string; order_id: string | null } | null;
-            }>;
-          };
-        };
-      };
-      update: (v: Record<string, unknown>) => {
-        eq: (
-          col: string,
-          v: string
-        ) => {
-          eq: (col2: string, v2: string) => Promise<{ error: unknown }>;
-        };
-      };
-    };
-
-    const { data: cart } = await from("shared_carts")
+    const { data: cart } = await sharedCarts(admin)
       .select("id, order_id")
       .eq("share_token", shareToken)
       .eq("status", "ordered")
-      .maybeSingle();
+      .maybeSingle<{ id: string; order_id: string | null }>();
     if (!cart?.order_id) return;
 
     const { data: order } = await admin
@@ -58,7 +32,7 @@ export async function selfHealSharedCart(shareToken: string): Promise<void> {
       return;
     }
 
-    await from("shared_carts")
+    await sharedCarts(admin)
       .update({
         status: "locked",
         order_id: null,
