@@ -32,6 +32,7 @@ import {
 } from "@/lib/customer/cashback";
 import { WILAYAS } from "@/lib/config/wilayas";
 import { AppVersionLabel } from "@/components/customer/app-version-label";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 
 export const dynamic = "force-dynamic";
 
@@ -106,12 +107,19 @@ export default async function CustomerAccountPage({
   return (
     <CustomerShell hideHeader>
       <div className="mx-auto max-w-2xl pb-24">
-        {/* HERO profil violet dégradé + anneaux décoratifs. */}
-        <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden bg-gradient-to-br px-5 pt-[calc(env(safe-area-inset-top)+1.75rem)] pb-16 text-white">
-          <span className="pointer-events-none absolute -end-12 -top-16 size-52 rounded-full border border-white/15" />
-          <span className="pointer-events-none absolute end-2 -top-8 size-32 rounded-full border border-white/10" />
+        {/* HERO profil — MÊME langage que les portails d'auth : dégradé du
+            thème « occasion » (vars posées sur <html>, mig 0415/0416) + décor
+            du modèle choisi par le super-admin (blobs/vagues/halo/motifs). */}
+        <section
+          className="relative overflow-hidden px-5 pt-[calc(env(safe-area-inset-top)+1.75rem)] pb-16 text-white"
+          style={{
+            backgroundImage:
+              "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+          }}
+        >
+          <ThemeDecor />
 
-          <div className="flex items-center justify-between">
+          <div className="relative z-10 flex items-center justify-between">
             <p className="text-xs font-extrabold tracking-widest uppercase opacity-85">
               {t("myAccount")}
             </p>
@@ -124,7 +132,7 @@ export default async function CustomerAccountPage({
             </Link>
           </div>
 
-          <div className="mt-5 flex items-center gap-3.5">
+          <div className="relative z-10 mt-5 flex items-center gap-3.5">
             <div className="grid size-16 shrink-0 place-items-center rounded-2xl border border-white/30 bg-white/20 text-2xl font-black backdrop-blur">
               {initial}
             </div>

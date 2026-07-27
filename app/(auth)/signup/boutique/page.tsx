@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { AuthScreen } from "@/components/shared/auth-screen";
 import { ShopSignupWizard } from "@/components/merchant/shop-signup-wizard";
@@ -28,29 +29,54 @@ export default async function CompleteShopPage() {
     .maybeSingle();
   if (merchant) redirect("/dashboard");
 
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+
   return (
     <AuthScreen
       navVariant="merchant"
-      installLabel="Installer l'application Commerçant"
+      installLabel={tr(
+        "Installer l'application Commerçant",
+        "ثبّت تطبيق التاجر"
+      )}
       hero={{
-        title: (
+        title: isAr ? (
+          <>
+            خطوة أخيرة.
+            <br />
+            أنشئ متجرك.
+          </>
+        ) : (
           <>
             Encore une étape.
             <br />
             Créez votre boutique.
           </>
         ),
-        subtitle: "Votre compte Google est connecté — décrivez votre commerce.",
-        features: [
-          "Recevez vos commandes en direct",
-          "Gérez votre catalogue et vos horaires",
-          "Suivez votre chiffre d'affaires",
-          "Récupérez vos paiements simplement",
-        ],
+        subtitle: tr(
+          "Votre compte Google est connecté — décrivez votre commerce.",
+          "حساب Google متصل — صف متجرك."
+        ),
+        features: isAr
+          ? [
+              "استقبل طلباتك مباشرة",
+              "أدر الكتالوج وأوقات العمل",
+              "تابع رقم أعمالك",
+              "استرجع مدفوعاتك بسهولة",
+            ]
+          : [
+              "Recevez vos commandes en direct",
+              "Gérez votre catalogue et vos horaires",
+              "Suivez votre chiffre d'affaires",
+              "Récupérez vos paiements simplement",
+            ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Votre boutique"
-      cardSubtitle="Une question à la fois, en 1 minute."
+      cardTitle={tr("Votre boutique", "متجرك")}
+      cardSubtitle={tr(
+        "Une question à la fois, en 1 minute.",
+        "سؤال واحد في كل خطوة، في دقيقة."
+      )}
     >
       {/* Complétion étape par étape (style Bolt Food) — mêmes champs et même
           action serveur (`completeSocialSignup`), sans email/mot de passe. */}

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -18,7 +18,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import { cn, formatDA } from "@/lib/utils";
 import { clearCart, setItemQuantity, useCart } from "@/lib/customer/cart-store";
@@ -84,7 +84,12 @@ export function CartView({
         return;
       }
       if (res.reason === "not_a_customer") {
-        router.push("/se-connecter?next=/cart");
+        // Non connecté → authentification PUIS reprise AUTOMATIQUE de
+        // l'invitation (`?invite=1` relance inviteFamily au retour : le
+        // client atterrit directement dans la room du panier partagé).
+        router.push(
+          `/se-connecter?next=${encodeURIComponent("/cart?invite=1")}`
+        );
         return;
       }
       setInviteError(res.error);
@@ -92,6 +97,25 @@ export function CartView({
       setInviteBusy(false);
     }
   };
+
+  // Retour de connexion avec `?invite=1` : on relance l'action demandée —
+  // une seule fois — après avoir nettoyé l'URL (replaceState, zéro round-trip).
+  const sp = useSearchParams();
+  const inviteResumed = useRef(false);
+  useEffect(() => {
+    if (inviteResumed.current || sp.get("invite") !== "1") return;
+    if (!cart.merchant_id) return;
+    inviteResumed.current = true;
+    try {
+      const u = new URL(window.location.href);
+      u.searchParams.delete("invite");
+      window.history.replaceState(null, "", u);
+    } catch {
+      /* URL API indispo — sans gravité */
+    }
+    void inviteFamily();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [sp, cart.merchant_id]);
 
   // Promotions actives du commerçant du panier (réduction / offre quantité /
   // code). On applique LE MÊME moteur que le checkout → mêmes prix partout.

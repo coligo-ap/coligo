@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useActionState, useEffect, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import { buttonVariants } from "@/components/ui/button";
 import {
   StepWizardHeader,
@@ -36,25 +37,6 @@ const initialState: AuthState = {};
 
 type StepKey = "shop" | "types" | "location" | "account";
 
-const STEP_META: Record<StepKey, { title: string; subtitle: string }> = {
-  shop: {
-    title: "Votre commerce",
-    subtitle: "Son nom, et celui du responsable.",
-  },
-  types: {
-    title: "Type de commerce",
-    subtitle: "Le premier choisi est le principal.",
-  },
-  location: {
-    title: "Emplacement",
-    subtitle: "Placez votre boutique sur la carte.",
-  },
-  account: {
-    title: "Votre compte",
-    subtitle: "Vos identifiants de connexion.",
-  },
-};
-
 /**
  * Inscription commerçant ÉTAPE PAR ÉTAPE (style Bolt Food) : une question à la
  * fois au lieu d'un long formulaire. UN SEUL <form> — tous les panneaux restent
@@ -67,6 +49,34 @@ const STEP_META: Record<StepKey, { title: string; subtitle: string }> = {
  * - mode "google" : 3 étapes, le compte auth existe déjà (/signup/boutique).
  */
 export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
+  // Bilingue FR/AR (demande : les inscriptions partenaires doivent être
+  // traduites comme le reste des portails).
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const STEP_META: Record<StepKey, { title: string; subtitle: string }> = {
+    shop: {
+      title: tr("Votre commerce", "متجرك"),
+      subtitle: tr("Son nom, et celui du responsable.", "اسمه واسم المسؤول."),
+    },
+    types: {
+      title: tr("Type de commerce", "نوع النشاط"),
+      subtitle: tr(
+        "Le premier choisi est le principal.",
+        "الأول الذي تختاره هو الرئيسي."
+      ),
+    },
+    location: {
+      title: tr("Emplacement", "الموقع"),
+      subtitle: tr(
+        "Placez votre boutique sur la carte.",
+        "ضع متجرك على الخريطة."
+      ),
+    },
+    account: {
+      title: tr("Votre compte", "حسابك"),
+      subtitle: tr("Vos identifiants de connexion.", "معلومات تسجيل دخولك."),
+    },
+  };
   const [state, formAction, pending] = useActionState(
     mode === "email" ? signup : completeSocialSignup,
     initialState
@@ -197,10 +207,19 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
   const canContinue = stepValid[active];
 
   const stepHint: Record<StepKey, string> = {
-    shop: "Indiquez le commerce, le responsable et un téléphone valide.",
-    types: "Choisissez au moins un type.",
-    location: "Placez puis confirmez la position exacte sur la carte.",
-    account: "Email valide et mot de passe d'au moins 8 caractères.",
+    shop: tr(
+      "Indiquez le commerce, le responsable et un téléphone valide.",
+      "أدخل اسم المتجر والمسؤول ورقم هاتف صالح."
+    ),
+    types: tr("Choisissez au moins un type.", "اختر نوعًا واحدًا على الأقل."),
+    location: tr(
+      "Placez puis confirmez la position exacte sur la carte.",
+      "ضع الموقع الدقيق على الخريطة ثم أكّده."
+    ),
+    account: tr(
+      "Email valide et mot de passe d'au moins 8 caractères.",
+      "بريد إلكتروني صالح وكلمة سر من 8 أحرف على الأقل."
+    ),
   };
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
@@ -241,8 +260,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
         </div>
         <p className="text-sm text-green-800">{state.success}</p>
         <Link href="/login" className={cn(buttonVariants(), "w-full")}>
-          Se connecter
-          <ArrowRight className="size-4" />
+          {tr("Se connecter", "تسجيل الدخول")}
+          <ArrowRight className="size-4 rtl:rotate-180" />
         </Link>
       </div>
     );
@@ -261,7 +280,10 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
       <StepWizardHeader
         title={STEP_META[active].title}
         subtitle={STEP_META[active].subtitle}
-        stepLabel={`Étape ${step + 1} sur ${steps.length}`}
+        stepLabel={tr(
+          `Étape ${step + 1} sur ${steps.length}`,
+          `الخطوة ${step + 1} من ${steps.length}`
+        )}
         step={step}
         total={steps.length}
       />
@@ -276,7 +298,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
       >
         <div className="space-y-1.5">
           <Label htmlFor="merchantName">
-            Nom du commerce <span className="text-rose-600">*</span>
+            {tr("Nom du commerce", "اسم المتجر")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <Store className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -296,7 +319,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
 
         <div className="space-y-1.5">
           <Label htmlFor="managerName">
-            Nom & prénom du responsable <span className="text-rose-600">*</span>
+            {tr("Nom & prénom du responsable", "لقب واسم المسؤول")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <UserRound className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -321,7 +345,10 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
           required
           disabled={pending}
           onValueChange={(canonical) => setPhone(canonical)}
-          hint="Pour vous joindre au sujet de votre boutique."
+          hint={tr(
+            "Pour vous joindre au sujet de votre boutique.",
+            "للتواصل معك بخصوص متجرك."
+          )}
         />
       </div>
 
@@ -333,7 +360,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
         )}
       >
         <Label>
-          Types de commerce <span className="text-rose-600">*</span>
+          {tr("Types de commerce", "أنواع النشاط")}{" "}
+          <span className="text-rose-600">*</span>
         </Label>
         <CategoryMultiSelect
           value={cats}
@@ -341,7 +369,10 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
           disabled={pending}
         />
         <p className="text-subtle text-xs">
-          Plusieurs types possibles (ex. pizzeria + fast-food).
+          {tr(
+            "Plusieurs types possibles (ex. pizzeria + fast-food).",
+            "يمكن اختيار عدة أنواع (مثال: بيتزيريا + وجبات سريعة)."
+          )}
         </p>
       </div>
 
@@ -373,7 +404,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
         >
           <div className="space-y-1.5">
             <Label htmlFor="email">
-              Email <span className="text-rose-600">*</span>
+              {tr("Email", "البريد الإلكتروني")}{" "}
+              <span className="text-rose-600">*</span>
             </Label>
             <div className="relative">
               <Mail className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -394,7 +426,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
 
           <div className="space-y-1.5">
             <Label htmlFor="password">
-              Mot de passe <span className="text-rose-600">*</span>
+              {tr("Mot de passe", "كلمة المرور")}{" "}
+              <span className="text-rose-600">*</span>
             </Label>
             <div className="relative">
               <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
@@ -402,7 +435,7 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
                 id="password"
                 name="password"
                 autoComplete="new-password"
-                placeholder="Au moins 8 caractères"
+                placeholder={tr("Au moins 8 caractères", "8 أحرف على الأقل")}
                 minLength={8}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -428,16 +461,21 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
         pending={pending}
         onBack={goBack}
         onNext={goNext}
-        labels={{ back: "Retour", next: "Continuer" }}
+        labels={{
+          back: tr("Retour", "رجوع"),
+          next: tr("Continuer", "متابعة"),
+        }}
         onSubmitClick={() => persistDraft(steps.length)}
         hint={stepHint[active]}
         submitContent={
           pending ? (
-            "Création…"
+            tr("Création…", "جارٍ الإنشاء…")
           ) : (
             <>
-              {mode === "email" ? "Créer mon compte" : "Créer ma boutique"}
-              <ArrowRight className="size-4" />
+              {mode === "email"
+                ? tr("Créer mon compte", "إنشاء حسابي")
+                : tr("Créer ma boutique", "إنشاء متجري")}
+              <ArrowRight className="size-4 rtl:rotate-180" />
             </>
           )
         }
@@ -445,21 +483,24 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
 
       {mode === "email" && (
         <p className="text-muted pt-2 text-center text-xs">
-          En vous inscrivant, vous acceptez les{" "}
+          {tr(
+            "En vous inscrivant, vous acceptez les",
+            "بتسجيلك، فأنت توافق على"
+          )}{" "}
           <Link
             href="/cgu"
             className="text-primary-700 font-medium hover:underline"
           >
-            Conditions générales
+            {tr("Conditions générales", "الشروط العامة")}
           </Link>{" "}
-          et la{" "}
+          {tr("et la", "و")}{" "}
           <Link
             href="/confidentialite"
             className="text-primary-700 font-medium hover:underline"
           >
-            Politique de confidentialité
+            {tr("Politique de confidentialité", "سياسة الخصوصية")}
           </Link>{" "}
-          de {APP_CONFIG.name}.
+          {tr(`de ${APP_CONFIG.name}.`, `الخاصة بـ ${APP_CONFIG.name}.`)}
         </p>
       )}
     </form>

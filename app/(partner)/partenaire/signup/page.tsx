@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { getCurrentPartner } from "@/lib/auth/partner";
 import { PartnerSignupForm } from "@/components/partner/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
@@ -14,29 +15,49 @@ export default async function PartnerSignupPage() {
   const partner = await getCurrentPartner();
   if (partner) redirect("/partenaire");
 
+  const isAr = (await getLocale()) === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+
   return (
     <AuthScreen
       navVariant="partner"
-      installLabel="Installer l'application Agent"
+      installLabel={tr("Installer l'application Agent", "ثبّت تطبيق الوكيل")}
       hero={{
-        title: (
+        title: isAr ? (
+          <>
+            كن وكيل <br />
+            كوليڨو باي.
+          </>
+        ) : (
           <>
             Devenez Agent <br />
             Coligo Pay.
           </>
         ),
-        subtitle:
+        subtitle: tr(
           "Rejoignez le réseau des points de recharge Coligo et vendez du crédit.",
-        features: [
-          "Vendez du crédit à vos clients",
-          "Gagnez sur chaque recharge",
-          "Apparaissez sur la carte des points",
-          "Un dossier validé par Coligo",
-        ],
+          "انضم إلى شبكة نقاط تعبئة كوليڨو وبِع الرصيد."
+        ),
+        features: isAr
+          ? [
+              "بِع الرصيد لزبائنك",
+              "اربح على كل تعبئة",
+              "اظهر على خريطة النقاط",
+              "ملف يُراجَع من طرف كوليڨو",
+            ]
+          : [
+              "Vendez du crédit à vos clients",
+              "Gagnez sur chaque recharge",
+              "Apparaissez sur la carte des points",
+              "Un dossier validé par Coligo",
+            ],
         imageUrl: HERO_IMG,
       }}
-      cardTitle="Demande de partenariat"
-      cardSubtitle="Votre point de recharge. Dossier examiné avant activation."
+      cardTitle={tr("Demande de partenariat", "طلب شراكة")}
+      cardSubtitle={tr(
+        "Votre point de recharge. Dossier examiné avant activation.",
+        "نقطة التعبئة الخاصة بك. يُراجَع الملف قبل التفعيل."
+      )}
       modeTabs={
         <AuthModeTabs
           mode="signup"

@@ -2,6 +2,7 @@
 
 import { useActionState, useState } from "react";
 import Link from "next/link";
+import { useLocale } from "next-intl";
 import { ArrowRight, FileText, Store, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,25 +23,6 @@ const initial: PartnerAuthState = {};
 type StepKey = "point" | "dossier" | "location" | "access";
 const STEPS: StepKey[] = ["point", "dossier", "location", "access"];
 
-const META: Record<StepKey, { title: string; subtitle: string }> = {
-  point: {
-    title: "Votre point de recharge",
-    subtitle: "Son nom, et celui du gérant.",
-  },
-  dossier: {
-    title: "Votre dossier",
-    subtitle: "Le registre de commerce du point.",
-  },
-  location: {
-    title: "Emplacement",
-    subtitle: "Placez le point sur la carte — il apparaîtra aux clients.",
-  },
-  access: {
-    title: "Vos accès",
-    subtitle: "Le téléphone sera votre identifiant de connexion.",
-  },
-};
-
 /**
  * Auto-inscription Agent Coligo Pay ÉTAPE PAR ÉTAPE (style Bolt Food) : point →
  * dossier → emplacement → accès. UN SEUL <form>, panneaux tous MONTÉS (l'inactif
@@ -49,6 +31,36 @@ const META: Record<StepKey, { title: string; subtitle: string }> = {
  * déposées juste après, depuis l'espace agent (« Mon dossier »).
  */
 export function PartnerSignupForm() {
+  // Bilingue FR/AR comme les autres portails partenaires.
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const META: Record<StepKey, { title: string; subtitle: string }> = {
+    point: {
+      title: tr("Votre point de recharge", "نقطة التعبئة الخاصة بك"),
+      subtitle: tr("Son nom, et celui du gérant.", "اسمها واسم المسيّر."),
+    },
+    dossier: {
+      title: tr("Votre dossier", "ملفك"),
+      subtitle: tr(
+        "Le registre de commerce du point.",
+        "السجل التجاري للنقطة."
+      ),
+    },
+    location: {
+      title: tr("Emplacement", "الموقع"),
+      subtitle: tr(
+        "Placez le point sur la carte — il apparaîtra aux clients.",
+        "ضع النقطة على الخريطة — ستظهر للزبائن."
+      ),
+    },
+    access: {
+      title: tr("Vos accès", "معلومات دخولك"),
+      subtitle: tr(
+        "Le téléphone sera votre identifiant de connexion.",
+        "الهاتف هو معرّف تسجيل دخولك."
+      ),
+    },
+  };
   const [state, action, pending] = useActionState(partnerSignup, initial);
 
   const [step, setStep] = useState(0);
@@ -73,10 +85,22 @@ export function PartnerSignupForm() {
   const canContinue = stepValid[active];
 
   const stepHint: Record<StepKey, string> = {
-    point: "Indiquez le nom du point et celui du gérant.",
-    dossier: "Le n° de registre de commerce est requis.",
-    location: "Placez puis confirmez la position exacte sur la carte.",
-    access: "Téléphone valide et mot de passe de 6 caractères minimum.",
+    point: tr(
+      "Indiquez le nom du point et celui du gérant.",
+      "أدخل اسم النقطة واسم المسيّر."
+    ),
+    dossier: tr(
+      "Le n° de registre de commerce est requis.",
+      "رقم السجل التجاري مطلوب."
+    ),
+    location: tr(
+      "Placez puis confirmez la position exacte sur la carte.",
+      "ضع الموقع الدقيق على الخريطة ثم أكّده."
+    ),
+    access: tr(
+      "Téléphone valide et mot de passe de 6 caractères minimum.",
+      "هاتف صالح وكلمة سر من 6 أحرف على الأقل."
+    ),
   };
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
@@ -94,7 +118,10 @@ export function PartnerSignupForm() {
       <StepWizardHeader
         title={META[active].title}
         subtitle={META[active].subtitle}
-        stepLabel={`Étape ${step + 1} sur ${STEPS.length}`}
+        stepLabel={tr(
+          `Étape ${step + 1} sur ${STEPS.length}`,
+          `الخطوة ${step + 1} من ${STEPS.length}`
+        )}
         step={step}
         total={STEPS.length}
       />
@@ -105,7 +132,8 @@ export function PartnerSignupForm() {
       >
         <div className="space-y-1.5">
           <Label htmlFor="displayName">
-            Nom du point de recharge <span className="text-rose-600">*</span>
+            {tr("Nom du point de recharge", "اسم نقطة التعبئة")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <Store className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -125,7 +153,8 @@ export function PartnerSignupForm() {
 
         <div className="space-y-1.5">
           <Label htmlFor="ownerName">
-            Nom &amp; prénom du gérant <span className="text-rose-600">*</span>
+            {tr("Nom & prénom du gérant", "لقب واسم المسيّر")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <UserRound className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -153,7 +182,8 @@ export function PartnerSignupForm() {
       >
         <div className="space-y-1.5">
           <Label htmlFor="registreCommerce">
-            N° de registre de commerce <span className="text-rose-600">*</span>
+            {tr("N° de registre de commerce", "رقم السجل التجاري")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <FileText className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
@@ -172,19 +202,26 @@ export function PartnerSignupForm() {
         </div>
 
         <div className="space-y-1.5">
-          <Label htmlFor="hours">Horaires (optionnel)</Label>
+          <Label htmlFor="hours">
+            {tr("Horaires (optionnel)", "أوقات العمل (اختياري)")}
+          </Label>
           <Input
             id="hours"
             name="hours"
             type="text"
-            placeholder="08h – 20h, tous les jours"
+            placeholder={tr(
+              "08h – 20h, tous les jours",
+              "08:00 – 20:00، كل الأيام"
+            )}
             disabled={pending}
           />
         </div>
 
         <p className="text-subtle text-xs">
-          Les pièces (registre, identité) se déposent juste après, depuis votre
-          espace agent.
+          {tr(
+            "Les pièces (registre, identité) se déposent juste après, depuis votre espace agent.",
+            "الوثائق (السجل، الهوية) تُرفع مباشرة بعد ذلك من فضاء الوكيل."
+          )}
         </p>
       </div>
 
@@ -217,19 +254,20 @@ export function PartnerSignupForm() {
           required
           disabled={pending}
           onValueChange={(canonical) => setPhone(canonical)}
-          hint="Votre identifiant de connexion."
+          hint={tr("Votre identifiant de connexion.", "معرّف تسجيل دخولك.")}
         />
 
         <div className="space-y-1.5">
           <Label htmlFor="password">
-            Mot de passe <span className="text-rose-600">*</span>
+            {tr("Mot de passe", "كلمة المرور")}{" "}
+            <span className="text-rose-600">*</span>
           </Label>
           <PasswordInput
             id="password"
             name="password"
             autoComplete="new-password"
             minLength={6}
-            placeholder="Au moins 6 caractères"
+            placeholder={tr("Au moins 6 caractères", "6 أحرف على الأقل")}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -251,34 +289,40 @@ export function PartnerSignupForm() {
         pending={pending}
         onBack={goBack}
         onNext={goNext}
-        labels={{ back: "Retour", next: "Continuer" }}
+        labels={{
+          back: tr("Retour", "رجوع"),
+          next: tr("Continuer", "متابعة"),
+        }}
         hint={stepHint[active]}
         submitContent={
           pending ? (
-            "Envoi de la demande…"
+            tr("Envoi de la demande…", "جارٍ إرسال الطلب…")
           ) : (
             <>
-              Envoyer ma demande
-              <ArrowRight className="size-4" />
+              {tr("Envoyer ma demande", "إرسال طلبي")}
+              <ArrowRight className="size-4 rtl:rotate-180" />
             </>
           )
         }
       />
 
       <p className="text-subtle text-center text-xs">
-        En envoyant votre demande, vous acceptez les{" "}
+        {tr(
+          "En envoyant votre demande, vous acceptez les",
+          "بإرسال طلبك، فأنت توافق على"
+        )}{" "}
         <Link
           href="/cgu"
           className="text-primary-700 font-medium hover:underline"
         >
-          Conditions générales
+          {tr("Conditions générales", "الشروط العامة")}
         </Link>{" "}
-        et la{" "}
+        {tr("et la", "و")}{" "}
         <Link
           href="/confidentialite"
           className="text-primary-700 font-medium hover:underline"
         >
-          Politique de confidentialité
+          {tr("Politique de confidentialité", "سياسة الخصوصية")}
         </Link>
         .
       </p>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+import { useLocale } from "next-intl";
 import {
   Building2,
   Check,
@@ -110,6 +111,9 @@ export function ShopLocationPicker({
   onValidityChange,
   gpsAutofill = false,
 }: Props) {
+  // Bilingue FR/AR comme le reste des portails partenaires.
+  const isAr = useLocale() === "ar";
+  const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const [wilayaCode, setWilayaCode] = useState(initial?.wilayaCode ?? "");
   const [commune, setCommune] = useState(initial?.commune ?? "");
   const [address, setAddress] = useState(initial?.address ?? "");
@@ -215,7 +219,10 @@ export function ShopLocationPicker({
     if (found.label && (force || !address.trim())) setAddress(found.label);
     if (filledCommune) {
       setGpsNote(
-        "Wilaya, commune et adresse détectées depuis la position — vérifie."
+        tr(
+          "Wilaya, commune et adresse détectées depuis la position — vérifie.",
+          "تم اكتشاف الولاية والبلدية والعنوان من الموقع — تحقّق."
+        )
       );
     }
   };
@@ -235,7 +242,10 @@ export function ShopLocationPicker({
       await applyGpsAdminFill(p, true);
     } catch {
       setGpsError(
-        "Position indisponible — autorise la localisation, ou place le repère à la main."
+        tr(
+          "Position indisponible — autorise la localisation, ou place le repère à la main.",
+          "الموقع غير متاح — اسمح بتحديد الموقع، أو ضع العلامة يدويًا."
+        )
       );
     } finally {
       setGpsBusy(false);
@@ -272,7 +282,7 @@ export function ShopLocationPicker({
             ) : (
               <LocateFixed className="size-4" />
             )}
-            Utiliser ma position actuelle
+            {tr("Utiliser ma position actuelle", "استخدام موقعي الحالي")}
           </button>
           {gpsNote && (
             <p className="text-success-700 flex items-center gap-1 text-xs">
@@ -288,7 +298,7 @@ export function ShopLocationPicker({
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
           <Label htmlFor={names.wilaya}>
-            Wilaya <span className="text-rose-600">*</span>
+            {tr("Wilaya", "الولاية")} <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <MapPin className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
@@ -302,7 +312,7 @@ export function ShopLocationPicker({
               value={wilayaCode}
               onChange={(e) => onWilaya(e.target.value)}
             >
-              <option value="">— Sélectionner —</option>
+              <option value="">{tr("— Sélectionner —", "— اختر —")}</option>
               {WILAYAS.map((w) => (
                 <option key={w.code} value={w.code}>
                   {w.code} · {w.name}
@@ -314,7 +324,7 @@ export function ShopLocationPicker({
 
         <div className="space-y-1.5">
           <Label htmlFor={names.commune}>
-            Commune <span className="text-rose-600">*</span>
+            {tr("Commune", "البلدية")} <span className="text-rose-600">*</span>
           </Label>
           <div className="relative">
             <Building2 className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
@@ -330,7 +340,7 @@ export function ShopLocationPicker({
                   value={commune}
                   onChange={(e) => setCommune(e.target.value)}
                 >
-                  <option value="">— Sélectionner —</option>
+                  <option value="">{tr("— Sélectionner —", "— اختر —")}</option>
                   {communes.map((c) => (
                     <option key={c} value={c}>
                       {c}
@@ -346,7 +356,9 @@ export function ShopLocationPicker({
                 value={commune}
                 onChange={(e) => setCommune(e.target.value)}
                 placeholder={
-                  wilayaCode ? "Saisir la commune" : "Choisis une wilaya"
+                  wilayaCode
+                    ? tr("Saisir la commune", "أدخل البلدية")
+                    : tr("Choisis une wilaya", "اختر ولاية")
                 }
                 disabled={disabled || !wilayaCode}
                 className="pl-9"
@@ -359,13 +371,19 @@ export function ShopLocationPicker({
       {/* Carte — position exacte */}
       <div className="space-y-1.5">
         <Label>
-          Position exacte de la boutique{" "}
+          {tr("Position exacte de la boutique", "الموقع الدقيق للمتجر")}{" "}
           <span className="text-rose-600">*</span>
         </Label>
         <p className="text-muted text-xs">
           {wilayaCode && commune
-            ? "Glisse ou tape sur la carte pour placer le repère sur l'entrée exacte de ta boutique, puis confirme."
-            : "Choisis d'abord ta wilaya et ta commune : la carte s'y placera automatiquement."}
+            ? tr(
+                "Glisse ou tape sur la carte pour placer le repère sur l'entrée exacte de ta boutique, puis confirme.",
+                "اسحب أو انقر على الخريطة لوضع العلامة على مدخل متجرك بالضبط، ثم أكّد."
+              )
+            : tr(
+                "Choisis d'abord ta wilaya et ta commune : la carte s'y placera automatiquement.",
+                "اختر أولًا ولايتك وبلديتك: ستنتقل الخريطة إليها تلقائيًا."
+              )}
         </p>
 
         <div
@@ -386,10 +404,13 @@ export function ShopLocationPicker({
               if (gpsAutofill && !commune) void applyGpsAdminFill(p);
             }}
             height={240}
-            gpsLabel="Ma position"
+            gpsLabel={tr("Ma position", "موقعي")}
             autoLocate={requireConfirm && !coords}
             searchEnabled
-            searchPlaceholder="Rechercher une adresse, un lieu, un quartier…"
+            searchPlaceholder={tr(
+              "Rechercher une adresse, un lieu, un quartier…",
+              "ابحث عن عنوان أو مكان أو حي…"
+            )}
           />
         </div>
 
@@ -412,7 +433,7 @@ export function ShopLocationPicker({
             <Check className="text-success-700 mt-0.5 size-4 shrink-0" />
             <div className="min-w-0 text-sm">
               <p className="text-success-800 font-semibold">
-                Position confirmée
+                {tr("Position confirmée", "تم تأكيد الموقع")}
               </p>
               {(detected || address) && (
                 <p className="text-success-700/90 mt-0.5 text-xs">
@@ -430,7 +451,7 @@ export function ShopLocationPicker({
               className="text-success-700 hover:bg-success-100 ml-auto inline-flex shrink-0 items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-medium"
             >
               <PencilLine className="size-3.5" />
-              Modifier
+              {tr("Modifier", "تعديل")}
             </button>
           </div>
         ) : (
@@ -446,8 +467,11 @@ export function ShopLocationPicker({
               <Navigation className="size-4" />
             )}
             {coords
-              ? "Confirmer cette position"
-              : "Place d'abord le repère sur la carte"}
+              ? tr("Confirmer cette position", "تأكيد هذا الموقع")
+              : tr(
+                  "Place d'abord le repère sur la carte",
+                  "ضع العلامة على الخريطة أولًا"
+                )}
           </button>
         )}
 
@@ -466,7 +490,9 @@ export function ShopLocationPicker({
 
       {/* Adresse exacte (auto-détectée, modifiable) */}
       <div className="space-y-1.5">
-        <Label htmlFor={names.address}>Adresse exacte</Label>
+        <Label htmlFor={names.address}>
+          {tr("Adresse exacte", "العنوان الدقيق")}
+        </Label>
         <div className="relative">
           <MapPin className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
           <Input
@@ -475,13 +501,19 @@ export function ShopLocationPicker({
             value={address}
             onChange={(e) => setAddress(e.target.value)}
             maxLength={200}
-            placeholder="N°, rue, quartier, point de repère…"
+            placeholder={tr(
+              "N°, rue, quartier, point de repère…",
+              "رقم، شارع، حي، معلم…"
+            )}
             disabled={disabled}
             className="pl-9"
           />
         </div>
         <p className="text-subtle text-xs">
-          Renseignée automatiquement depuis la carte — ajuste-la si besoin.
+          {tr(
+            "Renseignée automatiquement depuis la carte — ajuste-la si besoin.",
+            "تُملأ تلقائيًا من الخريطة — عدّلها عند الحاجة."
+          )}
         </p>
       </div>
     </div>
