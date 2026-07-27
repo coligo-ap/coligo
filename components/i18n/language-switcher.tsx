@@ -128,7 +128,9 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
         aria-label="Langue"
         className={cn(
           // SANS cadre : pas de bordure ni de fond, juste le texte + chevron.
-          "text-muted hover:text-foreground inline-flex items-center gap-1.5 bg-transparent px-1 py-1 text-[13px] font-semibold transition-colors",
+          // min-h 44px + marges négatives : cible tactile réglementaire SANS
+          // grossir l'encombrement visuel (audit Playwright : 28px avant).
+          "text-muted hover:text-foreground -my-2 inline-flex min-h-[44px] items-center gap-1.5 bg-transparent px-1 py-1 text-[13px] font-semibold transition-colors",
           pending && "opacity-60"
         )}
       >
