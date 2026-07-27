@@ -1,10 +1,11 @@
 import { Flag, Moon, Percent, Snowflake, Sparkles, Sun } from "lucide-react";
 import {
   APP_THEMES,
-  THEME_GRAIN,
-  themeGradient,
+  themeGradientVertical,
   type AppThemeKey,
+  type AppThemeModel,
 } from "@/lib/config/app-themes";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 
 const ICONS = {
   sparkles: Sparkles,
@@ -16,18 +17,22 @@ const ICONS = {
 } as const;
 
 /**
- * Bandeau « occasion » OPTIONNEL de l'accueil marketplace (mig 0415, activé
- * par le super-admin dans /admin/controle — désactivé = accueil simple
- * actuel, ce composant n'est pas rendu du tout). Même langage visuel que les
- * héros d'auth : dégradé du thème + blobs organiques + grain, animations
- * douces coupées par prefers-reduced-motion. Purement décoratif + tagline
- * localisée : aucune info d'un autre bloc n'est dupliquée.
+ * Héro « occasion » INTÉGRÉ de l'accueil marketplace (mig 0415/0416, activé
+ * par le super-admin — désactivé = accueil simple, rien n'est rendu).
+ *
+ * Il forme UN SEUL bloc coloré avec le header (peint en `g1` uni par
+ * CustomerHeader sur la route « / ») : ici le dégradé VERTICAL part de g1 →
+ * aucune couture. La barre de recherche de la page vient FLOTTER dessus
+ * (marge négative) : le bloc réserve l'espace en bas (pb) et arrondit ses
+ * angles sous elle. Décor selon le MODÈLE choisi (blobs/vagues/halo/motifs).
  */
 export function HomeThemeHero({
   theme,
+  model,
   locale,
 }: {
   theme: AppThemeKey;
+  model: AppThemeModel;
   locale: string;
 }) {
   const t = APP_THEMES[theme];
@@ -35,32 +40,21 @@ export function HomeThemeHero({
   const Icon = ICONS[t.homeIcon];
   return (
     <div
-      className="relative overflow-hidden rounded-b-[28px] px-5 pt-4 pb-6 text-white lg:mx-6 lg:mt-3 lg:rounded-[24px]"
-      style={{ backgroundImage: themeGradient(t) }}
+      className="relative -mb-10 overflow-hidden rounded-b-[28px] pb-16 text-white"
+      style={{ backgroundImage: themeGradientVertical(t) }}
     >
-      <style>{`@keyframes hthFloat{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(10px,10px,0) scale(1.07)}}.hth-blob{animation:hthFloat 12s ease-in-out infinite alternate}.hth-blob-b{animation:hthFloat 9s ease-in-out infinite alternate-reverse}@media (prefers-reduced-motion:reduce){.hth-blob,.hth-blob-b{animation:none}}`}</style>
-      <div
-        aria-hidden
-        className="hth-blob absolute -top-10 -right-8 size-32 rounded-full opacity-60"
-        style={{ background: t.blobA }}
-      />
-      <div
-        aria-hidden
-        className="hth-blob-b absolute -bottom-12 left-1/4 size-28 rounded-full opacity-50"
-        style={{ background: t.blobB }}
-      />
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.16] mix-blend-overlay"
-        style={{ backgroundImage: `url("${THEME_GRAIN}")` }}
-      />
-      <div className="relative z-10 mx-auto flex max-w-[1400px] items-center gap-3">
-        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15">
-          <Icon className="size-5" />
+      <ThemeDecor model={model} a={t.blobA} b={t.blobB} />
+      <div className="relative z-10 mx-auto flex max-w-[1400px] items-center gap-3 px-4 pt-2.5 lg:px-6">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 shadow-inner shadow-white/10">
+          <Icon className="size-5 drop-shadow-sm" />
         </div>
         <div className="min-w-0">
-          <p className="text-base leading-tight font-bold">{t.home[lang]}</p>
-          <p className="mt-0.5 text-xs text-white/85">{t.homeSub[lang]}</p>
+          <p className="text-[17px] leading-tight font-bold drop-shadow-sm">
+            {t.home[lang]}
+          </p>
+          <p className="mt-0.5 text-xs leading-snug text-white/85">
+            {t.homeSub[lang]}
+          </p>
         </div>
       </div>
     </div>

@@ -2,8 +2,11 @@ import { unstable_cache } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import {
   APP_THEMES,
+  APP_THEME_MODELS,
+  DEFAULT_APP_MODEL,
   DEFAULT_APP_THEME,
   type AppThemeKey,
+  type AppThemeModel,
 } from "@/lib/config/app-themes";
 
 // =============================================================================
@@ -17,6 +20,8 @@ import {
 
 export type AppThemeState = {
   theme: AppThemeKey;
+  /** Modèle de design des héros (mig 0416) : blobs/vagues/halo/motifs. */
+  model: AppThemeModel;
   /** Bandeau thémé sur l'accueil marketplace (false = accueil simple). */
   marketplaceHero: boolean;
 };
@@ -32,23 +37,35 @@ export const getAppTheme = unstable_cache(
             v: boolean
           ) => {
             maybeSingle: () => Promise<{
-              data: { theme: string; marketplace_hero: boolean } | null;
+              data: {
+                theme: string;
+                model: string | null;
+                marketplace_hero: boolean;
+              } | null;
             }>;
           };
         };
       };
       const { data } = await from("app_theme")
-        .select("theme, marketplace_hero")
+        .select("theme, model, marketplace_hero")
         .eq("id", true)
         .maybeSingle();
       const theme =
         data?.theme && data.theme in APP_THEMES
           ? (data.theme as AppThemeKey)
           : DEFAULT_APP_THEME;
-      return { theme, marketplaceHero: data?.marketplace_hero === true };
+      const model =
+        data?.model && data.model in APP_THEME_MODELS
+          ? (data.model as AppThemeModel)
+          : DEFAULT_APP_MODEL;
+      return { theme, model, marketplaceHero: data?.marketplace_hero === true };
     } catch {
       // Jamais bloquant : repli marque.
-      return { theme: DEFAULT_APP_THEME, marketplaceHero: false };
+      return {
+        theme: DEFAULT_APP_THEME,
+        model: DEFAULT_APP_MODEL,
+        marketplaceHero: false,
+      };
     }
   },
   ["app-theme"],

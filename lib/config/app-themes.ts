@@ -19,6 +19,33 @@ export type AppThemeKey =
 
 export const DEFAULT_APP_THEME: AppThemeKey = "coligo";
 
+/** MODÈLE de design des héros — indépendant des couleurs (mig 0416). */
+export type AppThemeModel = "blobs" | "vagues" | "halo" | "motifs";
+
+export const DEFAULT_APP_MODEL: AppThemeModel = "blobs";
+
+export const APP_THEME_MODELS: Record<
+  AppThemeModel,
+  { label: string; hint: string }
+> = {
+  blobs: {
+    label: "Formes organiques",
+    hint: "Cercles doux flottants + grain (défaut).",
+  },
+  vagues: {
+    label: "Vagues",
+    hint: "Vagues superposées qui dérivent en bas du bandeau.",
+  },
+  halo: {
+    label: "Halo",
+    hint: "Lueurs radiales douces, façon aurore.",
+  },
+  motifs: {
+    label: "Motifs",
+    hint: "Trame de points + touche de couleur.",
+  },
+};
+
 type Localized = { fr: string; ar: string; en: string };
 
 export type AppThemePreset = {
@@ -186,6 +213,14 @@ export const APP_THEMES: Record<AppThemeKey, AppThemePreset> = {
 /** Dégradé CSS d'un preset (héros, aperçus admin, bandeau accueil). */
 export function themeGradient(t: AppThemePreset): string {
   return `linear-gradient(140deg, ${t.g1} 0%, ${t.g2} 55%, ${t.g3} 100%)`;
+}
+
+/**
+ * Variante VERTICALE partant exactement de g1 : l'accueil marketplace peint le
+ * header en g1 uni et enchaîne ce dégradé dessous → aucune couture visible.
+ */
+export function themeGradientVertical(t: AppThemePreset): string {
+  return `linear-gradient(180deg, ${t.g1} 0%, ${t.g2} 78%, ${t.g3} 140%)`;
 }
 
 /** Texture grain inline (feTurbulence) — zéro requête réseau, CSP-safe. */

@@ -1,6 +1,7 @@
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getEffectiveFlags } from "@/lib/data/feature-flags";
+import { getAppTheme } from "@/lib/data/app-theme";
 import { getCustomerFraudGate } from "@/lib/fraud/gate";
 import { getMyAccountBlock } from "@/lib/data/account-status";
 import { AccountSuspendedNotice } from "@/components/customer/account-suspended-notice";
@@ -25,13 +26,16 @@ export default async function CustomerGroupLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const [user, customer, flags, fraudGate, accountBlock] = await Promise.all([
-    getAuthUser(),
-    getCurrentCustomerFull(),
-    getEffectiveFlags(),
-    getCustomerFraudGate(),
-    getMyAccountBlock(),
-  ]);
+  const [user, customer, flags, fraudGate, accountBlock, appTheme] =
+    await Promise.all([
+      getAuthUser(),
+      getCurrentCustomerFull(),
+      getEffectiveFlags(),
+      getCustomerFraudGate(),
+      getMyAccountBlock(),
+      // Thème « occasion » (mig 0415/0416) — lecture en cache, coût nul.
+      getAppTheme(),
+    ]);
 
   // Onglets retirés de la nav si la fonctionnalité est « masquée » (super-admin).
   const hiddenKeys: string[] = [];
@@ -47,6 +51,7 @@ export default async function CustomerGroupLayout({
         userEmail={user?.email ?? null}
         userId={user?.id ?? null}
         hiddenKeys={hiddenKeys}
+        homeTheme={appTheme.marketplaceHero ? { theme: appTheme.theme } : null}
       >
         {/* Dialogues designés (confirm/prompt) pour tout l'espace client —
             remplace window.confirm/prompt (ex. vider le panier). */}

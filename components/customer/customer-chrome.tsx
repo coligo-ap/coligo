@@ -41,6 +41,8 @@ type Props = {
   userEmail: string | null;
   userId: string | null;
   hiddenKeys: string[];
+  /** Thème « occasion » de l'accueil (mig 0415/0416) — null = header blanc. */
+  homeTheme?: React.ComponentProps<typeof CustomerHeader>["homeTheme"];
 };
 
 // Plein écran / auth : la page gère tout (souvent sa propre bottom-nav).
@@ -73,6 +75,7 @@ export function CustomerChrome({
   userEmail,
   userId,
   hiddenKeys,
+  homeTheme = null,
 }: Props) {
   const pathname = usePathname() || "/";
   const bare = isBare(pathname);
@@ -97,6 +100,7 @@ export function CustomerChrome({
           isAuth={isAuth}
           customerName={customerName}
           hiddenKeys={hiddenKeys}
+          homeTheme={homeTheme}
         />
       )}
 

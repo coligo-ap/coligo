@@ -1,11 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
 import { WILAYAS } from "@/lib/config/wilayas";
+import { APP_THEMES, type AppThemeKey } from "@/lib/config/app-themes";
+import { cn } from "@/lib/utils";
 import {
   LOCATION_PICKER_OPEN_EVENT,
   useCustomerLocation,
@@ -22,14 +25,26 @@ type Props = {
   customerName?: string | null;
   /** Onglets masqués par le super-admin (drive/pay) — repris dans le drawer. */
   hiddenKeys?: string[];
+  /**
+   * Thème « occasion » de l'accueil (mig 0415/0416, activé par le super-admin).
+   * Appliqué UNIQUEMENT sur la route « / » : le header se peint en g1 uni et
+   * forme un seul bloc avec le héro dégradé de la home. Ailleurs : blanc.
+   */
+  homeTheme?: { theme: AppThemeKey } | null;
 };
 
 export function CustomerHeader({
   isAuth,
   customerName,
   hiddenKeys = [],
+  homeTheme = null,
 }: Props) {
   const t = useTranslations("header");
+  const pathname = usePathname();
+  // Coque PERSISTANTE : le même header sert toutes les routes client — le
+  // thème ne s'applique que sur l'accueil.
+  const themed = !!homeTheme && pathname === "/";
+  const tp = themed ? APP_THEMES[homeTheme.theme] : null;
   const loc = useCustomerLocation();
   const cart = useCart();
   const cartCount = totalUnits(cart);
@@ -56,7 +71,13 @@ export function CustomerHeader({
 
   return (
     <>
-      <header className="border-border sticky top-0 z-30 border-b bg-white pt-[env(safe-area-inset-top)]">
+      <header
+        className={cn(
+          "sticky top-0 z-30 pt-[env(safe-area-inset-top)]",
+          themed ? "text-white" : "border-border border-b bg-white"
+        )}
+        style={tp ? { backgroundColor: tp.g1 } : undefined}
+      >
         {/* Desktop */}
         <div className="mx-auto hidden h-16 max-w-[1400px] items-center gap-4 px-6 lg:flex">
           {/* Drawer de navigation (desktop : remplace la bottom-nav absente). */}
@@ -69,20 +90,38 @@ export function CustomerHeader({
           <button
             type="button"
             onClick={() => setPickerOpen(true)}
-            className="hover:bg-surface-2 border-border inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm"
+            className={cn(
+              "inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm",
+              themed
+                ? "border-white/25 hover:bg-white/10"
+                : "hover:bg-surface-2 border-border"
+            )}
           >
-            <MapPin className="text-primary-600 size-4" />
+            <MapPin
+              className={cn(
+                "size-4",
+                themed ? "text-white" : "text-primary-600"
+              )}
+            />
             <span className="max-w-[220px] truncate font-medium">
               {exactAddress ?? (
                 <>
                   {wilayaLabel}
                   {loc?.commune && (
-                    <span className="text-muted"> · {loc.commune}</span>
+                    <span className={themed ? "text-white/70" : "text-muted"}>
+                      {" "}
+                      · {loc.commune}
+                    </span>
                   )}
                 </>
               )}
             </span>
-            <ChevronDown className="text-muted size-3.5" />
+            <ChevronDown
+              className={cn(
+                "size-3.5",
+                themed ? "text-white/70" : "text-muted"
+              )}
+            />
           </button>
 
           {/* Espace flexible — la barre de recherche est désormais sur la
@@ -91,25 +130,42 @@ export function CustomerHeader({
 
           <Link
             href="/login"
-            className="text-muted hover:text-foreground text-sm font-medium"
+            className={cn(
+              "text-sm font-medium",
+              themed
+                ? "text-white/85 hover:text-white"
+                : "text-muted hover:text-foreground"
+            )}
           >
             {t("becomeMerchant")}
           </Link>
 
-          <LanguageSwitcher />
-          <ThemeSwitcher />
+          {/* Sur fond thémé, les déclencheurs internes (text-muted) passent en
+              blanc — override ciblé, les MENUS (portals) restent normaux. */}
+          <span className={themed ? "[&_button]:!text-white" : undefined}>
+            <LanguageSwitcher />
+          </span>
+          <span className={themed ? "[&_button]:!text-white" : undefined}>
+            <ThemeSwitcher />
+          </span>
 
           {isAuth && (
             <NotificationBell
               source={{ table: "user_notifications", audience: "customer" }}
-              className="hover:bg-surface-2 rounded-full p-2"
+              className={cn(
+                "rounded-full p-2",
+                themed ? "text-white hover:bg-white/10" : "hover:bg-surface-2"
+              )}
               iconClassName="size-5"
             />
           )}
 
           <Link
             href="/cart"
-            className="hover:bg-surface-2 relative rounded-full p-2"
+            className={cn(
+              "relative rounded-full p-2",
+              themed ? "hover:bg-white/10" : "hover:bg-surface-2"
+            )}
             aria-label={t("cart")}
           >
             <ShoppingCart className="size-5" />
@@ -132,7 +188,12 @@ export function CustomerHeader({
           ) : (
             <Link
               href="/se-connecter"
-              className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium text-white"
+              className={cn(
+                "inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium",
+                themed
+                  ? "bg-white text-neutral-900 hover:bg-white/90"
+                  : "bg-primary-600 hover:bg-primary-700 text-white"
+              )}
             >
               <User className="size-4" />
               {t("signIn")}
@@ -148,33 +209,60 @@ export function CustomerHeader({
               onClick={() => setPickerOpen(true)}
               className="flex min-w-0 flex-1 items-center gap-2 text-start"
             >
-              <MapPin className="text-primary-600 size-4 shrink-0" />
+              <MapPin
+                className={cn(
+                  "size-4 shrink-0",
+                  themed ? "text-white" : "text-primary-600"
+                )}
+              />
               <span className="min-w-0 truncate text-sm font-medium">
                 {exactAddress ?? (
                   <>
                     {wilayaLabel}
                     {loc?.commune && (
-                      <span className="text-muted"> · {loc.commune}</span>
+                      <span className={themed ? "text-white/70" : "text-muted"}>
+                        {" "}
+                        · {loc.commune}
+                      </span>
                     )}
                   </>
                 )}
               </span>
-              <ChevronDown className="text-muted size-3.5 shrink-0" />
+              <ChevronDown
+                className={cn(
+                  "size-3.5 shrink-0",
+                  themed ? "text-white/70" : "text-muted"
+                )}
+              />
             </button>
             <div className="flex shrink-0 items-center gap-2">
-              <LanguageSwitcher compact />
-              <ThemeSwitcher />
+              <span className={themed ? "[&_button]:!text-white" : undefined}>
+                <LanguageSwitcher compact />
+              </span>
+              <span className={themed ? "[&_button]:!text-white" : undefined}>
+                <ThemeSwitcher />
+              </span>
               {isAuth && (
                 <NotificationBell
                   source={{ table: "user_notifications", audience: "customer" }}
-                  className="bg-surface-2 text-foreground grid size-[38px] place-items-center rounded-full"
+                  className={cn(
+                    "grid size-[38px] place-items-center rounded-full",
+                    themed
+                      ? "bg-white/15 text-white"
+                      : "bg-surface-2 text-foreground"
+                  )}
                 />
               )}
               {isAuth ? (
                 <Link
                   href="/compte"
                   aria-label={t("myAccount")}
-                  className="bg-surface-2 text-primary-700 grid size-[38px] place-items-center rounded-full text-sm font-bold"
+                  className={cn(
+                    "grid size-[38px] place-items-center rounded-full text-sm font-bold",
+                    themed
+                      ? "bg-white/15 text-white"
+                      : "bg-surface-2 text-primary-700"
+                  )}
                 >
                   {(customerName ?? "C").charAt(0).toUpperCase()}
                 </Link>
@@ -182,7 +270,12 @@ export function CustomerHeader({
                 <Link
                   href="/se-connecter"
                   aria-label={t("signIn")}
-                  className="bg-surface-2 text-foreground grid size-[38px] place-items-center rounded-full"
+                  className={cn(
+                    "grid size-[38px] place-items-center rounded-full",
+                    themed
+                      ? "bg-white/15 text-white"
+                      : "bg-surface-2 text-foreground"
+                  )}
                 >
                   <User className="size-[18px]" />
                 </Link>
@@ -190,7 +283,12 @@ export function CustomerHeader({
               <Link
                 href="/cart"
                 aria-label={t("cart")}
-                className="bg-surface-2 text-foreground relative grid size-[38px] place-items-center rounded-full"
+                className={cn(
+                  "relative grid size-[38px] place-items-center rounded-full",
+                  themed
+                    ? "bg-white/15 text-white"
+                    : "bg-surface-2 text-foreground"
+                )}
               >
                 <ShoppingCart className="size-[18px]" />
                 {cartCount > 0 && (

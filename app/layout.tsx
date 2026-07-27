@@ -186,6 +186,7 @@ export default async function RootLayout({
       lang={locale}
       dir={dir}
       data-app={isNativeApp ? "native" : undefined}
+      data-theme-model={appTheme.model}
       style={appThemeCssVars(appTheme.theme) as React.CSSProperties}
       className={[
         fontDisplay.variable,

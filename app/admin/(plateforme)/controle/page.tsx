@@ -138,6 +138,7 @@ export default async function AdminControlePage() {
         </h2>
         <AppThemeCard
           current={appTheme.theme}
+          currentModel={appTheme.model}
           marketplaceHero={appTheme.marketplaceHero}
         />
       </section>

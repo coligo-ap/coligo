@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { THEME_GRAIN } from "@/lib/config/app-themes";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 
 /**
  * La carte de formulaire des écrans d'authentification, pour TOUS les portails.
@@ -25,16 +25,11 @@ import { THEME_GRAIN } from "@/lib/config/app-themes";
  */
 
 const AUTH_CARD_CSS = `
-@keyframes authBlobA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(10px,14px,0) scale(1.08)}}
-@keyframes authBlobB{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(-12px,-10px,0) scale(1.06)}}
 @keyframes authHeroIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 @keyframes authSheetIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
-.auth-blob-a{animation:authBlobA 11s ease-in-out infinite alternate}
-.auth-blob-b{animation:authBlobB 13s ease-in-out infinite alternate}
-.auth-blob-c{animation:authBlobA 9s ease-in-out infinite alternate-reverse}
 .auth-hero-in{animation:authHeroIn .4s ease-out}
 .auth-sheet-in{animation:authSheetIn .45s cubic-bezier(.22,.9,.36,1)}
-@media (prefers-reduced-motion:reduce){.auth-blob-a,.auth-blob-b,.auth-blob-c,.auth-hero-in,.auth-sheet-in{animation:none}}
+@media (prefers-reduced-motion:reduce){.auth-hero-in,.auth-sheet-in{animation:none}}
 `;
 
 export function AuthCard({
@@ -66,27 +61,9 @@ export function AuthCard({
               "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
           }}
         />
-        {/* Blobs du thème (défaut : violet clair + rose Coligo) + halo blanc. */}
-        <div
-          aria-hidden
-          className="auth-blob-a absolute -top-12 -left-10 size-44 rounded-full opacity-70"
-          style={{ background: "var(--auth-blob-a,#8A4DFF)" }}
-        />
-        <div
-          aria-hidden
-          className="auth-blob-b absolute -right-12 -bottom-20 size-52 rounded-full opacity-[0.55]"
-          style={{ background: "var(--auth-blob-b,#FF2D7A)" }}
-        />
-        <div
-          aria-hidden
-          className="auth-blob-c absolute top-5 right-1/4 size-14 rounded-full bg-white/15"
-        />
-        {/* Grain par-dessus les formes (texture « organic minimal »). */}
-        <div
-          aria-hidden
-          className="absolute inset-0 opacity-[0.16] mix-blend-overlay"
-          style={{ backgroundImage: `url("${THEME_GRAIN}")` }}
-        />
+        {/* Décor du MODÈLE choisi par le super-admin (blobs/vagues/halo/motifs,
+            switch CSS via data-theme-model sur <html>) + grain. */}
+        <ThemeDecor />
         <div className="auth-hero-in relative z-10">
           <h2 className="text-[22px] leading-tight font-bold drop-shadow-sm">
             {title}

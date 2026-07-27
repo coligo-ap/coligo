@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
 import { FEATURE_KEYS } from "@/lib/data/feature-flags";
-import { APP_THEMES } from "@/lib/config/app-themes";
+import { APP_THEMES, APP_THEME_MODELS } from "@/lib/config/app-themes";
 import { getCatalogTemplate } from "@/lib/config/catalog-templates";
 import {
   merchantRatesSchema,
@@ -81,10 +81,12 @@ export async function updateFeatureFlag(
  */
 export async function setAppTheme(
   theme: string,
+  model: string,
   marketplaceHero: boolean
 ): Promise<AdminFormState> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   if (!(theme in APP_THEMES)) return { error: "Thème inconnu." };
+  if (!(model in APP_THEME_MODELS)) return { error: "Modèle inconnu." };
 
   const supabase = await createClient();
   const {
@@ -103,6 +105,7 @@ export async function setAppTheme(
     {
       id: true,
       theme,
+      model,
       marketplace_hero: marketplaceHero,
       updated_at: new Date().toISOString(),
       updated_by: user?.email ?? null,
@@ -117,7 +120,7 @@ export async function setAppTheme(
     action: "set_app_theme",
     target_kind: "app_theme",
     target_id: null,
-    note: `theme=${theme} · marketplace_hero=${marketplaceHero}`,
+    note: `theme=${theme} · model=${model} · marketplace_hero=${marketplaceHero}`,
   });
 
   revalidateTag("app-theme");

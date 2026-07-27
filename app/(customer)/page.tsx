@@ -150,16 +150,23 @@ export default async function CustomerHomePage() {
       <LocationAutoDetect />
 
       <div className="bg-surface min-h-screen">
-        {/* Bandeau thémé « occasion » — UNIQUEMENT si activé par le super-admin
-            (désactivé = accueil simple actuel, rien n'est rendu). */}
+        {/* Héro thémé « occasion » INTÉGRÉ (header peint en g1 par la coque +
+            dégradé ici + recherche flottante) — UNIQUEMENT si activé par le
+            super-admin (désactivé = accueil simple actuel, rien n'est rendu). */}
         {appTheme.marketplaceHero && (
-          <HomeThemeHero theme={appTheme.theme} locale={locale} />
+          <HomeThemeHero
+            theme={appTheme.theme}
+            model={appTheme.model}
+            locale={locale}
+          />
         )}
         <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
           {/* Recherche pleine largeur (sticky sous le header) + scan
-              code-barres (flag barcode_marketplace, piloté /admin/controle). */}
+              code-barres (flag barcode_marketplace, piloté /admin/controle).
+              Accueil thémé : pilule blanche FLOTTANTE sur le dégradé du héro. */}
           <MarketplaceSearchBar
             scanEnabled={flags.barcode_marketplace.status === "active"}
+            floating={appTheme.marketplaceHero}
           />
 
           {/* Catégories rondes (mécanique Uber Eats). */}
