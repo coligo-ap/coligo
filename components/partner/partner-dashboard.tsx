@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Badge } from "@/components/ui/badge";
 import { formatDA } from "@/lib/utils";
 import { BadgeCheck } from "lucide-react";
@@ -343,15 +344,15 @@ function PinSetup({ onDone }: { onDone: () => void }) {
         de vendre.
       </p>
       <div className="flex gap-2">
-        <Input
+        <PasswordInput
           value={pin}
           onChange={(e) =>
             setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
           }
           inputMode="numeric"
-          type="password"
           placeholder="••••"
-          className="bg-surface max-w-[140px] text-center text-lg tracking-[0.4em]"
+          containerClassName="w-[170px] shrink-0"
+          className="bg-surface text-center text-lg tracking-[0.4em]"
         />
         <Button
           disabled={busy || pin.length !== 4}
@@ -535,15 +536,15 @@ function SellCredit({
                 <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
                   3 · Confirmez avec votre PIN
                 </p>
-                <Input
+                <PasswordInput
                   value={pin}
                   onChange={(e) =>
                     setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
                   }
                   inputMode="numeric"
-                  type="password"
                   placeholder="••••"
-                  className="max-w-[140px] text-center text-lg tracking-[0.4em]"
+                  containerClassName="max-w-[170px]"
+                  className="text-center text-lg tracking-[0.4em]"
                 />
               </div>
 

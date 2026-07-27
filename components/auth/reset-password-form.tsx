@@ -3,7 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Loader2 } from "lucide-react";
-import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
@@ -103,10 +103,10 @@ export function ResetPasswordForm() {
     <form action={formAction} className="space-y-4">
       <div className="space-y-1.5">
         <Label htmlFor="password">Nouveau mot de passe</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
+          autoComplete="new-password"
           minLength={8}
           required
           disabled={pending}
@@ -115,10 +115,10 @@ export function ResetPasswordForm() {
       </div>
       <div className="space-y-1.5">
         <Label htmlFor="confirm">Confirmer</Label>
-        <Input
+        <PasswordInput
           id="confirm"
           name="confirm"
-          type="password"
+          autoComplete="new-password"
           minLength={8}
           required
           disabled={pending}

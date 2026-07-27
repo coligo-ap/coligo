@@ -38,10 +38,12 @@ export function AuthModeTabs({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const login = loginLabel ?? tr("J'ai déjà un compte", "لديّ حساب بالفعل");
   const signup = signupLabel ?? tr("Je crée mon compte", "أنشئ حسابي");
-  // `min-h-[44px]` : cible tactile minimale au doigt. Le `py-2` seul donnait
-  // 39 px — assez pour l'œil, pas pour le pouce.
+  // `min-h-[44px]` : cible tactile minimale au doigt (garde-fou mesuré au
+  // navigateur — ne pas descendre). `whitespace-nowrap` + text-xs : le libellé
+  // tient sur UNE ligne → l'onglet reste à 44 px au lieu de gonfler à deux
+  // lignes (gain vertical sur tous les portails).
   const base =
-    "flex min-h-[44px] flex-1 items-center justify-center rounded-[10px] px-3 py-2 text-center text-[13.5px] font-semibold transition";
+    "flex min-h-[44px] flex-1 items-center justify-center rounded-[10px] px-2 py-1 text-center text-xs whitespace-nowrap font-semibold transition";
   const active = "bg-white text-foreground shadow-sm";
   const idle = "text-muted hover:text-foreground";
 
@@ -51,7 +53,7 @@ export function AuthModeTabs({
         "Connexion ou création de compte",
         "تسجيل الدخول أو إنشاء حساب"
       )}
-      className="bg-surface-2 border-border mb-3 flex gap-1 rounded-[12px] border p-1"
+      className="bg-surface-2 border-border mb-2.5 flex gap-1 rounded-[12px] border p-1"
     >
       <Link
         href={loginHref}

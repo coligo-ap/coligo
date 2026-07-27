@@ -5,6 +5,7 @@ import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { login, type AuthState } from "@/app/(merchant)/actions";
 import { Mail, Lock, ArrowRight } from "lucide-react";
@@ -110,11 +111,10 @@ function LoginContent() {
             </Link>
           </div>
           <div className="relative">
-            <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
+            <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
+            <PasswordInput
               id="password"
               name="password"
-              type="password"
               autoComplete="current-password"
               placeholder="••••••••"
               required

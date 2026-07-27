@@ -7,6 +7,7 @@ import { useLocale } from "next-intl";
 import { Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneField } from "@/components/ui/phone-field";
 import {
   StepWizardHeader,
@@ -210,10 +211,9 @@ export function DriverSignupForm() {
 
         <div className="space-y-1.5">
           <Label htmlFor="password">{tr("Mot de passe", "كلمة المرور")}</Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             autoComplete="new-password"
             minLength={6}
             value={password}

@@ -11,6 +11,7 @@ import {
 } from "@/components/shared/step-wizard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneField } from "@/components/ui/phone-field";
 import {
   signup,
@@ -396,11 +397,10 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
               Mot de passe <span className="text-rose-600">*</span>
             </Label>
             <div className="relative">
-              <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-              <Input
+              <Lock className="text-subtle pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2" />
+              <PasswordInput
                 id="password"
                 name="password"
-                type="password"
                 autoComplete="new-password"
                 placeholder="Au moins 8 caractères"
                 minLength={8}

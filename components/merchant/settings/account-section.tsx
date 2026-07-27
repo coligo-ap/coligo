@@ -6,6 +6,7 @@ import { useFormStatus } from "react-dom";
 import { useRouter } from "next/navigation";
 import { ArrowRight, Check, KeyRound, Loader2, LogOut } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
@@ -72,8 +73,7 @@ export function AccountSection({
         <div className="grid gap-3 sm:grid-cols-2">
           <div className="space-y-1.5">
             <Label>Nouveau mot de passe</Label>
-            <Input
-              type="password"
+            <PasswordInput
               name="password"
               autoComplete="new-password"
               required
@@ -83,8 +83,7 @@ export function AccountSection({
           </div>
           <div className="space-y-1.5">
             <Label>Confirmation</Label>
-            <Input
-              type="password"
+            <PasswordInput
               name="confirm"
               autoComplete="new-password"
               required

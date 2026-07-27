@@ -4,6 +4,7 @@ import { Suspense, useActionState } from "react";
 import { useSearchParams } from "next/navigation";
 import { ShieldCheck, Mail, Lock, ArrowRight, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { PasswordInput } from "@/components/ui/password-input";
 import { Label } from "@/components/ui/label";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { adminLogin, type PortalState } from "./actions";
@@ -72,11 +73,10 @@ function PortailContent() {
                 Mot de passe
               </Label>
               <div className="relative">
-                <Lock className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-slate-500" />
-                <Input
+                <Lock className="pointer-events-none absolute top-1/2 left-3 z-10 size-4 -translate-y-1/2 text-slate-500" />
+                <PasswordInput
                   id="password"
                   name="password"
-                  type="password"
                   autoComplete="current-password"
                   placeholder="••••••••"
                   required

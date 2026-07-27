@@ -4,8 +4,8 @@ import { useActionState } from "react";
 import { useLocale } from "next-intl";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneField } from "@/components/ui/phone-field";
 import {
   chauffeurLogin,
@@ -29,10 +29,9 @@ export function ChauffeurLoginForm() {
 
       <div className="space-y-1.5">
         <Label htmlFor="password">{tr("Mot de passe", "كلمة المرور")}</Label>
-        <Input
+        <PasswordInput
           id="password"
           name="password"
-          type="password"
           autoComplete="current-password"
           required
           disabled={pending}

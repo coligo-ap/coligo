@@ -5,6 +5,7 @@ import Link from "next/link";
 import { ArrowRight, FileText, Store, UserRound } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneField } from "@/components/ui/phone-field";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 import {
@@ -223,10 +224,9 @@ export function PartnerSignupForm() {
           <Label htmlFor="password">
             Mot de passe <span className="text-rose-600">*</span>
           </Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             autoComplete="new-password"
             minLength={6}
             placeholder="Au moins 6 caractères"

@@ -7,6 +7,7 @@ import { ArrowRight, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneField } from "@/components/ui/phone-field";
 import {
   StepWizardHeader,
@@ -300,10 +301,9 @@ export function ChauffeurSignupForm({
             {tr("Mot de passe", "كلمة المرور")}{" "}
             <span className="text-rose-600">*</span>
           </Label>
-          <Input
+          <PasswordInput
             id="password"
             name="password"
-            type="password"
             autoComplete="new-password"
             minLength={6}
             value={password}
