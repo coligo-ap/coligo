@@ -142,13 +142,13 @@ export function CustomerHeader({
 
           {/* Sur fond thémé, les déclencheurs internes (text-muted) passent en
               blanc — override ciblé, les MENUS (portals) restent normaux. */}
-          <span className={themed ? "[&_button]:!text-white" : undefined}>
+          <span className={themed ? "[&_button]:text-white" : undefined}>
             <LanguageSwitcher />
           </span>
           <span
             className={
               themed
-                ? "[&_button]:!border-white/25 [&_button]:!bg-white/15 [&_button]:!text-white"
+                ? "[&_button]:border-white/25 [&_button]:bg-white/15 [&_button]:text-white"
                 : undefined
             }
           >
@@ -242,7 +242,7 @@ export function CustomerHeader({
               />
             </button>
             <div className="flex shrink-0 items-center gap-2">
-              <span className={themed ? "[&_button]:!text-white" : undefined}>
+              <span className={themed ? "[&_button]:text-white" : undefined}>
                 <LanguageSwitcher compact />
               </span>
               <span className={themed ? "[&_button]:!text-white" : undefined}>
