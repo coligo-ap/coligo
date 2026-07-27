@@ -1,5 +1,8 @@
 import { redirect } from "next/navigation";
+import { getLocale } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { FeatureBlockedBanner } from "@/components/shared/feature-blocked-banner";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { requireActiveDriver } from "@/lib/auth/driver-gate";
 import { DriverDashboardLive } from "@/components/driver/driver-dashboard-live";
@@ -137,6 +140,16 @@ export default async function DriverHomePage() {
     0
   );
 
+  // Livraison suspendue par l'équipe Coligo ? (express prime — cœur du métier ;
+  // sinon tournées si le livreur en fait). Lectures mémoïsées, coût nul.
+  const [flags, locale] = await Promise.all([getFeatureFlags(), getLocale()]);
+  const deliveryOffFlag =
+    flags.express.status !== "active"
+      ? flags.express
+      : showToursEntry && flags.tour.status !== "active"
+        ? flags.tour
+        : null;
+
   return (
     // Pas de conteneur plein écran : la carte (persistante, montée dans le
     // layout) occupe le fond, et les contrôles flottent en îlots positionnés
@@ -144,6 +157,22 @@ export default async function DriverHomePage() {
     <>
       {/* Refresh temps réel des compteurs + toast nouvelle course. */}
       <DriverDashboardLive />
+
+      {/* Livraisons suspendues par l'équipe Coligo (mig 0182) → le livreur le
+          VOIT (overlay sur la carte) au lieu d'un accueil sans offres
+          inexplicable. Le dispatch serveur refuse déjà tout. */}
+      {deliveryOffFlag && (
+        <FeatureBlockedBanner
+          flag={deliveryOffFlag}
+          locale={locale}
+          variant="overlay"
+          fallbackMessage={
+            locale === "ar"
+              ? "علّق فريق كوليڨو التوصيلات الجديدة مؤقتًا. أرباحك وسجلّك يبقيان متاحين."
+              : "L'équipe Coligo a suspendu temporairement les nouvelles livraisons. Vos gains et votre historique restent accessibles."
+          }
+        />
+      )}
 
       {/* Demandes de course (express + tournée) en liste dépliable façon
           UberEats — apparaissent instantanément sur l'accueil. */}

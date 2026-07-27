@@ -2,6 +2,7 @@ import { Suspense } from "react";
 import { DNav } from "@/components/chauffeur/d-ui";
 import { ChauffeurGateGuard } from "@/components/chauffeur/gate-guard";
 import { ChauffeurContentDim } from "@/components/chauffeur/chauffeur-content-dim";
+import { ChauffeurFeatureNotice } from "@/components/chauffeur/feature-notice";
 import { HomeSkeleton } from "@/components/chauffeur/d-skeleton";
 import { PushRegistrar } from "@/components/native/push-registrar";
 import { AnnouncementHost } from "@/components/shared/announcement-host";
@@ -29,6 +30,9 @@ export default function ChauffeurAppLayout({
   return (
     <>
       <Suspense fallback={<HomeSkeleton />}>
+        {/* Drive suspendu par l'équipe Coligo → le chauffeur le VOIT (overlay),
+            au lieu d'un écran sans offres inexplicable. */}
+        <ChauffeurFeatureNotice />
         <ChauffeurContentDim>
           <ChauffeurGateGuard>{children}</ChauffeurGateGuard>
         </ChauffeurContentDim>

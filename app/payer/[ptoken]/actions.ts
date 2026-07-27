@@ -2,6 +2,7 @@
 
 import { createHash, randomUUID } from "crypto";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { sharedCarts } from "@/lib/shared-cart/db";
 import {
   createCheckout as createChargilyCheckout,
@@ -100,6 +101,19 @@ export async function startGuestIntlPayment(
   ptoken: string
 ): Promise<StartGuestIntlResult> {
   try {
+    // Kill-switch super-admin (feature_flags `intl_card`) : garde SERVEUR —
+    // le sélecteur grisé côté front ne suffit pas, un appel direct doit être
+    // refusé ici aussi.
+    const flags = await getFeatureFlags();
+    if (flags.intl_card.status !== "active") {
+      return {
+        ok: false,
+        reason: "ineligible",
+        message:
+          "Le paiement par carte internationale est momentanément désactivé.",
+      };
+    }
+
     const admin = createAdminClient();
     const { data: cart } = await sharedCarts(admin)
       .select("id, order_id")
