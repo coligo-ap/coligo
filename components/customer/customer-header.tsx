@@ -145,7 +145,13 @@ export function CustomerHeader({
           <span className={themed ? "[&_button]:!text-white" : undefined}>
             <LanguageSwitcher />
           </span>
-          <span className={themed ? "[&_button]:!text-white" : undefined}>
+          <span
+            className={
+              themed
+                ? "[&_button]:!border-white/25 [&_button]:!bg-white/15 [&_button]:!text-white"
+                : undefined
+            }
+          >
             <ThemeSwitcher />
           </span>
 
