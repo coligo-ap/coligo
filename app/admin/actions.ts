@@ -111,12 +111,13 @@ export async function setAppTheme(
   );
   if (error) return { error: error.message };
 
+  // target_id est un uuid en base → la clé du thème va dans note.
   await supabase.from("admin_audit_log").insert({
     admin_email: user?.email ?? null,
     action: "set_app_theme",
     target_kind: "app_theme",
-    target_id: theme,
-    note: `marketplace_hero=${marketplaceHero}`,
+    target_id: null,
+    note: `theme=${theme} · marketplace_hero=${marketplaceHero}`,
   });
 
   revalidateTag("app-theme");
