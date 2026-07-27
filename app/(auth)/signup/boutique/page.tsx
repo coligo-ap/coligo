@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { AuthScreen } from "@/components/shared/auth-screen";
-import { CompleteShopForm } from "@/components/merchant/complete-shop-form";
+import { ShopSignupWizard } from "@/components/merchant/shop-signup-wizard";
 
 export const dynamic = "force-dynamic";
 
@@ -50,9 +50,11 @@ export default async function CompleteShopPage() {
         imageUrl: HERO_IMG,
       }}
       cardTitle="Votre boutique"
-      cardSubtitle="30 secondes, et vous recevez vos commandes."
+      cardSubtitle="Une question à la fois, en 1 minute."
     >
-      <CompleteShopForm />
+      {/* Complétion étape par étape (style Bolt Food) — mêmes champs et même
+          action serveur (`completeSocialSignup`), sans email/mot de passe. */}
+      <ShopSignupWizard mode="google" />
     </AuthScreen>
   );
 }
