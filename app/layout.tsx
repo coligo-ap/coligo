@@ -6,6 +6,7 @@ import { getLocale } from "next-intl/server";
 import { dirFor, type Locale } from "@/i18n/locale";
 import { THEME_COOKIE } from "@/lib/theme/theme";
 import { NATIVE_COOKIE } from "@/lib/config/native";
+import { getAppTheme, appThemeCssVars } from "@/lib/data/app-theme";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { Toaster } from "@/components/ui/toast";
@@ -168,6 +169,10 @@ export default async function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   const locale = (await getLocale()) as Locale;
   const dir = dirFor(locale);
+  // Thème d'apparence « occasion » (mig 0415, piloté /admin/controle) : posé en
+  // variables CSS sur <html> — lecture MISE EN CACHE (tag "app-theme"), donc
+  // pas d'aller-retour DB par requête. Consommé par les héros d'auth.
+  const appTheme = await getAppTheme();
   // Thème : clair par défaut, sombre uniquement si choisi dans le header
   // (cookie) — on n'impose plus le réglage système de l'appareil.
   const cookieStore = await cookies();
@@ -181,6 +186,7 @@ export default async function RootLayout({
       lang={locale}
       dir={dir}
       data-app={isNativeApp ? "native" : undefined}
+      style={appThemeCssVars(appTheme.theme) as React.CSSProperties}
       className={[
         fontDisplay.variable,
         fontBody.variable,

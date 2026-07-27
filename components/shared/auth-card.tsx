@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
+import { THEME_GRAIN } from "@/lib/config/app-themes";
 
 /**
  * La carte de formulaire des écrans d'authentification, pour TOUS les portails.
@@ -22,10 +23,6 @@ import { LanguageSwitcher } from "@/components/i18n/language-switcher";
  * défilement sur un mobile standard (390 × 844) et aucune cible tactile ne
  * descend sous 44 px (onglets et champs imposent leur hauteur).
  */
-
-/** Texture grain inline (feTurbulence) — zéro requête réseau, CSP-safe. */
-const GRAIN =
-  "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E";
 
 const AUTH_CARD_CSS = `
 @keyframes authBlobA{from{transform:translate3d(0,0,0) scale(1)}to{transform:translate3d(10px,14px,0) scale(1.08)}}
@@ -57,20 +54,28 @@ export function AuthCard({
     <main className="bg-surface-2 flex flex-col lg:col-span-3 lg:items-center lg:justify-center lg:bg-white lg:p-10">
       <style>{AUTH_CARD_CSS}</style>
 
-      {/* HÉRO MOBILE — violet marque, blobs organiques + grain, titre centré. */}
+      {/* HÉRO MOBILE — thème « occasion » piloté par le super-admin : variables
+          CSS posées sur <html> par le layout racine (mig 0415), repli violet
+          marque. Blobs organiques + grain, titre centré. */}
       <div className="relative overflow-hidden px-6 pt-6 pb-14 text-center text-white lg:hidden">
         <div
           aria-hidden
-          className="from-primary-600 via-primary-700 to-primary-800 absolute inset-0 bg-gradient-to-br"
+          className="absolute inset-0"
+          style={{
+            backgroundImage:
+              "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+          }}
         />
-        {/* Blobs marque : violet clair + rose Coligo + halo blanc. */}
+        {/* Blobs du thème (défaut : violet clair + rose Coligo) + halo blanc. */}
         <div
           aria-hidden
-          className="auth-blob-a absolute -top-12 -left-10 size-44 rounded-full bg-[#8A4DFF]/70"
+          className="auth-blob-a absolute -top-12 -left-10 size-44 rounded-full opacity-70"
+          style={{ background: "var(--auth-blob-a,#8A4DFF)" }}
         />
         <div
           aria-hidden
-          className="auth-blob-b absolute -right-12 -bottom-20 size-52 rounded-full bg-[#FF2D7A]/55"
+          className="auth-blob-b absolute -right-12 -bottom-20 size-52 rounded-full opacity-[0.55]"
+          style={{ background: "var(--auth-blob-b,#FF2D7A)" }}
         />
         <div
           aria-hidden
@@ -80,7 +85,7 @@ export function AuthCard({
         <div
           aria-hidden
           className="absolute inset-0 opacity-[0.16] mix-blend-overlay"
-          style={{ backgroundImage: `url("${GRAIN}")` }}
+          style={{ backgroundImage: `url("${THEME_GRAIN}")` }}
         />
         <div className="auth-hero-in relative z-10">
           <h2 className="text-[22px] leading-tight font-bold drop-shadow-sm">

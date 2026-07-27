@@ -19,8 +19,10 @@ import {
   rankMerchants,
   splitOpenFirst,
 } from "@/lib/data/merchant-ranking";
+import { getLocale } from "next-intl/server";
 import { getAuthUser } from "@/lib/auth/session";
 import { getEffectiveFlags } from "@/lib/data/feature-flags";
+import { getAppTheme } from "@/lib/data/app-theme";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
@@ -31,6 +33,7 @@ import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-b
 import { MarketplaceSection } from "@/components/customer/marketplace-section";
 import { PromoBanner } from "@/components/customer/promo-banner";
 import { ReviewPrompt } from "@/components/customer/review-prompt";
+import { HomeThemeHero } from "@/components/customer/home-theme-hero";
 
 export const dynamic = "force-dynamic";
 
@@ -60,10 +63,14 @@ export default async function CustomerHomePage() {
   // requête par proximité dès le montage avec la position du localStorage.)
   // Session + profil mémoïsés (partagés avec CustomerShell → pas de double auth).
   // Flags mémoïsés aussi (React cache — déjà lus par le layout).
-  const [authUser, customer, flags] = await Promise.all([
+  const [authUser, customer, flags, appTheme, locale] = await Promise.all([
     getAuthUser(),
     getCurrentCustomerFull(),
     getEffectiveFlags(),
+    // Bandeau « occasion » optionnel (mig 0415, piloté /admin/controle) —
+    // lecture en cache (tag app-theme), coût nul en pratique.
+    getAppTheme(),
+    getLocale(),
   ]);
   const isAuth = !!authUser;
   const customerCoords: {
@@ -143,6 +150,11 @@ export default async function CustomerHomePage() {
       <LocationAutoDetect />
 
       <div className="bg-surface min-h-screen">
+        {/* Bandeau thémé « occasion » — UNIQUEMENT si activé par le super-admin
+            (désactivé = accueil simple actuel, rien n'est rendu). */}
+        {appTheme.marketplaceHero && (
+          <HomeThemeHero theme={appTheme.theme} locale={locale} />
+        )}
         <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
           {/* Recherche pleine largeur (sticky sous le header) + scan
               code-barres (flag barcode_marketplace, piloté /admin/controle). */}

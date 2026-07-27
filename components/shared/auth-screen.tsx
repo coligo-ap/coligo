@@ -84,10 +84,15 @@ export function AuthScreen({
         <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
           {/* PANNEAU MARKETING GAUCHE (DESKTOP) — photo + dégradé noir + texte blanc */}
           <aside className="relative hidden flex-col justify-between overflow-hidden p-12 text-white lg:col-span-2 lg:flex">
-            {/* Dégradé de repli (si la photo ne charge pas / hero sans photo) */}
+            {/* Dégradé de repli (si la photo ne charge pas / hero sans photo) —
+                suit le thème « occasion » (vars posées sur <html>, mig 0415). */}
             <div
               aria-hidden
-              className="from-primary-500 via-primary-600 to-primary-800 absolute inset-0 bg-gradient-to-br"
+              className="absolute inset-0"
+              style={{
+                backgroundImage:
+                  "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+              }}
             />
             {hero.imageUrl && (
               <>

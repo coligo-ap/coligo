@@ -7,6 +7,8 @@ import { DispatchRadiiForm } from "@/components/admin/dispatch-radii-form";
 import { ChargilyModeCard } from "@/components/admin/chargily-mode-card";
 import { StripeModeCard } from "@/components/admin/stripe-mode-card";
 import { ColigoPayP2pCard } from "@/components/admin/coligo-pay-p2p-card";
+import { AppThemeCard } from "@/components/admin/app-theme-card";
+import { getAppTheme } from "@/lib/data/app-theme";
 
 export const dynamic = "force-dynamic";
 
@@ -106,7 +108,7 @@ export default async function AdminControlePage() {
       };
     };
   };
-  const [flags, { data: settings }] = await Promise.all([
+  const [flags, { data: settings }, appTheme] = await Promise.all([
     getFeatureFlags(),
     from("platform_settings")
       .select(
@@ -114,6 +116,7 @@ export default async function AdminControlePage() {
       )
       .eq("id", true)
       .maybeSingle(),
+    getAppTheme(),
   ]);
 
   return (
@@ -128,6 +131,16 @@ export default async function AdminControlePage() {
           base, jamais contournable).
         </p>
       </header>
+
+      <section className="mb-8">
+        <h2 className="text-foreground mb-3 text-sm font-semibold tracking-tight">
+          Apparence — thème des occasions
+        </h2>
+        <AppThemeCard
+          current={appTheme.theme}
+          marketplaceHero={appTheme.marketplaceHero}
+        />
+      </section>
 
       <section className="mb-8">
         <h2 className="text-foreground mb-3 text-sm font-semibold tracking-tight">

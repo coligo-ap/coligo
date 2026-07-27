@@ -1,11 +1,12 @@
 "use server";
 
-import { revalidatePath } from "next/cache";
+import { revalidatePath, revalidateTag } from "next/cache";
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
 import { FEATURE_KEYS } from "@/lib/data/feature-flags";
+import { APP_THEMES } from "@/lib/config/app-themes";
 import { getCatalogTemplate } from "@/lib/config/catalog-templates";
 import {
   merchantRatesSchema,
@@ -69,6 +70,56 @@ export async function updateFeatureFlag(
 
   if (error) return { error: `Échec : ${error.message}` };
   revalidatePath("/admin/controle");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+/**
+ * Thème d'apparence « occasion » (mig 0415) : héros des portails d'auth +
+ * bandeau optionnel de l'accueil marketplace. Appliqué immédiatement partout
+ * (revalidateTag "app-theme" → le layout racine re-lit les variables CSS).
+ */
+export async function setAppTheme(
+  theme: string,
+  marketplaceHero: boolean
+): Promise<AdminFormState> {
+  if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
+  if (!(theme in APP_THEMES)) return { error: "Thème inconnu." };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  // Table verrouillée RLS en écriture → service_role, accès casté (hors types).
+  const admin = createAdminClient();
+  const from = admin.from.bind(admin) as unknown as (t: string) => {
+    upsert: (
+      v: Record<string, unknown>,
+      o: { onConflict: string }
+    ) => Promise<{ error: { message: string } | null }>;
+  };
+  const { error } = await from("app_theme").upsert(
+    {
+      id: true,
+      theme,
+      marketplace_hero: marketplaceHero,
+      updated_at: new Date().toISOString(),
+      updated_by: user?.email ?? null,
+    },
+    { onConflict: "id" }
+  );
+  if (error) return { error: error.message };
+
+  await supabase.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: "set_app_theme",
+    target_kind: "app_theme",
+    target_id: theme,
+    note: `marketplace_hero=${marketplaceHero}`,
+  });
+
+  revalidateTag("app-theme");
   revalidatePath("/", "layout");
   return { ok: true };
 }
