@@ -30,17 +30,24 @@ export function HomeThemeHero({
   theme,
   model,
   locale,
+  extended = false,
 }: {
   theme: AppThemeKey;
   model: AppThemeModel;
   locale: string;
+  /** mig 0417 : le dégradé englobe AUSSI la bande de catégories. */
+  extended?: boolean;
 }) {
   const t = APP_THEMES[theme];
   const lang = locale === "ar" ? "ar" : locale === "en" ? "en" : "fr";
   const Icon = ICONS[t.homeIcon];
   return (
     <div
-      className="relative -mb-[72px] overflow-hidden rounded-b-[28px] pb-[84px] text-white"
+      className={
+        extended
+          ? "relative -mb-[168px] overflow-hidden rounded-b-[28px] pb-[180px] text-white"
+          : "relative -mb-[72px] overflow-hidden rounded-b-[28px] pb-[84px] text-white"
+      }
       style={{ backgroundImage: themeGradientVertical(t) }}
     >
       <ThemeDecor model={model} a={t.blobA} b={t.blobB} />

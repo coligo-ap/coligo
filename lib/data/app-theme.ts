@@ -24,6 +24,8 @@ export type AppThemeState = {
   model: AppThemeModel;
   /** Bandeau thémé sur l'accueil marketplace (false = accueil simple). */
   marketplaceHero: boolean;
+  /** Catégories commerçants incluses DANS le design du héro (mig 0417). */
+  heroCategories: boolean;
 };
 
 export const getAppTheme = unstable_cache(
@@ -41,13 +43,14 @@ export const getAppTheme = unstable_cache(
                 theme: string;
                 model: string | null;
                 marketplace_hero: boolean;
+                hero_categories: boolean | null;
               } | null;
             }>;
           };
         };
       };
       const { data } = await from("app_theme")
-        .select("theme, model, marketplace_hero")
+        .select("theme, model, marketplace_hero, hero_categories")
         .eq("id", true)
         .maybeSingle();
       const theme =
@@ -58,13 +61,19 @@ export const getAppTheme = unstable_cache(
         data?.model && data.model in APP_THEME_MODELS
           ? (data.model as AppThemeModel)
           : DEFAULT_APP_MODEL;
-      return { theme, model, marketplaceHero: data?.marketplace_hero === true };
+      return {
+        theme,
+        model,
+        marketplaceHero: data?.marketplace_hero === true,
+        heroCategories: data?.hero_categories === true,
+      };
     } catch {
       // Jamais bloquant : repli marque.
       return {
         theme: DEFAULT_APP_THEME,
         model: DEFAULT_APP_MODEL,
         marketplaceHero: false,
+        heroCategories: false,
       };
     }
   },

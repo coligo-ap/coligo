@@ -54,8 +54,11 @@ const isSticker = (src: string) => src.startsWith("/categories/stickers/");
 
 export function CategoryStrip({
   categories,
+  onHero = false,
 }: {
   categories: { name: string; count: number }[];
+  /** Posée SUR le héro thémé (mig 0417) : libellés blancs, anneau blanc. */
+  onHero?: boolean;
 }) {
   const params = useFilterParams();
   const active = params.get("category");
@@ -82,12 +85,20 @@ export function CategoryStrip({
   }
 
   return (
-    <div className="scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto border-b border-[var(--color-border)] px-4 pb-3 lg:mx-0 lg:px-0">
+    <div
+      className={cn(
+        "scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-3 lg:mx-0 lg:px-0",
+        // Sur le héro thémé (mig 0417) : pas de trait de séparation — la fin
+        // du design (bord arrondi) fait office de séparation.
+        onHero ? "" : "border-b border-[var(--color-border)]"
+      )}
+    >
       <Tile
         emoji="🛍️"
         imageSrc="/categories/photos/tous.jpg"
         label={t("all")}
         active={!active}
+        onHero={onHero}
         onClick={() => go(null)}
       />
       {ordered
@@ -111,6 +122,7 @@ export function CategoryStrip({
                   : shortLabel(c.name, locale)
               }
               active={active === c.name}
+              onHero={onHero}
               onClick={() => go(c.name)}
             />
           );
@@ -124,12 +136,14 @@ function Tile({
   imageSrc,
   label,
   active,
+  onHero = false,
   onClick,
 }: {
   emoji: string;
   imageSrc?: string;
   label: string;
   active: boolean;
+  onHero?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -145,8 +159,12 @@ function Tile({
           // cover, ou image détourée qui flotte en contain.
           "grid size-[56px] place-items-center overflow-hidden rounded-full border-[1.5px] text-[24px] leading-none transition-all",
           active
-            ? "border-primary-500 bg-primary-50 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)]"
-            : "bg-surface-2 border-transparent"
+            ? onHero
+              ? "border-white bg-white/20 shadow-[0_4px_14px_-6px_rgba(0,0,0,.4)]"
+              : "border-primary-500 bg-primary-50 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)]"
+            : onHero
+              ? "border-white/25 bg-white/10"
+              : "bg-surface-2 border-transparent"
         )}
       >
         {imageSrc ? (
@@ -175,8 +193,12 @@ function Tile({
         className={cn(
           "max-w-[62px] truncate text-[11px] leading-tight",
           active
-            ? "text-primary-700 font-extrabold"
-            : "text-foreground font-semibold"
+            ? onHero
+              ? "font-extrabold text-white"
+              : "text-primary-700 font-extrabold"
+            : onHero
+              ? "font-semibold text-white/85"
+              : "text-foreground font-semibold"
         )}
       >
         {label}

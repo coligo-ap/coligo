@@ -100,14 +100,17 @@ export function MarketplaceSearchBar({
             className={cn(
               "flex items-center gap-2.5 rounded-[14px] px-4 py-3 transition-shadow focus-within:ring-2",
               onHero
-                ? "bg-white shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)] focus-within:ring-white/50"
+                ? // Socle CLAIR fixe (hex littéraux, immunisés contre le remap
+                  // des tokens en dark) : pilule blanche lisible sur le dégradé
+                  // dans LES DEUX modes.
+                  "bg-[#ffffff] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)] focus-within:ring-white/50"
                 : "bg-surface-2 focus-within:ring-primary-400/40"
             )}
           >
             <Search
               className={cn(
                 "size-[18px] shrink-0",
-                onHero ? "text-neutral-800" : "text-foreground"
+                onHero ? "text-[#1f2937]" : "text-foreground"
               )}
             />
             <input
@@ -119,7 +122,7 @@ export function MarketplaceSearchBar({
               className={cn(
                 "w-full bg-transparent text-[15px] font-medium outline-none",
                 onHero
-                  ? "text-neutral-900 placeholder:text-neutral-500"
+                  ? "text-[#111827] placeholder:text-[#6b7280]"
                   : "text-foreground placeholder:text-muted"
               )}
             />
@@ -130,7 +133,7 @@ export function MarketplaceSearchBar({
                 className={cn(
                   "shrink-0 rounded-full p-0.5",
                   onHero
-                    ? "text-neutral-500 hover:text-neutral-900"
+                    ? "text-[#6b7280] hover:text-[#111827]"
                     : "text-muted hover:text-foreground"
                 )}
                 aria-label={t("clearSearch")}

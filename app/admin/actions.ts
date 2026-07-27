@@ -82,7 +82,8 @@ export async function updateFeatureFlag(
 export async function setAppTheme(
   theme: string,
   model: string,
-  marketplaceHero: boolean
+  marketplaceHero: boolean,
+  heroCategories: boolean
 ): Promise<AdminFormState> {
   if (!(await adminCan("plateforme"))) return { error: "Accès refusé." };
   if (!(theme in APP_THEMES)) return { error: "Thème inconnu." };
@@ -107,6 +108,7 @@ export async function setAppTheme(
       theme,
       model,
       marketplace_hero: marketplaceHero,
+      hero_categories: heroCategories,
       updated_at: new Date().toISOString(),
       updated_by: user?.email ?? null,
     },
@@ -120,7 +122,7 @@ export async function setAppTheme(
     action: "set_app_theme",
     target_kind: "app_theme",
     target_id: null,
-    note: `theme=${theme} · model=${model} · marketplace_hero=${marketplaceHero}`,
+    note: `theme=${theme} · model=${model} · marketplace_hero=${marketplaceHero} · hero_categories=${heroCategories}`,
   });
 
   revalidateTag("app-theme");

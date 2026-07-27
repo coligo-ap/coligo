@@ -158,6 +158,7 @@ export default async function CustomerHomePage() {
             theme={appTheme.theme}
             model={appTheme.model}
             locale={locale}
+            extended={appTheme.heroCategories}
           />
         )}
         <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
@@ -169,9 +170,21 @@ export default async function CustomerHomePage() {
             floating={appTheme.marketplaceHero}
           />
 
-          {/* Catégories rondes (mécanique Uber Eats). */}
-          <div className="pt-1">
-            <CategoryStrip categories={categories} />
+          {/* Catégories rondes (mécanique Uber Eats). Héro thémé : soit ELLES
+              SONT DANS le design (hero_categories, libellés blancs), soit un
+              petit espace les sépare de la fin du design (jamais de
+              chevauchement avec le bord arrondi). */}
+          <div
+            className={
+              appTheme.marketplaceHero && !appTheme.heroCategories
+                ? "pt-4"
+                : "pt-1"
+            }
+          >
+            <CategoryStrip
+              categories={categories}
+              onHero={appTheme.marketplaceHero && appTheme.heroCategories}
+            />
           </div>
 
           {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés. */}
