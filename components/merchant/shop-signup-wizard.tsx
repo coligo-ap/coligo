@@ -1,20 +1,27 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useState, type KeyboardEvent } from "react";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { useActionState, useEffect, useRef, useState } from "react";
+import { buttonVariants } from "@/components/ui/button";
+import {
+  StepWizardHeader,
+  StepWizardNav,
+  StepWizardStyle,
+  makeWizardKeyDown,
+} from "@/components/shared/step-wizard";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PhoneField } from "@/components/ui/phone-field";
 import {
   signup,
   completeSocialSignup,
   type AuthState,
 } from "@/app/(merchant)/actions";
+import { saveSignupDraft } from "@/app/(auth)/signup/draft-actions";
 import { CategoryMultiSelect } from "@/components/merchant/settings/category-multi-select";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
-  ArrowLeft,
   ArrowRight,
   Lock,
   Mail,
@@ -76,15 +83,111 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
   // les inputs gardent leurs `name` et sont postés normalement à la fin.
   const [merchantName, setMerchantName] = useState("");
   const [managerName, setManagerName] = useState("");
+  // Forme canonique PhoneField (null tant qu'invalide).
+  const [phone, setPhone] = useState<string | null>(null);
   const [cats, setCats] = useState<string[]>([]);
   const [locationValid, setLocationValid] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
 
+  // ---------------------------------------------------------------------------
+  // BROUILLON par étape (mig 0414) : chaque étape franchie est enregistrée
+  // côté serveur (fire-and-forget, jamais bloquant) pour que le super-admin
+  // puisse recontacter les commerçants qui n'ont pas finalisé. Le jeton
+  // draft_key vit en localStorage : un refresh reprend LE MÊME brouillon.
+  // Le mot de passe n'est JAMAIS lu ni envoyé.
+  // ---------------------------------------------------------------------------
+  const formRef = useRef<HTMLFormElement>(null);
+  const [draftKey, setDraftKey] = useState("");
+  const lsKey = `coligo_signup_draft_${mode}`;
+  useEffect(() => {
+    let k: string | null = null;
+    try {
+      k = localStorage.getItem(lsKey);
+    } catch {
+      /* stockage indispo (webview restreinte) → brouillon par session */
+    }
+    if (!k || !/^[0-9a-f-]{36}$/i.test(k)) {
+      k = crypto.randomUUID();
+      try {
+        localStorage.setItem(lsKey, k);
+      } catch {
+        /* idem */
+      }
+    }
+    setDraftKey(k);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [mode]);
+
+  const persistDraft = (stepReached: number) => {
+    if (!draftKey || !formRef.current) return;
+    const fd = new FormData(formRef.current);
+    const val = (n: string) => {
+      const v = fd.get(n);
+      return typeof v === "string" && v.trim() ? v.trim() : undefined;
+    };
+    let categories: string[] | undefined;
+    try {
+      const raw = val("categories");
+      if (raw) {
+        categories = (JSON.parse(raw) as unknown[]).filter(
+          (x): x is string => typeof x === "string"
+        );
+      }
+    } catch {
+      /* champ absent/illisible */
+    }
+    saveSignupDraft({
+      key: draftKey,
+      source: mode,
+      step: stepReached,
+      stepsTotal: steps.length,
+      merchantName: val("merchantName"),
+      managerName: val("managerName"),
+      phone: val("phone"),
+      email: mode === "email" ? val("email") : undefined,
+      categories,
+      wilayaCode: val("wilayaCode"),
+      city: val("city"),
+      address: val("address"),
+      latitude: val("latitude"),
+      longitude: val("longitude"),
+    })
+      .then((res) => {
+        // Clé tournée par le serveur (brouillon précédent déjà finalisé).
+        if (res?.key && res.key !== draftKey) {
+          setDraftKey(res.key);
+          try {
+            localStorage.setItem(lsKey, res.key);
+          } catch {
+            /* ok */
+          }
+        }
+      })
+      .catch(() => {
+        /* jamais bloquant */
+      });
+  };
+
+  // Inscription aboutie (confirmation email) → le brouillon est terminé côté
+  // serveur ; on oublie le jeton local pour repartir propre la prochaine fois.
+  useEffect(() => {
+    if (!state.success) return;
+    try {
+      localStorage.removeItem(lsKey);
+    } catch {
+      /* ok */
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.success]);
+
   // Mêmes minimums que le serveur (lib/validation/auth.ts) — jamais plus
   // laxiste, pour ne pas découvrir un rejet zod à la dernière étape.
   const stepValid: Record<StepKey, boolean> = {
-    shop: merchantName.trim().length > 0 && managerName.trim().length > 0,
+    shop:
+      merchantName.trim().length > 0 &&
+      managerName.trim().length > 0 &&
+      phone !== null,
     types: cats.length > 0,
     location: locationValid,
     account:
@@ -93,7 +196,7 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
   const canContinue = stepValid[active];
 
   const stepHint: Record<StepKey, string> = {
-    shop: "Indiquez le nom du commerce et le responsable.",
+    shop: "Indiquez le commerce, le responsable et un téléphone valide.",
     types: "Choisissez au moins un type.",
     location: "Placez puis confirmez la position exacte sur la carte.",
     account: "Email valide et mot de passe d'au moins 8 caractères.",
@@ -101,19 +204,31 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
 
   const goBack = () => setStep((s) => Math.max(0, s - 1));
   const goNext = () => {
-    if (canContinue) setStep((s) => Math.min(steps.length - 1, s + 1));
+    if (!canContinue) return;
+    // Étape franchie → brouillon enregistré (étape atteinte = la suivante).
+    persistDraft(step + 2);
+    setStep((s) => Math.min(steps.length - 1, s + 1));
   };
+  const onFormKeyDown = makeWizardKeyDown(isLast, goNext);
 
-  // Entrée = « Continuer » sur les étapes intermédiaires (jamais une soumission
-  // prématurée du formulaire complet via le submit implicite du navigateur).
-  const onFormKeyDown = (e: KeyboardEvent<HTMLFormElement>) => {
-    if (e.key !== "Enter" || isLast) return;
-    const t = e.target as HTMLElement;
-    if (t instanceof HTMLTextAreaElement || t instanceof HTMLButtonElement)
-      return;
-    e.preventDefault();
-    goNext();
-  };
+  // Filet : dès qu'une étape devient complète (position confirmée, email
+  // valide…), le brouillon est enregistré même sans « Continuer » — débouncé.
+  useEffect(() => {
+    if (!draftKey || pending || !canContinue) return;
+    const t = setTimeout(() => persistDraft(step + 1), 1200);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [
+    draftKey,
+    step,
+    canContinue,
+    merchantName,
+    managerName,
+    phone,
+    cats,
+    locationValid,
+    email,
+  ]);
 
   // Inscription email sans session : le compte attend la confirmation email —
   // écran de fin dédié à la place du formulaire.
@@ -133,31 +248,22 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
   }
 
   return (
-    <form action={formAction} onKeyDown={onFormKeyDown} className="space-y-3">
-      {/* Fondu doux du panneau qui (ré)apparaît — rejoue à chaque activation. */}
-      <style>{`@keyframes swzFade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}.swz-panel{animation:swzFade .18s ease}`}</style>
-
-      {/* Tête d'étape : titre + compteur + barre de progression segmentée. */}
-      <div className="space-y-2">
-        <div className="flex items-baseline justify-between">
-          <p className="text-sm font-semibold">{STEP_META[active].title}</p>
-          <p className="text-subtle text-xs">
-            Étape {step + 1} sur {steps.length}
-          </p>
-        </div>
-        <div className="flex gap-1.5">
-          {steps.map((s, i) => (
-            <div
-              key={s}
-              className={cn(
-                "h-1 flex-1 rounded-full transition-colors",
-                i <= step ? "bg-primary-600" : "bg-surface-3"
-              )}
-            />
-          ))}
-        </div>
-        <p className="text-subtle text-xs">{STEP_META[active].subtitle}</p>
-      </div>
+    <form
+      ref={formRef}
+      action={formAction}
+      onKeyDown={onFormKeyDown}
+      className="space-y-3"
+    >
+      {/* Jeton du brouillon : la finalisation le marque « completed ». */}
+      <input type="hidden" name="draftKey" value={draftKey} />
+      <StepWizardStyle />
+      <StepWizardHeader
+        title={STEP_META[active].title}
+        subtitle={STEP_META[active].subtitle}
+        stepLabel={`Étape ${step + 1} sur ${steps.length}`}
+        step={step}
+        total={steps.length}
+      />
 
       {/* Panneaux : TOUS restent montés (saisie + inputs cachés préservés),
           l'inactif est masqué — display:none coupe l'animation, qui rejoue
@@ -206,6 +312,16 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
             />
           </div>
         </div>
+
+        {/* Téléphone dès l'étape 1 : l'équipe Coligo peut vous accompagner
+            même si l'inscription n'est pas terminée. */}
+        <PhoneField
+          name="phone"
+          required
+          disabled={pending}
+          onValueChange={(canonical) => setPhone(canonical)}
+          hint="Pour vous joindre au sujet de votre boutique."
+        />
       </div>
 
       {/* ÉTAPE — Type de commerce */}
@@ -241,6 +357,7 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
           initial={{ wilayaCode: "16" }}
           disabled={pending}
           requireConfirm
+          gpsAutofill
           onValidityChange={setLocationValid}
         />
       </div>
@@ -304,49 +421,27 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
         </div>
       )}
 
-      {/* Navigation : Retour + Continuer / soumission finale. */}
-      <div className="flex gap-2 pt-1">
-        {step > 0 && (
-          <Button
-            type="button"
-            variant="outline"
-            onClick={goBack}
-            disabled={pending}
-          >
-            <ArrowLeft className="size-4" />
-            Retour
-          </Button>
-        )}
-        {isLast ? (
-          <Button
-            type="submit"
-            className="flex-1"
-            disabled={pending || !canContinue}
-          >
-            {pending ? (
-              "Création…"
-            ) : (
-              <>
-                {mode === "email" ? "Créer mon compte" : "Créer ma boutique"}
-                <ArrowRight className="size-4" />
-              </>
-            )}
-          </Button>
-        ) : (
-          <Button
-            type="button"
-            className="flex-1"
-            onClick={goNext}
-            disabled={pending || !canContinue}
-          >
-            Continuer
-            <ArrowRight className="size-4" />
-          </Button>
-        )}
-      </div>
-      {!canContinue && (
-        <p className="text-subtle text-center text-xs">{stepHint[active]}</p>
-      )}
+      <StepWizardNav
+        step={step}
+        isLast={isLast}
+        canContinue={canContinue}
+        pending={pending}
+        onBack={goBack}
+        onNext={goNext}
+        labels={{ back: "Retour", next: "Continuer" }}
+        onSubmitClick={() => persistDraft(steps.length)}
+        hint={stepHint[active]}
+        submitContent={
+          pending ? (
+            "Création…"
+          ) : (
+            <>
+              {mode === "email" ? "Créer mon compte" : "Créer ma boutique"}
+              <ArrowRight className="size-4" />
+            </>
+          )
+        }
+      />
 
       {mode === "email" && (
         <p className="text-muted pt-2 text-center text-xs">

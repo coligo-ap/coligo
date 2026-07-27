@@ -13,6 +13,7 @@ import {
   type ShopInput,
 } from "@/lib/validation/auth";
 import { suggestedMinOrderForCategory } from "@/lib/config/payment-limits";
+import { markSignupDraftCompleted } from "@/app/(auth)/signup/draft-actions";
 import { getAllCategories } from "@/lib/data/categories";
 import { createAdminClient } from "@/lib/supabase/admin";
 
@@ -261,7 +262,7 @@ async function insertShopForUser(
   userId: string,
   data: Pick<
     ShopInput,
-    "merchantName" | "managerName" | "address" | "wilayaCode" | "city"
+    "merchantName" | "managerName" | "phone" | "address" | "wilayaCode" | "city"
   >,
   extras: {
     lat: number;
@@ -270,7 +271,7 @@ async function insertShopForUser(
     primaryCategory: string | null;
   }
 ): Promise<string | null> {
-  const { merchantName, managerName, address, wilayaCode, city } = data;
+  const { merchantName, managerName, phone, address, wilayaCode, city } = data;
   const { lat, lng, catList, primaryCategory } = extras;
 
   // Slug public unique (URL de la boutique). En cas de collision (même nom de
@@ -283,6 +284,8 @@ async function insertShopForUser(
       user_id: userId,
       name: merchantName,
       manager_name: managerName,
+      // Téléphone demandé dès l'étape 1 du wizard → contact + affichage boutique.
+      phone_public: phone ?? null,
       slug,
       latitude: lat,
       longitude: lng,
@@ -353,6 +356,7 @@ export async function signup(
     password: formData.get("password"),
     merchantName: formData.get("merchantName"),
     managerName: formData.get("managerName"),
+    phone: formData.get("phone"),
     latitude: formData.get("latitude"),
     longitude: formData.get("longitude"),
     address: formData.get("address"),
@@ -457,6 +461,10 @@ export async function signup(
     };
   }
 
+  // Boutique créée → le brouillon d'étapes (mig 0414) sort de la liste
+  // « non finalisées » côté admin.
+  await markSignupDraftCompleted(formData.get("draftKey"));
+
   if (!hasSession) {
     return {
       success:
@@ -481,6 +489,7 @@ export async function completeSocialSignup(
   const parsed = shopSchema.safeParse({
     merchantName: formData.get("merchantName"),
     managerName: formData.get("managerName"),
+    phone: formData.get("phone"),
     latitude: formData.get("latitude"),
     longitude: formData.get("longitude"),
     address: formData.get("address"),
@@ -520,6 +529,8 @@ export async function completeSocialSignup(
   if (shopError) {
     return { error: `Erreur création boutique : ${shopError}. Réessayez.` };
   }
+
+  await markSignupDraftCompleted(formData.get("draftKey"));
 
   revalidatePath("/", "layout");
   redirect("/dashboard");

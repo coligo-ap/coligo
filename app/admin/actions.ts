@@ -417,6 +417,49 @@ export async function decideMerchantApproval(
 }
 
 /**
+ * Écarte un brouillon d'inscription commerçant non finalisée (mig 0414) de la
+ * liste « à recontacter » — traité/injoignable/spam. La ligne reste en base
+ * (status='dismissed') pour l'historique.
+ */
+export async function dismissSignupDraft(
+  draftId: string
+): Promise<{ error?: string }> {
+  if (!(await adminCan("commercants"))) return { error: "Accès refusé." };
+  if (!/^[0-9a-f-]{36}$/i.test(draftId))
+    return { error: "Brouillon invalide." };
+
+  // Table verrouillée RLS sans policy → service_role, accès casté.
+  const admin = createAdminClient();
+  const from = admin.from.bind(admin) as unknown as (t: string) => {
+    update: (v: Record<string, unknown>) => {
+      eq: (
+        c: string,
+        v: string
+      ) => Promise<{ error: { message: string } | null }>;
+    };
+  };
+  const { error } = await from("merchant_signup_drafts")
+    .update({ status: "dismissed", updated_at: new Date().toISOString() })
+    .eq("id", draftId);
+  if (error) return { error: error.message };
+
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  await supabase.from("admin_audit_log").insert({
+    admin_email: user?.email ?? null,
+    action: "dismiss_signup_draft",
+    target_kind: "merchant_signup_draft",
+    target_id: draftId,
+    note: null,
+  });
+
+  revalidatePath("/admin/merchants");
+  return {};
+}
+
+/**
  * Gel d'un livreur (anti-fraude / sanction administrative).
  * Un livreur gelé reste connecté mais voit un écran "compte gelé" sur
  * `/driver` ; il ne peut plus rien faire jusqu'au dégel.

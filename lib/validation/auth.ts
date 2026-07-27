@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DZ_PHONE_ERROR } from "@/lib/dz/phone";
 
 export const loginSchema = z.object({
   email: z
@@ -25,6 +26,18 @@ export const signupSchema = z.object({
     .string()
     .trim()
     .min(1, "Le nom et prénom du responsable sont requis"),
+  // Téléphone du commerce (forme canonique PhoneField : 0XXXXXXXXX mobile DZ
+  // ou E.164). Optionnel côté schéma (compat clients déjà chargés sans le
+  // champ) — le wizard, lui, l'exige à l'étape 1.
+  phone: z
+    .string()
+    .trim()
+    .nullish()
+    .transform((v) => (v ? v : null))
+    .refine(
+      (v) => v === null || /^0[567]\d{8}$/.test(v) || /^\+\d{8,15}$/.test(v),
+      DZ_PHONE_ERROR
+    ),
   // Position EXACTE choisie sur la carte (obligatoire). Chaînes non vides ;
   // converties + bornées côté action.
   latitude: z.string().trim().min(1, "Choisissez votre position sur la carte"),

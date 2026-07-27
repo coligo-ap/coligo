@@ -9,6 +9,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { PhoneField } from "@/components/ui/phone-field";
 import {
+  StepWizardHeader,
+  StepWizardNav,
+  StepWizardStyle,
+  makeWizardKeyDown,
+} from "@/components/shared/step-wizard";
+import { cn } from "@/lib/utils";
+import {
   chauffeurLogout,
   chauffeurSignup,
   type ChauffeurAuthState,
@@ -22,15 +29,18 @@ const GAMMES = [
   ["moto", "Moto"],
 ] as const;
 
+type StepKey = "identity" | "contact" | "vehicle" | "access";
+const STEPS: StepKey[] = ["identity", "contact", "vehicle", "access"];
+
 /**
- * Inscription chauffeur : nom*, prénom*, tél*, date de naissance*,
- * wilaya/ville*, mot de passe*, GAMME du véhicule. Présentation unifiée
- * « Coligo » ; l'action serveur `chauffeurSignup`, les noms de champs et le
- * parcours (→ documents) sont inchangés.
+ * Inscription chauffeur ÉTAPE PAR ÉTAPE (style Bolt) : identité → contact →
+ * véhicule → mot de passe. UN SEUL <form>, panneaux tous MONTÉS (l'inactif en
+ * `hidden`) — la soumission finale poste les mêmes champs qu'avant à
+ * `chauffeurSignup` (→ documents ensuite), zéro changement backend.
  *
- * `connectedPhone` : si un chauffeur est déjà connecté sur l'appareil, on
- * affiche un bandeau de déconnexion (impossible d'inscrire un nouveau chauffeur
- * sans se déconnecter d'abord — sinon l'inscription échoue silencieusement).
+ * `connectedPhone` : si un chauffeur est déjà connecté sur l'appareil, bandeau
+ * de déconnexion (impossible d'inscrire un nouveau chauffeur sans se
+ * déconnecter d'abord — sinon l'inscription échoue silencieusement).
  */
 export function ChauffeurSignupForm({
   connectedPhone = null,
@@ -38,9 +48,79 @@ export function ChauffeurSignupForm({
   connectedPhone?: string | null;
 }) {
   const [state, action, pending] = useActionState(chauffeurSignup, initial);
-  const [gamme, setGamme] = useState<"classic" | "confort" | "moto">("classic");
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+
+  const [step, setStep] = useState(0);
+  const isLast = step === STEPS.length - 1;
+  const active = STEPS[step];
+
+  // Saisie contrôlée UNIQUEMENT pour le gate de chaque étape.
+  const [lastName, setLastName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [birthDate, setBirthDate] = useState("");
+  const [phone, setPhone] = useState<string | null>(null);
+  const [city, setCity] = useState("");
+  const [password, setPassword] = useState("");
+  const [gamme, setGamme] = useState<"classic" | "confort" | "moto">("classic");
+
+  const META: Record<StepKey, { title: string; subtitle: string }> = {
+    identity: {
+      title: tr("Vous", "أنت"),
+      subtitle: tr(
+        "Votre identité, comme sur vos papiers.",
+        "هويتك كما في وثائقك."
+      ),
+    },
+    contact: {
+      title: tr("Contact", "التواصل"),
+      subtitle: tr(
+        "Le téléphone sera votre identifiant de connexion.",
+        "الهاتف هو معرّف تسجيل دخولك."
+      ),
+    },
+    vehicle: {
+      title: tr("Votre véhicule", "مركبتك"),
+      subtitle: tr("Choisissez la gamme proposée aux clients.", "اختر الفئة."),
+    },
+    access: {
+      title: tr("Mot de passe", "كلمة المرور"),
+      subtitle: tr("Pour sécuriser votre compte.", "لتأمين حسابك."),
+    },
+  };
+
+  // Mêmes minimums que le zod serveur (noms ≥ 2, ville ≥ 2, mdp ≥ 6).
+  const stepValid: Record<StepKey, boolean> = {
+    identity:
+      lastName.trim().length >= 2 &&
+      firstName.trim().length >= 2 &&
+      birthDate.length >= 8,
+    contact: phone !== null && city.trim().length >= 2,
+    vehicle: true,
+    access: password.length >= 6,
+  };
+  const canContinue = stepValid[active];
+
+  const stepHint: Record<StepKey, string> = {
+    identity: tr(
+      "Nom, prénom et date de naissance requis.",
+      "اللقب والاسم وتاريخ الميلاد مطلوبة."
+    ),
+    contact: tr(
+      "Téléphone valide et wilaya/ville requis.",
+      "هاتف صالح وولاية/مدينة مطلوبان."
+    ),
+    vehicle: "",
+    access: tr(
+      "Mot de passe de 6 caractères minimum.",
+      "كلمة سر من 6 أحرف على الأقل."
+    ),
+  };
+
+  const goBack = () => setStep((s) => Math.max(0, s - 1));
+  const goNext = () => {
+    if (canContinue) setStep((s) => Math.min(STEPS.length - 1, s + 1));
+  };
 
   return (
     <>
@@ -72,88 +152,119 @@ export function ChauffeurSignupForm({
         </div>
       )}
 
-      <form action={action} className="space-y-3">
-        <div className="grid grid-cols-2 gap-2">
-          <div className="space-y-1.5">
-            <Label htmlFor="last_name">
-              {tr("Nom", "اللقب")} <span className="text-rose-600">*</span>
-            </Label>
-            <Input
-              id="last_name"
-              name="last_name"
-              type="text"
-              autoComplete="family-name"
-              required
-              disabled={pending}
-            />
-          </div>
-          <div className="space-y-1.5">
-            <Label htmlFor="first_name">
-              {tr("Prénom", "الاسم")} <span className="text-rose-600">*</span>
-            </Label>
-            <Input
-              id="first_name"
-              name="first_name"
-              type="text"
-              autoComplete="given-name"
-              required
-              disabled={pending}
-            />
-          </div>
-        </div>
-
-        <PhoneField
-          required
-          disabled={pending}
-          hint={tr("Ton identifiant de connexion.", "معرّف تسجيل دخولك.")}
+      <form
+        action={action}
+        onKeyDown={makeWizardKeyDown(isLast, goNext)}
+        className="space-y-3"
+      >
+        <StepWizardStyle />
+        <StepWizardHeader
+          title={META[active].title}
+          subtitle={META[active].subtitle}
+          stepLabel={tr(
+            `Étape ${step + 1} sur ${STEPS.length}`,
+            `الخطوة ${step + 1} من ${STEPS.length}`
+          )}
+          step={step}
+          total={STEPS.length}
         />
 
-        <div className="space-y-1.5">
-          <Label htmlFor="birth_date">
-            {tr("Date de naissance", "تاريخ الميلاد")}{" "}
-            <span className="text-rose-600">*</span>
-          </Label>
-          <Input
-            id="birth_date"
-            name="birth_date"
-            type="date"
-            required
-            disabled={pending}
-          />
+        {/* ÉTAPE — Identité (panneaux tous montés, l'inactif masqué) */}
+        <div
+          className={cn(
+            "space-y-3",
+            active === "identity" ? "swz-panel" : "hidden"
+          )}
+        >
+          <div className="grid grid-cols-2 gap-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="last_name">
+                {tr("Nom", "اللقب")} <span className="text-rose-600">*</span>
+              </Label>
+              <Input
+                id="last_name"
+                name="last_name"
+                type="text"
+                autoComplete="family-name"
+                value={lastName}
+                onChange={(e) => setLastName(e.target.value)}
+                required
+                disabled={pending}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="first_name">
+                {tr("Prénom", "الاسم")} <span className="text-rose-600">*</span>
+              </Label>
+              <Input
+                id="first_name"
+                name="first_name"
+                type="text"
+                autoComplete="given-name"
+                value={firstName}
+                onChange={(e) => setFirstName(e.target.value)}
+                required
+                disabled={pending}
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <Label htmlFor="birth_date">
+              {tr("Date de naissance", "تاريخ الميلاد")}{" "}
+              <span className="text-rose-600">*</span>
+            </Label>
+            <Input
+              id="birth_date"
+              name="birth_date"
+              type="date"
+              value={birthDate}
+              onChange={(e) => setBirthDate(e.target.value)}
+              required
+              disabled={pending}
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="city">
-            {tr("Wilaya / Ville", "الولاية / المدينة")}{" "}
-            <span className="text-rose-600">*</span>
-          </Label>
-          <Input
-            id="city"
-            name="city"
-            type="text"
-            placeholder={tr("Alger, Oran…", "الجزائر، وهران…")}
+        {/* ÉTAPE — Contact */}
+        <div
+          className={cn(
+            "space-y-3",
+            active === "contact" ? "swz-panel" : "hidden"
+          )}
+        >
+          <PhoneField
             required
             disabled={pending}
+            onValueChange={(canonical) => setPhone(canonical)}
+            hint={tr("Ton identifiant de connexion.", "معرّف تسجيل دخولك.")}
           />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="city">
+              {tr("Wilaya / Ville", "الولاية / المدينة")}{" "}
+              <span className="text-rose-600">*</span>
+            </Label>
+            <Input
+              id="city"
+              name="city"
+              type="text"
+              placeholder={tr("Alger, Oran…", "الجزائر، وهران…")}
+              value={city}
+              onChange={(e) => setCity(e.target.value)}
+              required
+              disabled={pending}
+            />
+          </div>
         </div>
 
-        <div className="space-y-1.5">
-          <Label htmlFor="password">
-            {tr("Mot de passe", "كلمة المرور")}{" "}
-            <span className="text-rose-600">*</span>
-          </Label>
-          <Input
-            id="password"
-            name="password"
-            type="password"
-            autoComplete="new-password"
-            required
-            disabled={pending}
-          />
-        </div>
-
-        {/* Gamme du véhicule (boutons segmentés) */}
-        <div className="space-y-1.5">
+        {/* ÉTAPE — Véhicule (gamme, boutons segmentés) */}
+        <div
+          className={cn(
+            "space-y-1.5",
+            active === "vehicle" ? "swz-panel" : "hidden"
+          )}
+        >
           <Label>
             {tr("Votre véhicule (gamme)", "مركبتك (الفئة)")}{" "}
             <span className="text-rose-600">*</span>
@@ -178,27 +289,60 @@ export function ChauffeurSignupForm({
           </div>
         </div>
 
+        {/* ÉTAPE — Mot de passe */}
+        <div
+          className={cn(
+            "space-y-1.5",
+            active === "access" ? "swz-panel" : "hidden"
+          )}
+        >
+          <Label htmlFor="password">
+            {tr("Mot de passe", "كلمة المرور")}{" "}
+            <span className="text-rose-600">*</span>
+          </Label>
+          <Input
+            id="password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            minLength={6}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            disabled={pending}
+          />
+        </div>
+
         {state.error && (
           <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
             {state.error}
           </div>
         )}
 
-        <Button
-          type="submit"
-          size="lg"
-          className="w-full"
-          disabled={pending || !!connectedPhone}
-        >
-          {pending ? (
-            tr("Création…", "جارٍ الإنشاء…")
-          ) : (
-            <>
-              {tr("Continuer · mes documents", "متابعة · وثائقي")}
-              <ArrowRight className="size-4 rtl:rotate-180" />
-            </>
-          )}
-        </Button>
+        <StepWizardNav
+          step={step}
+          isLast={isLast}
+          canContinue={canContinue}
+          pending={pending}
+          onBack={goBack}
+          onNext={goNext}
+          labels={{
+            back: tr("Retour", "رجوع"),
+            next: tr("Continuer", "متابعة"),
+          }}
+          hint={stepHint[active] || null}
+          submitDisabled={!!connectedPhone}
+          submitContent={
+            pending ? (
+              tr("Création…", "جارٍ الإنشاء…")
+            ) : (
+              <>
+                {tr("Continuer · mes documents", "متابعة · وثائقي")}
+                <ArrowRight className="size-4 rtl:rotate-180" />
+              </>
+            )
+          }
+        />
 
         <p className="text-subtle text-center text-xs">
           {tr(

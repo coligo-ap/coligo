@@ -5,6 +5,7 @@ import {
   Building2,
   Check,
   Loader2,
+  LocateFixed,
   MapPin,
   Navigation,
   PencilLine,
@@ -16,7 +17,13 @@ import { WILAYAS, getWilaya } from "@/lib/config/wilayas";
 import { getCommunes } from "@/lib/config/communes";
 import { MapPositionPicker } from "@/components/shared/map-position-picker";
 import { ZoneNotice } from "@/components/zones/zone-notice";
-import { geocodeCommune, reverseGeocode, type LatLng } from "@/lib/geo/geocode";
+import {
+  geocodeCommune,
+  reverseGeocode,
+  reverseGeocodeAdmin,
+  type LatLng,
+} from "@/lib/geo/geocode";
+import { getPosition } from "@/lib/native/geolocation";
 
 const SELECT_CLASS =
   "appearance-none flex h-11 w-full rounded-[12px] border border-border-strong bg-white pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
@@ -44,7 +51,50 @@ type Props = {
   requireConfirm?: boolean;
   /** Remonte la validité (wilaya + commune + position [+ confirmée]). */
   onValidityChange?: (valid: boolean) => void;
+  /**
+   * Inscription : « ma position actuelle par défaut ». Bouton dédié + dès
+   * qu'un repère est posé sans commune choisie, wilaya + commune + adresse
+   * sont DÉDUITES du point (reverse Nominatim), sans re-focus de la carte.
+   */
+  gpsAutofill?: boolean;
 };
+
+/** Normalise un nom de lieu pour la comparaison (accents, « Wilaya de… »). */
+function normPlace(s: string): string {
+  return s
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .toLowerCase()
+    .replace(/\bwilaya (de |d')?/g, "")
+    .replace(/['’‐-]/g, " ")
+    .replace(/[^a-z0-9]+/g, " ")
+    .trim();
+}
+
+function matchWilaya(name: string | null): { code: string } | null {
+  if (!name) return null;
+  const n = normPlace(name);
+  if (!n) return null;
+  return (
+    WILAYAS.find((w) => normPlace(w.name) === n) ??
+    WILAYAS.find(
+      (w) => n.includes(normPlace(w.name)) || normPlace(w.name).includes(n)
+    ) ??
+    null
+  );
+}
+
+function matchCommune(code: string, name: string | null): string | null {
+  if (!name) return null;
+  const n = normPlace(name);
+  if (!n) return null;
+  const list = getCommunes(code);
+  return (
+    list.find((c) => normPlace(c) === n) ??
+    list.find((c) => normPlace(c).includes(n) || n.includes(normPlace(c))) ??
+    null
+  );
+}
 
 /**
  * Sélecteur complet d'emplacement de boutique (Uber-like) :
@@ -58,6 +108,7 @@ export function ShopLocationPicker({
   disabled = false,
   requireConfirm = false,
   onValidityChange,
+  gpsAutofill = false,
 }: Props) {
   const [wilayaCode, setWilayaCode] = useState(initial?.wilayaCode ?? "");
   const [commune, setCommune] = useState(initial?.commune ?? "");
@@ -77,6 +128,11 @@ export function ShopLocationPicker({
   >(null);
   const [geoLoading, setGeoLoading] = useState(false);
   const [detected, setDetected] = useState<string | null>(null);
+  // « Ma position actuelle » (gpsAutofill) : état du bouton + note inline.
+  const [gpsBusy, setGpsBusy] = useState(false);
+  const [gpsNote, setGpsNote] = useState<string | null>(null);
+  const [gpsError, setGpsError] = useState<string | null>(null);
+  const fillSeq = useRef(0);
 
   const communes = useMemo(() => getCommunes(wilayaCode), [wilayaCode]);
   const hasCommuneList = communes.length > 0;
@@ -133,6 +189,59 @@ export function ShopLocationPicker({
     if (commune && next.length > 0 && !next.includes(commune)) setCommune("");
   };
 
+  /**
+   * Déduit wilaya + commune + adresse du point (reverse Nominatim). `force`
+   * (bouton dédié) écrase la sélection ; sinon on ne remplit que si aucune
+   * commune n'est encore choisie. IMPORTANT : `lastGeocoded` est posé AVANT
+   * les setState pour que l'effet de focus commune ne déplace PAS la carte —
+   * la position GPS exacte prime sur le centre approximatif de la commune.
+   */
+  const applyGpsAdminFill = async (p: LatLng, force = false) => {
+    const seq = ++fillSeq.current;
+    const found = await reverseGeocodeAdmin(p.lat, p.lng);
+    if (!found || seq !== fillSeq.current) return;
+    const w = matchWilaya(found.wilayaName);
+    let filledCommune: string | null = null;
+    if (w && (force || !commune)) {
+      const list = getCommunes(w.code);
+      filledCommune =
+        list.length > 0
+          ? matchCommune(w.code, found.communeName)
+          : (found.communeName?.trim().slice(0, 80) ?? null);
+      lastGeocoded.current = `${w.code}|${filledCommune ?? ""}`;
+      setWilayaCode(w.code);
+      if (filledCommune) setCommune(filledCommune);
+    }
+    if (found.label && (force || !address.trim())) setAddress(found.label);
+    if (filledCommune) {
+      setGpsNote(
+        "Wilaya, commune et adresse détectées depuis la position — vérifie."
+      );
+    }
+  };
+
+  /** Bouton « Utiliser ma position actuelle » : GPS → repère + déduction. */
+  const useMyPosition = async () => {
+    setGpsError(null);
+    setGpsNote(null);
+    setGpsBusy(true);
+    try {
+      const pos = await getPosition();
+      const p = { lat: pos.latitude, lng: pos.longitude };
+      setCoords(p);
+      setDetected(null);
+      if (requireConfirm) setConfirmed(false);
+      setFocusTarget({ ...p, zoom: 17 });
+      await applyGpsAdminFill(p, true);
+    } catch {
+      setGpsError(
+        "Position indisponible — autorise la localisation, ou place le repère à la main."
+      );
+    } finally {
+      setGpsBusy(false);
+    }
+  };
+
   const confirmPosition = async () => {
     if (!coords) return;
     setConfirmed(true);
@@ -148,6 +257,33 @@ export function ShopLocationPicker({
 
   return (
     <div className="space-y-4">
+      {/* « Ma position actuelle » par défaut (inscription) : un tap remplit
+          repère + wilaya + commune + adresse. */}
+      {gpsAutofill && (
+        <div className="space-y-1.5">
+          <button
+            type="button"
+            onClick={useMyPosition}
+            disabled={disabled || gpsBusy}
+            className="border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border text-sm font-semibold disabled:opacity-50"
+          >
+            {gpsBusy ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <LocateFixed className="size-4" />
+            )}
+            Utiliser ma position actuelle
+          </button>
+          {gpsNote && (
+            <p className="text-success-700 flex items-center gap-1 text-xs">
+              <Check className="size-3.5 shrink-0" />
+              {gpsNote}
+            </p>
+          )}
+          {gpsError && <p className="text-xs text-rose-600">{gpsError}</p>}
+        </div>
+      )}
+
       {/* Wilaya + commune */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
         <div className="space-y-1.5">
@@ -245,6 +381,9 @@ export function ShopLocationPicker({
               setCoords(p);
               setDetected(null);
               if (requireConfirm) setConfirmed(false);
+              // Repère posé (GPS auto ou tap) sans commune choisie → déduire
+              // wilaya + commune + adresse : « ma position = défaut ».
+              if (gpsAutofill && !commune) void applyGpsAdminFill(p);
             }}
             height={240}
             gpsLabel="Ma position"

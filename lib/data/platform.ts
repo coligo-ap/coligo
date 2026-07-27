@@ -120,6 +120,97 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
   }));
 }
 
+/** Brouillon d'inscription commerçant non finalisé (wizard /signup, mig 0414). */
+export type AdminSignupDraft = {
+  id: string;
+  source: "email" | "google";
+  step_reached: number;
+  steps_total: number;
+  merchant_name: string | null;
+  manager_name: string | null;
+  phone: string | null;
+  email: string | null;
+  categories: string[];
+  wilaya_code: string | null;
+  city: string | null;
+  address: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  created_at: string;
+  updated_at: string;
+};
+
+/**
+ * Inscriptions commerçant COMMENCÉES mais non finalisées (brouillons du wizard,
+ * mig 0414) — pour recontacter les commerçants qui ont abandonné en route.
+ * Table verrouillée RLS → service_role + self-guard, comme le compteur pending.
+ * On ne remonte que les brouillons ayant AU MOINS un élément exploitable
+ * (nom, téléphone, email ou position).
+ */
+export async function getSignupDraftsForAdmin(): Promise<AdminSignupDraft[]> {
+  if (!(await isSuperAdmin())) return [];
+  const admin = createAdminClient();
+  // Table hors types générés → accès casté ; .bind(admin) obligatoire.
+  const from = admin.from.bind(admin) as unknown as (t: string) => {
+    select: (c: string) => {
+      eq: (
+        c: string,
+        v: string
+      ) => {
+        order: (
+          col: string,
+          o: { ascending: boolean }
+        ) => {
+          limit: (
+            n: number
+          ) => Promise<{ data: Record<string, unknown>[] | null }>;
+        };
+      };
+    };
+  };
+  const { data } = await from("merchant_signup_drafts")
+    .select(
+      "id, source, step_reached, steps_total, merchant_name, manager_name, phone, email, categories, wilaya_code, city, address, latitude, longitude, created_at, updated_at"
+    )
+    .eq("status", "in_progress")
+    .order("updated_at", { ascending: false })
+    .limit(100);
+
+  return (data ?? [])
+    .map((r) => ({
+      id: String(r.id),
+      source: (r.source === "google" ? "google" : "email") as
+        | "email"
+        | "google",
+      step_reached: Number(r.step_reached ?? 1),
+      steps_total: Number(r.steps_total ?? 4),
+      merchant_name: (r.merchant_name as string | null) ?? null,
+      manager_name: (r.manager_name as string | null) ?? null,
+      phone: (r.phone as string | null) ?? null,
+      email: (r.email as string | null) ?? null,
+      categories: Array.isArray(r.categories)
+        ? (r.categories as unknown[]).filter(
+            (c): c is string => typeof c === "string"
+          )
+        : [],
+      wilaya_code: (r.wilaya_code as string | null) ?? null,
+      city: (r.city as string | null) ?? null,
+      address: (r.address as string | null) ?? null,
+      latitude: typeof r.latitude === "number" ? r.latitude : null,
+      longitude: typeof r.longitude === "number" ? r.longitude : null,
+      created_at: String(r.created_at),
+      updated_at: String(r.updated_at),
+    }))
+    .filter(
+      (d) =>
+        d.merchant_name ||
+        d.manager_name ||
+        d.phone ||
+        d.email ||
+        (d.latitude != null && d.longitude != null)
+    );
+}
+
 /** Nombre de demandes d'inscription commerçant en attente (badge nav admin). */
 export async function getPendingMerchantsCountForAdmin(): Promise<number> {
   // Lecture service_role → self-guard (en plus du layout /admin). Non-admin ⇒ 0,
