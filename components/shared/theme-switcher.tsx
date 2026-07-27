@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Moon, Sun } from "lucide-react";
 import { setTheme } from "@/lib/theme/actions";
+import { cn } from "@/lib/utils";
 
 /**
  * Bascule clair / sombre (header, à côté du sélecteur de langue). Le sombre
@@ -15,7 +16,13 @@ import { setTheme } from "@/lib/theme/actions";
  * RSC complet rendait le bouton lent/grisé pour rien (le visuel est déjà à jour ;
  * le cookie suffit pour que le prochain chargement SSR soit cohérent).
  */
-export function ThemeSwitcher() {
+export function ThemeSwitcher({
+  onColor = false,
+}: {
+  /** Posé sur un fond COLORÉ (header thémé de l'accueil) : pastille
+   *  translucide blanche au lieu du cercle de surface. */
+  onColor?: boolean;
+}) {
   // Lu depuis le DOM (classe posée par le layout racine) — évite tout
   // décalage SSR/client : on n'affiche l'état qu'après montage.
   const [dark, setDark] = useState<boolean | null>(null);
@@ -38,7 +45,14 @@ export function ThemeSwitcher() {
       onClick={toggle}
       aria-label={dark ? "Mode clair" : "Mode sombre"}
       aria-pressed={dark === true}
-      className="border-border bg-surface text-muted hover:text-foreground inline-flex size-8 shrink-0 items-center justify-center rounded-full border"
+      className={cn(
+        "inline-flex size-8 shrink-0 items-center justify-center rounded-full border",
+        onColor
+          ? "border-white/25 bg-white/15 text-white"
+          : // `text-foreground` (pas text-muted) : le croissant doit rester
+            // BIEN lisible en mode clair.
+            "border-border bg-surface text-foreground hover:bg-surface-2"
+      )}
     >
       {dark ? <Sun className="size-4" /> : <Moon className="size-4" />}
     </button>

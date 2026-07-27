@@ -31,7 +31,14 @@ const MARGIN = 8;
  * Pose le cookie `NEXT_LOCALE` via l'action serveur puis rafraîchit la route →
  * re-rendu avec la nouvelle locale + direction RTL.
  */
-export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
+export function LanguageSwitcher({
+  compact = false,
+  onColor = false,
+}: {
+  compact?: boolean;
+  /** Posé sur un fond COLORÉ (header thémé) : déclencheur en blanc. */
+  onColor?: boolean;
+}) {
   const active = useLocale() as Locale;
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -130,7 +137,10 @@ export function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
           // SANS cadre : pas de bordure ni de fond, juste le texte + chevron.
           // min-h 44px + marges négatives : cible tactile réglementaire SANS
           // grossir l'encombrement visuel (audit Playwright : 28px avant).
-          "text-muted hover:text-foreground -my-2 inline-flex min-h-[44px] items-center gap-1.5 bg-transparent px-1 py-1 text-[13px] font-semibold transition-colors",
+          "-my-2 inline-flex min-h-[44px] items-center gap-1.5 bg-transparent px-1 py-1 text-[13px] font-semibold transition-colors",
+          onColor
+            ? "text-white hover:text-white/90"
+            : "text-muted hover:text-foreground",
           pending && "opacity-60"
         )}
       >

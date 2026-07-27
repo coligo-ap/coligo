@@ -40,11 +40,11 @@ export function HomeThemeHero({
   const Icon = ICONS[t.homeIcon];
   return (
     <div
-      className="relative -mb-10 overflow-hidden rounded-b-[28px] pb-16 text-white"
+      className="relative -mb-[72px] overflow-hidden rounded-b-[28px] pb-[84px] text-white"
       style={{ backgroundImage: themeGradientVertical(t) }}
     >
       <ThemeDecor model={model} a={t.blobA} b={t.blobB} />
-      <div className="relative z-10 mx-auto flex max-w-[1400px] items-center gap-3 px-4 pt-2.5 lg:px-6">
+      <div className="relative z-10 mx-auto flex max-w-[1400px] items-center gap-3 px-4 pt-1 lg:px-6">
         <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 shadow-inner shadow-white/10">
           <Icon className="size-5 drop-shadow-sm" />
         </div>

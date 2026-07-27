@@ -140,20 +140,10 @@ export function CustomerHeader({
             {t("becomeMerchant")}
           </Link>
 
-          {/* Sur fond thémé, les déclencheurs internes (text-muted) passent en
-              blanc — override ciblé, les MENUS (portals) restent normaux. */}
-          <span className={themed ? "[&_button]:text-white" : undefined}>
-            <LanguageSwitcher />
-          </span>
-          <span
-            className={
-              themed
-                ? "[&_button]:border-white/25 [&_button]:bg-white/15 [&_button]:text-white"
-                : undefined
-            }
-          >
-            <ThemeSwitcher />
-          </span>
+          {/* Sur fond thémé, déclencheurs en blanc (prop explicite — les
+              MENUS en portal restent normaux). */}
+          <LanguageSwitcher onColor={themed} />
+          <ThemeSwitcher onColor={themed} />
 
           {isAuth && (
             <NotificationBell
@@ -242,12 +232,8 @@ export function CustomerHeader({
               />
             </button>
             <div className="flex shrink-0 items-center gap-2">
-              <span className={themed ? "[&_button]:text-white" : undefined}>
-                <LanguageSwitcher compact />
-              </span>
-              <span className={themed ? "[&_button]:!text-white" : undefined}>
-                <ThemeSwitcher />
-              </span>
+              <LanguageSwitcher compact onColor={themed} />
+              <ThemeSwitcher onColor={themed} />
               {isAuth && (
                 <NotificationBell
                   source={{ table: "user_notifications", audience: "customer" }}
