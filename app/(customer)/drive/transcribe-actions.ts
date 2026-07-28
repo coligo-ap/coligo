@@ -47,6 +47,9 @@ export async function transcribeDriveAudio(input: {
       ? "ogg"
       : "webm";
 
+  // ⚠️ Si Groq renvoie 403 `model_permission_blocked_org` : les modèles
+  // Whisper sont désactivés au niveau ORGANISATION → les activer sur
+  // https://console.groq.com/settings/limits (aucun redéploiement requis).
   const groqKey = process.env.GROQ_API_KEY;
   if (groqKey) {
     for (const model of GROQ_WHISPER_MODELS) {
@@ -84,10 +87,15 @@ export async function transcribeDriveAudio(input: {
   if (geminiKey) {
     try {
       const res = await fetch(
-        `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${geminiKey}`,
+        // Auth par EN-TÊTE (comme lib/ai/translate.ts) : `?key=` rejette les
+        // clés récentes (401 « Expected OAuth 2 access token »).
+        "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent",
         {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: {
+            "Content-Type": "application/json",
+            "x-goog-api-key": geminiKey,
+          },
           body: JSON.stringify({
             contents: [
               {
