@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/client";
 import { formatDA } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 import { PaymentLine } from "@/components/customer/payment-line";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 import { VIOLET, ROSE } from "./drive-modals";
 import { ChAvatar } from "./ch-avatar";
 import {
@@ -104,32 +105,41 @@ export function DriveHistoryLoader() {
 
 const EMPTY_HISTORY: DriveHistory = { rides: [], favorites: [] };
 
-/** Squelette de l'historique Drive (1er chargement + frontière `loading.tsx`). */
+/** Squelette de l'historique Drive (1er chargement + frontière `loading.tsx`).
+ *  MÊME structure que la vue (héro thémé + pilule d'onglets) → zéro saut. */
 export function DriveHistorySkeleton() {
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
-      <div className="mb-3 flex items-center gap-3">
-        <div className="size-9 animate-pulse rounded-full bg-[var(--d-soft)]" />
-        <div className="h-6 w-40 animate-pulse rounded-lg bg-[var(--d-soft)]" />
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] pb-24">
+      <div
+        className="relative overflow-hidden rounded-b-[28px] pb-14 text-white"
+        style={{
+          backgroundImage:
+            "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+        }}
+      >
+        <ThemeDecor />
+        <div className="relative z-10 flex items-center gap-3 px-5 pt-[calc(1rem+env(safe-area-inset-top))]">
+          <div className="size-[42px] animate-pulse rounded-[14px] bg-white/20" />
+          <div className="h-6 w-40 animate-pulse rounded-lg bg-white/20" />
+        </div>
       </div>
-      <div className="mb-4 flex gap-2">
-        <div className="h-9 w-28 animate-pulse rounded-full bg-[var(--d-soft)]" />
-        <div className="h-9 w-24 animate-pulse rounded-full bg-[var(--d-soft)]" />
-      </div>
-      <div className="space-y-2.5">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div
-            key={i}
-            className="flex items-center gap-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-page)] p-3.5"
-          >
-            <div className="size-11 shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
-            <div className="min-w-0 flex-1">
-              <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--d-soft)]" />
-              <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-[var(--d-soft)]" />
+      <div className="relative z-10 -mt-10 px-5">
+        <div className="h-[54px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]" />
+        <div className="mt-3 space-y-2.5">
+          {Array.from({ length: 5 }).map((_, i) => (
+            <div
+              key={i}
+              className="flex items-center gap-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-page)] p-3.5"
+            >
+              <div className="size-11 shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
+              <div className="min-w-0 flex-1">
+                <div className="h-4 w-2/3 animate-pulse rounded bg-[var(--d-soft)]" />
+                <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-[var(--d-soft)]" />
+              </div>
+              <div className="h-5 w-16 animate-pulse rounded bg-[var(--d-soft)]" />
             </div>
-            <div className="h-5 w-16 animate-pulse rounded bg-[var(--d-soft)]" />
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
       <CustomerBottomNav />
     </div>
@@ -152,152 +162,167 @@ export function DriveHistoryView({
   const favs = history.favorites;
 
   return (
-    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] px-5 pt-[calc(1rem+env(safe-area-inset-top))] pb-24">
-      <div className="mb-3 flex items-center gap-3">
-        <button
-          type="button"
-          onClick={() => router.push("/drive")}
-          className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
-          aria-label={tc("back")}
-        >
-          <ChevronLeft className="size-5" />
-        </button>
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
-          {t("title")}
-        </h1>
-      </div>
-
-      <div className="mb-3 flex gap-2">
-        {(
-          [
-            ["c", t("tabRides"), Car],
-            ["f", t("tabFavs"), Heart],
-          ] as const
-        ).map(([k, label, Icon]) => (
+    <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] pb-24">
+      {/* HÉRO au thème « occasion » — même langage que l'accueil Drive. */}
+      <div
+        className="relative overflow-hidden rounded-b-[28px] pb-14 text-white"
+        style={{
+          backgroundImage:
+            "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+        }}
+      >
+        <ThemeDecor />
+        <div className="relative z-10 flex items-center gap-3 px-5 pt-[calc(1rem+env(safe-area-inset-top))]">
           <button
-            key={k}
             type="button"
-            onClick={() => setTab(k)}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-xs font-bold transition-colors"
-            style={
-              tab === k
-                ? {
-                    borderColor: VIOLET,
-                    background: "var(--d-accent)",
-                    color: VIOLET,
-                  }
-                : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
-            }
+            onClick={() => router.push("/drive")}
+            className="grid size-[42px] place-items-center rounded-[14px] border border-white/25 bg-white/15 text-white"
+            aria-label={tc("back")}
           >
-            <Icon className="size-3.5" />
-            {label}
+            <ChevronLeft className="size-5 rtl:-scale-x-100" />
           </button>
-        ))}
+          <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px] drop-shadow-sm">
+            {t("title")}
+          </h1>
+        </div>
       </div>
 
-      {tab === "c" ? (
-        history.rides.length === 0 ? (
+      {/* Onglets en pilule FLOTTANTE sur le dégradé + contenu dessous. */}
+      <div className="relative z-10 -mt-10 px-5">
+        <div className="mb-3 flex gap-1.5 rounded-[16px] bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
+          {(
+            [
+              ["c", t("tabRides"), Car],
+              ["f", t("tabFavs"), Heart],
+            ] as const
+          ).map(([k, label, Icon]) => (
+            <button
+              key={k}
+              type="button"
+              onClick={() => setTab(k)}
+              className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1.5 py-2 text-xs font-bold transition-colors"
+              style={
+                tab === k
+                  ? { background: "var(--d-accent)", color: VIOLET }
+                  : { color: "var(--d-muted)" }
+              }
+            >
+              <Icon className="size-3.5" />
+              {label}
+            </button>
+          ))}
+        </div>
+
+        {tab === "c" ? (
+          history.rides.length === 0 ? (
+            <p className="py-8 text-center text-sm text-[var(--d-muted)]">
+              {t("emptyRides")}
+            </p>
+          ) : (
+            history.rides.map((r, i) => (
+              <div
+                key={r.id}
+                className="drive-rise mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
+                style={{ animationDelay: `${Math.min(i, 8) * 0.03}s` }}
+              >
+                <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
+                  <Car className="size-4" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  <b className="block truncate text-[13.5px]">
+                    {r.dest_text ?? "—"}
+                  </b>
+                  <small className="text-[11px] text-[var(--d-muted)]">
+                    {[
+                      new Date(r.when).toLocaleDateString(
+                        locale === "ar" ? "ar-DZ" : "fr-FR",
+                        {
+                          day: "numeric",
+                          month: "short",
+                          timeZone: "Africa/Algiers",
+                        }
+                      ),
+                      r.chauffeur_name,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </small>
+                  {/* Comment ça a été payé : moyen, carte (marque + 4 chiffres),
+                    fournisseur. Composant partagé avec les commandes. */}
+                  <PaymentLine
+                    payment={r.payment}
+                    className="mt-0.5 text-[var(--d-muted)]"
+                  />
+                </span>
+                <span className="shrink-0 text-end">
+                  <span className="drive-sora block text-[14px] font-extrabold">
+                    {formatDA(r.price_da)}
+                  </span>
+                  <span
+                    className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                    style={
+                      r.completed
+                        ? {
+                            background: "rgba(22,179,100,.12)",
+                            color: "#16B364",
+                          }
+                        : {
+                            background: "rgba(229,72,77,.12)",
+                            color: "#E5484D",
+                          }
+                    }
+                  >
+                    {r.completed
+                      ? tc("status.completed")
+                      : tc("status.cancelled")}
+                  </span>
+                </span>
+              </div>
+            ))
+          )
+        ) : favs.length === 0 ? (
           <p className="py-8 text-center text-sm text-[var(--d-muted)]">
-            {t("emptyRides")}
+            {t("emptyFavs")}
           </p>
         ) : (
-          history.rides.map((r, i) => (
+          favs.map((f) => (
             <div
-              key={r.id}
-              className="drive-rise mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
-              style={{ animationDelay: `${Math.min(i, 8) * 0.03}s` }}
+              key={f.chauffeur_id}
+              className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
             >
-              <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
-                <Car className="size-4" />
-              </span>
+              <ChAvatar name={f.name} url={f.avatar_url} size={38} />
               <span className="min-w-0 flex-1">
-                <b className="block truncate text-[13.5px]">
-                  {r.dest_text ?? "—"}
+                <b className="flex items-center gap-1.5 text-[13.5px]">
+                  {f.name}
+                  {f.rating != null && (
+                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                      <Star
+                        className="size-3 shrink-0"
+                        style={{ color: "#E8B53C", fill: "#E8B53C" }}
+                      />
+                      {String(f.rating).replace(".", ",")}
+                    </span>
+                  )}
                 </b>
                 <small className="text-[11px] text-[var(--d-muted)]">
-                  {[
-                    new Date(r.when).toLocaleDateString(
-                      locale === "ar" ? "ar-DZ" : "fr-FR",
-                      {
-                        day: "numeric",
-                        month: "short",
-                        timeZone: "Africa/Algiers",
-                      }
-                    ),
-                    r.chauffeur_name,
-                  ]
+                  {[f.vehicle, t("ridesCount", { count: f.rides_count })]
                     .filter(Boolean)
                     .join(" · ")}
                 </small>
-                {/* Comment ça a été payé : moyen, carte (marque + 4 chiffres),
-                    fournisseur. Composant partagé avec les commandes. */}
-                <PaymentLine
-                  payment={r.payment}
-                  className="mt-0.5 text-[var(--d-muted)]"
-                />
               </span>
-              <span className="shrink-0 text-end">
-                <span className="drive-sora block text-[14px] font-extrabold">
-                  {formatDA(r.price_da)}
-                </span>
-                <span
-                  className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
-                  style={
-                    r.completed
-                      ? { background: "rgba(22,179,100,.12)", color: "#16B364" }
-                      : { background: "rgba(229,72,77,.12)", color: "#E5484D" }
-                  }
-                >
-                  {r.completed
-                    ? tc("status.completed")
-                    : tc("status.cancelled")}
-                </span>
-              </span>
+              <button
+                type="button"
+                aria-label={t("removeFav")}
+                onClick={() => onRemoveFav(f.chauffeur_id)}
+                className="grid size-[34px] shrink-0 place-items-center rounded-full border-[1.5px]"
+                style={{ borderColor: ROSE }}
+              >
+                <Heart className="size-4" style={{ color: ROSE, fill: ROSE }} />
+              </button>
             </div>
           ))
-        )
-      ) : favs.length === 0 ? (
-        <p className="py-8 text-center text-sm text-[var(--d-muted)]">
-          {t("emptyFavs")}
-        </p>
-      ) : (
-        favs.map((f) => (
-          <div
-            key={f.chauffeur_id}
-            className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
-          >
-            <ChAvatar name={f.name} url={f.avatar_url} size={38} />
-            <span className="min-w-0 flex-1">
-              <b className="flex items-center gap-1.5 text-[13.5px]">
-                {f.name}
-                {f.rating != null && (
-                  <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
-                    <Star
-                      className="size-3 shrink-0"
-                      style={{ color: "#E8B53C", fill: "#E8B53C" }}
-                    />
-                    {String(f.rating).replace(".", ",")}
-                  </span>
-                )}
-              </b>
-              <small className="text-[11px] text-[var(--d-muted)]">
-                {[f.vehicle, t("ridesCount", { count: f.rides_count })]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </small>
-            </span>
-            <button
-              type="button"
-              aria-label={t("removeFav")}
-              onClick={() => onRemoveFav(f.chauffeur_id)}
-              className="grid size-[34px] shrink-0 place-items-center rounded-full border-[1.5px]"
-              style={{ borderColor: ROSE }}
-            >
-              <Heart className="size-4" style={{ color: ROSE, fill: ROSE }} />
-            </button>
-          </div>
-        ))
-      )}
+        )}
+      </div>
 
       <CustomerBottomNav />
     </div>
