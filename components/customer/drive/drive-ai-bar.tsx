@@ -91,7 +91,12 @@ export function DriveAiBar({
       speechRef.current = await startSpeech({
         lang,
         onPartial: (txt) => setText(txt),
-        onFinal: (txt) => setText(txt),
+        // Transcription affichée DANS le champ + analyse automatique : le
+        // client voit ce qui a été compris et la carte de confirmation suit.
+        onFinal: (txt) => {
+          setText(txt);
+          void submit(txt);
+        },
         onError: (kind) => {
           setListening(false);
           setErr(
@@ -110,8 +115,10 @@ export function DriveAiBar({
     }
   };
 
-  const submit = async () => {
-    const q = text.trim();
+  const submit = async (raw?: string) => {
+    // `raw` : texte fourni directement par la dictée (l'état React n'est pas
+    // encore à jour dans le même tick).
+    const q = (raw ?? text).trim();
     if (q.length < 3 || busy) return;
     setBusy(true);
     setErr(null);

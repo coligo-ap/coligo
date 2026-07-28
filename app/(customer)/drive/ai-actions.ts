@@ -296,6 +296,9 @@ export async function parseDriveIntent(input: {
     q: destQuery,
     lat: bias?.lat,
     lng: bias?.lng,
+    // Précision d'abord : le client demande un ENDROIT — un commerce Coligo ne
+    // prend la tête que si son enseigne est réellement nommée (quasi exact).
+    preferPlaces: true,
   });
   const destHit = destRes.ok ? destRes.results[0] : undefined;
   if (!destHit)
@@ -314,6 +317,7 @@ export async function parseDriveIntent(input: {
       q: pickupQuery,
       lat: bias?.lat,
       lng: bias?.lng,
+      preferPlaces: true,
     });
     const pHit = pRes.ok ? pRes.results[0] : undefined;
     if (pHit) pickup = { lat: pHit.lat, lng: pHit.lng, text: pHit.display };

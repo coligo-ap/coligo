@@ -1169,6 +1169,13 @@ export async function geocodeSearch(input: {
   q: string;
   lat?: number;
   lng?: number;
+  /**
+   * Drive : le client demande un LIEU où aller — un commerce Coligo ne passe
+   * DEVANT les lieux que sur correspondance quasi exacte de l'enseigne
+   * (score ≥ 0.75). Sans ce mode, les commerces fiables (≥ 0.45) prenaient
+   * systématiquement la tête et masquaient l'endroit réellement demandé.
+   */
+  preferPlaces?: boolean;
 }): Promise<GeocodeSearchResult> {
   const q = (input.q ?? "").trim();
   if (q.length < 3) return { ok: true, results: [] };
@@ -1240,13 +1247,22 @@ export async function geocodeSearch(input: {
     b.score - a.score;
   const confLocal = local.filter((r) => r.score >= 0.5);
   const weakLocal = local.filter((r) => r.score < 0.5);
-  const confMerch = merchants.filter((r) => r.score >= 0.45).sort(byScore);
+  const confMerchAll = merchants.filter((r) => r.score >= 0.45).sort(byScore);
   const weakMerch = merchants.filter((r) => r.score < 0.45).sort(byScore);
+  // Mode « lieux d'abord » (Drive) : seul un commerce quasi certain (enseigne
+  // réellement nommée) garde la tête ; les autres passent APRÈS les lieux.
+  const confMerch = input.preferPlaces
+    ? confMerchAll.filter((r) => r.score >= 0.75)
+    : confMerchAll;
+  const midMerch = input.preferPlaces
+    ? confMerchAll.filter((r) => r.score < 0.75)
+    : [];
   const results: GeoHit[] = [];
   for (const r of [
     ...confMerch,
     ...confLocal,
     ...remote,
+    ...midMerch,
     ...weakMerch,
     ...weakLocal,
   ]) {
