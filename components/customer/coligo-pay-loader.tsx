@@ -10,6 +10,7 @@ import { WalletActions } from "@/components/customer/wallet-actions";
 import { MyPayTag } from "@/components/customer/my-pay-tag";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 
 /**
  * Contenu de /coligo-pay via TanStack Query (pattern OrdersLoader). Le RSC ne
@@ -49,34 +50,42 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
         <ArrowLeft className="size-5 rtl:-scale-x-100" />
       </button>
 
-      {/* HERO premium : carte arrondie (solde + identité). */}
-      <section className="from-primary-400 via-primary-600 to-primary-800 relative overflow-hidden rounded-[26px] bg-gradient-to-br px-6 py-6 text-white shadow-[0_22px_50px_-24px_rgba(91,91,230,.6)]">
-        <span className="pointer-events-none absolute -end-12 -top-16 size-52 rounded-full border border-white/12" />
-        <span className="pointer-events-none absolute end-6 -top-6 size-32 rounded-full border border-white/10" />
+      {/* HERO premium — MÊME langage que la marketplace et les portails :
+          dégradé du thème « occasion » (vars posées sur <html>, mig 0415/0416)
+          + décor du modèle choisi par le super-admin + grain. */}
+      <section
+        className="relative overflow-hidden rounded-[26px] px-6 py-6 text-white shadow-[0_22px_50px_-24px_rgba(76,27,155,.6)]"
+        style={{
+          backgroundImage:
+            "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+        }}
+      >
+        <ThemeDecor />
+        <div className="relative z-10">
+          <div className="flex items-center gap-2">
+            <span className="grid size-7 place-items-center rounded-lg bg-white/20 backdrop-blur">
+              <Wallet className="size-4" />
+            </span>
+            <span className="text-[12.5px] font-extrabold tracking-wide uppercase opacity-90">
+              {t("coligoPayTitle")}
+            </span>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <span className="grid size-7 place-items-center rounded-lg bg-white/20 backdrop-blur">
-            <Wallet className="size-4" />
-          </span>
-          <span className="text-[12.5px] font-extrabold tracking-wide uppercase opacity-90">
-            {t("coligoPayTitle")}
-          </span>
+          <p className="mt-5 text-[11px] font-bold tracking-wide uppercase opacity-70">
+            {t("coligoPayBalance")}
+          </p>
+          <p className="mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums drop-shadow-sm">
+            <WalletBalanceValue
+              kind="topup"
+              userId={userId}
+              initial={data?.balance ?? 0}
+            />
+          </p>
+
+          {data?.payTag?.handle && (
+            <MyPayTag handle={data.payTag.handle} name={data.payTag.name} />
+          )}
         </div>
-
-        <p className="mt-5 text-[11px] font-bold tracking-wide uppercase opacity-70">
-          {t("coligoPayBalance")}
-        </p>
-        <p className="mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums">
-          <WalletBalanceValue
-            kind="topup"
-            userId={userId}
-            initial={data?.balance ?? 0}
-          />
-        </p>
-
-        {data?.payTag?.handle && (
-          <MyPayTag handle={data.payTag.handle} name={data.payTag.name} />
-        )}
       </section>
 
       {/* Actions (chevauchent le bas du hero). Désactivées tant que le plafond
@@ -87,10 +96,11 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
         p2pEnabled={data?.p2pEnabled ?? false}
       />
 
-      {/* Lien cashback épuré. */}
+      {/* Lien cashback — carte bordée (affordance claire, cohérente avec le
+          reste de la page). */}
       <Link
         href="/cashback"
-        className="hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[16px] px-1.5 py-1 transition-colors"
+        className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[16px] border bg-white p-3 transition-colors"
       >
         <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
           <Gift className="size-[18px]" />
