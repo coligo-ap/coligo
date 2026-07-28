@@ -25,7 +25,9 @@
   "notifs": {
     "title": "الإشعارات",
     "close": "إغلاق",
-    "empty": "لا شيء حتى الآن"
+    "empty": "لا شيء حتى الآن",
+    "deleteOne": "حذف هذا الإشعار",
+    "clearAll": "مسح الكل"
   },
   "home": {
     "searchPlaceholder": "ابحث في كوليغو",

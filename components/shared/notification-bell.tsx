@@ -20,6 +20,7 @@ import {
   Gift,
   MessageSquare,
   Package,
+  Trash2,
   X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -72,7 +73,8 @@ export function NotificationBell({
   const locale = useLocale();
   const router = useRouter();
   const [open, setOpen] = useState(false);
-  const { items, unread, markAllRead } = useAppNotifications(source);
+  const { items, unread, markAllRead, removeOne, clearAll } =
+    useAppNotifications(source);
   // Pastilles « nouveau » figées à l'ouverture (le marquage lu est optimiste).
   const freshIdsRef = useRef<Set<string>>(new Set());
 
@@ -155,11 +157,18 @@ export function NotificationBell({
                     const Icon = kindIcon(n.kind);
                     const fresh = freshIdsRef.current.has(n.id);
                     return (
-                      <button
+                      // div role=button (PAS un <button>) : la croix de
+                      // suppression est un vrai bouton à l'intérieur — un
+                      // bouton imbriqué casserait l'hydratation.
+                      <div
                         key={n.id}
-                        type="button"
+                        role="button"
+                        tabIndex={0}
                         onClick={() => go(n)}
-                        className="flex w-full items-start gap-3 rounded-[16px] p-3 text-start transition-colors active:bg-[var(--d-soft)]"
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" || e.key === " ") go(n);
+                        }}
+                        className="flex w-full cursor-pointer items-start gap-3 rounded-[16px] p-3 text-start transition-colors active:bg-[var(--d-soft)]"
                         style={
                           fresh ? { background: "var(--d-accent)" } : undefined
                         }
@@ -191,11 +200,37 @@ export function NotificationBell({
                             style={{ background: VIOLET }}
                           />
                         )}
-                      </button>
+                        {/* Suppression DÉFINITIVE de cette notification. */}
+                        <button
+                          type="button"
+                          aria-label={t("deleteOne")}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            void removeOne(n.id);
+                          }}
+                          className="-m-2 grid size-11 shrink-0 place-items-center self-center rounded-full text-[var(--d-muted)] transition-colors hover:text-[var(--d-ink)]"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
                     );
                   })
                 )}
               </div>
+
+              {/* Tout effacer — suppression définitive, pied de feuille. */}
+              {groups.length > 0 && (
+                <div className="border-t border-[var(--d-line)] px-5 py-2.5 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
+                  <button
+                    type="button"
+                    onClick={() => void clearAll()}
+                    className="mx-auto flex min-h-[44px] items-center justify-center gap-2 text-[13px] font-bold text-[var(--d-muted)] transition-colors hover:text-[#E5484D]"
+                  >
+                    <Trash2 className="size-4" />
+                    {t("clearAll")}
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         </Portal>

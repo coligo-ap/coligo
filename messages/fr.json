@@ -25,7 +25,9 @@
   "notifs": {
     "title": "Notifications",
     "close": "Fermer",
-    "empty": "Rien pour l'instant"
+    "empty": "Rien pour l'instant",
+    "deleteOne": "Supprimer cette notification",
+    "clearAll": "Tout effacer"
   },
   "home": {
     "searchPlaceholder": "Rechercher sur Coligo",

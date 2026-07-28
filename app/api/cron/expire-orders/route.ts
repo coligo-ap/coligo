@@ -77,11 +77,22 @@ export async function GET(request: Request) {
     console.error("[cron/expire-orders] referrals:", refErr.message);
   }
 
+  // 5) Purge des notifications périmées (mig 0418) : transitoires > 7 j,
+  //    lues > 30 j, tout > 90 j — la cloche ne garde plus rien à vie.
+  const { data: purgeData, error: purgeErr } = await rpc(
+    "purge_notifications",
+    {}
+  );
+  if (purgeErr) {
+    console.error("[cron/expire-orders] purge notifs:", purgeErr.message);
+  }
+
   return NextResponse.json({
     ok: true,
     expired: row?.expired ?? 0,
     unpaidOnlineExpired: unpaidRow?.expired ?? 0,
     staleClaimsReleased: typeof staleData === "number" ? staleData : 0,
     referralsExpired: typeof refData === "number" ? refData : 0,
+    notificationsPurged: purgeData ?? null,
   });
 }

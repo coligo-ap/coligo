@@ -26,7 +26,10 @@ export type AppNotification = {
 };
 
 export type NotifSource =
-  | { table: "user_notifications"; audience: "customer" | "chauffeur" }
+  | {
+      table: "user_notifications";
+      audience: "customer" | "chauffeur" | "merchant";
+    }
   | { table: "driver_notifications" };
 
 type Rpc = (
@@ -132,5 +135,42 @@ export function useAppNotifications(source: NotifSource, enabled = true) {
     }
   }, [items, audience]);
 
-  return { items, unread, markAllRead, refresh: poll };
+  // Suppression DÉFINITIVE (mig 0418) — optimiste, RPC scopée auth.uid().
+  const removeOne = useCallback(
+    async (id: string) => {
+      setItems((old) => old.filter((n) => n.id !== id));
+      try {
+        const supabase = createClient();
+        const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
+        if (audience)
+          await rpc("delete_user_notifications", {
+            p_audience: audience,
+            p_ids: [id],
+          });
+        else await rpc("driver_delete_notifications", { p_ids: [id] });
+      } catch {
+        /* best-effort — le prochain poll remettra l'état serveur */
+      }
+    },
+    [audience]
+  );
+
+  const clearAll = useCallback(async () => {
+    if (items.length === 0) return;
+    setItems([]);
+    try {
+      const supabase = createClient();
+      const rpc = supabase.rpc.bind(supabase) as unknown as Rpc;
+      if (audience)
+        await rpc("delete_user_notifications", {
+          p_audience: audience,
+          p_ids: null,
+        });
+      else await rpc("driver_delete_notifications", { p_ids: null });
+    } catch {
+      /* best-effort */
+    }
+  }, [items.length, audience]);
+
+  return { items, unread, markAllRead, removeOne, clearAll, refresh: poll };
 }
