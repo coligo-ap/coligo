@@ -36,7 +36,7 @@ export default async function DriverNotificationsPage() {
       <PartnerBackHeader
         href="/driver/parametres"
         title={tr("Notifications", "الإشعارات")}
-        subtitle={tr("Messages de l'équipe Coligo", "رسائل فريق كوليڨو")}
+        subtitle={tr("Messages de l'équipe Coligo", "رسائل فريق كوليغو")}
       />
       {items.length === 0 ? (
         <PartnerEmptyState
@@ -44,7 +44,7 @@ export default async function DriverNotificationsPage() {
           title={tr("Aucune notification", "لا إشعارات")}
           text={tr(
             "Les messages de l'équipe Coligo apparaîtront ici.",
-            "ستظهر رسائل فريق كوليڨو هنا."
+            "ستظهر رسائل فريق كوليغو هنا."
           )}
         />
       ) : (

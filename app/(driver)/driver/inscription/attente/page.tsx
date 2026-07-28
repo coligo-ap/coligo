@@ -33,7 +33,7 @@ export default async function DriverPendingPage({
       title={tr("En attente de validation", "في انتظار المصادقة")}
       subtitle={tr(
         "L'équipe Coligo examine actuellement votre identité, votre véhicule et vos documents.",
-        "يفحص فريق كوليڨو حاليًا هويتك ومركبتك ووثائقك."
+        "يفحص فريق كوليغو حاليًا هويتك ومركبتك ووثائقك."
       )}
       step={3}
       stepCount={4}

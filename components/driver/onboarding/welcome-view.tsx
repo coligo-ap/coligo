@@ -99,7 +99,7 @@ export function DriverWelcomeView({
         <p className="mx-auto mt-2.5 max-w-[320px] text-[13.5px] leading-relaxed text-[var(--muted)]">
           {tr(
             "L'équipe Coligo a vérifié votre compte. Vous pouvez désormais commencer à générer des revenus immédiatement.",
-            "تحقق فريق كوليڨو من حسابك. يمكنك الآن البدء في تحقيق مداخيل فورًا."
+            "تحقق فريق كوليغو من حسابك. يمكنك الآن البدء في تحقيق مداخيل فورًا."
           )}
         </p>
 
@@ -267,7 +267,7 @@ const TOUR_SLIDES = [
     titleAr: "حصّل وسدّد",
     text: "Les courses en espèces sont encaissées par vous. Votre relevé indique à tout moment ce que vous devez reverser à Coligo, ou ce que Coligo vous doit.",
     textAr:
-      "الطلبات النقدية تحصّلها أنت. كشفك يبيّن في كل وقت ما يجب أن تسدده لكوليڨو، أو ما تدين به كوليڨو لك.",
+      "الطلبات النقدية تحصّلها أنت. كشفك يبيّن في كل وقت ما يجب أن تسدده لكوليغو، أو ما تدين به كوليغو لك.",
   },
   {
     icon: <BarChart3 className="size-7" />,

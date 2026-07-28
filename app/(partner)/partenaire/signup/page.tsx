@@ -26,7 +26,7 @@ export default async function PartnerSignupPage() {
         title: isAr ? (
           <>
             كن وكيل <br />
-            كوليڨو باي.
+            كوليغو باي.
           </>
         ) : (
           <>
@@ -36,14 +36,14 @@ export default async function PartnerSignupPage() {
         ),
         subtitle: tr(
           "Rejoignez le réseau des points de recharge Coligo et vendez du crédit.",
-          "انضم إلى شبكة نقاط تعبئة كوليڨو وبِع الرصيد."
+          "انضم إلى شبكة نقاط تعبئة كوليغو وبِع الرصيد."
         ),
         features: isAr
           ? [
               "بِع الرصيد لزبائنك",
               "اربح على كل تعبئة",
               "اظهر على خريطة النقاط",
-              "ملف يُراجَع من طرف كوليڨو",
+              "ملف يُراجَع من طرف كوليغو",
             ]
           : [
               "Vendez du crédit à vos clients",

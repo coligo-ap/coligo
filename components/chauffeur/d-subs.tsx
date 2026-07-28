@@ -132,7 +132,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
       : reason === "bad_plan"
         ? tr("Plan introuvable.", "عرض غير موجود.")
         : reason === "insufficient_wallet"
-          ? tr("Solde Coligo Pay insuffisant.", "رصيد كوليڨو باي غير كافٍ.")
+          ? tr("Solde Coligo Pay insuffisant.", "رصيد كوليغو باي غير كافٍ.")
           : reason === "already_subscribed"
             ? tr(
                 "Vous avez déjà un abonnement actif.",
@@ -263,7 +263,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
               isAr ? (
                 <>
                   تحويل {labelOf(fin.pendingSub.plan)} ({fin.pendingSub.amount}{" "}
-                  دج) قيد التحقّق — يبدأ الاشتراك بعد موافقة فريق كوليڨو.
+                  دج) قيد التحقّق — يبدأ الاشتراك بعد موافقة فريق كوليغو.
                 </>
               ) : (
                 <>

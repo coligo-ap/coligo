@@ -121,7 +121,7 @@ export function AppDownloadPage({
         <p className="text-muted mt-2 text-center text-xs">
           {tr(
             "Fichier .apk officiel Coligo · Android uniquement",
-            "ملف ‎.apk رسمي من كوليڨو · أندرويد فقط"
+            "ملف ‎.apk رسمي من كوليغو · أندرويد فقط"
           )}
           {version ? ` · ${tr("version", "الإصدار")} ${version}` : ""}
           {url && (
@@ -196,7 +196,7 @@ export function AppDownloadPage({
         <p className="text-muted text-xs leading-relaxed">
           {tr(
             "L’avertissement Android « source inconnue » est normal pour une application distribuée hors du Play Store. Le fichier provient uniquement de Coligo.",
-            "تحذير أندرويد «مصدر مجهول» أمر طبيعي لتطبيق يوزَّع خارج متجر Play. الملف يأتي من كوليڨو حصريًا."
+            "تحذير أندرويد «مصدر مجهول» أمر طبيعي لتطبيق يوزَّع خارج متجر Play. الملف يأتي من كوليغو حصريًا."
           )}
         </p>
       </div>

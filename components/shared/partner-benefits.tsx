@@ -53,7 +53,7 @@ type RoleContent = {
 
 const CONTENT: Record<Exclude<AuthVariant, "customer">, RoleContent> = {
   merchant: {
-    eyebrow: ["Pourquoi Coligo ?", "لماذا كوليڨو؟"],
+    eyebrow: ["Pourquoi Coligo ?", "لماذا كوليغو؟"],
     title: ["Développez votre commerce.", "طوّر تجارتك."],
     signupHref: "/signup",
     stats: [
@@ -105,14 +105,14 @@ const CONTENT: Record<Exclude<AuthVariant, "customer">, RoleContent> = {
         t: ["Fiable et sécurisé", "موثوق وآمن"],
         d: [
           "Paiements protégés, l'équipe Coligo à vos côtés.",
-          "مدفوعات محمية وفريق كوليڨو إلى جانبك.",
+          "مدفوعات محمية وفريق كوليغو إلى جانبك.",
         ],
       },
     ],
-    cta: ["Ouvrez votre boutique sur Coligo.", "افتح متجرك على كوليڨو."],
+    cta: ["Ouvrez votre boutique sur Coligo.", "افتح متجرك على كوليغو."],
   },
   driver: {
-    eyebrow: ["Pourquoi Coligo ?", "لماذا كوليڨو؟"],
+    eyebrow: ["Pourquoi Coligo ?", "لماذا كوليغو؟"],
     title: ["Gagnez avec vos livraisons.", "اربح من توصيلاتك."],
     signupHref: "/driver/signup",
     stats: [
@@ -167,10 +167,10 @@ const CONTENT: Record<Exclude<AuthVariant, "customer">, RoleContent> = {
         ],
       },
     ],
-    cta: ["Commencez à livrer avec Coligo.", "ابدأ التوصيل مع كوليڨو."],
+    cta: ["Commencez à livrer avec Coligo.", "ابدأ التوصيل مع كوليغو."],
   },
   chauffeur: {
-    eyebrow: ["Pourquoi Coligo Drive ?", "لماذا كوليڨو درايف؟"],
+    eyebrow: ["Pourquoi Coligo Drive ?", "لماذا كوليغو درايف؟"],
     title: ["Conduisez, encaissez.", "سُق واربح."],
     signupHref: "/chauffeur/signup",
     stats: [
@@ -225,10 +225,10 @@ const CONTENT: Record<Exclude<AuthVariant, "customer">, RoleContent> = {
         ],
       },
     ],
-    cta: ["Prenez la route avec Coligo Drive.", "انطلق مع كوليڨو درايف."],
+    cta: ["Prenez la route avec Coligo Drive.", "انطلق مع كوليغو درايف."],
   },
   partner: {
-    eyebrow: ["Pourquoi Coligo Pay ?", "لماذا كوليڨو باي؟"],
+    eyebrow: ["Pourquoi Coligo Pay ?", "لماذا كوليغو باي؟"],
     title: ["Devenez point de recharge.", "كن نقطة تعبئة."],
     signupHref: "/partenaire/signup",
     stats: [
@@ -252,7 +252,7 @@ const CONTENT: Record<Exclude<AuthVariant, "customer">, RoleContent> = {
         t: ["Plus de passage en boutique", "حركة أكثر في محلك"],
         d: [
           "Les clients Coligo viennent recharger chez vous.",
-          "زبائن كوليڨو يأتون للتعبئة عندك.",
+          "زبائن كوليغو يأتون للتعبئة عندك.",
         ],
       },
       {
@@ -274,7 +274,7 @@ const CONTENT: Record<Exclude<AuthVariant, "customer">, RoleContent> = {
         ],
       },
     ],
-    cta: ["Rejoignez le réseau Coligo Pay.", "انضم إلى شبكة كوليڨو باي."],
+    cta: ["Rejoignez le réseau Coligo Pay.", "انضم إلى شبكة كوليغو باي."],
   },
 };
 

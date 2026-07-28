@@ -583,7 +583,7 @@ export function DCourse() {
     : "Course prépayée (Coligo Pay)";
   const payAr = isCardRide
     ? "مشوار مدفوع بالبطاقة البنكية"
-    : "مشوار مدفوع مسبقًا (كوليڨو باي)";
+    : "مشوار مدفوع مسبقًا (كوليغو باي)";
 
   // Appel : Coligo Call par défaut ; si le client a partagé son numéro direct,
   // on ouvre un mini-sélecteur (Coligo Call / numéro) — une SEULE action visible.
@@ -989,7 +989,7 @@ export function DCourse() {
                 ride.cash_due_da > 0 ? (
                   isAr ? (
                     <>
-                      مشوار كوليڨو باي جزئي —{" "}
+                      مشوار كوليغو باي جزئي —{" "}
                       {formatDA(ride.agreed_price_da - ride.cash_due_da)} في
                       الضمان (تُضاف إلى رصيدك في النهاية) ·{" "}
                       <b>حصّل {formatDA(ride.cash_due_da)} نقدًا</b> من الزبون
@@ -1218,7 +1218,7 @@ export function DCourse() {
         <p className="mb-3 text-[13px] text-[var(--d-muted)]">
           {tr(
             "Coligo Call protège votre numéro et celui du client.",
-            "كوليڨو كول يحمي رقمك ورقم الزبون."
+            "كوليغو كول يحمي رقمك ورقم الزبون."
           )}
         </p>
         <button
@@ -1334,7 +1334,7 @@ export function DCourse() {
                   `https://wa.me/?text=${encodeURIComponent(
                     tr(
                       `Suivez ma course Coligo en direct : ${shareUrl}`,
-                      `تابعوا مشواري على كوليڨو مباشرة: ${shareUrl}`
+                      `تابعوا مشواري على كوليغو مباشرة: ${shareUrl}`
                     )
                   )}`,
                   "_blank"
@@ -1352,7 +1352,7 @@ export function DCourse() {
                   `sms:?body=${encodeURIComponent(
                     tr(
                       `Suivez ma course Coligo en direct : ${shareUrl}`,
-                      `تابعوا مشواري على كوليڨو مباشرة: ${shareUrl}`
+                      `تابعوا مشواري على كوليغو مباشرة: ${shareUrl}`
                     )
                   )}`,
                   "_self"

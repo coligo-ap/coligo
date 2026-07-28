@@ -79,7 +79,7 @@ export const APP_THEMES: Record<AppThemeKey, AppThemePreset> = {
     homeIcon: "sparkles",
     home: {
       fr: "Bienvenue sur Coligo",
-      ar: "مرحبًا بك في كوليڨو",
+      ar: "مرحبًا بك في كوليغو",
       en: "Welcome to Coligo",
     },
     homeSub: {
@@ -124,7 +124,7 @@ export const APP_THEMES: Record<AppThemeKey, AppThemePreset> = {
     },
     homeSub: {
       fr: "Toute l'équipe Coligo vous souhaite une bonne fête.",
-      ar: "فريق كوليڨو يتمنى لكم عيدًا سعيدًا.",
+      ar: "فريق كوليغو يتمنى لكم عيدًا سعيدًا.",
       en: "The Coligo team wishes you a happy Eid.",
     },
   },
@@ -139,7 +139,7 @@ export const APP_THEMES: Record<AppThemeKey, AppThemePreset> = {
     homeIcon: "sun",
     home: {
       fr: "L'été avec Coligo",
-      ar: "الصيف مع كوليڨو",
+      ar: "الصيف مع كوليغو",
       en: "Summer with Coligo",
     },
     homeSub: {

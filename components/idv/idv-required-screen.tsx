@@ -96,7 +96,7 @@ export async function IdvRequiredScreen({
         <Lock className="size-3.5" />
         {tr(
           "Données chiffrées, visibles uniquement par l'équipe Coligo",
-          "بيانات مشفّرة، لا يطّلع عليها إلا فريق كوليڨو"
+          "بيانات مشفّرة، لا يطّلع عليها إلا فريق كوليغو"
         )}
       </p>
 

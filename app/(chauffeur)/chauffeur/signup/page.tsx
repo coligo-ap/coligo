@@ -34,7 +34,7 @@ export default async function ChauffeurSignupPage() {
         title: isAr ? (
           <>
             كن سائقًا مع <br />
-            كوليڨو درايف.
+            كوليغو درايف.
           </>
         ) : (
           <>
@@ -44,7 +44,7 @@ export default async function ChauffeurSignupPage() {
         ),
         subtitle: tr(
           "Transportez des passagers avec Coligo Drive.",
-          "انقل الركاب مع كوليڨو درايف."
+          "انقل الركاب مع كوليغو درايف."
         ),
         features: isAr
           ? [

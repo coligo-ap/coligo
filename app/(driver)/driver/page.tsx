@@ -168,7 +168,7 @@ export default async function DriverHomePage() {
           variant="overlay"
           fallbackMessage={
             locale === "ar"
-              ? "علّق فريق كوليڨو التوصيلات الجديدة مؤقتًا. أرباحك وسجلّك يبقيان متاحين."
+              ? "علّق فريق كوليغو التوصيلات الجديدة مؤقتًا. أرباحك وسجلّك يبقيان متاحين."
               : "L'équipe Coligo a suspendu temporairement les nouvelles livraisons. Vos gains et votre historique restent accessibles."
           }
         />

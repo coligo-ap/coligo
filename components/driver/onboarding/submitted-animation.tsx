@@ -68,7 +68,7 @@ export function SubmittedAnimation({ onDone }: { onDone: () => void }) {
       <p className="mt-2.5 max-w-[320px] text-[13px] leading-relaxed text-[var(--muted)]">
         {tr(
           "L'équipe Coligo procède actuellement à la vérification de votre identité et de vos documents. Vous recevrez une notification dès que votre compte sera validé.",
-          "يقوم فريق كوليڨو حاليًا بالتحقق من هويتك ووثائقك. ستصلك رسالة إشعار فور المصادقة على حسابك."
+          "يقوم فريق كوليغو حاليًا بالتحقق من هويتك ووثائقك. ستصلك رسالة إشعار فور المصادقة على حسابك."
         )}
       </p>
       <p className="mt-3 text-[12.5px] font-semibold text-[var(--ink)]">

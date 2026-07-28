@@ -212,7 +212,7 @@ export function DoneScreen({
           </div>
           <div className="flex items-center justify-between border-t border-[var(--d-line)] py-2 text-[13.5px]">
             <span className="text-[var(--d-muted)]">
-              {tr("Commission Coligo", "عمولة كوليڨو")} ({pct})
+              {tr("Commission Coligo", "عمولة كوليغو")} ({pct})
             </span>
             <span style={{ color: RED }}>−{formatDA(done.commission_da)}</span>
           </div>
@@ -243,7 +243,7 @@ export function DoneScreen({
                   )
                 : done.cash_due_da > 0
                   ? isAr
-                    ? `${formatDA(done.cash_due_da)} حُصِّلت نقدًا · ${formatDA(done.price_da - done.cash_due_da)} عبر كوليڨو باي، أُضيفت إلى رصيدك`
+                    ? `${formatDA(done.cash_due_da)} حُصِّلت نقدًا · ${formatDA(done.price_da - done.cash_due_da)} عبر كوليغو باي، أُضيفت إلى رصيدك`
                     : `${formatDA(done.cash_due_da)} encaissés en espèces · ${formatDA(done.price_da - done.cash_due_da)} via Coligo Pay, crédités sur votre solde`
                   : // Carte bancaire distinguée de Coligo Pay : même logique
                     // métier (encaissée par Coligo puis créditée), mais le
@@ -255,7 +255,7 @@ export function DoneScreen({
                       )
                     : tr(
                         "Prépayée (Coligo Pay) · encaissée par Coligo, créditée sur votre solde",
-                        "مدفوعة مسبقًا (كوليڨو باي) · حصّلتها كوليڨو وأُضيفت إلى رصيدك"
+                        "مدفوعة مسبقًا (كوليغو باي) · حصّلتها كوليغو وأُضيفت إلى رصيدك"
                       )}
             </b>
             {done.commission_da > 0 && (

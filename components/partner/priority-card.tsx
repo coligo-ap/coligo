@@ -79,7 +79,7 @@ export function PriorityCard() {
   // Codes serveur → messages clairs (JAMAIS de code brut à l'écran).
   const prioErr = (code?: string | null) =>
     code === "insufficient_wallet"
-      ? tr("Solde Coligo Pay insuffisant.", "رصيد كوليڨو باي غير كافٍ.")
+      ? tr("Solde Coligo Pay insuffisant.", "رصيد كوليغو باي غير كافٍ.")
       : code === "already_subscribed"
         ? tr("Vous avez déjà un abonnement actif.", "لديك اشتراك نشط بالفعل.")
         : code === "pass_disabled"
@@ -331,7 +331,7 @@ export function PriorityCard() {
               <div className="bg-surface-2 flex items-center gap-2 rounded-xl px-3 py-2 text-xs">
                 <Wallet className="text-primary-600 size-4 shrink-0" />
                 <span className="text-muted">
-                  {tr("Solde Coligo Pay :", "رصيد كوليڨو باي:")}{" "}
+                  {tr("Solde Coligo Pay :", "رصيد كوليغو باي:")}{" "}
                   <b className="text-foreground">
                     {fmtDA(balance)} {tr("DA", "دج")}
                   </b>

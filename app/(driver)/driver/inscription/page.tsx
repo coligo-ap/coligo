@@ -37,7 +37,7 @@ export default async function DriverKycPage() {
         >
           {tr(
             "Elles sont exigées par la loi et protègent les clients comme les livreurs. Elles restent confidentielles et ne sont consultées que par l'équipe Coligo.",
-            "يفرضها القانون وهي تحمي الزبائن والموصّلين على حد سواء. تبقى سرّية ولا يطّلع عليها إلا فريق كوليڨو."
+            "يفرضها القانون وهي تحمي الزبائن والموصّلين على حد سواء. تبقى سرّية ولا يطّلع عليها إلا فريق كوليغو."
           )}
         </InfoNote>
       }

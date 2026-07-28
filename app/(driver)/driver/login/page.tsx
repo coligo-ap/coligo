@@ -44,7 +44,7 @@ export default async function DriverLoginPage() {
         ),
         subtitle: tr(
           "L'application des livreurs partenaires de Coligo.",
-          "تطبيق الموصّلين الشركاء لكوليڨو."
+          "تطبيق الموصّلين الشركاء لكوليغو."
         ),
         features: isAr
           ? [

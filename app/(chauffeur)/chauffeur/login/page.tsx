@@ -23,7 +23,7 @@ export default async function ChauffeurLoginPage() {
         title: isAr ? (
           <>
             قُد مع <br />
-            كوليڨو درايف.
+            كوليغو درايف.
           </>
         ) : (
           <>
@@ -33,7 +33,7 @@ export default async function ChauffeurLoginPage() {
         ),
         subtitle: tr(
           "L'application des chauffeurs VTC partenaires de Coligo.",
-          "تطبيق سائقي النقل الشركاء لكوليڨو."
+          "تطبيق سائقي النقل الشركاء لكوليغو."
         ),
         features: isAr
           ? [

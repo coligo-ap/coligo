@@ -154,7 +154,7 @@ export function SubscribeSheet({
               <span className="text-[var(--d-muted)]">
                 {tr(
                   "Payé avec Coligo Pay — solde après :",
-                  "يُدفع من كوليڨو باي — الرصيد بعده:"
+                  "يُدفع من كوليغو باي — الرصيد بعده:"
                 )}{" "}
                 <b className="text-[var(--d-ink)] tabular-nums">
                   {fmtDA(Math.max(0, balance - offer.priceDa))} {da}
@@ -175,7 +175,7 @@ export function SubscribeSheet({
             </SheetTitle>
             <p className="mb-2.5 text-[12.5px] text-[var(--d-muted)]">
               {isAr
-                ? `رصيد كوليڨو باي (${fmtDA(balance)} دج) لا يغطي هذا العرض — اختر وسيلة دفع:`
+                ? `رصيد كوليغو باي (${fmtDA(balance)} دج) لا يغطي هذا العرض — اختر وسيلة دفع:`
                 : `Solde Coligo Pay (${fmtDA(balance)} DA) insuffisant — choisissez un moyen de paiement :`}
             </p>
             <MethodRow
@@ -196,7 +196,7 @@ export function SubscribeSheet({
               title={tr("Virement CCP / BaridiMob", "تحويل CCP / بريدي موب")}
               sub={tr(
                 "Rechargez Coligo Pay puis confirmez en un tap",
-                "عبّئ كوليڨو باي ثم أكّد بلمسة"
+                "عبّئ كوليغو باي ثم أكّد بلمسة"
               )}
               href={`${rechargeBase}/ccp`}
             />
@@ -205,7 +205,7 @@ export function SubscribeSheet({
               title={tr("Espèces chez un agent", "نقدًا لدى وكيل")}
               sub={tr(
                 "Points de recharge Coligo Pay près de chez vous",
-                "نقاط تعبئة كوليڨو باي قريبة منك"
+                "نقاط تعبئة كوليغو باي قريبة منك"
               )}
               href={`${rechargeBase}/especes`}
             />

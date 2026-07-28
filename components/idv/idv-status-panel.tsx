@@ -99,7 +99,7 @@ export function IdvStatusPanel({
       tone: idvStatusLabel("pending_review", locale),
       hint: tr(
         "L'équipe Coligo examine votre dossier. Vous serez notifié du résultat.",
-        "فريق كوليڨو يدرس ملفك. سيتم إشعارك بالنتيجة."
+        "فريق كوليغو يدرس ملفك. سيتم إشعارك بالنتيجة."
       ),
     },
     approved: {
@@ -124,7 +124,7 @@ export function IdvStatusPanel({
       tone: idvStatusLabel("resubmit_document", locale),
       hint: tr(
         "L'équipe Coligo a besoin d'une photo plus lisible de votre pièce.",
-        "فريق كوليڨو بحاجة إلى صورة أوضح لوثيقتك."
+        "فريق كوليغو بحاجة إلى صورة أوضح لوثيقتك."
       ),
     },
     resubmit_selfie: {
@@ -134,7 +134,7 @@ export function IdvStatusPanel({
       tone: idvStatusLabel("resubmit_selfie", locale),
       hint: tr(
         "L'équipe Coligo a besoin d'un nouveau selfie de vérification.",
-        "فريق كوليڨو بحاجة إلى سيلفي تحقّق جديد."
+        "فريق كوليغو بحاجة إلى سيلفي تحقّق جديد."
       ),
     },
   };

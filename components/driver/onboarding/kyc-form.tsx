@@ -513,7 +513,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
           <p className="mt-1 text-[12.5px] text-[var(--ink)]">
             {tr(
               "L'équipe Coligo n'a pas pu valider votre dossier :",
-              "لم يتمكن فريق كوليڨو من المصادقة على ملفك:"
+              "لم يتمكن فريق كوليغو من المصادقة على ملفك:"
             )}{" "}
             <b>{data.rejectionReason}</b>
           </p>
@@ -993,7 +993,7 @@ function Review({
         {report.complete
           ? tr(
               "Tout y est. Vous pouvez transmettre votre dossier à l'équipe Coligo.",
-              "كل شيء جاهز. يمكنك إرسال ملفك إلى فريق كوليڨو."
+              "كل شيء جاهز. يمكنك إرسال ملفك إلى فريق كوليغو."
             )
           : tr(
               "Touchez un élément manquant pour aller le corriger.",
@@ -1193,7 +1193,7 @@ function DocSlot({
               : filled
                 ? tr(
                     "Reçue — sera vérifiée par l'équipe Coligo",
-                    "استُلمت — سيتحقق منها فريق كوليڨو"
+                    "استُلمت — سيتحقق منها فريق كوليغو"
                   )
                 : hint}
           </small>

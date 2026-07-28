@@ -19,7 +19,7 @@ export async function ChauffeurFeatureNotice() {
       variant="overlay"
       fallbackMessage={
         isAr
-          ? "علّق فريق كوليڨو المشاوير الجديدة مؤقتًا. أرباحك وسجلّك وحسابك تبقى متاحة."
+          ? "علّق فريق كوليغو المشاوير الجديدة مؤقتًا. أرباحك وسجلّك وحسابك تبقى متاحة."
           : "L'équipe Coligo a suspendu temporairement les nouvelles courses. Vos gains, votre historique et votre compte restent accessibles."
       }
     />

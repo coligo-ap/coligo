@@ -22,7 +22,7 @@ export default async function PartnerHomePage() {
             locale={locale}
             fallbackMessage={
               locale === "ar"
-                ? "علّق فريق كوليڨو خدمة كوليڨو باي مؤقتًا — بيع التعبئة متوقف حتى إشعار آخر."
+                ? "علّق فريق كوليغو خدمة كوليغو باي مؤقتًا — بيع التعبئة متوقف حتى إشعار آخر."
                 : "L'équipe Coligo a suspendu temporairement Coligo Pay — la vente de recharges est bloquée jusqu'à nouvel ordre."
             }
           />

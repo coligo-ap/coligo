@@ -32,6 +32,7 @@ import {
 } from "./drive-modals";
 import { ZoneBlockNotice } from "./drive-ui";
 import { DriveAiBar } from "./drive-ai-bar";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 import type { Pt, Screen } from "./drive-types";
 
 /**
@@ -93,53 +94,61 @@ export function DriveHomeScreen({
 
   return (
     <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col bg-white">
-      {/* En-tête Coligo Drive — barre propre (PLUS DE CARTE EN FOND : l'écran
-          s'ouvre instantanément, MapLibre n'est initialisé que sur les écrans
-          choix-sur-carte / prix / course). */}
-      <header className="px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-1">
-        <div className="flex items-center justify-between gap-2">
-          <p
-            className="drive-sora flex items-center gap-1.5 text-[13.5px] font-extrabold tracking-[0.5px] uppercase"
-            style={{ color: VIOLET }}
-          >
-            <Car className="size-[18px]" /> Coligo Drive
-          </p>
-          <div className="flex items-center gap-1.5">
-            {/* <Link> PRÉFETCHÉ (règle « nav client ultra rapide ») : la route
-                + son loading.tsx sont déjà en cache au tap → écran instantané.
-                Un router.push sur onClick ne préfetche rien : premier tap =
-                aller-retour serveur complet, ressenti « le bouton bugue ». */}
-            <Link
-              href="/drive/historique"
-              prefetch
-              className="flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-xs font-bold"
-            >
-              <History className="size-3.5" /> {t("history")}
-            </Link>
-            <button
-              type="button"
-              onClick={() => setContactsOpen(true)}
-              aria-label={t("sosContacts.title")}
-              className="grid size-8 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)]"
-              style={{ color: ROSE }}
-            >
-              <ShieldAlert className="size-4" />
-            </button>
+      {/* HÉRO au thème « occasion » (vars posées sur <html>, mig 0415/0416) —
+          MÊME langage que l'accueil marketplace / Compte / portefeuilles. PLUS
+          DE CARTE EN FOND : l'écran s'ouvre instantanément, MapLibre n'est
+          initialisé que sur les écrans choix-sur-carte / prix / course. */}
+      <div
+        className="relative overflow-hidden rounded-b-[28px] pb-14 text-white"
+        style={{
+          backgroundImage:
+            "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+        }}
+      >
+        <ThemeDecor />
+        <header className="relative z-10 px-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
+          <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2">
+            <p className="drive-sora flex items-center gap-1.5 text-[13.5px] font-extrabold tracking-[0.5px] uppercase drop-shadow-sm">
+              <Car className="size-[18px]" /> Coligo Drive
+            </p>
+            <div className="flex items-center gap-1.5">
+              {/* <Link> PRÉFETCHÉ (règle « nav client ultra rapide ») : la route
+                  + son loading.tsx sont déjà en cache au tap → écran instantané.
+                  Un router.push sur onClick ne préfetche rien : premier tap =
+                  aller-retour serveur complet, ressenti « le bouton bugue ». */}
+              <Link
+                href="/drive/historique"
+                prefetch
+                className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold text-white"
+              >
+                <History className="size-3.5" /> {t("history")}
+              </Link>
+              <button
+                type="button"
+                onClick={() => setContactsOpen(true)}
+                aria-label={t("sosContacts.title")}
+                className="grid size-9 place-items-center rounded-full border border-white/25 bg-white/15 text-white"
+              >
+                <ShieldAlert className="size-4" />
+              </button>
+            </div>
           </div>
+        </header>
+        <div className="relative z-10 mx-auto w-full max-w-6xl px-5">
+          <h1 className="drive-sora mt-3 text-[27px] leading-tight font-extrabold tracking-[-0.6px] drop-shadow-sm">
+            {t("home.title")}
+          </h1>
         </div>
-      </header>
+      </div>
 
-      {/* Contenu — mobile : 1 colonne ; desktop : formulaire À GAUCHE + carte de
-          visualisation À DROITE (trajet A→B). */}
-      <main className="flex-1 overflow-y-auto px-5 pb-24">
+      {/* Contenu — CHEVAUCHE le bas du héro (feuille, signature du design).
+          Mobile : 1 colonne ; desktop : formulaire À GAUCHE + carte À DROITE. */}
+      <main className="relative z-10 -mt-10 flex-1 overflow-y-auto px-5 pb-24">
         <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,480px)_1fr]">
           <div className="min-w-0">
-            <h1 className="drive-sora mt-3 text-[27px] leading-tight font-extrabold tracking-[-0.6px]">
-              {t("home.title")}
-            </h1>
-
-            {/* Assistant IA : réserver en langage naturel (darija / ar / fr) */}
-            <div className="mt-4">
+            {/* Assistant IA : réserver en langage naturel (darija / ar / fr) —
+                pilule FLOTTANTE sur le dégradé, écho de la recherche accueil. */}
+            <div className="rounded-[18px] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
               <DriveAiBar
                 pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
                 onResolved={applyAiDraft}
@@ -156,7 +165,7 @@ export function DriveHomeScreen({
                       <button
                         type="button"
                         onClick={() => setDepOpen(true)}
-                        className="mb-2 flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                        className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                       >
                         <span
                           className="size-3 shrink-0 rounded-full"
@@ -191,6 +200,12 @@ export function DriveHomeScreen({
                           </span>
                         )}
                       </button>
+
+                      {/* Connecteur pointillé A→B (langage visuel Bolt). */}
+                      <span
+                        aria-hidden
+                        className="ms-[19px] block h-3.5 w-0 border-s-2 border-dashed border-[var(--d-line)]"
+                      />
 
                       <button
                         type="button"

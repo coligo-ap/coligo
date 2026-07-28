@@ -59,7 +59,7 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
         tr("Vérification refusée", "رُفض التحقّق"),
         tr(
           "Réessayez, ou faites examiner vos pièces par l'équipe Coligo.",
-          "أعد المحاولة، أو اطلب فحص وثائقك من فريق كوليڨو."
+          "أعد المحاولة، أو اطلب فحص وثائقك من فريق كوليغو."
         ),
       ]
     : idv.verified
@@ -95,7 +95,7 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
             idv.forced
               ? tr(
                   "Vérification exigée par l'équipe Coligo.",
-                  "تحقّق مطلوب من فريق كوليڨو."
+                  "تحقّق مطلوب من فريق كوليغو."
                 )
               : tr("Résultat en quelques secondes.", "النتيجة في بضع ثوانٍ."),
           ];
@@ -249,7 +249,7 @@ export function IdvVerifyStep({
         title={tr("Vérification manuelle", "تحقّق يدوي")}
         delay={tr(
           "Examen par l'équipe Coligo · 24 à 72 h",
-          "فحص من فريق كوليڨو · 24 إلى 72 ساعة"
+          "فحص من فريق كوليغو · 24 إلى 72 ساعة"
         )}
       />
 

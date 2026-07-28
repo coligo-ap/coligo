@@ -45,7 +45,7 @@ export function DWait() {
         <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
           {isAr ? (
             <>
-              <b>فريق كوليڨو</b> يتحقق من وثائقك. لن تتمكن من الوصول إلى حساب
+              <b>فريق كوليغو</b> يتحقق من وثائقك. لن تتمكن من الوصول إلى حساب
               السائق إلا بعد المصادقة (24–48 ساعة). سيتم إشعارك.
             </>
           ) : (
@@ -66,7 +66,7 @@ export function DWait() {
         />
         <Step
           state="cur"
-          title={tr("Vérification par l'équipe Coligo", "تحقّق من فريق كوليڨو")}
+          title={tr("Vérification par l'équipe Coligo", "تحقّق من فريق كوليغو")}
           sub={tr("Documents · selfie · véhicule", "الوثائق · سيلفي · المركبة")}
         />
         <Step
@@ -191,7 +191,7 @@ export function DFrozen({ reason }: { reason: string | null }) {
         <p className="mx-auto mt-1 mb-3 max-w-[300px] text-[13px] text-[var(--d-muted)]">
           {tr(
             "Votre compte chauffeur a été suspendu par Coligo.",
-            "تم تعليق حساب السائق الخاص بك من طرف كوليڨو."
+            "تم تعليق حساب السائق الخاص بك من طرف كوليغو."
           )}{" "}
           {reason ? (
             <>
@@ -220,7 +220,7 @@ export function DFrozen({ reason }: { reason: string | null }) {
       <PrimaryBtn
         onClick={() => window.open("mailto:support@coligo.app", "_self")}
       >
-        {tr("Contacter le support Coligo", "التواصل مع دعم كوليڨو")}
+        {tr("Contacter le support Coligo", "التواصل مع دعم كوليغو")}
       </PrimaryBtn>
       <GhostBtn onClick={() => void chauffeurLogout()}>
         {tr("Se déconnecter", "تسجيل الخروج")}
@@ -252,7 +252,7 @@ export function DBlocked() {
         <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
           {tr(
             "Votre compte a été suspendu définitivement. Contactez le support Coligo pour plus d'informations.",
-            "تم إيقاف حسابك نهائيًا. تواصل مع دعم كوليڨو لمزيد من المعلومات."
+            "تم إيقاف حسابك نهائيًا. تواصل مع دعم كوليغو لمزيد من المعلومات."
           )}
         </p>
         <GhostBtn onClick={() => void chauffeurLogout()}>

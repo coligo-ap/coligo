@@ -20,7 +20,7 @@ export default async function DriverSignupPage() {
         title: isAr ? (
           <>
             كن موصّلًا <br />
-            شريكًا لكوليڨو.
+            شريكًا لكوليغو.
           </>
         ) : (
           <>
@@ -35,7 +35,7 @@ export default async function DriverSignupPage() {
         features: isAr
           ? [
               "تسجيل موجّه، خطوة بخطوة",
-              "تحقّق من فريق كوليڨو خلال 24 إلى 48 ساعة",
+              "تحقّق من فريق كوليغو خلال 24 إلى 48 ساعة",
               "استقبل طلبات توصيل قريبة منك",
               "تابع أرباحك في الوقت الفعلي",
             ]

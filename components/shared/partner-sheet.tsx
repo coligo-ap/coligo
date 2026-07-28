@@ -49,7 +49,7 @@ const PARTNER_ROLES: PartnerRole[] = [
     title: "Chauffeur",
     titleAr: "سائق",
     desc: "Transportez des passagers avec Coligo Drive.",
-    descAr: "انقل الركاب مع كوليڨو درايف.",
+    descAr: "انقل الركاب مع كوليغو درايف.",
     icon: Car,
     gradient: "from-[#16B364] to-[#0E9F6E]",
     href: "/chauffeur/login",
@@ -67,7 +67,7 @@ const PARTNER_ROLES: PartnerRole[] = [
   {
     key: "coligo-pay-agent",
     title: "Agent Coligo Pay",
-    titleAr: "وكيل كوليڨو باي",
+    titleAr: "وكيل كوليغو باي",
     desc: "Point de recharge : vendez du crédit et gérez votre solde.",
     descAr: "نقطة تعبئة: بِع الرصيد وأدر حسابك.",
     icon: HandCoins,

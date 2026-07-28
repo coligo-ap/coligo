@@ -80,7 +80,7 @@ export function DriverPendingView({
               state: "current",
             },
             {
-              title: tr("Validation par l'équipe Coligo", "مصادقة فريق كوليڨو"),
+              title: tr("Validation par l'équipe Coligo", "مصادقة فريق كوليغو"),
               sub: tr(
                 "Décision sous 24 à 48 heures ouvrées",
                 "قرار خلال 24 إلى 48 ساعة عمل"
@@ -113,7 +113,7 @@ export function DriverPendingView({
           title={tr("Pourquoi cette attente ?", "لماذا هذا الانتظار؟")}
           text={tr(
             "Chaque dossier est examiné manuellement par l'équipe Coligo. C'est ce qui garantit la sécurité des clients, des commerçants et des livreurs.",
-            "يفحص فريق كوليڨو كل ملف يدويًا. هذا ما يضمن أمان الزبائن والتجار والموصّلين."
+            "يفحص فريق كوليغو كل ملف يدويًا. هذا ما يضمن أمان الزبائن والتجار والموصّلين."
           )}
         />
         <InfoRow
