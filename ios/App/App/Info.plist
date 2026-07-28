@@ -56,7 +56,9 @@
 	<key>NSCameraUsageDescription</key>
 	<string>Coligo utilise l'appareil photo pour scanner un code-barres ou un QR code, et pour envoyer des photos dans le chat.</string>
 	<key>NSMicrophoneUsageDescription</key>
-	<string>Coligo utilise le micro pour les messages vocaux et les appels avec votre livreur.</string>
+	<string>Coligo utilise le micro pour la dictée vocale, les messages vocaux et les appels avec votre livreur.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Coligo utilise la reconnaissance vocale pour dicter votre destination dans Coligo Drive.</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>Coligo utilise votre position pour vous proposer les commerces à proximité et suivre votre commande sur la carte.</string>
 	<key>NSPhotoLibraryAddUsageDescription</key>

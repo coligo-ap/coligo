@@ -1,15 +1,20 @@
 /**
  * Reconnaissance vocale (ar-DZ / fr-FR) — dictée pour l'assistant Drive.
  *
- * CHAÎNE DE REPLI (« ça doit marcher partout ») :
- *  1. APK Capacitor : plugin natif `@capacitor-community/speech-recognition`,
- *     accédé via le pont `window.Capacitor.Plugins.SpeechRecognition` (PAS
- *     d'import du paquet → le bundle web reste propre, cf. pattern Sunmi).
- *  2. Navigateur / PWA : Web Speech API (`webkitSpeechRecognition`).
- *  3. REPLI UNIVERSEL : enregistrement MediaRecorder (getUserMedia) puis
+ * CHAÎNE (« ça doit marcher partout ») :
+ *  1. APK/iOS Capacitor : enregistrement MediaRecorder (getUserMedia) puis
  *     TRANSCRIPTION SERVEUR (Groq Whisper, action transcribeDriveAudio) —
- *     couvre les WebViews sans plugin ni Web Speech (ex. iOS sans pod,
- *     vieux APK) : le micro fonctionne dès que l'appareil sait enregistrer.
+ *     chemin PRINCIPAL sur mobile : contrôlé de bout en bout, arrêt auto au
+ *     silence, et Whisper comprend darija/ar/fr bien mieux que l'ASR Android.
+ *  2. Navigateur : Web Speech API (partiels en direct) ; toute erreur de
+ *     service (network/service-not-allowed…) bascule sur l'enregistreur.
+ *  3. Dernier recours (WebView sans getUserMedia) : plugin natif
+ *     `@capacitor-community/speech-recognition` via le pont
+ *     `window.Capacitor.Plugins.SpeechRecognition` (PAS d'import → bundle
+ *     web propre). ⚠️ Sémantique piégeuse : avec `partialResults: true`, son
+ *     `start()` se résout IMMÉDIATEMENT (sans matches) et les erreurs natives
+ *     sont AVALÉES (reject sur un call déjà résolu) → il faut vivre sur les
+ *     événements `partialResults` + `listeningState` et des garde-fous temps.
  *
  * Tout est best-effort + dégradation gracieuse : si rien n'est dispo,
  * `speechSupported()` renvoie false et l'UI masque le micro.
@@ -102,16 +107,18 @@ function recorderSupported(): boolean {
 
 export function speechSupported(): boolean {
   if (typeof window === "undefined") return false;
-  if (isNative() && nativePlugin()) return true;
+  if (recorderSupported()) return true;
   if (!isNative() && webRecCtor()) return true;
-  return recorderSupported();
+  return !!(isNative() && nativePlugin());
 }
 
 export async function startSpeech(opts: SpeechOpts): Promise<SpeechHandle> {
-  // Chaîne de repli : natif → Web Speech → enregistreur + Whisper serveur.
-  if (isNative() && nativePlugin()) return startNative(opts);
+  // Navigateur : Web Speech (partiels en direct, repli enregistreur intégré).
   if (!isNative() && webRecCtor()) return startWeb(opts);
+  // Mobile (APK/iOS) et navigateurs sans Web Speech : enregistreur + Whisper.
   if (recorderSupported()) return startRecorder(opts);
+  // WebView exotique sans getUserMedia : plugin natif en dernier recours.
+  if (isNative() && nativePlugin()) return startNative(opts);
   opts.onError?.("unsupported");
   return { stop() {} };
 }
@@ -134,6 +141,63 @@ function pickRecorderMime(): string {
     }
   }
   return "";
+}
+
+/**
+ * Détection de silence (arrêt AUTOMATIQUE de la dictée) : analyse RMS du flux
+ * micro via WebAudio. Dès qu'on a entendu de la voix (≥ ~600 ms cumulées),
+ * ~1,8 s de silence déclenche l'arrêt → même confort que l'ASR native (parler
+ * puis se taire suffit, pas besoin de re-taper le micro). Best-effort : sans
+ * AudioContext, on garde le tap-pour-arrêter + le plafond 15 s.
+ */
+function watchSilence(stream: MediaStream, onSilence: () => void) {
+  type AC = typeof AudioContext;
+  const Ctor =
+    (window as unknown as { AudioContext?: AC; webkitAudioContext?: AC })
+      .AudioContext ??
+    (window as unknown as { webkitAudioContext?: AC }).webkitAudioContext;
+  if (!Ctor) return () => {};
+  let ctx: AudioContext;
+  try {
+    ctx = new Ctor();
+    // iOS : le contexte peut naître « suspended » même depuis un geste.
+    if (ctx.state === "suspended") void ctx.resume().catch(() => {});
+    const src = ctx.createMediaStreamSource(stream);
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 512;
+    src.connect(analyser);
+    const buf = new Uint8Array(analyser.fftSize);
+    let voicedMs = 0;
+    let lastVoice = 0;
+    const STEP = 150;
+    const timer = setInterval(() => {
+      analyser.getByteTimeDomainData(buf);
+      let sum = 0;
+      for (let i = 0; i < buf.length; i++) {
+        const d = buf[i] - 128;
+        sum += d * d;
+      }
+      const rms = Math.sqrt(sum / buf.length);
+      const now = Date.now();
+      if (rms > 6) {
+        voicedMs += STEP;
+        lastVoice = now;
+      } else if (voicedMs >= 600 && lastVoice && now - lastVoice > 1800) {
+        onSilence();
+      }
+    }, STEP);
+    return () => {
+      clearInterval(timer);
+      try {
+        src.disconnect();
+      } catch {
+        /* ignore */
+      }
+      void ctx.close().catch(() => {});
+    };
+  } catch {
+    return () => {};
+  }
 }
 
 async function startRecorder(opts: SpeechOpts): Promise<SpeechHandle> {
@@ -169,7 +233,15 @@ async function startRecorder(opts: SpeechOpts): Promise<SpeechHandle> {
   rec.ondataavailable = (e) => {
     if (e.data && e.data.size > 0) chunks.push(e.data);
   };
+  const stopSilenceWatch = watchSilence(stream, () => {
+    try {
+      if (rec.state !== "inactive") rec.stop();
+    } catch {
+      /* ignore */
+    }
+  });
   rec.onstop = () => {
+    stopSilenceWatch();
     stream.getTracks().forEach((t) => t.stop());
     if (finished) return;
     finished = true;
@@ -210,6 +282,7 @@ async function startRecorder(opts: SpeechOpts): Promise<SpeechHandle> {
   try {
     rec.start(250);
   } catch {
+    stopSilenceWatch();
     stream.getTracks().forEach((t) => t.stop());
     opts.onError?.("error");
     opts.onEnd?.();
@@ -257,8 +330,14 @@ async function startNative(opts: SpeechOpts): Promise<SpeechHandle> {
     /* certains devices ne gèrent pas requestPermissions — on tente quand même */
   }
 
+  // ⚠️ Avec partialResults:true, start() se résout TOUT DE SUITE (sans
+  // matches) et les erreurs natives suivantes sont perdues (reject sur un
+  // call déjà résolu). Vérité = événements : `partialResults` porte AUSSI le
+  // résultat final, `listeningState` signale started/stopped. Garde-fous
+  // temps pour les erreurs invisibles (ERROR_NO_MATCH après silence…).
   let done = false;
   let last = "";
+  const timers: ReturnType<typeof setTimeout>[] = [];
   const sub = await p.addListener("partialResults", (data) => {
     const m = data?.matches?.[0];
     if (m) {
@@ -266,30 +345,54 @@ async function startNative(opts: SpeechOpts): Promise<SpeechHandle> {
       opts.onPartial?.(m);
     }
   });
-  const removeSub = () => {
-    try {
-      (sub as { remove?: () => void })?.remove?.();
-    } catch {
-      /* ignore */
+  const subState = await (
+    p as unknown as {
+      addListener: (
+        ev: string,
+        cb: (d: { status?: string }) => void
+      ) => Promise<{ remove: () => void }> | { remove: () => void };
+    }
+  ).addListener("listeningState", (d) => {
+    // Fin d'écoute détectée par Android : petite grâce pour laisser arriver
+    // le résultat final (émis juste après « stopped »), puis on conclut.
+    if (d?.status === "stopped") timers.push(setTimeout(() => finish(), 900));
+  });
+  const cleanup = () => {
+    timers.forEach(clearTimeout);
+    for (const s of [sub, subState]) {
+      try {
+        (s as { remove?: () => void })?.remove?.();
+      } catch {
+        /* ignore */
+      }
     }
   };
-  const finish = (final: string) => {
+  const finish = () => {
     if (done) return;
     done = true;
-    removeSub();
-    if (final.trim()) opts.onFinal(final.trim());
+    cleanup();
+    void p.stop().catch(() => {});
+    if (last.trim()) opts.onFinal(last.trim());
+    else opts.onError?.("no-speech");
     opts.onEnd?.();
   };
+
+  // Rien entendu du tout en 9 s (erreur avalée ou mutisme) / plafond global.
+  timers.push(
+    setTimeout(() => {
+      if (!last) finish();
+    }, 9_000)
+  );
+  timers.push(setTimeout(finish, 20_000));
 
   const handle: SpeechHandle = {
     stop: () => {
       void p.stop().catch(() => {});
-      // finish() sera appelé par la résolution de start() ; filet de sécurité :
-      setTimeout(() => finish(last), 600);
+      // Laisse le résultat final arriver, puis conclut quoi qu'il en soit.
+      timers.push(setTimeout(finish, 1_000));
     },
   };
 
-  // start() se résout avec les matches finaux quand l'écoute se termine (Android).
   void p
     .start({
       language: opts.lang,
@@ -297,16 +400,24 @@ async function startNative(opts: SpeechOpts): Promise<SpeechHandle> {
       popup: false,
       maxResults: 1,
     })
-    .then((res) => finish(res?.matches?.[0] ?? last))
+    .then((res) => {
+      // Ne se produit qu'en mode non-partiel ou sur certains iOS : si des
+      // matches finaux arrivent ici, on les prend.
+      const m = res?.matches?.[0];
+      if (m) {
+        last = m;
+        finish();
+      }
+    })
     .catch(async () => {
       if (done) return;
       done = true;
-      removeSub();
-      // Le service natif a échoué (indispo sur l'appareil…) → on enchaîne sur
-      // le repli enregistreur + Whisper serveur au lieu d'abandonner.
+      cleanup();
+      // Service natif indisponible → repli enregistreur + Whisper serveur.
       if (recorderSupported()) {
         const h = await startRecorder(opts);
         handle.stop = h.stop;
+        done = false; // le recorder reprend la main sur ce handle
         return;
       }
       opts.onError?.("error");
@@ -328,6 +439,38 @@ function startWeb(opts: SpeechOpts): SpeechHandle {
   rec.continuous = false;
   rec.maxAlternatives = 1;
   let finalText = "";
+  let fellBack = false;
+  const handle: SpeechHandle = {
+    stop: () => {
+      try {
+        rec.stop();
+      } catch {
+        /* ignore */
+      }
+    },
+  };
+  // Erreurs de SERVICE (reco Google indisponible : navigateurs dérivés,
+  // réseaux filtrés…) → on bascule sur l'enregistreur + Whisper serveur au
+  // lieu d'afficher « réessaie ». « not-allowed » reste un refus micro.
+  const fallbackToRecorder = (kind: string) => {
+    if (fellBack) return;
+    fellBack = true;
+    try {
+      rec.onend = null;
+      rec.onerror = null;
+      rec.stop();
+    } catch {
+      /* ignore */
+    }
+    if (recorderSupported()) {
+      void startRecorder(opts).then((h) => {
+        handle.stop = h.stop;
+      });
+    } else {
+      opts.onError?.(kind);
+      opts.onEnd?.();
+    }
+  };
   rec.onresult = (e) => {
     let interim = "";
     for (let i = e.resultIndex; i < e.results.length; i++) {
@@ -337,23 +480,28 @@ function startWeb(opts: SpeechOpts): SpeechHandle {
     }
     opts.onPartial?.((finalText + interim).trim());
   };
-  rec.onerror = (e) => opts.onError?.(e?.error || "error");
+  rec.onerror = (e) => {
+    const kind = e?.error || "error";
+    if (kind === "not-allowed") {
+      opts.onError?.("denied");
+      return;
+    }
+    if (kind === "no-speech" || kind === "aborted") {
+      opts.onError?.(kind);
+      return;
+    }
+    // network / service-not-allowed / audio-capture / language-not-supported…
+    fallbackToRecorder(kind);
+  };
   rec.onend = () => {
+    if (fellBack) return;
     if (finalText.trim()) opts.onFinal(finalText.trim());
     opts.onEnd?.();
   };
   try {
     rec.start();
   } catch {
-    opts.onError?.("error");
+    fallbackToRecorder("error");
   }
-  return {
-    stop: () => {
-      try {
-        rec.stop();
-      } catch {
-        /* ignore */
-      }
-    },
-  };
+  return handle;
 }

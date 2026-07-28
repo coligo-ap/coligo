@@ -99,6 +99,8 @@ export function DriveAiBar({
         },
         onError: (kind) => {
           setListening(false);
+          // Ne pas laisser l'indicateur de transcription dans le champ.
+          setText((t) => (t === "…" ? "" : t));
           setErr(
             kind === "denied"
               ? "Autorise le micro pour dicter."
