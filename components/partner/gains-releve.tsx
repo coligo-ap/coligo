@@ -52,9 +52,12 @@ export function GainsReleveView({
   verdict,
   pdfHref,
   periodPicker,
+  heroTitle,
   children,
 }: {
   base: "/driver" | "/chauffeur";
+  /** Mode HÉRO thémé (chauffeur) : le titre vit dans le bandeau MoneyTabs. */
+  heroTitle?: string;
   periodLabel: string;
   slices: GainsSlices;
   /** Abonnements payés sur la période (chauffeur) — affiché sur « Tous ». */
@@ -123,14 +126,21 @@ export function GainsReleveView({
 
   return (
     <>
-      <h1
-        className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
-        style={{ fontFamily: SORA }}
-      >
-        {tr("Gains et Relevés", "الأرباح والكشوف")}
-      </h1>
+      {heroTitle ? (
+        // Héro thémé : le titre vit DANS le bandeau (anti-doublon).
+        <MoneyTabs base={base} heroTitle={heroTitle} />
+      ) : (
+        <>
+          <h1
+            className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+            style={{ fontFamily: SORA }}
+          >
+            {tr("Gains et Relevés", "الأرباح والكشوف")}
+          </h1>
 
-      <MoneyTabs base={base} />
+          <MoneyTabs base={base} />
+        </>
+      )}
 
       {/* Filtres (période + moyen de paiement) — au-dessus du bloc unique. */}
       {periodPicker}

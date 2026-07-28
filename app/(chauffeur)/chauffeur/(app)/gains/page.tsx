@@ -61,10 +61,11 @@ export default async function ChauffeurGainsPage({
       : null;
 
   return (
-    <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
+    <div className="drive-jakarta drive-page pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
       <div className="mx-auto max-w-md">
         <GainsReleveView
           base="/chauffeur"
+          heroTitle={tr("Gains et Relevés", "الأرباح والكشوف")}
           periodLabel={data.periodLabel}
           slices={data.byMethod}
           subFeesDa={data.subFeesDa}

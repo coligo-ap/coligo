@@ -185,9 +185,10 @@ export function DHisto() {
   };
 
   return (
-    <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
-      {/* Hub Argent : Gains · Courses · Coligo Pay dans une même page. */}
-      <MoneyTabs base="/chauffeur" />
+    <div className="drive-jakarta drive-page pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
+      {/* Hub Argent : Gains · Courses · Coligo Pay — HÉRO thémé (le bandeau
+          gère lui-même la safe-area, d'où l'absence de pt-safe ici). */}
+      <MoneyTabs base="/chauffeur" heroTitle={tr("Courses", "التوصيلات")} />
 
       {rides == null ? (
         <div className="grid place-items-center py-12">
