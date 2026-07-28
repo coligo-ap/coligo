@@ -7,6 +7,7 @@ import { ArrowLeft, Gift, Wallet } from "lucide-react";
 import { fetchCashbackHistory } from "@/app/(customer)/cashback/actions";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 
 /**
  * Contenu de /cashback via TanStack Query (pattern OrdersLoader). Le RSC ne fait
@@ -34,23 +35,33 @@ export function CashbackLoader({ userId }: { userId: string }) {
         {tAccount("myAccount")}
       </Link>
 
-      {/* HERO violet premium : grand solde + rappel « non retirable ». */}
-      <section className="from-primary-400 via-primary-600 to-primary-800 relative -mx-4 overflow-hidden bg-gradient-to-br px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8">
+      {/* HERO premium — MÊME langage que la marketplace/Coligo Pay : dégradé
+          du thème « occasion » (vars sur <html>, mig 0415/0416) + décor du
+          modèle choisi par le super-admin + grain. */}
+      <section
+        className="relative -mx-4 overflow-hidden rounded-b-[26px] px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8"
+        style={{
+          backgroundImage:
+            "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
+        }}
+      >
+        <ThemeDecor />
         <Gift className="absolute -end-7 -top-5 size-32 text-white/[.13]" />
-        <span className="pointer-events-none absolute end-10 -bottom-12 size-32 rounded-full border border-white/10" />
-        <p className="text-xs font-extrabold tracking-wider uppercase opacity-85">
-          {t("cashbackTitle")} · {t("availableBalance")}
-        </p>
-        <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums lg:text-5xl">
-          <WalletBalanceValue kind="cashback" userId={userId} initial={0} />
-        </p>
-        <p className="mt-2.5 max-w-md text-[12.5px] leading-relaxed font-semibold opacity-90">
-          {t.rich("cashbackNonWithdrawable", {
-            strong: (chunks) => (
-              <strong className="font-extrabold">{chunks}</strong>
-            ),
-          })}
-        </p>
+        <div className="relative z-10">
+          <p className="text-xs font-extrabold tracking-wider uppercase opacity-85">
+            {t("cashbackTitle")} · {t("availableBalance")}
+          </p>
+          <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums drop-shadow-sm lg:text-5xl">
+            <WalletBalanceValue kind="cashback" userId={userId} initial={0} />
+          </p>
+          <p className="mt-2.5 max-w-md text-[12.5px] leading-relaxed font-semibold opacity-90">
+            {t.rich("cashbackNonWithdrawable", {
+              strong: (chunks) => (
+                <strong className="font-extrabold">{chunks}</strong>
+              ),
+            })}
+          </p>
+        </div>
       </section>
 
       {/* Card info : Coligo Pay (différent du cashback) → page dédiée. */}
