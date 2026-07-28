@@ -1,6 +1,6 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useState, type Dispatch, type SetStateAction } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
@@ -11,6 +11,8 @@ import {
   CreditCard,
   Globe,
   Loader2,
+  Maximize2,
+  Minimize2,
   Route,
   Snowflake,
   User,
@@ -186,10 +188,28 @@ export function DrivePriceScreen({
   // le client voit ce qu'il achète avant de lancer la recherche.
   const nearby = useNearbyVehicles({ pickup, gamme });
 
+  // Carte en PLEIN ÉCRAN à la demande : par défaut la feuille de choix domine
+  // (comme avant), un tap sur ⤢ agrandit la carte pour bien voir le tracé de
+  // l'itinéraire, un tap sur ⤡ la referme. `fitNonce` force resize + recadrage
+  // du trajet sur les nouvelles dimensions. La feuille reste MONTÉE (hidden) :
+  // gamme/prix/options ne perdent rien.
+  const [mapFull, setMapFull] = useState(false);
+  const [fitNonce, setFitNonce] = useState(0);
+  const toggleMap = () => {
+    setMapFull((f) => !f);
+    setFitNonce((n) => n + 1);
+  };
+
   return (
     <div className="fixed inset-0 z-40 flex flex-col bg-[var(--d-surface)]">
       {/* Carte du trajet (haut d'écran, maquette s-price) */}
-      <div className="relative h-[196px] shrink-0 bg-[var(--d-page)]">
+      <div
+        className={
+          mapFull
+            ? "relative min-h-0 flex-1 bg-[var(--d-page)]"
+            : "relative h-[196px] shrink-0 bg-[var(--d-page)]"
+        }
+      >
         <DriveMap
           markers={[
             { id: "me", pos: pickup, kind: "me", label: "A" },
@@ -197,20 +217,67 @@ export function DrivePriceScreen({
           ]}
           vehicles={nearby}
           route={route?.path ?? backupPath ?? [pickup, dest]}
-          padding={{ top: 40, bottom: 30, left: 50, right: 50 }}
+          padding={
+            mapFull
+              ? {
+                  top: 110,
+                  bottom: 110,
+                  left: 60,
+                  right: 60,
+                }
+              : { top: 40, bottom: 30, left: 50, right: 50 }
+          }
+          fitNonce={fitNonce}
+          gesturesOn={mapFull}
           className="absolute inset-0"
         />
         <button
           type="button"
           onClick={() => setScreen("home")}
-          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="absolute start-4 top-[calc(0.75rem+env(safe-area-inset-top))] z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
           aria-label={t("back")}
         >
           <ChevronLeft className="size-5" />
         </button>
+        {/* Agrandir / réduire la carte (voir l'itinéraire en entier) */}
+        <button
+          type="button"
+          onClick={toggleMap}
+          className="absolute end-4 top-[calc(0.75rem+env(safe-area-inset-top))] z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          aria-label={mapFull ? t("map.collapse") : t("map.expand")}
+        >
+          {mapFull ? (
+            <Minimize2 className="size-5" />
+          ) : (
+            <Maximize2 className="size-5" />
+          )}
+        </button>
+        {/* En plein écran : rappel distance · durée flottant (le trajet A→B
+            est déjà annoté sur la carte), et un CTA clair pour revenir. */}
+        {mapFull && (
+          <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2.5">
+            <div className="drive-jakarta flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2 text-[12.5px] font-bold shadow-lg">
+              <Route className="size-3.5" style={{ color: VIOLET }} />
+              {distanceLabel} km
+              <span className="text-[var(--d-muted)]">·</span>
+              <Clock className="size-3.5" style={{ color: VIOLET }} />~{etaMin}{" "}
+              min
+            </div>
+            <button
+              type="button"
+              onClick={toggleMap}
+              className="drive-jakarta rounded-full px-5 py-2.5 text-[13px] font-extrabold text-white shadow-lg"
+              style={{ background: VIOLET }}
+            >
+              {t("map.collapse")}
+            </button>
+          </div>
+        )}
       </div>
 
-      <div className="drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))]">
+      <div
+        className={`drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] ${mapFull ? "hidden" : ""}`}
+      >
         <div className="mx-auto mb-4 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         {/* Départ / destination (rail pointillé) */}
         <Leg

@@ -1552,6 +1552,10 @@
       "remove": "Retirer",
       "error": "Enregistrement impossible — réessayez.",
       "close": "Fermer"
+    },
+    "map": {
+      "expand": "Agrandir la carte",
+      "collapse": "Réduire la carte"
     }
   },
   "push": {

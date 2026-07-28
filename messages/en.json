@@ -1558,6 +1558,10 @@
       "remove": "Remove",
       "error": "Saving failed — try again.",
       "close": "Close"
+    },
+    "map": {
+      "expand": "Expand map",
+      "collapse": "Shrink map"
     }
   },
   "push": {

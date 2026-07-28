@@ -159,6 +159,8 @@ export function DriveMap({
   padding = { top: 120, bottom: 340, left: 40, right: 40 },
   keepAlive = false,
   fallbackCenter,
+  fitNonce = 0,
+  gesturesOn = false,
 }: {
   markers: Marker[];
   /**
@@ -203,6 +205,18 @@ export function DriveMap({
    * défaut. Idéalement la dernière position connue côté serveur (présence).
    */
   fallbackCenter?: LatLng | null;
+  /**
+   * Recadrage IMPÉRATIF : à incrémenter quand le CONTENEUR change de taille
+   * (ex. bascule carte réduite ⇄ plein écran de l'écran prix) — la carte se
+   * redimensionne puis recadre le trajet sur les nouvelles dimensions.
+   */
+  fitNonce?: number;
+  /**
+   * Gestes (drag / zoom / pincement) activables À LA VOLÉE — indépendant de
+   * `interactive` (mode choix de point, figé à la création) : l'auto-cadrage
+   * du trajet RESTE actif. Utilisé par la carte plein écran de l'écran prix.
+   */
+  gesturesOn?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<maplibregl.Map | null>(null);
@@ -755,6 +769,7 @@ export function DriveMap({
   // partie de la clé : quand la vraie route (OSRM) remplace la ligne droite,
   // la carte se recadre (dézoome) pour montrer le trajet complet D → A.
   const fitKey = JSON.stringify([
+    fitNonce,
     markers.map((m) => [m.pos.lat.toFixed(4), m.pos.lng.toFixed(4)]),
     route && route.length > 0
       ? [
@@ -765,9 +780,29 @@ export function DriveMap({
         ]
       : null,
   ]);
+  // Bascule des gestes à la volée (carte plein écran de l'écran prix). On ne
+  // touche aux handlers QUE quand on les active — cleanup au repli → les
+  // cartes qui n'activent jamais `gesturesOn` gardent leur état de création.
+  useEffect(() => {
+    const map = mapRef.current;
+    if (!map || !ready || interactive || !gesturesOn) return;
+    const handlers = [
+      map.dragPan,
+      map.scrollZoom,
+      map.doubleClickZoom,
+      map.touchZoomRotate,
+    ];
+    handlers.forEach((h) => h?.enable());
+    return () => handlers.forEach((h) => h?.disable());
+  }, [gesturesOn, ready, interactive]);
+
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !ready || interactive) return;
+    // Le conteneur a pu changer de taille (bascule plein écran via fitNonce) :
+    // on resynchronise le canvas AVANT de recadrer, sinon le fit se calcule
+    // sur les anciennes dimensions. No-op si la taille n'a pas bougé.
+    map.resize();
     const pts = [
       ...markers.map((m) => m.pos),
       ...(route ?? []),
@@ -811,7 +846,7 @@ export function DriveMap({
       <div
         ref={containerRef}
         className="h-full w-full"
-        style={{ touchAction: interactive ? "none" : "auto" }}
+        style={{ touchAction: interactive || gesturesOn ? "none" : "auto" }}
       />
     </div>
   );
