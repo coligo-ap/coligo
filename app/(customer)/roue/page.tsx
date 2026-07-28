@@ -7,6 +7,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getFeatureFlag } from "@/lib/data/feature-flags";
+import { CustomerFeatureBlocked } from "@/components/customer/feature-blocked-screen";
 import {
   WheelView,
   type WheelPrize,
@@ -31,6 +32,9 @@ export default async function WheelPage() {
   ]);
   if (merchant) redirect("/dashboard");
   if (flag.status === "hidden") redirect("/compte");
+  // Bientôt / maintenance / coupure perso : écran plein explicite (les tirages
+  // sont de toute façon refusés côté serveur, mig 0407).
+  if (flag.status !== "active") return <CustomerFeatureBlocked flag={flag} />;
 
   const supabase = await createClient();
   // RPC + table hors types générés → bind/cast locaux.

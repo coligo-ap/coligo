@@ -6,6 +6,7 @@ import { CustomerShell } from "@/components/customer/customer-shell";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getFeatureFlag } from "@/lib/data/feature-flags";
+import { CustomerFeatureBlocked } from "@/components/customer/feature-blocked-screen";
 import { getMyReferralOverview } from "@/lib/referral/overview";
 import { ReferralView } from "@/components/customer/referral/referral-view";
 
@@ -27,6 +28,9 @@ export default async function ReferralPage() {
   if (merchant) redirect("/dashboard");
   // Masqué par le super-admin → la page n'existe pas pour le client.
   if (flag.status === "hidden") redirect("/compte");
+  // Bientôt / maintenance / coupure perso : écran plein explicite (les
+  // attributions sont gelées côté serveur, mig 0403).
+  if (flag.status !== "active") return <CustomerFeatureBlocked flag={flag} />;
 
   const overview = await getMyReferralOverview();
 
