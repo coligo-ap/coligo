@@ -4,6 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type maplibregl from "maplibre-gl";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import {
+  fetchJsonCached,
+  registerMapCacheProtocol,
+  withCachedUrls,
+} from "@/lib/maps/tile-cache";
 
 /**
  * Carte plein écran du module Drive (MapLibre + OpenFreeMap).
@@ -42,8 +47,12 @@ function cloneStyle(o: unknown): unknown {
 }
 function loadMapStyle(url: string): Promise<unknown | null> {
   if (!styleCache[url]) {
-    styleCache[url] = fetch(url)
-      .then((r) => (r.ok ? r.json() : null))
+    // Style via le CACHE LOCAL (IndexedDB, lib/maps/tile-cache) : démarrage
+    // instantané dès la 2e session, même hors-ligne. `withCachedUrls` réécrit
+    // ensuite glyphs/sprites/tuiles vers le protocole `cached://` → toute la
+    // carte déjà vue est resservie depuis l'appareil (data économisée).
+    styleCache[url] = fetchJsonCached(url)
+      .then((s) => (s ? withCachedUrls(s) : null))
       .catch(() => null);
   }
   return styleCache[url].then((s) => (s ? cloneStyle(s) : null));
@@ -336,6 +345,9 @@ export function DriveMap({
     void import("maplibre-gl").then(async (maplibre) => {
       const { Map } = maplibre;
       ensureRtlPlugin(maplibre);
+      // Cache local tuiles/glyphs/sprites (protocole `cached://`) — AVANT la
+      // création de la carte, sinon les URLs réécrites ne résolvent pas.
+      registerMapCacheProtocol(maplibre);
       if (disposed || !containerRef.current) return;
       // Conteneur de la carte : pour le keep-alive on crée un enfant DÉTACHABLE
       // (conservé entre les visites) ; sinon on utilise directement le wrapper.

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import {
   AlertTriangle,
+  ContactRound,
   BadgeCheck,
   Banknote,
   Crown,
@@ -634,7 +635,9 @@ export function EnrouteScreen({
             className="flex h-[46px] w-[86px] items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] text-[12.5px] font-bold"
             style={{ borderColor: RED, color: RED }}
           >
-            <AlertTriangle className="size-4" /> SOS
+            {/* Même langage que la pilule SOS de l'accueil Drive (personne +
+                SOS) : le client comprend « alerter mes contacts d'urgence ». */}
+            <ContactRound className="size-4" /> SOS
           </button>
         </div>
 
