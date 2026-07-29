@@ -109,6 +109,7 @@ export const ADMIN_NAV: AdminNavDomain[] = [
     match: ["/admin/orders", "/admin/alertes"],
     sections: [
       {
+        label: "Suivi",
         items: [
           {
             href: "/admin",
@@ -117,6 +118,11 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             exact: true,
             keywords: ["accueil", "dashboard", "chiffres", "kpi"],
           },
+        ],
+      },
+      {
+        label: "À traiter",
+        items: [
           {
             href: "/admin/orders",
             label: "Commandes",
@@ -383,6 +389,7 @@ export const ADMIN_NAV: AdminNavDomain[] = [
     match: ["/admin/agents", "/admin/recharges", "/admin/versements"],
     sections: [
       {
+        label: "Suivi",
         items: [
           {
             href: "/admin/coligo-pay",
@@ -459,6 +466,7 @@ export const ADMIN_NAV: AdminNavDomain[] = [
     match: ["/admin/bannieres", "/admin/notifications"],
     sections: [
       {
+        label: "Offres & promos",
         items: [
           {
             href: "/admin/marketing",
@@ -479,6 +487,11 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             icon: Ticket,
             keywords: ["voucher", "cadeau", "avoir"],
           },
+        ],
+      },
+      {
+        label: "Fidélité & jeux",
+        items: [
           {
             href: "/admin/marketing/parrainage",
             label: "Parrainage",
@@ -491,6 +504,11 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             icon: Dices,
             keywords: ["jeu", "wheel", "lots", "gamification", "quotidien"],
           },
+        ],
+      },
+      {
+        label: "Communication",
+        items: [
           {
             href: "/admin/marketing/annonces",
             label: "Annonces",
@@ -580,7 +598,9 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             children: [
               {
                 href: "/admin/identite/dossiers",
-                label: "Dossiers à examiner",
+                // Même libellé que les onglets IDV (idv-sub-tabs) — une seule
+                // formulation pour la même page, ⌘K compris.
+                label: "Dossiers à vérifier",
                 icon: FolderOpen,
                 pending: true,
                 keywords: ["revue", "recours", "refus", "identité", "file"],

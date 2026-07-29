@@ -207,21 +207,49 @@ function MobileItem({
               {section.items.map((page) => {
                 const PageIcon = page.icon;
                 const on = isItemActive(pathname, page);
+                // Sous-catégories (3e niveau) : visibles UNIQUEMENT quand on
+                // est dans la branche du parent — même règle que la sidebar
+                // desktop (avant, le mobile ne les affichait jamais).
+                const inBranch =
+                  !!page.children?.length &&
+                  (on || page.children.some((c) => isItemActive(pathname, c)));
                 return (
-                  <Link
-                    key={page.href}
-                    href={page.href}
-                    onClick={onNavigate}
-                    className={cn(
-                      "flex min-h-[40px] items-center gap-2 rounded-[8px] px-2 py-1.5 text-[13px] transition-colors",
-                      on
-                        ? "text-primary-700 bg-primary-50/70 font-semibold"
-                        : "text-muted hover:bg-surface-2 hover:text-foreground"
-                    )}
-                  >
-                    <PageIcon className="size-4 shrink-0" />
-                    <span className="truncate">{page.label}</span>
-                  </Link>
+                  <div key={page.href}>
+                    <Link
+                      href={page.href}
+                      onClick={onNavigate}
+                      className={cn(
+                        "flex min-h-[40px] items-center gap-2 rounded-[8px] px-2 py-1.5 text-[13px] transition-colors",
+                        on
+                          ? "text-primary-700 bg-primary-50/70 font-semibold"
+                          : "text-muted hover:bg-surface-2 hover:text-foreground"
+                      )}
+                    >
+                      <PageIcon className="size-4 shrink-0" />
+                      <span className="truncate">{page.label}</span>
+                    </Link>
+                    {inBranch &&
+                      page.children!.map((child) => {
+                        const ChildIcon = child.icon;
+                        const childOn = isItemActive(pathname, child);
+                        return (
+                          <Link
+                            key={child.href}
+                            href={child.href}
+                            onClick={onNavigate}
+                            className={cn(
+                              "ml-3.5 flex min-h-[36px] items-center gap-2 rounded-[8px] px-2 py-1 text-[12.5px] transition-colors",
+                              childOn
+                                ? "text-primary-700 bg-primary-50/70 font-semibold"
+                                : "text-muted hover:bg-surface-2 hover:text-foreground"
+                            )}
+                          >
+                            <ChildIcon className="size-3.5 shrink-0" />
+                            <span className="truncate">{child.label}</span>
+                          </Link>
+                        );
+                      })}
+                  </div>
                 );
               })}
             </div>
