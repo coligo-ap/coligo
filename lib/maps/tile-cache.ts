@@ -106,9 +106,17 @@ function trim(db: IDBDatabase) {
   }
 }
 
-/** Préfixe une URL http(s) avec le protocole de cache. */
+/**
+ * Préfixe une URL https avec le protocole de cache — SANS schéma imbriqué :
+ * `cached://tiles.openfreemap.org/…` (et pas `cached://https://…`). MapLibre
+ * normalise les URLs de SPRITE via `new URL()` : un double « :// » y est
+ * détruit et la requête partait résolue contre l'origine de la page
+ * (https://coligo.app/https//…). Le handler reconstruit le https://.
+ */
 function pfx(url: string): string {
-  return /^https?:\/\//.test(url) ? `${PROTOCOL}://${url}` : url;
+  return url.startsWith("https://")
+    ? `${PROTOCOL}://${url.slice("https://".length)}`
+    : url;
 }
 
 /**
@@ -167,7 +175,7 @@ export function registerMapCacheProtocol(maplibre: {
   if (registered || typeof window === "undefined") return;
   registered = true;
   maplibre.addProtocol(PROTOCOL, async (params, abort) => {
-    const real = params.url.slice(PROTOCOL.length + 3);
+    const real = "https://" + params.url.slice(PROTOCOL.length + 3);
     const isJson = params.type === "json";
     const ttl = isJson ? TTL_JSON_MS : TTL_STATIC_MS;
     const hit = await idbGet(real);
