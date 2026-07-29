@@ -1562,6 +1562,12 @@
     "map": {
       "expand": "Expand map",
       "collapse": "Shrink map"
+    },
+    "mode": {
+      "city": "City",
+      "inter": "Intercity",
+      "interHint": "Long trips between wilayas — you set the price, the driver accepts.",
+      "whereToInter": "Which wilaya?"
     }
   },
   "push": {

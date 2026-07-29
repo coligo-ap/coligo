@@ -1,15 +1,17 @@
 "use client";
 
-import type { Dispatch, SetStateAction } from "react";
+import { useRef, type Dispatch, type SetStateAction } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowUpDown,
+  Building2,
   Car,
   Clock,
   History,
   Pencil,
+  Route,
   ShieldAlert,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
@@ -33,7 +35,8 @@ import {
 import { ZoneBlockNotice } from "./drive-ui";
 import { DriveAiBar } from "./drive-ai-bar";
 import { ThemeDecor } from "@/components/shared/theme-decor";
-import type { Pt, Screen } from "./drive-types";
+import type { Pt, Screen, TripMode } from "./drive-types";
+import type { InterWilaya } from "@/lib/drive/interwilaya";
 
 /**
  * Écran d'accueil Coligo Drive (choix du trajet) — extrait de `DriveView`.
@@ -50,6 +53,9 @@ export function DriveHomeScreen({
   isDesktop,
   routePath,
   aiConfirming,
+  tripMode,
+  setTripMode,
+  inter,
   depOpen,
   contactsOpen,
   sosContacts,
@@ -74,6 +80,11 @@ export function DriveHomeScreen({
   /** Tracé routier RÉEL (OSRM) du trajet A→B — jamais une ligne droite. */
   routePath: LatLng[] | null;
   aiConfirming: boolean;
+  /** Onglet Ville ⇄ Inter-wilayas (swipe ou tap sur la feuille trajet). */
+  tripMode: TripMode;
+  setTripMode: Dispatch<SetStateAction<TripMode>>;
+  /** Trajet courant détecté inter-wilayas (badge « Alger → Béjaïa »). */
+  inter: InterWilaya | null;
   depOpen: boolean;
   contactsOpen: boolean;
   sosContacts: SosContact[];
@@ -90,7 +101,28 @@ export function DriveHomeScreen({
   applyAiDraft: (d: DriveIntentDraft) => void;
 }) {
   const t = useTranslations("drive");
+  const isAr = useLocale() === "ar";
   const router = useRouter();
+
+  // Swipe horizontal sur la feuille trajet → bascule Ville ⇄ Inter-wilayas
+  // (les onglets restent tapables ; le swipe est un bonus de confort).
+  const touchStart = useRef<{ x: number; y: number } | null>(null);
+  const onSheetTouchStart = (e: React.TouchEvent) => {
+    const t0 = e.touches[0];
+    touchStart.current = { x: t0.clientX, y: t0.clientY };
+  };
+  const onSheetTouchEnd = (e: React.TouchEvent) => {
+    const s = touchStart.current;
+    touchStart.current = null;
+    if (!s) return;
+    const t1 = e.changedTouches[0];
+    const dx = t1.clientX - s.x;
+    const dy = t1.clientY - s.y;
+    if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
+    // Direction logique : balayer vers le 2e onglet = inter (miroir en RTL).
+    const toInter = isAr ? dx > 0 : dx < 0;
+    setTripMode(toInter ? "inter" : "ville");
+  };
 
   return (
     <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col bg-white">
@@ -163,7 +195,47 @@ export function DriveHomeScreen({
             {!aiConfirming && (
               <>
                 {/* Carte formulaire de trajet (départ / arrivée). */}
-                <div className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_18px_44px_-30px_rgba(20,22,40,.5)]">
+                <div
+                  className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_18px_44px_-30px_rgba(20,22,40,.5)]"
+                  onTouchStart={onSheetTouchStart}
+                  onTouchEnd={onSheetTouchEnd}
+                >
+                  {/* Onglets Ville ⇄ Inter-wilayas (tap ou swipe) — façon
+                      InDrive/Yassir : les longs trajets entre wilayas ont leur
+                      espace, sans changer le flux (mêmes écrans, même offre). */}
+                  <div className="mb-3 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
+                    {(
+                      [
+                        ["ville", Building2, t("mode.city")],
+                        ["inter", Route, t("mode.inter")],
+                      ] as const
+                    ).map(([m, Icon, label]) => (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => setTripMode(m)}
+                        aria-pressed={tripMode === m}
+                        className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] p-2 text-[12.5px] font-bold transition-colors"
+                        style={
+                          tripMode === m
+                            ? {
+                                background: "var(--d-surface)",
+                                color: VIOLET,
+                                boxShadow: "0 4px 12px -6px rgba(0,0,0,.25)",
+                              }
+                            : { color: "var(--d-muted)" }
+                        }
+                      >
+                        <Icon className="size-3.5" />
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                  {tripMode === "inter" && (
+                    <p className="-mt-1 mb-2.5 px-1 text-[11.5px] font-semibold text-[var(--d-muted)]">
+                      {t("mode.interHint")}
+                    </p>
+                  )}
                   <div className="mb-2.5 flex items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <button
@@ -230,7 +302,10 @@ export function DriveHomeScreen({
                               !dest && "font-semibold text-[var(--d-muted)]"
                             )}
                           >
-                            {dest?.text ?? t("home.whereTo")}
+                            {dest?.text ??
+                              (tripMode === "inter"
+                                ? t("mode.whereToInter")
+                                : t("home.whereTo"))}
                           </span>
                         </span>
                         <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
@@ -250,6 +325,22 @@ export function DriveHomeScreen({
                     </button>
                   </div>
 
+                  {/* Trajet inter-wilayas DÉTECTÉ (auto, quel que soit
+                      l'onglet) : badge de confirmation « Alger → Béjaïa ». */}
+                  {inter && (
+                    <span
+                      className="mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                      style={{
+                        background: "rgba(108,43,217,.10)",
+                        color: VIOLET,
+                      }}
+                    >
+                      <Route className="size-3.5 shrink-0" />
+                      <span className="truncate">
+                        {t("mode.inter")} · {isAr ? inter.labelAr : inter.label}
+                      </span>
+                    </span>
+                  )}
                   {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
             « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
                   {pickup && dest && zoneBlock && (

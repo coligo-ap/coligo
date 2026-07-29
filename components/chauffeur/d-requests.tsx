@@ -30,6 +30,7 @@ import {
   useChauffeurOnline,
 } from "@/lib/chauffeur/online-store";
 import { useRoadPath } from "@/lib/drive/use-road-path";
+import { interWilayaInfo } from "@/lib/drive/interwilaya";
 import { useSearchRadius } from "@/lib/chauffeur/work-zone";
 import { usePageVisible } from "@/lib/realtime/use-page-visible";
 import { onVisibleResumeSafe } from "@/lib/net/probe";
@@ -831,6 +832,17 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           const myPrice = myPrices[q.id] ?? client;
           const max = maxPrice(q);
           const totalDist = q.pickup_dist_km + q.distance_km;
+          // Longue distance entre wilayas → badge « Inter-wilayas » : le
+          // chauffeur voit AVANT d'accepter que c'est un déplacement long.
+          const iw = interWilayaInfo(
+            q.pickup_lat != null && q.pickup_lng != null
+              ? { lat: q.pickup_lat, lng: q.pickup_lng }
+              : null,
+            q.dest_lat != null && q.dest_lng != null
+              ? { lat: q.dest_lat, lng: q.dest_lng }
+              : null,
+            q.distance_km
+          );
           const priceColor =
             myPrice >= max
               ? RED
@@ -920,6 +932,18 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
                         }}
                       >
                         {tr("Femme au volant", "امرأة خلف المقود")}
+                      </span>
+                    )}
+                    {iw && (
+                      <span
+                        className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
+                        style={{
+                          background: "rgba(108,43,217,.12)",
+                          color: VIOLET,
+                        }}
+                      >
+                        {tr("Inter-wilayas", "بين الولايات")} ·{" "}
+                        {isAr ? iw.labelAr : iw.label}
                       </span>
                     )}
                   </div>

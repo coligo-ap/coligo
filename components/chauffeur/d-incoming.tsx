@@ -5,6 +5,7 @@ import { ArrowRight, Bell, Check, MapPin, Star, X } from "lucide-react";
 import { GO, ROSE, VIOLET } from "@/components/customer/drive/drive-modals";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 import { isChauffeurSoundOn } from "@/lib/chauffeur/sound-store";
+import { interWilayaInfo } from "@/lib/drive/interwilaya";
 import type { NearbyRide } from "@/app/(chauffeur)/actions";
 
 const fmtkm = (v: number) =>
@@ -50,6 +51,17 @@ export function DIncoming({
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const price = ride.proposed_price_da + ride.boost_amount_da;
   const female = ride.female_only;
+  // Longue distance entre wilayas → badge « Inter-wilayas » (détection
+  // locale partagée avec le client, jamais tarifaire).
+  const iw = interWilayaInfo(
+    ride.pickup_lat != null && ride.pickup_lng != null
+      ? { lat: ride.pickup_lat, lng: ride.pickup_lng }
+      : null,
+    ride.dest_lat != null && ride.dest_lng != null
+      ? { lat: ride.dest_lat, lng: ride.dest_lng }
+      : null,
+    ride.distance_km
+  );
 
   // Sonnerie + vibration tant que la carte est affichée — même patron que
   // l'offre Express livreur. Respecte la préférence « Sons » du chauffeur
@@ -121,6 +133,15 @@ export function DIncoming({
             >
               <Bell className="dh-bell size-[15px]" />
               {tr("Nouvelle course", "رحلة جديدة")}
+              {/* Longue distance : le chauffeur le sait AVANT d'accepter. */}
+              {iw && (
+                <span
+                  className="rounded-full px-2 py-0.5 text-[9px] font-extrabold"
+                  style={{ background: "rgba(108,43,217,.12)", color: VIOLET }}
+                >
+                  {tr("Inter-wilayas", "بين الولايات")}
+                </span>
+              )}
             </span>
             {queueCount > 0 && (
               <span
@@ -206,6 +227,14 @@ export function DIncoming({
                 <div className="flex items-center gap-1.5">
                   <span className="min-w-0 flex-1 truncate text-[10.5px] font-semibold">
                     {ride.dest_text ?? tr("Destination", "الوجهة")}
+                    {iw && (
+                      <span
+                        className="ms-1.5 font-extrabold"
+                        style={{ color: VIOLET }}
+                      >
+                        · {isAr ? iw.labelAr : iw.label}
+                      </span>
+                    )}
                   </span>
                   <span className="drive-sora shrink-0 text-[9px] font-bold text-[var(--d-muted)]">
                     {fmtkm(ride.distance_km)}

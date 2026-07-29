@@ -3,7 +3,7 @@
 import { useState, type Dispatch, type SetStateAction } from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { useTranslations } from "next-intl";
+import { useLocale, useTranslations } from "next-intl";
 import {
   CalendarClock,
   ChevronLeft,
@@ -29,6 +29,7 @@ import { Leg, OptRow, ZoneBlockNotice } from "./drive-ui";
 import { IntlApproxTag } from "@/components/customer/intl-approx";
 import type { DriveContext, DriveQuote } from "@/app/(customer)/drive/actions";
 import type { Gamme, Pt, Screen } from "./drive-types";
+import type { InterWilaya } from "@/lib/drive/interwilaya";
 
 const GAMME_IMG: Record<Gamme, string> = {
   classic: "/drive/gamme-classic.png",
@@ -48,6 +49,7 @@ export function DrivePriceScreen({
   route,
   distanceLabel,
   etaMin,
+  inter,
   quotes,
   quote,
   gamme,
@@ -100,6 +102,8 @@ export function DrivePriceScreen({
   route: { km: number; min: number; path?: LatLng[] } | null;
   distanceLabel: string;
   etaMin: number;
+  /** Trajet inter-wilayas détecté (badge « Alger → Béjaïa »), sinon null. */
+  inter: InterWilaya | null;
   quotes: Record<Gamme, DriveQuote> | null;
   quote: DriveQuote | null;
   gamme: Gamme;
@@ -160,6 +164,7 @@ export function DrivePriceScreen({
   submitSchedule: () => void;
 }) {
   const t = useTranslations("drive");
+  const isAr = useLocale() === "ar";
   const router = useRouter();
 
   // Itinéraire de SECOURS : si l'estimation de DriveView est arrivée sans
@@ -380,7 +385,7 @@ export function DrivePriceScreen({
             </div>
           </div>
         )}
-        <div className="mt-1 mb-3.5 flex gap-2">
+        <div className="mt-1 mb-3.5 flex flex-wrap gap-2">
           {/* Affichage INSTANTANÉ : estimation à vol d'oiseau tout de suite,
               affinée en silence par OSRM (jamais de loader d'attente). */}
           <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
@@ -389,6 +394,18 @@ export function DrivePriceScreen({
           <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
             <Clock className="size-3.5" /> ~{etaMin} min
           </span>
+          {/* Longue distance entre wilayas : le client confirme d'un coup
+              d'œil que sa demande partira bien en « Inter-wilayas ». */}
+          {inter && (
+            <span
+              className="flex max-w-full items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-extrabold"
+              style={{ background: "rgba(108,43,217,.10)", color: VIOLET }}
+            >
+              <span className="truncate">
+                {t("mode.inter")} · {isAr ? inter.labelAr : inter.label}
+              </span>
+            </span>
+          )}
         </div>
 
         {/* Gammes : cards carrées défilables (photos maquette) */}

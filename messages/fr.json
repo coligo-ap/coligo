@@ -1556,6 +1556,12 @@
     "map": {
       "expand": "Agrandir la carte",
       "collapse": "Réduire la carte"
+    },
+    "mode": {
+      "city": "Ville",
+      "inter": "Inter-wilayas",
+      "interHint": "Longs trajets entre wilayas — tu proposes ton prix, le chauffeur accepte.",
+      "whereToInter": "Vers quelle wilaya ?"
     }
   },
   "push": {

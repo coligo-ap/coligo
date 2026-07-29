@@ -23,7 +23,8 @@ import { DriveRide } from "./drive-ride";
 import { MapPickScreen } from "./drive-map-pick";
 import { DrivePriceScreen } from "./drive-price-screen";
 import { DriveHomeScreen } from "./drive-home-screen";
-import type { Gamme, Pt, Screen } from "./drive-types";
+import type { Gamme, Pt, Screen, TripMode } from "./drive-types";
+import { interWilayaInfo } from "@/lib/drive/interwilaya";
 import {
   clearPendingRide,
   getPendingRide,
@@ -107,6 +108,9 @@ export function DriveView({ userId }: { userId: string }) {
   const [pickup, setPickup] = useState<Pt | null>(null);
   const [dest, setDest] = useState<Pt | null>(null);
   const [mapPickFor, setMapPickFor] = useState<"dep" | "dest">("dest");
+  // Onglet Ville ⇄ Inter-wilayas (lentille d'AFFICHAGE : copy + mise en
+  // avant longue distance ; la détection réelle est automatique, cf. inter).
+  const [tripMode, setTripMode] = useState<TripMode>("ville");
 
   // Choix course (écran prix)
   const [quotes, setQuotes] = useState<Record<Gamme, DriveQuote> | null>(null);
@@ -507,6 +511,9 @@ export function DriveView({ userId }: { userId: string }) {
   // Distance affichée TOUT DE SUITE (vol d'oiseau × détour) puis affinée en
   // silence par OSRM — plus d'attente/loader sur la distance et la durée.
   const distanceLabel = distanceKm.toFixed(1).replace(".", ",");
+  // Inter-wilayas : détection AUTOMATIQUE (wilayas différentes + ≥ 35 km),
+  // 100 % locale — badge informatif accueil + écran prix (jamais tarifaire).
+  const inter = interWilayaInfo(pickup, dest, distanceKm);
 
   /* ───────── Devis par gamme — UN SEUL prix affiché (le prix FINAL) ───────── */
   useEffect(() => {
@@ -1112,6 +1119,7 @@ export function DriveView({ userId }: { userId: string }) {
           route={route}
           distanceLabel={distanceLabel}
           etaMin={etaMin}
+          inter={inter}
           quotes={quotes}
           quote={quote}
           gamme={gamme}
@@ -1190,6 +1198,9 @@ export function DriveView({ userId }: { userId: string }) {
       isDesktop={isDesktop}
       routePath={route?.path ?? null}
       aiConfirming={aiConfirming}
+      tripMode={tripMode}
+      setTripMode={setTripMode}
+      inter={inter}
       depOpen={depOpen}
       contactsOpen={contactsOpen}
       sosContacts={sosContacts}

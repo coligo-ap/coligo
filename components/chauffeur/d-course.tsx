@@ -30,6 +30,7 @@ import { tryOpenNav } from "@/lib/drive/nav";
 import { useUnreadRideMessages } from "@/lib/drive/use-unread-messages";
 import { useRideCall } from "@/lib/call/use-ride-call";
 import { useRoadPath } from "@/lib/drive/use-road-path";
+import { interWilayaInfo } from "@/lib/drive/interwilaya";
 import { DriveMap, type LatLng } from "@/components/customer/drive/drive-map";
 import {
   CancelModal,
@@ -864,6 +865,31 @@ export function DCourse() {
                     {tr("Pour un proche", "لأحد الأقارب")}
                   </span>
                 )}
+                {(() => {
+                  // Badge « Inter-wilayas » (détection locale partagée) : le
+                  // chauffeur garde le contexte longue distance pendant la course.
+                  const iw = interWilayaInfo(
+                    ride.pickup_lat != null && ride.pickup_lng != null
+                      ? { lat: ride.pickup_lat, lng: ride.pickup_lng }
+                      : null,
+                    ride.dest_lat != null && ride.dest_lng != null
+                      ? { lat: ride.dest_lat, lng: ride.dest_lng }
+                      : null,
+                    ride.distance_km ?? 0
+                  );
+                  return iw ? (
+                    <span
+                      className="rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                      style={{
+                        background: "rgba(108,43,217,.12)",
+                        color: VIOLET,
+                      }}
+                    >
+                      {tr("Inter-wilayas", "بين الولايات")} ·{" "}
+                      {isAr ? iw.labelAr : iw.label}
+                    </span>
+                  ) : null;
+                })()}
               </span>
             </span>
             {/* Prix convenu (collé à l'identité — plus de bloc séparé). */}
