@@ -9,10 +9,10 @@ import {
   Building2,
   Car,
   Clock,
+  ContactRound,
   History,
   Pencil,
   Route,
-  ShieldAlert,
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
@@ -155,13 +155,16 @@ export function DriveHomeScreen({
               >
                 <History className="size-3.5" /> {t("history")}
               </Link>
+              {/* Contacts d'urgence : pilule « personne + SOS » (le bouclier
+                  seul n'était pas compris comme « ajouter mes proches »).
+                  « SOS » = même mot en fr/ar/en, aucune traduction requise. */}
               <button
                 type="button"
                 onClick={() => setContactsOpen(true)}
                 aria-label={t("sosContacts.title")}
-                className="grid size-9 place-items-center rounded-full border border-white/25 bg-white/15 text-white"
+                className="flex min-h-[36px] items-center gap-1.5 rounded-full border border-white/25 bg-white/15 px-3 py-1.5 text-xs font-bold text-white"
               >
-                <ShieldAlert className="size-4" />
+                <ContactRound className="size-3.5" /> SOS
               </button>
             </div>
           </div>
