@@ -1249,14 +1249,29 @@ export async function geocodeSearch(input: {
   const weakLocal = local.filter((r) => r.score < 0.5);
   const confMerchAll = merchants.filter((r) => r.score >= 0.45).sort(byScore);
   const weakMerch = merchants.filter((r) => r.score < 0.45).sort(byScore);
+  // Requête = NOM DE WILAYA exact (« Béjaïa », « بجاية »…) : le client veut la
+  // VILLE — aucun commerce ne passe devant les lieux, quel que soit son score
+  // (vécu : « Béjaïa » proposait d'abord « Le Fournil de Béjaïa »). Essentiel
+  // pour les trajets Inter-wilayas. Égalité STRICTE après normalisation (une
+  // requête « restaurant Béjaïa » reste un cas commerce normal).
+  const qNorm = normalizeForMatch(q);
+  const isWilayaQuery = WILAYAS.some(
+    (w) =>
+      normalizeForMatch(w.name) === qNorm ||
+      normalizeForMatch(w.name_ar) === qNorm
+  );
   // Mode « lieux d'abord » (Drive) : seul un commerce quasi certain (enseigne
   // réellement nommée) garde la tête ; les autres passent APRÈS les lieux.
-  const confMerch = input.preferPlaces
-    ? confMerchAll.filter((r) => r.score >= 0.75)
-    : confMerchAll;
-  const midMerch = input.preferPlaces
-    ? confMerchAll.filter((r) => r.score < 0.75)
-    : [];
+  const confMerch = isWilayaQuery
+    ? []
+    : input.preferPlaces
+      ? confMerchAll.filter((r) => r.score >= 0.75)
+      : confMerchAll;
+  const midMerch = isWilayaQuery
+    ? confMerchAll
+    : input.preferPlaces
+      ? confMerchAll.filter((r) => r.score < 0.75)
+      : [];
   const results: GeoHit[] = [];
   for (const r of [
     ...confMerch,
