@@ -1371,6 +1371,7 @@ export type Database = {
           drive_newcustomer_enabled: boolean;
           drive_newcustomer_rate: number;
           drive_scheduled_enabled: boolean;
+          drive_ai_enabled: boolean;
           drive_paid_plans_enabled: boolean;
           drive_scheduled_lead_min: number;
           drive_scheduled_max_days: number;

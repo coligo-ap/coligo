@@ -20,6 +20,16 @@ export async function transcribeDriveAudio(input: {
   mime: string;
   lang: "ar" | "fr";
 }): Promise<TranscribeResult> {
+  // Interrupteur super-admin (mig 0420) : la transcription est l'appel le
+  // plus coûteux — refuser côté serveur quand la recherche IA est désactivée.
+  const { createAdminClient } = await import("@/lib/supabase/admin");
+  const { data: aiSettings } = await createAdminClient()
+    .from("platform_settings")
+    .select("drive_ai_enabled")
+    .eq("id", true)
+    .maybeSingle();
+  if (!aiSettings?.drive_ai_enabled) return { ok: false };
+
   const b64 = input.base64 ?? "";
   // ~3 Mo décodés — largement assez pour 15 s de dictée, et borne anti-abus.
   if (!b64 || b64.length > 4_000_000) return { ok: false };

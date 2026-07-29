@@ -65,6 +65,8 @@ export type DriveContext = {
   scheduledEnabled: boolean;
   scheduledMaxDays: number;
   scheduledLeadMin: number;
+  /** Recherche intelligente + dictée vocale (mig 0420, masquées si false). */
+  aiEnabled: boolean;
   /** Solde Coligo Pay (DA) — affiché sur le moyen de paiement (mig 0163). */
   walletBalance: number;
   recents: { text: string; lat: number; lng: number }[];
@@ -88,7 +90,7 @@ export async function getDriveContext(): Promise<DriveContext> {
     admin
       .from("platform_settings")
       .select(
-        "drive_price_step_da, drive_boost_min_da, drive_boost_step_da, drive_boost_default_rate, drive_female_filter_enabled, drive_deviation_km, drive_deviation_min, drive_scheduled_enabled, drive_scheduled_max_days, drive_scheduled_lead_min"
+        "drive_price_step_da, drive_boost_min_da, drive_boost_step_da, drive_boost_default_rate, drive_female_filter_enabled, drive_deviation_km, drive_deviation_min, drive_scheduled_enabled, drive_scheduled_max_days, drive_scheduled_lead_min, drive_ai_enabled"
       )
       .eq("id", true)
       .maybeSingle(),
@@ -187,6 +189,7 @@ export async function getDriveContext(): Promise<DriveContext> {
     scheduledEnabled: settings?.drive_scheduled_enabled ?? false,
     scheduledMaxDays: settings?.drive_scheduled_max_days ?? 7,
     scheduledLeadMin: settings?.drive_scheduled_lead_min ?? 15,
+    aiEnabled: settings?.drive_ai_enabled ?? false,
     walletBalance,
     recents,
     lastRide,

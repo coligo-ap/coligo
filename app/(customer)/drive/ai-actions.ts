@@ -17,6 +17,7 @@
  */
 
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { geocodeSearch } from "@/app/(customer)/actions";
 import { haversineKm } from "@/lib/delivery/distance";
 
@@ -245,6 +246,20 @@ export async function parseDriveIntent(input: {
       ok: false,
       reason: "auth",
       message: "Connecte-toi pour utiliser l'assistant.",
+    };
+
+  // Interrupteur super-admin (mig 0420) — garde SERVEUR : masquer la barre
+  // côté client ne suffit pas, un appel direct doit aussi être refusé.
+  const { data: aiSettings } = await createAdminClient()
+    .from("platform_settings")
+    .select("drive_ai_enabled")
+    .eq("id", true)
+    .maybeSingle();
+  if (!aiSettings?.drive_ai_enabled)
+    return {
+      ok: false,
+      reason: "input",
+      message: "L'assistant est indisponible pour le moment.",
     };
 
   const raw = (input.text ?? "").trim();

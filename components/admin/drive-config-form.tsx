@@ -182,6 +182,22 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
           />
           Réservation programmée activée (masquée côté client tant que décochée)
         </label>
+        <label className="mt-2 flex items-start gap-2 text-sm font-semibold">
+          <input
+            type="checkbox"
+            checked={cfg.ai_enabled}
+            onChange={(e) => set("ai_enabled", e.target.checked)}
+            className="mt-0.5 size-4"
+          />
+          <span>
+            Recherche intelligente + dictée vocale (barre « Dis où tu veux aller
+            »)
+            <span className="text-muted block text-xs font-normal">
+              Décoché : la barre disparaît de l&apos;accueil Drive et les
+              analyses/transcriptions sont refusées côté serveur.
+            </span>
+          </span>
+        </label>
       </Section>
 
       {/* Plans */}

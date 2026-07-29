@@ -147,14 +147,18 @@ export function DriveHomeScreen({
         <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,480px)_1fr]">
           <div className="min-w-0">
             {/* Assistant IA : réserver en langage naturel (darija / ar / fr) —
-                pilule FLOTTANTE sur le dégradé, écho de la recherche accueil. */}
-            <div className="rounded-[18px] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
-              <DriveAiBar
-                pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
-                onResolved={applyAiDraft}
-                onConfirmingChange={setAiConfirming}
-              />
-            </div>
+                pilule FLOTTANTE sur le dégradé, écho de la recherche accueil.
+                Interrupteur super-admin (Config Drive, mig 0420) : masquée si
+                désactivée — les actions serveur refusent aussi (bypass-proof). */}
+            {ctx.aiEnabled && (
+              <div className="rounded-[18px] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
+                <DriveAiBar
+                  pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
+                  onResolved={applyAiDraft}
+                  onConfirmingChange={setAiConfirming}
+                />
+              </div>
+            )}
 
             {!aiConfirming && (
               <>
