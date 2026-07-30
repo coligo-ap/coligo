@@ -55,19 +55,13 @@ export function decomposeDa(amountDa: number): MoneyPiece[] {
   return out;
 }
 
-function Note({ value, size }: { value: number; size: number }) {
+/** Corps du BILLET (coordonnées 76×40) — groupe SVG embarquable partout
+ *  (composant HTML autonome ET segments de la roue). */
+export function NoteArt({ value }: { value: number }) {
   const c = NOTE_COLORS[value] ?? NOTE_COLORS[500];
-  const w = size * 1.9;
-  const h = size;
   const id = `mn${value}`;
   return (
-    <svg
-      width={w}
-      height={h}
-      viewBox="0 0 76 40"
-      aria-hidden
-      className="shrink-0 drop-shadow-sm"
-    >
+    <g aria-hidden>
       <defs>
         <linearGradient id={id} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={c.b} />
@@ -121,21 +115,15 @@ function Note({ value, size }: { value: number; size: number }) {
       >
         دينار جزائري
       </text>
-    </svg>
+    </g>
   );
 }
 
-function Coin({ value, size }: { value: number; size: number }) {
+/** Corps de la PIÈCE (coordonnées 40×40) — même contrat que NoteArt. */
+export function CoinArt({ value }: { value: number }) {
   const c = COIN_COLORS[value] ?? COIN_COLORS[100];
-  const s = size;
   return (
-    <svg
-      width={s}
-      height={s}
-      viewBox="0 0 40 40"
-      aria-hidden
-      className="shrink-0 drop-shadow-sm"
-    >
+    <g aria-hidden>
       <circle
         cx="20"
         cy="20"
@@ -175,7 +163,82 @@ function Coin({ value, size }: { value: number; size: number }) {
       >
         دج
       </text>
+    </g>
+  );
+}
+
+function Note({ value, size }: { value: number; size: number }) {
+  return (
+    <svg
+      width={size * 1.9}
+      height={size}
+      viewBox="0 0 76 40"
+      aria-hidden
+      className="shrink-0 drop-shadow-sm"
+    >
+      <NoteArt value={value} />
     </svg>
+  );
+}
+
+function Coin({ value, size }: { value: number; size: number }) {
+  return (
+    <svg
+      width={size}
+      height={size}
+      viewBox="0 0 40 40"
+      aria-hidden
+      className="shrink-0 drop-shadow-sm"
+    >
+      <CoinArt value={value} />
+    </svg>
+  );
+}
+
+/**
+ * Pile de coupures pour un SEGMENT DE ROUE — groupe SVG centré sur (0,0),
+ * jusqu'à 2 pièces en éventail. `height` = hauteur d'un billet en unités du
+ * viewBox parent.
+ */
+export function MoneySvgStack({
+  amountDa,
+  height = 22,
+}: {
+  amountDa: number;
+  height?: number;
+}) {
+  const pieces = decomposeDa(amountDa).slice(0, 2);
+  if (pieces.length === 0) return null;
+  const noteW = height * 1.9;
+  const coinS = height * 1.15;
+  const step = height * 0.85;
+  const totalW =
+    pieces.length === 1
+      ? pieces[0].kind === "note"
+        ? noteW
+        : coinS
+      : noteW + step * 0.6;
+  return (
+    <g>
+      {pieces.map((p, i) => {
+        const w = p.kind === "note" ? noteW : coinS;
+        const h = p.kind === "note" ? height : coinS;
+        const scale = w / (p.kind === "note" ? 76 : 40);
+        const x = -totalW / 2 + i * step;
+        return (
+          <g
+            key={i}
+            transform={`translate(${x} ${-h / 2 + i * 2}) rotate(${i * 9 - 4} ${w / 2} ${h / 2}) scale(${scale})`}
+          >
+            {p.kind === "note" ? (
+              <NoteArt value={p.value} />
+            ) : (
+              <CoinArt value={p.value} />
+            )}
+          </g>
+        );
+      })}
+    </g>
   );
 }
 

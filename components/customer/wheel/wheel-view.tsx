@@ -13,7 +13,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
-import { MoneyVisual } from "./money-visual";
+import { MoneySvgStack, MoneyVisual } from "./money-visual";
 
 // =============================================================================
 // WheelView — la roue quotidienne. Le SERVEUR tire d'abord (RPC wheel_spin),
@@ -162,12 +162,6 @@ export function WheelView({
           const mid = a0 + seg / 2;
           const [tx, ty] = polar(150, 150, R * 0.62, mid);
           const isFree = p.kind === "free_delivery";
-          const label =
-            p.kind === "nothing"
-              ? "↻"
-              : isFree
-                ? t("segFreeTop")
-                : `${p.amount_da}`;
           return (
             <g key={p.id}>
               <path
@@ -176,30 +170,54 @@ export function WheelView({
                 stroke="rgba(255,255,255,.35)"
                 strokeWidth="2"
               />
-              <text
-                x={tx}
-                y={ty}
-                fill="#fff"
-                fontSize={p.kind === "nothing" ? 26 : isFree ? 13 : 24}
-                fontWeight="900"
-                textAnchor="middle"
-                dominantBaseline="middle"
-                transform={`rotate(${mid} ${tx} ${ty})`}
-              >
-                {label}
-              </text>
-              {p.kind !== "nothing" && (
-                <text
-                  x={tx}
-                  y={ty + 18}
-                  fill="rgba(255,255,255,.85)"
-                  fontSize="11"
-                  fontWeight="700"
-                  textAnchor="middle"
-                  transform={`rotate(${mid} ${tx} ${ty + 18})`}
-                >
-                  {isFree ? t("segFreeSub") : "DA"}
-                </text>
+              {p.kind === "voucher" ? (
+                /* LA MONNAIE SUR LA ROUE : billets/pièces DZD du lot posés
+                   directement sur le segment (plus parlant qu'un chiffre),
+                   montant rappelé dessous. */
+                <g transform={`translate(${tx} ${ty}) rotate(${mid})`}>
+                  <g transform="translate(0 -7)">
+                    <MoneySvgStack amountDa={p.amount_da} height={21} />
+                  </g>
+                  <text
+                    y="22"
+                    fill="#fff"
+                    fontSize="12.5"
+                    fontWeight="900"
+                    textAnchor="middle"
+                    stroke="rgba(0,0,0,.25)"
+                    strokeWidth=".5"
+                  >
+                    {p.amount_da} DA
+                  </text>
+                </g>
+              ) : (
+                <>
+                  <text
+                    x={tx}
+                    y={ty}
+                    fill="#fff"
+                    fontSize={p.kind === "nothing" ? 26 : 13}
+                    fontWeight="900"
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    transform={`rotate(${mid} ${tx} ${ty})`}
+                  >
+                    {p.kind === "nothing" ? "↻" : t("segFreeTop")}
+                  </text>
+                  {isFree && (
+                    <text
+                      x={tx}
+                      y={ty + 18}
+                      fill="rgba(255,255,255,.85)"
+                      fontSize="11"
+                      fontWeight="700"
+                      textAnchor="middle"
+                      transform={`rotate(${mid} ${tx} ${ty + 18})`}
+                    >
+                      {t("segFreeSub")}
+                    </text>
+                  )}
+                </>
               )}
             </g>
           );
@@ -225,7 +243,6 @@ export function WheelView({
         </defs>
       </svg>
     );
-     
   }, [prizes, seg, t]);
 
   const spin = async () => {
@@ -405,35 +422,6 @@ export function WheelView({
           )}
         </button>
       )}
-
-      {/* ── LES LOTS EN VRAI (billets/pièces DZD) — le client VOIT ce qu'il
-          peut gagner au lieu de deviner des chiffres. ── */}
-      <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-        <p className="text-muted mb-2.5 text-[11px] font-extrabold tracking-wide uppercase">
-          {t("prizesTitle")}
-        </p>
-        <div className="flex flex-wrap gap-2">
-          {prizes
-            .filter((p) => p.kind !== "nothing")
-            .map((p) => (
-              <span
-                key={p.id}
-                className="border-border bg-surface-2 flex items-center gap-2 rounded-[13px] border px-2.5 py-1.5"
-              >
-                {p.kind === "free_delivery" ? (
-                  <span className="bg-primary-50 text-primary-700 grid size-8 place-items-center rounded-[9px]">
-                    <Truck className="size-4.5" />
-                  </span>
-                ) : (
-                  <MoneyVisual amountDa={p.amount_da} size={26} />
-                )}
-                <span className="text-foreground text-[12px] leading-tight font-bold">
-                  {ar && p.label_ar ? p.label_ar : p.label_fr}
-                </span>
-              </span>
-            ))}
-        </div>
-      </div>
 
       {/* ── SÉRIE ── */}
       <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
