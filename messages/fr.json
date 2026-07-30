@@ -905,7 +905,11 @@
     "nothingDesc": "Retente demain — ta série continue.",
     "resultClose": "Super",
     "soonTitle": "Bientôt disponible",
-    "soonDesc": "La Roue Coligo arrive très vite."
+    "soonDesc": "La Roue Coligo arrive très vite.",
+    "homeTitle": "Roue Coligo",
+    "homeTagline": "Tourne la roue, gagne des bons d'achat !",
+    "homeSpinReady": "Ton tour GRATUIT du jour t'attend !",
+    "homeCta": "Jouer"
   },
   "sharedCart": {
     "notFoundTitle": "Panier introuvable",

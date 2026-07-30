@@ -32,6 +32,7 @@ import { LocationBanner } from "@/components/customer/location-banner";
 import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
 import { MarketplaceSection } from "@/components/customer/marketplace-section";
 import { PromoBanner } from "@/components/customer/promo-banner";
+import { HomeWheelEntry } from "@/components/customer/home-wheel-entry";
 import { ReviewPrompt } from "@/components/customer/review-prompt";
 import { HomeThemeHero } from "@/components/customer/home-theme-hero";
 
@@ -199,6 +200,15 @@ export default async function CustomerHomePage() {
           {reviewableOrders.length > 0 && (
             <section className="mt-3">
               <ReviewPrompt orders={reviewableOrders} />
+            </section>
+          )}
+
+          {/* Roue Coligo — entrée ANIMÉE (style Temu) : client connecté ET
+              roue active seulement (flag déjà lu, zéro fetch en plus). Le
+              tirage reste 100 % serveur : ce bandeau n'est qu'un lien. */}
+          {isAuth && flags.wheel.status === "active" && (
+            <section className="mt-3">
+              <HomeWheelEntry />
             </section>
           )}
 

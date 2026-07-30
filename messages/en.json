@@ -905,7 +905,11 @@
     "nothingDesc": "Try again tomorrow — your streak continues.",
     "resultClose": "Nice",
     "soonTitle": "Coming soon",
-    "soonDesc": "The Coligo Wheel is almost here."
+    "soonDesc": "The Coligo Wheel is almost here.",
+    "homeTitle": "Coligo Wheel",
+    "homeTagline": "Spin the wheel, win vouchers!",
+    "homeSpinReady": "Your FREE daily spin is waiting!",
+    "homeCta": "Play"
   },
   "sharedCart": {
     "notFoundTitle": "Cart not found",
