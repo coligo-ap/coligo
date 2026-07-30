@@ -1013,7 +1013,16 @@
     "payModeTour": "توصيل ضمن جولة",
     "payModeFee": "التوصيل مشمول: {fee}",
     "goHome": "العودة إلى كوليغو",
-    "guestPayPickupHint": "الدفع هنا = طلب استلام من المحل باسم {name}. للتوصيل، يطلب {name} ثم يرسل لك رابط الدفع."
+    "guestPayPickupHint": "الدفع هنا = طلب استلام من المحل باسم {name}. للتوصيل، يطلب {name} ثم يرسل لك رابط الدفع.",
+    "recoveryPickup": "استلام من المحل",
+    "recoveryDelivery": "توصيل سريع",
+    "recoveryByOwner": "اختيار {name}",
+    "recoveryEdit": "تعديل",
+    "recoveryChooseAddr": "التوصيل إلى أي عنوان؟",
+    "recoveryNoAddr": "لا يوجد عنوان مسجّل — أضفه من الحساب ← العناوين.",
+    "payBreakSubtotal": "المجموع الفرعي",
+    "payBreakService": "رسوم الخدمة",
+    "payBreakDelivery": "التوصيل"
   },
   "referral": {
     "title": "برنامج الإحالة",

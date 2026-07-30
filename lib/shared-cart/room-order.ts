@@ -10,6 +10,11 @@ import {
 } from "@/lib/config/payment-limits";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
+import { haversineKm } from "@/lib/delivery/distance";
+import { computeDeliveryFee } from "@/lib/delivery/pricing";
+import { evaluateZone } from "@/lib/zones/server";
+import { zoneMessageFr } from "@/lib/zones/service-zones";
+import { isValidContactPhone } from "@/lib/dz/phone";
 
 // =============================================================================
 // createRoomOrder — « LE PREMIER QUI PAIE, PAIE » (panier partagé).
@@ -46,7 +51,7 @@ export async function createRoomOrder(
   // ── 1. Panier + gates ──────────────────────────────────────────────────────
   const { data: cart } = await sharedCarts(admin)
     .select(
-      "id, share_token, status, order_id, payment_token, expires_at, merchant_id, captain_customer_id"
+      "id, share_token, status, order_id, payment_token, expires_at, merchant_id, captain_customer_id, fulfillment_type, delivery_mode, delivery_address_id, delivery_address_text, delivery_lat, delivery_lng"
     )
     .eq("share_token", shareToken)
     .maybeSingle();
@@ -222,7 +227,77 @@ export async function createRoomOrder(
   const cashbackEstimate = Math.round(
     settled.totalDa * Number(settingsRow?.cashback_online ?? 0.03)
   );
-  const totalDa = clientGoodsDa + serviceFeeDa;
+
+  // ── 4b. LIVRAISON configurée par le PROPRIÉTAIRE (mig 0423) — fini le
+  // retrait forcé : mêmes règles serveur que le checkout (barème plateforme,
+  // rayon commerçant, moteur de zones). Express uniquement en room (la
+  // tournée exige un créneau → checkout classique du propriétaire).
+  const isDelivery =
+    cart.fulfillment_type === "delivery" &&
+    cart.delivery_lat != null &&
+    cart.delivery_lng != null;
+  let deliveryFeeDa = 0;
+  if (isDelivery) {
+    if (flags.express.status !== "active") {
+      return fail(
+        "delivery_off",
+        "La livraison express est momentanément indisponible — le propriétaire peut repasser en retrait."
+      );
+    }
+    if (!isValidContactPhone(captain.phone ?? "")) {
+      return fail(
+        "no_phone",
+        "Le propriétaire doit avoir un numéro valide pour une livraison."
+      );
+    }
+    const { data: merchGeo } = await admin
+      .from("merchants")
+      .select("latitude, longitude, delivery_radius_km")
+      .eq("id", merchant.id)
+      .maybeSingle();
+    if (merchGeo?.latitude == null || merchGeo?.longitude == null) {
+      return fail(
+        "no_delivery",
+        "Ce commerçant ne livre pas — repassez en retrait."
+      );
+    }
+    const { data: ps } = await admin
+      .from("platform_settings")
+      .select(
+        "delivery_base_da, delivery_per_km_da, delivery_free_km_threshold, delivery_min_da, delivery_max_da, delivery_max_radius_km"
+      )
+      .eq("id", true)
+      .maybeSingle();
+    if (!ps) return fail("no_pricing", "Barème livraison indisponible.");
+    const distanceKm = haversineKm(
+      { lat: merchGeo.latitude, lng: merchGeo.longitude },
+      { lat: cart.delivery_lat as number, lng: cart.delivery_lng as number }
+    );
+    const quote = computeDeliveryFee(
+      distanceKm,
+      ps,
+      merchGeo.delivery_radius_km
+    );
+    if (quote.outOfRange) {
+      return fail(
+        "out_of_range",
+        `Adresse hors zone de livraison (${distanceKm.toFixed(1)} km) — le propriétaire peut repasser en retrait.`
+      );
+    }
+    // Moteur de zones (mig 0169) : check géométrique — le trigger SQL reste
+    // le garde-fou bypass-proof.
+    const zone = await evaluateZone(
+      "express",
+      cart.delivery_lat as number,
+      cart.delivery_lng as number
+    );
+    if (!zone.allowed) {
+      return fail("zone", zoneMessageFr(zone, "destination", "express"));
+    }
+    deliveryFeeDa = quote.feeDa;
+  }
+
+  const totalDa = clientGoodsDa + serviceFeeDa + deliveryFeeDa;
   if (totalDa < CHARGILY_MIN_AMOUNT_DA) {
     return fail(
       "chargily_min",
@@ -278,9 +353,14 @@ export async function createRoomOrder(
       cashback_da: 0,
       cashback_estimate_da: cashbackEstimate,
       commission_da: 0,
-      fulfillment_type: "pickup",
-      delivery_mode: null,
-      delivery_fee_da: 0,
+      fulfillment_type: isDelivery ? "delivery" : "pickup",
+      delivery_mode: isDelivery ? "express" : null,
+      delivery_fee_da: deliveryFeeDa,
+      delivery_address_id: isDelivery ? cart.delivery_address_id : null,
+      delivery_address_text: isDelivery ? cart.delivery_address_text : null,
+      delivery_lat: isDelivery ? cart.delivery_lat : null,
+      delivery_lng: isDelivery ? cart.delivery_lng : null,
+      delivery_phone: isDelivery ? captain.phone : null,
     })
     .select("id, pickup_code")
     .single();

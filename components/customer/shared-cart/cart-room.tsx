@@ -19,7 +19,9 @@ import {
   PackageCheck,
   Plus,
   ShoppingBag,
+  Store,
   Trash2,
+  Truck,
   UserPlus,
   UserX,
   X,
@@ -44,8 +46,10 @@ import {
   cancelCart,
   captainRemoveItem,
   getCartForCheckout,
+  getMyDeliveryAddresses,
   lockCart,
   setInvitationsClosed,
+  setSharedCartDelivery,
   unlockCart,
 } from "@/app/(customer)/panier-partage/actions";
 
@@ -98,6 +102,10 @@ export type SharedCartView = {
     order_id: string | null;
     payment_method: string | null;
     payment_status: string | null;
+    /** Récupération fixée par le PROPRIÉTAIRE (mig 0423). */
+    fulfillment_type: "pickup" | "delivery";
+    delivery_mode: "express" | null;
+    delivery_address_text: string | null;
   };
   captain_name: string | null;
   merchant: {
@@ -651,6 +659,18 @@ export function CartRoom({
           <Banner icon={UserX} tone="muted">
             {t("invitesClosedBanner")}
           </Banner>
+        )}
+
+        {/* ── RÉCUPÉRATION (mig 0423) : fixée par le PROPRIÉTAIRE, visible
+            par TOUS avant de payer — retrait ou livraison express + adresse.
+            La tournée reste réservée au checkout classique. ── */}
+        {!cart.ordered && (
+          <RecoveryCard
+            cart={cart}
+            isCaptain={isCaptain}
+            captainName={view.captain_name ?? t("captain")}
+            onSaved={() => void fetchView()}
+          />
         )}
 
         {/* ── CONTRÔLES CAPITAINE ── */}
@@ -1235,6 +1255,180 @@ function Banner({
     >
       <Icon className="mt-0.5 size-4 shrink-0" />
       <span>{children}</span>
+    </div>
+  );
+}
+
+/**
+ * Récupération du panier partagé (mig 0423) — le PROPRIÉTAIRE choisit retrait
+ * ou livraison EXPRESS + une de SES adresses ; les membres voient le choix
+ * (ils savent ce qu'ils paieront). Frais recalculés SERVEUR à la commande.
+ */
+function RecoveryCard({
+  cart,
+  isCaptain,
+  captainName,
+  onSaved,
+}: {
+  cart: SharedCartView["cart"];
+  isCaptain: boolean;
+  captainName: string;
+  onSaved: () => void;
+}) {
+  const t = useTranslations("sharedCart");
+  const [editing, setEditing] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [addresses, setAddresses] = useState<
+    | {
+        id: string;
+        address_text: string;
+        lat: number | null;
+        lng: number | null;
+      }[]
+    | null
+  >(null);
+
+  const openEdit = async () => {
+    setEditing(true);
+    setErr(null);
+    if (addresses === null) {
+      setAddresses(await getMyDeliveryAddresses());
+    }
+  };
+
+  const save = async (
+    fulfillment: "pickup" | "delivery",
+    addressId?: string
+  ) => {
+    if (busy) return;
+    setBusy(true);
+    setErr(null);
+    const res = await setSharedCartDelivery({
+      cart_id: cart.id,
+      fulfillment,
+      address_id: addressId ?? null,
+    });
+    setBusy(false);
+    if (!res.ok) {
+      setErr(res.error);
+      return;
+    }
+    setEditing(false);
+    onSaved();
+  };
+
+  const isDelivery = cart.fulfillment_type === "delivery";
+
+  return (
+    <div className="border-border bg-surface rounded-[16px] border p-3.5">
+      <div className="flex items-center gap-2.5">
+        <span
+          className={cn(
+            "grid size-9 shrink-0 place-items-center rounded-[11px]",
+            isDelivery
+              ? "bg-primary-50 text-primary-700"
+              : "bg-surface-2 text-subtle"
+          )}
+        >
+          {isDelivery ? (
+            <Truck className="size-4.5" />
+          ) : (
+            <Store className="size-4.5" />
+          )}
+        </span>
+        <div className="min-w-0 flex-1">
+          <p className="text-foreground text-[13.5px] font-extrabold">
+            {isDelivery ? t("recoveryDelivery") : t("recoveryPickup")}
+          </p>
+          <p className="text-muted truncate text-[11.5px] font-semibold">
+            {isDelivery && cart.delivery_address_text
+              ? cart.delivery_address_text
+              : t("recoveryByOwner", { name: captainName })}
+          </p>
+        </div>
+        {isCaptain && !editing && (
+          <button
+            type="button"
+            onClick={() => void openEdit()}
+            className="border-border text-foreground shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-bold"
+          >
+            {t("recoveryEdit")}
+          </button>
+        )}
+      </div>
+
+      {isCaptain && editing && (
+        <div className="mt-3 space-y-2">
+          <div className="flex gap-2">
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => void save("pickup")}
+              className={cn(
+                "flex-1 rounded-[12px] border-2 px-3 py-2 text-[12.5px] font-extrabold disabled:opacity-60",
+                !isDelivery
+                  ? "border-primary-600 text-primary-700 bg-primary-50"
+                  : "border-border text-muted"
+              )}
+            >
+              {t("recoveryPickup")}
+            </button>
+            <button
+              type="button"
+              disabled={busy}
+              onClick={() => {
+                if (addresses && addresses.length === 0) {
+                  setErr(t("recoveryNoAddr"));
+                  return;
+                }
+              }}
+              className={cn(
+                "flex-1 rounded-[12px] border-2 px-3 py-2 text-[12.5px] font-extrabold disabled:opacity-60",
+                isDelivery
+                  ? "border-primary-600 text-primary-700 bg-primary-50"
+                  : "border-border text-muted"
+              )}
+            >
+              {t("recoveryDelivery")}
+            </button>
+          </div>
+          {/* Adresses du propriétaire : un tap = livraison vers cette adresse. */}
+          {addresses === null ? (
+            <div className="text-muted flex items-center gap-2 px-1 text-xs font-semibold">
+              <Loader2 className="size-3.5 animate-spin" /> …
+            </div>
+          ) : addresses.length === 0 ? (
+            <p className="text-muted px-1 text-xs font-semibold">
+              {t("recoveryNoAddr")}
+            </p>
+          ) : (
+            <div className="space-y-1.5">
+              <p className="text-muted px-1 text-[11px] font-bold tracking-wide uppercase">
+                {t("recoveryChooseAddr")}
+              </p>
+              {addresses.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  disabled={busy || a.lat == null || a.lng == null}
+                  onClick={() => void save("delivery", a.id)}
+                  className="border-border bg-surface-2 flex w-full items-center gap-2 rounded-[12px] border px-3 py-2 text-start text-[12.5px] font-semibold disabled:opacity-50"
+                >
+                  <Truck className="text-primary-700 size-3.5 shrink-0" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {a.address_text}
+                  </span>
+                  {busy && <Loader2 className="size-3.5 animate-spin" />}
+                </button>
+              ))}
+            </div>
+          )}
+          {err && (
+            <p className="px-1 text-xs font-semibold text-rose-600">{err}</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }

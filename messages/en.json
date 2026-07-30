@@ -1013,7 +1013,16 @@
     "payModeTour": "Tour delivery",
     "payModeFee": "Delivery included: {fee}",
     "goHome": "Back to Coligo home",
-    "guestPayPickupHint": "Paying here = PICKUP order under {name}'s name. For delivery, {name} orders and sends you the payment link."
+    "guestPayPickupHint": "Paying here = PICKUP order under {name}'s name. For delivery, {name} orders and sends you the payment link.",
+    "recoveryPickup": "Pickup at the shop",
+    "recoveryDelivery": "Express delivery",
+    "recoveryByOwner": "Chosen by {name}",
+    "recoveryEdit": "Edit",
+    "recoveryChooseAddr": "Deliver to which address?",
+    "recoveryNoAddr": "No saved address — add one from Account → Addresses.",
+    "payBreakSubtotal": "Subtotal",
+    "payBreakService": "Service fee",
+    "payBreakDelivery": "Delivery"
   },
   "referral": {
     "title": "Referral",

@@ -229,6 +229,112 @@ export async function unlockCart(cartId: string): Promise<Result> {
   return { ok: true };
 }
 
+/** Adresses du client (choix livraison de la room) — RLS : les siennes. */
+export async function getMyDeliveryAddresses(): Promise<
+  { id: string; address_text: string; lat: number | null; lng: number | null }[]
+> {
+  const { supabase } = await db();
+  const { data } = await supabase
+    .from("customer_addresses")
+    .select("id, address_text, lat, lng")
+    .order("created_at", { ascending: false })
+    .limit(12);
+  return (
+    (data as
+      | {
+          id: string;
+          address_text: string;
+          lat: number | null;
+          lng: number | null;
+        }[]
+      | null) ?? []
+  );
+}
+
+/**
+ * Le PROPRIÉTAIRE fixe la récupération du panier partagé (mig 0423) :
+ * retrait, ou livraison EXPRESS vers UNE de SES adresses (snapshot texte +
+ * coords — create_room_order recalcule les frais serveur). RLS 0405 : seul
+ * le capitaine passe. Tant que le panier n'est pas commandé.
+ */
+export async function setSharedCartDelivery(input: {
+  cart_id: string;
+  fulfillment: "pickup" | "delivery";
+  address_id?: string | null;
+}): Promise<Result> {
+  const { supabase, from } = await db();
+  let patch: Record<string, unknown> = {
+    fulfillment_type: "pickup",
+    delivery_mode: null,
+    delivery_address_id: null,
+    delivery_address_text: null,
+    delivery_lat: null,
+    delivery_lng: null,
+    updated_at: new Date().toISOString(),
+  };
+  if (input.fulfillment === "delivery") {
+    if (!input.address_id) {
+      return { ok: false, error: "Choisis une adresse de livraison." };
+    }
+    const { data: addr } = await supabase
+      .from("customer_addresses")
+      .select("id, address_text, lat, lng")
+      .eq("id", input.address_id)
+      .maybeSingle();
+    const a = addr as {
+      id: string;
+      address_text: string;
+      lat: number | null;
+      lng: number | null;
+    } | null;
+    if (!a || a.lat == null || a.lng == null) {
+      return { ok: false, error: "Adresse introuvable ou sans position." };
+    }
+    patch = {
+      ...patch,
+      fulfillment_type: "delivery",
+      delivery_mode: "express",
+      delivery_address_id: a.id,
+      delivery_address_text: a.address_text,
+      delivery_lat: a.lat,
+      delivery_lng: a.lng,
+    };
+  }
+  // Cast local (chaîne update→eq→is hors du builder générique de db()).
+  const { data, error } = await (
+    supabase.from("shared_carts" as never) as unknown as {
+      update: (v: Record<string, unknown>) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          is: (
+            c: string,
+            v: null
+          ) => {
+            select: (c: string) => {
+              maybeSingle: () => Promise<{
+                data: { share_token: string } | null;
+                error: { message: string } | null;
+              }>;
+            };
+          };
+        };
+      };
+    }
+  )
+    .update(patch)
+    .eq("id", input.cart_id)
+    .is("order_id", null)
+    .select("share_token")
+    .maybeSingle();
+  if (error || !data) {
+    return { ok: false, error: "Modification impossible (déjà commandé ?)." };
+  }
+  void broadcastSharedCartBump(data.share_token);
+  return { ok: true };
+}
+
 export async function cancelCart(cartId: string): Promise<Result> {
   const { from } = await db();
   // Deux tentatives conditionnelles (open puis locked) — jamais un panier

@@ -54,6 +54,9 @@ type PayInfo = {
   delivery_mode: "express" | "tour" | null;
   delivery_address_text: string | null;
   delivery_fee_da: number | null;
+  /** Détail des montants (mig 0423) — transparence totale avant paiement. */
+  subtotal_da: number | null;
+  service_fee_da: number | null;
   /** Révélés APRÈS paiement et AU PAYEUR seulement (secret mig 0412). */
   order_number: string | null;
   pickup_code: string | null;
@@ -451,6 +454,40 @@ export function GuestPayView({
           <p className="text-foreground text-3xl font-black tabular-nums">
             {formatDA(info.total_da)}
           </p>
+          {/* DÉTAIL avant paiement (mig 0423) : sous-total, frais de service,
+              livraison — le payeur sait exactement ce qu'il règle. */}
+          {info.subtotal_da != null && (
+            <dl className="border-border mt-2.5 space-y-1 border-t pt-2.5 text-[12.5px]">
+              <div className="flex items-center justify-between">
+                <dt className="text-muted font-semibold">
+                  {t("payBreakSubtotal")}
+                </dt>
+                <dd className="text-foreground font-bold tabular-nums">
+                  {formatDA(info.subtotal_da)}
+                </dd>
+              </div>
+              {(info.service_fee_da ?? 0) > 0 && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted font-semibold">
+                    {t("payBreakService")}
+                  </dt>
+                  <dd className="text-foreground font-bold tabular-nums">
+                    {formatDA(info.service_fee_da ?? 0)}
+                  </dd>
+                </div>
+              )}
+              {(info.delivery_fee_da ?? 0) > 0 && (
+                <div className="flex items-center justify-between">
+                  <dt className="text-muted font-semibold">
+                    {t("payBreakDelivery")}
+                  </dt>
+                  <dd className="text-foreground font-bold tabular-nums">
+                    {formatDA(info.delivery_fee_da ?? 0)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          )}
         </div>
 
         {/* TRANSPARENCE (mig 0422) : le propriétaire a déjà fixé le mode et

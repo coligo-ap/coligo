@@ -1013,7 +1013,16 @@
     "payModeTour": "Livraison en tournée",
     "payModeFee": "Livraison incluse : {fee}",
     "goHome": "Retour à l'accueil Coligo",
-    "guestPayPickupHint": "Payer ici = commande en RETRAIT sur place au nom de {name}. Pour une livraison, {name} commande et t'envoie le lien de paiement."
+    "guestPayPickupHint": "Payer ici = commande en RETRAIT sur place au nom de {name}. Pour une livraison, {name} commande et t'envoie le lien de paiement.",
+    "recoveryPickup": "Retrait sur place",
+    "recoveryDelivery": "Livraison express",
+    "recoveryByOwner": "Choisi par {name}",
+    "recoveryEdit": "Modifier",
+    "recoveryChooseAddr": "Livrer à quelle adresse ?",
+    "recoveryNoAddr": "Aucune adresse enregistrée — ajoute-la depuis Compte → Adresses.",
+    "payBreakSubtotal": "Sous-total",
+    "payBreakService": "Frais de service",
+    "payBreakDelivery": "Livraison"
   },
   "referral": {
     "title": "Parrainage",
