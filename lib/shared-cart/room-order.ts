@@ -15,7 +15,7 @@ import { getFeatureFlags } from "@/lib/data/feature-flags";
 // createRoomOrder — « LE PREMIER QUI PAIE, PAIE » (panier partagé).
 //
 // Un membre du groupe tape « Payer » alors que le capitaine n'a pas encore
-// commandé : on crée NOUS-MÊMES la commande (compte du capitaine, RETRAIT
+// commandé : on crée NOUS-MÊMES la commande (compte du propriétaire, RETRAIT
 // asap, paiement EN LIGNE) puis on renvoie le lien /payer/{ptoken}.
 //
 // ⚠️ ARGENT : ce chemin REFLÈTE createOrder (checkout/actions.ts) pour le cas
@@ -95,7 +95,7 @@ export async function createRoomOrder(
     .select("id, full_name, phone")
     .eq("id", cart.captain_customer_id as string)
     .maybeSingle();
-  if (!captain) return fail("not_found", "Capitaine introuvable.");
+  if (!captain) return fail("not_found", "Propriétaire du panier introuvable.");
 
   // ── 2. Lignes du panier partagé → items façon checkout ────────────────────
   const itemsFrom = admin.from.bind(admin) as unknown as (t: string) => {
@@ -290,18 +290,18 @@ export async function createRoomOrder(
     // cause au lieu d'un « réessaye » mensonger, et on trace l'erreur brute.
     console.error("[room-order] insert orders:", orderErr?.message);
     if (orderErr?.message?.includes("feature_disabled:online_payment")) {
-      // Coupure PAR CLIENT (mig 0397) sur le compte du capitaine : la commande
+      // Coupure PAR CLIENT (mig 0397) sur le compte du propriétaire : la commande
       // de groupe porte sur SON compte. On le dit explicitement — le capitaine
       // peut toujours commander lui-même en payant au retrait.
       return fail(
         "online_cut",
-        "Le paiement en ligne est désactivé sur le compte du capitaine. Il peut quand même commander en payant au retrait."
+        "Le paiement en ligne est désactivé sur le compte du propriétaire. Il peut quand même commander en payant au retrait."
       );
     }
     if (orderErr?.message?.includes("account_blocked")) {
       return fail(
         "blocked",
-        "Le compte du capitaine est suspendu : commande impossible. Contactez le support Coligo."
+        "Le compte du propriétaire est suspendu : commande impossible. Contactez le support Coligo."
       );
     }
     return fail("error", "Création de la commande impossible. Réessaye.");

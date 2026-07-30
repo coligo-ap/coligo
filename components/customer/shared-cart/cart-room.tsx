@@ -589,7 +589,9 @@ export function CartRoom({
         {/* ── BANDEAUX D'ÉTAT ── */}
         {cart.status === "locked" && !cart.ordered && (
           <Banner icon={Lock} tone="amber">
-            {t("lockedBanner")}
+            {t("lockedBanner", {
+              name: view.captain_name ?? t("captain"),
+            })}
           </Banner>
         )}
         {canPayNow ? (
@@ -640,7 +642,9 @@ export function CartRoom({
         )}
         {cart.status === "cancelled" && (
           <Banner icon={X} tone="muted">
-            {t("cancelledBanner")}
+            {t("cancelledBanner", {
+              name: view.captain_name ?? t("captain"),
+            })}
           </Banner>
         )}
         {open && cart.invitations_closed && (
@@ -1055,6 +1059,17 @@ export function CartRoom({
                   </button>
                 )}
               </>
+            )}
+            {/* Invité qui paie depuis la room OUVERTE : la commande part en
+                RETRAIT sur le compte du propriétaire — dit AVANT le tap. Pour
+                une livraison, c'est le propriétaire qui commande (checkout,
+                mode + adresse) puis envoie le lien de paiement. */}
+            {open && !isCaptain && items.length > 0 && (
+              <p className="text-muted mt-1.5 w-full text-center text-[11.5px] font-semibold">
+                {t("guestPayPickupHint", {
+                  name: view.captain_name ?? t("captain"),
+                })}
+              </p>
             )}
             {!open && canPayNow && (
               <button

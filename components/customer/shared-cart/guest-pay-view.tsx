@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useTranslations } from "next-intl";
 import {
   CheckCircle2,
@@ -48,6 +49,11 @@ type PayInfo = {
   share_token: string;
   /** Livraison : le PIN est le code LIVREUR du destinataire — jamais ici. */
   is_delivery: boolean;
+  /** Choix du PROPRIÉTAIRE, visibles AVANT paiement (mig 0422) : l'invité
+   *  sait ce qu'il règle — mode + adresse + frais inclus dans le total. */
+  delivery_mode: "express" | "tour" | null;
+  delivery_address_text: string | null;
+  delivery_fee_da: number | null;
   /** Révélés APRÈS paiement et AU PAYEUR seulement (secret mig 0412). */
   order_number: string | null;
   pickup_code: string | null;
@@ -175,7 +181,11 @@ export function GuestPayView({
         res.reason === "ineligible"
           ? (res.message ?? t("payFailedBanner"))
           : res.reason === "expired"
-            ? t("payExpiredDesc")
+            ? t("payExpiredDesc", {
+                name:
+                  (info !== "notfound" ? info?.captain_name : null) ??
+                  t("captain"),
+              })
             : t("payFailedBanner")
       );
       return;
@@ -195,7 +205,12 @@ export function GuestPayView({
       return;
     }
     setPayError(
-      res.reason === "expired" ? t("payExpiredDesc") : t("payFailedBanner")
+      res.reason === "expired"
+        ? t("payExpiredDesc", {
+            name:
+              (info !== "notfound" ? info?.captain_name : null) ?? t("captain"),
+          })
+        : t("payFailedBanner")
     );
   };
 
@@ -219,6 +234,13 @@ export function GuestPayView({
           <p className="text-muted mt-1 text-center text-sm">
             {t("notFoundDesc")}
           </p>
+
+          <Link
+            href="/"
+            className="border-border text-foreground mt-4 flex h-11 w-full items-center justify-center rounded-[13px] border text-sm font-bold"
+          >
+            {t("goHome")}
+          </Link>
         </Card>
       </Screen>
     );
@@ -280,7 +302,9 @@ export function GuestPayView({
         {info.is_delivery && (
           <div className="bg-surface-2 rounded-[14px] px-4 py-2.5 text-center">
             <span className="text-muted text-xs font-bold">
-              {t("paidDeliveryInfo")}
+              {t("paidDeliveryInfo", {
+                name: info?.captain_name ?? t("captain"),
+              })}
             </span>
           </div>
         )}
@@ -377,8 +401,15 @@ export function GuestPayView({
             {t("payExpired")}
           </h1>
           <p className="text-muted mt-1 text-center text-sm">
-            {t("payExpiredDesc")}
+            {t("payExpiredDesc", { name: info?.captain_name ?? t("captain") })}
           </p>
+
+          <Link
+            href="/"
+            className="border-border text-foreground mt-4 flex h-11 w-full items-center justify-center rounded-[13px] border text-sm font-bold"
+          >
+            {t("goHome")}
+          </Link>
         </Card>
       </Screen>
     );
@@ -414,6 +445,31 @@ export function GuestPayView({
           <p className="text-foreground text-3xl font-black tabular-nums">
             {formatDA(info.total_da)}
           </p>
+        </div>
+
+        {/* TRANSPARENCE (mig 0422) : le propriétaire a déjà fixé le mode et
+            l'adresse au checkout — l'invité voit ce qu'il paie exactement. */}
+        <div className="border-border mt-3 rounded-[14px] border px-4 py-3">
+          <p className="text-muted text-[11px] font-bold tracking-wide uppercase">
+            {t("payModeTitle", { name: info.captain_name ?? t("captain") })}
+          </p>
+          <p className="text-foreground mt-1 text-sm font-extrabold">
+            {info.is_delivery
+              ? info.delivery_mode === "tour"
+                ? t("payModeTour")
+                : t("payModeExpress")
+              : t("payModePickup")}
+          </p>
+          {info.is_delivery && info.delivery_address_text && (
+            <p className="text-muted mt-0.5 text-xs font-medium">
+              {info.delivery_address_text}
+            </p>
+          )}
+          {info.is_delivery && (info.delivery_fee_da ?? 0) > 0 && (
+            <p className="text-subtle mt-0.5 text-xs font-semibold">
+              {t("payModeFee", { fee: formatDA(info.delivery_fee_da ?? 0) })}
+            </p>
+          )}
         </div>
 
         {confirming ? (
