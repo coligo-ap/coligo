@@ -818,7 +818,6 @@
     "fullName": "Full name",
     "fullNamePlaceholder": "E.g. Lina Hamdi",
     "phone": "Phone",
-    "phoneHint": "We pass it to the merchant so they can contact you.",
     "passwordHint": "8 characters minimum.",
     "creating": "Creating…",
     "createMyAccount": "Create my account",
@@ -828,7 +827,18 @@
     "continueWithGoogle": "Continue with Google",
     "continueWithApple": "Continue with Apple",
     "modeLogin": "I already have an account",
-    "modeSignup": "Create my account"
+    "modeSignup": "Create my account",
+    "wizardStepOf": "Step {n} of {total}",
+    "wizardBack": "Back",
+    "wizardNext": "Continue",
+    "stepIdentityTitle": "Who are you?",
+    "stepIdentitySub": "Your name and number — 30 seconds flat.",
+    "stepIdentityHint": "Your full name and a valid number to continue.",
+    "stepAccessTitle": "Your login",
+    "stepAccessSub": "To sign in and secure your account.",
+    "stepAccessHint": "A valid email and a password of at least 8 characters.",
+    "stepConfirmTitle": "Last step",
+    "stepConfirmSub": "Got a referral code? Otherwise you're done."
   },
   "browse": {
     "all": "All",

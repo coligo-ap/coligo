@@ -818,7 +818,6 @@
     "fullName": "الاسم الكامل",
     "fullNamePlaceholder": "مثال: لينا حمدي",
     "phone": "الهاتف",
-    "phoneHint": "نمرره إلى التاجر ليتمكن من التواصل معك.",
     "passwordHint": "8 أحرف على الأقل.",
     "creating": "جارٍ الإنشاء…",
     "createMyAccount": "إنشاء حسابي",
@@ -828,7 +827,18 @@
     "continueWithGoogle": "المتابعة عبر غوغل",
     "continueWithApple": "المتابعة عبر Apple",
     "modeLogin": "لدي حساب بالفعل",
-    "modeSignup": "أُنشئ حسابي"
+    "modeSignup": "أُنشئ حسابي",
+    "wizardStepOf": "الخطوة {n} من {total}",
+    "wizardBack": "رجوع",
+    "wizardNext": "متابعة",
+    "stepIdentityTitle": "من أنت؟",
+    "stepIdentitySub": "اسمك ورقم هاتفك — 30 ثانية فقط.",
+    "stepIdentityHint": "اسمك الكامل ورقم صحيح للمتابعة.",
+    "stepAccessTitle": "بيانات الدخول",
+    "stepAccessSub": "لتسجيل الدخول وتأمين حسابك.",
+    "stepAccessHint": "بريد إلكتروني صحيح وكلمة سر من 8 أحرف على الأقل.",
+    "stepConfirmTitle": "الخطوة الأخيرة",
+    "stepConfirmSub": "عندك رمز إحالة؟ وإلا فقد انتهيت."
   },
   "browse": {
     "all": "الكل",

@@ -818,7 +818,6 @@
     "fullName": "Nom complet",
     "fullNamePlaceholder": "Ex. Lina Hamdi",
     "phone": "Téléphone",
-    "phoneHint": "On le transmet au commerçant pour qu'il puisse te contacter.",
     "passwordHint": "8 caractères minimum.",
     "creating": "Création…",
     "createMyAccount": "Créer mon compte",
@@ -828,7 +827,18 @@
     "continueWithGoogle": "Continuer avec Google",
     "continueWithApple": "Continuer avec Apple",
     "modeLogin": "J'ai déjà un compte",
-    "modeSignup": "Je crée mon compte"
+    "modeSignup": "Je crée mon compte",
+    "wizardStepOf": "Étape {n} sur {total}",
+    "wizardBack": "Retour",
+    "wizardNext": "Continuer",
+    "stepIdentityTitle": "Qui es-tu ?",
+    "stepIdentitySub": "Ton nom et ton numéro — 30 secondes chrono.",
+    "stepIdentityHint": "Ton nom complet et un numéro valide pour continuer.",
+    "stepAccessTitle": "Tes accès",
+    "stepAccessSub": "Pour te connecter et sécuriser ton compte.",
+    "stepAccessHint": "Un email valide et un mot de passe d'au moins 8 caractères.",
+    "stepConfirmTitle": "Dernière étape",
+    "stepConfirmSub": "Un code parrain ? Sinon, c'est déjà fini."
   },
   "browse": {
     "all": "Tous",
