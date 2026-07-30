@@ -61,7 +61,7 @@ import {
   type PaymentResultState,
 } from "@/components/payments/payment-result-overlay";
 import { trackBeginCheckout } from "@/lib/analytics/ecommerce";
-import { getDeviceId } from "@/lib/customer/device-id";
+import { getDeviceIdAsync } from "@/lib/customer/device-id";
 import {
   computeServiceFeeDa,
   daUntilFreeServiceFee,
@@ -589,7 +589,9 @@ export function CheckoutView({
         cashback_to_use_da: useCashback && cashbackOn ? cashbackApplied : 0,
         topup_to_use_da: useTopup && coligoPayOn ? topupApplied : 0,
         promo_code: appliedPromo?.code ?? null,
-        device_id: getDeviceId(),
+        // Identifiant d'appareil PHYSIQUE (nat:ANDROID_ID en app) d'abord —
+        // résiste à la déconnexion ET à la réinstallation, façon Uber.
+        device_id: await getDeviceIdAsync(),
         defer_payment: guestPays || undefined,
       });
       if (!res.ok) {
@@ -653,7 +655,7 @@ export function CheckoutView({
           options: i.options?.map((o) => ({ option_id: o.option_id })),
         })),
         code,
-        device_id: getDeviceId(),
+        device_id: await getDeviceIdAsync(),
       });
       if (res.ok) {
         setAppliedPromo({ code: res.code, discount_da: res.discount_da });

@@ -33,6 +33,7 @@ import {
   resolveMinOrderDa,
 } from "@/lib/config/payment-limits";
 import { computeServiceFeeDa, parseTiers } from "@/lib/finance/service-fee";
+import { fraudRecordEvent } from "@/lib/fraud/events";
 import { notifyMerchantNewOrder, notifyDriversTour } from "@/lib/fcm/triggers";
 import {
   computeDeliveryFee,
@@ -764,9 +765,26 @@ export async function createOrder(
           discountDa: Math.max(0, vp.discount_da ?? 0),
         };
       } else {
+        // Tentatives de contournement (hors app / appareil déjà servi) →
+        // journal anti-fraude : visibles dans le moteur (scores, alertes),
+        // fire-and-forget, ne bloque jamais la réponse.
+        const reason = vp?.reason ?? "invalid";
+        if (reason === "app_only" || reason === "device_used") {
+          fraudRecordEvent({
+            actorKind: "customer",
+            actorId: customer.id,
+            eventType: "promo_denied",
+            meta: {
+              code: codeTyped.toUpperCase(),
+              reason,
+              device_id: input.device_id ?? null,
+              stage: "order",
+            },
+          });
+        }
         return {
           ok: false,
-          error: platformPromoErrorMessage(vp?.reason ?? "invalid"),
+          error: platformPromoErrorMessage(reason),
         };
       }
     }
@@ -2180,9 +2198,24 @@ export async function previewPromoCode(input: {
           code: vp.code ?? code.toUpperCase(),
         };
       }
+      const vpReason = vp?.reason ?? "invalid";
+      if (vpReason === "app_only" || vpReason === "device_used") {
+        // Journal anti-fraude (fire-and-forget) — même signal qu'au checkout.
+        fraudRecordEvent({
+          actorKind: "customer",
+          actorId: customer.id,
+          eventType: "promo_denied",
+          meta: {
+            code: code.toUpperCase(),
+            reason: vpReason,
+            device_id: input.device_id ?? null,
+            stage: "preview",
+          },
+        });
+      }
       return {
         ok: false,
-        error: platformPromoErrorMessage(vp?.reason ?? "invalid"),
+        error: platformPromoErrorMessage(vpReason),
       };
     }
     const raw = rows.find((p) => p.id === settled.promoCode!.id);
