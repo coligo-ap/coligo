@@ -19,6 +19,7 @@ import { createClient } from "@/lib/supabase/client";
  * bandeau reste avec le texte générique.
  */
 
+/** null = état pas encore chargé (copy générique, jamais de fausse promesse). */
 type WheelHomeState = { can_spin: boolean } | null;
 
 const CSS = `
@@ -118,7 +119,13 @@ export function HomeWheelEntry() {
             {t("homeTitle")}
           </b>
           <span className="block truncate text-[12px] font-semibold text-white/85">
-            {canSpin ? t("homeSpinReady") : t("homeTagline")}
+            {/* Déjà joué (état CONFIRMÉ) → « reviens demain », pas de fausse
+                promesse de tour ; état inconnu → accroche générique. */}
+            {canSpin
+              ? t("homeSpinReady")
+              : state
+                ? t("homeComeBack")
+                : t("homeTagline")}
           </span>
         </span>
 

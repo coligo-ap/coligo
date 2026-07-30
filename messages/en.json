@@ -411,7 +411,8 @@
     "validateThisPosition": "Validate this position",
     "closeLabel": "Close",
     "change": "Change",
-    "detectedAddress": "Detected address"
+    "detectedAddress": "Detected address",
+    "wheelFreeDelivery": "Free delivery (Coligo Wheel)"
   },
   "orders": {
     "merchantFallback": "Shop",
@@ -909,7 +910,13 @@
     "homeTitle": "Coligo Wheel",
     "homeTagline": "Spin the wheel, win vouchers!",
     "homeSpinReady": "Your FREE daily spin is waiting!",
-    "homeCta": "Play"
+    "homeCta": "Play",
+    "homeComeBack": "Already played today — come back tomorrow!",
+    "segFreeTop": "Free",
+    "segFreeSub": "delivery",
+    "wonFreeTitle": "FREE delivery!",
+    "wonFreeDesc": "Your next delivery is free — valid {days} days, applied automatically at checkout.",
+    "prizesTitle": "Prizes to win"
   },
   "sharedCart": {
     "notFoundTitle": "Cart not found",

@@ -411,7 +411,8 @@
     "validateThisPosition": "تأكيد هذا الموقع",
     "closeLabel": "إغلاق",
     "change": "تغيير",
-    "detectedAddress": "العنوان المكتشف"
+    "detectedAddress": "العنوان المكتشف",
+    "wheelFreeDelivery": "توصيل مجاني (عجلة كوليغو)"
   },
   "orders": {
     "merchantFallback": "متجر",
@@ -909,7 +910,13 @@
     "homeTitle": "عجلة كوليغو",
     "homeTagline": "دوّر العجلة واربح قسائم شراء!",
     "homeSpinReady": "دورتك المجانية لليوم في انتظارك!",
-    "homeCta": "العب"
+    "homeCta": "العب",
+    "homeComeBack": "لعبت اليوم — عُد غداً!",
+    "segFreeTop": "توصيل",
+    "segFreeSub": "مجاني",
+    "wonFreeTitle": "توصيل مجاني!",
+    "wonFreeDesc": "توصيلتك القادمة مجانية — صالحة {days} أيام وتُطبّق تلقائياً عند الدفع.",
+    "prizesTitle": "الجوائز الممكنة"
   },
   "sharedCart": {
     "notFoundTitle": "السلة غير موجودة",

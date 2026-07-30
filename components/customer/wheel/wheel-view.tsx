@@ -2,10 +2,18 @@
 
 import { useMemo, useRef, useState } from "react";
 import { useLocale, useTranslations } from "next-intl";
-import { Gift, Hourglass, Loader2, RotateCcw, Wallet } from "lucide-react";
+import {
+  Gift,
+  Hourglass,
+  Loader2,
+  RotateCcw,
+  Truck,
+  Wallet,
+} from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { createClient } from "@/lib/supabase/client";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
+import { MoneyVisual } from "./money-visual";
 
 // =============================================================================
 // WheelView — la roue quotidienne. Le SERVEUR tire d'abord (RPC wheel_spin),
@@ -15,7 +23,7 @@ import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebra
 
 export type WheelPrize = {
   id: string;
-  kind: "voucher" | "nothing";
+  kind: "voucher" | "nothing" | "free_delivery";
   amount_da: number;
   label_fr: string;
   label_ar: string | null;
@@ -34,12 +42,14 @@ type SpinResult = {
   ok: boolean;
   reason?: string;
   prize_id?: string;
-  kind?: "voucher" | "nothing";
+  kind?: "voucher" | "nothing" | "free_delivery";
   amount_da?: number;
   label_fr?: string;
   label_ar?: string | null;
   streak?: number;
   bonus?: boolean;
+  /** Livraison offerte : validité en jours (retour wheel_spin, mig 0421). */
+  free_days?: number;
 };
 
 const SEGMENT_COLORS = [
@@ -114,7 +124,9 @@ const WHEEL_CSS = `
 .wh-pop{animation:whPop .45s cubic-bezier(.2,1.2,.3,1)}
 .wh-rays{animation:whRays 7s linear infinite}
 .wh-conf{animation:whConf var(--d,1.7s) ease-in var(--w,0s) forwards}
-@media (prefers-reduced-motion:reduce){.wh-tease,.wh-bulb,.wh-glow,.wh-ptr,.wh-sweep,.wh-cta,.wh-rays,.wh-conf{animation:none}}
+@keyframes whBoom{0%{transform:scale(.4);opacity:0}55%{transform:scale(1.25)}75%{transform:scale(.94)}100%{transform:scale(1);opacity:1}}
+.wh-boom{animation:whBoom .6s cubic-bezier(.2,1.4,.35,1)}
+@media (prefers-reduced-motion:reduce){.wh-tease,.wh-bulb,.wh-glow,.wh-ptr,.wh-sweep,.wh-cta,.wh-rays,.wh-conf,.wh-boom{animation:none}}
 `;
 
 export function WheelView({
@@ -149,7 +161,13 @@ export function WheelView({
           const [x1, y1] = polar(150, 150, R, a1);
           const mid = a0 + seg / 2;
           const [tx, ty] = polar(150, 150, R * 0.62, mid);
-          const label = p.kind === "nothing" ? "↻" : `${p.amount_da}`;
+          const isFree = p.kind === "free_delivery";
+          const label =
+            p.kind === "nothing"
+              ? "↻"
+              : isFree
+                ? t("segFreeTop")
+                : `${p.amount_da}`;
           return (
             <g key={p.id}>
               <path
@@ -162,7 +180,7 @@ export function WheelView({
                 x={tx}
                 y={ty}
                 fill="#fff"
-                fontSize={p.kind === "nothing" ? 26 : 24}
+                fontSize={p.kind === "nothing" ? 26 : isFree ? 13 : 24}
                 fontWeight="900"
                 textAnchor="middle"
                 dominantBaseline="middle"
@@ -180,7 +198,7 @@ export function WheelView({
                   textAnchor="middle"
                   transform={`rotate(${mid} ${tx} ${ty + 18})`}
                 >
-                  DA
+                  {isFree ? t("segFreeSub") : "DA"}
                 </text>
               )}
             </g>
@@ -207,7 +225,8 @@ export function WheelView({
         </defs>
       </svg>
     );
-  }, [prizes, seg]);
+     
+  }, [prizes, seg, t]);
 
   const spin = async () => {
     if (spinning || spentToday) return;
@@ -387,6 +406,35 @@ export function WheelView({
         </button>
       )}
 
+      {/* ── LES LOTS EN VRAI (billets/pièces DZD) — le client VOIT ce qu'il
+          peut gagner au lieu de deviner des chiffres. ── */}
+      <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <p className="text-muted mb-2.5 text-[11px] font-extrabold tracking-wide uppercase">
+          {t("prizesTitle")}
+        </p>
+        <div className="flex flex-wrap gap-2">
+          {prizes
+            .filter((p) => p.kind !== "nothing")
+            .map((p) => (
+              <span
+                key={p.id}
+                className="border-border bg-surface-2 flex items-center gap-2 rounded-[13px] border px-2.5 py-1.5"
+              >
+                {p.kind === "free_delivery" ? (
+                  <span className="bg-primary-50 text-primary-700 grid size-8 place-items-center rounded-[9px]">
+                    <Truck className="size-4.5" />
+                  </span>
+                ) : (
+                  <MoneyVisual amountDa={p.amount_da} size={26} />
+                )}
+                <span className="text-foreground text-[12px] leading-tight font-bold">
+                  {ar && p.label_ar ? p.label_ar : p.label_fr}
+                </span>
+              </span>
+            ))}
+        </div>
+      </div>
+
       {/* ── SÉRIE ── */}
       <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
         <div className="flex items-center justify-between">
@@ -428,7 +476,7 @@ export function WheelView({
             className="wh-pop bg-surface relative w-full max-w-[380px] overflow-hidden rounded-[26px] p-6 text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
-            {result.kind === "voucher" ? (
+            {result.kind === "voucher" || result.kind === "free_delivery" ? (
               <>
                 {/* Rayons dorés tournants derrière la célébration (Temu-like). */}
                 <div
@@ -439,7 +487,7 @@ export function WheelView({
                       "repeating-conic-gradient(rgba(245,158,11,.9) 0deg 11deg, transparent 11deg 26deg)",
                   }}
                 />
-                {/* Pluie de confettis (déterministe, une seule fois). */}
+                {/* Pluie de confettis DOUBLE (boom : 2e vague décalée). */}
                 <div
                   aria-hidden
                   className="pointer-events-none absolute inset-x-0 top-0 h-full overflow-hidden"
@@ -457,19 +505,54 @@ export function WheelView({
                       }}
                     />
                   ))}
+                  {CONFETTI.map(([l, w, d, c, r], i) => (
+                    <span
+                      key={`b${i}`}
+                      className="wh-conf absolute top-0 h-[8px] w-[6px] rounded-[2px]"
+                      style={{
+                        left: `${(l + 4) % 100}%`,
+                        background: c,
+                        rotate: `${-r}deg`,
+                        ["--w" as string]: `${w + 0.4}s`,
+                        ["--d" as string]: `${d + 0.5}s`,
+                      }}
+                    />
+                  ))}
                 </div>
                 <ColigoCelebration variant="verified" />
-                <p className="text-foreground relative mt-2 text-xl font-extrabold">
-                  {t("wonTitle", { amount: formatDA(result.amount_da ?? 0) })}
+                <p className="wh-boom text-foreground relative mt-2 text-xl font-extrabold">
+                  {result.kind === "free_delivery"
+                    ? t("wonFreeTitle")
+                    : t("wonTitle", {
+                        amount: formatDA(result.amount_da ?? 0),
+                      })}
                 </p>
-                {result.bonus && (
+                {result.kind === "voucher" && (
+                  /* LE GAIN EN VRAI : billets/pièces DZD du montant gagné —
+                     bien plus parlant qu'un chiffre. */
+                  <div className="relative mt-2 flex justify-center">
+                    <MoneyVisual amountDa={result.amount_da ?? 0} size={40} />
+                  </div>
+                )}
+                {result.kind === "free_delivery" && (
+                  <span className="bg-primary-50 text-primary-700 relative mx-auto mt-2 grid size-16 place-items-center rounded-2xl">
+                    <Truck className="size-9" />
+                  </span>
+                )}
+                {result.bonus && result.kind === "voucher" && (
                   <p className="text-primary-700 mt-1 text-sm font-extrabold">
                     {t("bonusApplied", { mult: state.streak_multiplier })}
                   </p>
                 )}
-                <p className="text-muted mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium">
-                  <Wallet className="size-4" />
-                  {t("wonDesc")}
+                <p className="text-muted relative mt-1.5 inline-flex items-center gap-1.5 text-sm font-medium">
+                  {result.kind === "free_delivery" ? (
+                    t("wonFreeDesc", { days: result.free_days ?? 7 })
+                  ) : (
+                    <>
+                      <Wallet className="size-4" />
+                      {t("wonDesc")}
+                    </>
+                  )}
                 </p>
               </>
             ) : (

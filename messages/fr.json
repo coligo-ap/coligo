@@ -411,7 +411,8 @@
     "validateThisPosition": "Valider cette position",
     "closeLabel": "Fermer",
     "change": "Changer",
-    "detectedAddress": "Adresse détectée"
+    "detectedAddress": "Adresse détectée",
+    "wheelFreeDelivery": "Livraison offerte (Roue Coligo)"
   },
   "orders": {
     "merchantFallback": "Commerce",
@@ -909,7 +910,13 @@
     "homeTitle": "Roue Coligo",
     "homeTagline": "Tourne la roue, gagne des bons d'achat !",
     "homeSpinReady": "Ton tour GRATUIT du jour t'attend !",
-    "homeCta": "Jouer"
+    "homeCta": "Jouer",
+    "homeComeBack": "Déjà joué aujourd'hui — reviens demain !",
+    "segFreeTop": "Livraison",
+    "segFreeSub": "offerte",
+    "wonFreeTitle": "Livraison OFFERTE !",
+    "wonFreeDesc": "Ta prochaine livraison est offerte — valable {days} jours, appliquée automatiquement au paiement.",
+    "prizesTitle": "Les lots à gagner"
   },
   "sharedCart": {
     "notFoundTitle": "Panier introuvable",

@@ -36,17 +36,29 @@ export async function updateWheelSettings(input: {
   enabled: boolean;
   streak_target: number;
   streak_multiplier: number;
+  /** Lot « Livraison offerte » (mig 0421) : validité + plafond financé. */
+  free_delivery_valid_days: number;
+  free_delivery_max_fee_da: number;
 }): Promise<ActionResult> {
   if (!(await adminCan("marketing")))
     return { ok: false, error: "Accès refusé." };
   if (input.streak_target < 2 || input.streak_multiplier < 1) {
     return { ok: false, error: "Valeurs invalides." };
   }
+  if (
+    input.free_delivery_valid_days < 1 ||
+    input.free_delivery_valid_days > 60 ||
+    input.free_delivery_max_fee_da < 50
+  ) {
+    return { ok: false, error: "Réglages livraison offerte invalides." };
+  }
   const { error } = await db()("wheel_settings")
     .update({
       enabled: input.enabled,
       streak_target: Math.round(input.streak_target),
       streak_multiplier: Math.round(input.streak_multiplier),
+      free_delivery_valid_days: Math.round(input.free_delivery_valid_days),
+      free_delivery_max_fee_da: Math.round(input.free_delivery_max_fee_da),
       updated_at: new Date().toISOString(),
     })
     .eq("id", 1);
@@ -55,7 +67,23 @@ export async function updateWheelSettings(input: {
   return { ok: true };
 }
 
+/** Type de lot EXPLICITE (mig 0421) — plus jamais déduit du montant, sinon un
+ *  lot « livraison offerte » serait écrasé en « retente ». */
+export type WheelPrizeKind = "voucher" | "nothing" | "free_delivery";
+
+function normalizePrize(kindIn: WheelPrizeKind, amountIn: number) {
+  const kind: WheelPrizeKind = ["voucher", "nothing", "free_delivery"].includes(
+    kindIn
+  )
+    ? kindIn
+    : "nothing";
+  // Contrainte DB : (kind='voucher') = (amount_da>0).
+  const amount = kind === "voucher" ? Math.max(1, Math.round(amountIn)) : 0;
+  return { kind, amount };
+}
+
 export async function addWheelPrize(input: {
+  kind: WheelPrizeKind;
   amount_da: number;
   weight: number;
   label_fr: string;
@@ -63,8 +91,7 @@ export async function addWheelPrize(input: {
 }): Promise<ActionResult> {
   if (!(await adminCan("marketing")))
     return { ok: false, error: "Accès refusé." };
-  const amount = Math.round(input.amount_da);
-  const kind = amount > 0 ? "voucher" : "nothing";
+  const { kind, amount } = normalizePrize(input.kind, input.amount_da);
   if (input.weight < 1 || !input.label_fr.trim()) {
     return { ok: false, error: "Libellé et poids requis." };
   }
@@ -83,6 +110,7 @@ export async function addWheelPrize(input: {
 
 export async function updateWheelPrize(input: {
   id: string;
+  kind: WheelPrizeKind;
   amount_da: number;
   weight: number;
   label_fr: string;
@@ -91,10 +119,10 @@ export async function updateWheelPrize(input: {
 }): Promise<ActionResult> {
   if (!(await adminCan("marketing")))
     return { ok: false, error: "Accès refusé." };
-  const amount = Math.round(input.amount_da);
+  const { kind, amount } = normalizePrize(input.kind, input.amount_da);
   const { error } = await db()("wheel_prizes")
     .update({
-      kind: amount > 0 ? "voucher" : "nothing",
+      kind,
       amount_da: amount,
       weight: Math.max(1, Math.round(input.weight)),
       label_fr: input.label_fr.trim(),

@@ -30,11 +30,14 @@ export type AdminWheelSettings = {
   enabled: boolean;
   streak_target: number;
   streak_multiplier: number;
+  /** Lot « Livraison offerte » (mig 0421). */
+  free_delivery_valid_days: number;
+  free_delivery_max_fee_da: number;
 };
 
 export type AdminWheelPrize = {
   id: string;
-  kind: "voucher" | "nothing";
+  kind: "voucher" | "nothing" | "free_delivery";
   amount_da: number;
   weight: number;
   label_fr: string;
@@ -89,7 +92,13 @@ function Kpi({ label, value }: { label: string; value: string }) {
 function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
   const router = useRouter();
   const [form, setForm] = useState<AdminWheelSettings>(
-    settings ?? { enabled: false, streak_target: 7, streak_multiplier: 2 }
+    settings ?? {
+      enabled: false,
+      streak_target: 7,
+      streak_multiplier: 2,
+      free_delivery_valid_days: 7,
+      free_delivery_max_fee_da: 250,
+    }
   );
   const [pending, startTransition] = useTransition();
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
@@ -145,6 +154,42 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
               setForm((f) => ({
                 ...f,
                 streak_multiplier: Number(e.target.value) || 2,
+              }))
+            }
+            className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+          />
+        </label>
+        <label className="block">
+          <span className="text-muted mb-1 block text-xs font-bold">
+            Livraison offerte — validité (jours)
+          </span>
+          <input
+            type="number"
+            min={1}
+            max={60}
+            value={form.free_delivery_valid_days}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                free_delivery_valid_days: Number(e.target.value) || 7,
+              }))
+            }
+            className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+          />
+        </label>
+        <label className="block">
+          <span className="text-muted mb-1 block text-xs font-bold">
+            Livraison offerte — plafond couvert (DA)
+          </span>
+          <input
+            type="number"
+            min={50}
+            step={10}
+            value={form.free_delivery_max_fee_da}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                free_delivery_max_fee_da: Number(e.target.value) || 250,
               }))
             }
             className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
@@ -230,6 +275,7 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
+    kind: "voucher" as "voucher" | "nothing" | "free_delivery",
     label_fr: "",
     label_ar: "",
     amount_da: 100,
@@ -239,6 +285,25 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
   return (
     <div className="border-border bg-surface-2 mb-2 rounded-[13px] border p-3">
       <div className="grid grid-cols-2 gap-2">
+        <label className="text-muted col-span-2 text-xs font-bold">
+          Type de lot
+          <select
+            value={form.kind}
+            onChange={(e) =>
+              setForm((f) => ({
+                ...f,
+                kind: e.target.value as typeof form.kind,
+              }))
+            }
+            className="border-border bg-surface text-foreground mt-1 w-full rounded-[10px] border px-3 py-2 text-sm font-semibold outline-none"
+          >
+            <option value="voucher">Bon d&apos;achat (DA)</option>
+            <option value="free_delivery">
+              Livraison offerte (validité/plafond dans les réglages)
+            </option>
+            <option value="nothing">Retente (rien)</option>
+          </select>
+        </label>
         <input
           placeholder="Libellé FR (ex : 100 DA offerts)"
           value={form.label_fr}
@@ -253,15 +318,16 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
           className="border-border bg-surface text-foreground col-span-2 rounded-[10px] border px-3 py-2 text-sm outline-none"
         />
         <label className="text-muted text-xs font-bold">
-          Montant DA (0 = « retente »)
+          Montant DA (bons d&apos;achat uniquement)
           <input
             type="number"
             min={0}
-            value={form.amount_da}
+            disabled={form.kind !== "voucher"}
+            value={form.kind === "voucher" ? form.amount_da : 0}
             onChange={(e) =>
               setForm((f) => ({ ...f, amount_da: Number(e.target.value) || 0 }))
             }
-            className="border-border bg-surface text-foreground mt-1 w-full rounded-[10px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground mt-1 w-full rounded-[10px] border px-3 py-2 text-sm font-semibold outline-none disabled:opacity-50"
           />
         </label>
         <label className="text-muted text-xs font-bold">
@@ -313,6 +379,7 @@ function PrizeRow({
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState({
+    kind: prize.kind,
     amount_da: prize.amount_da,
     weight: prize.weight,
     label_fr: prize.label_fr,
@@ -344,16 +411,35 @@ function PrizeRow({
           onBlur={() => save()}
           className="border-border bg-surface text-foreground min-w-0 flex-1 rounded-[10px] border px-2.5 py-1.5 text-sm font-bold outline-none"
         />
+        {/* Type figé à l'édition (créer un nouveau lot pour changer) — badge
+            lisible pour distinguer bon d'achat / livraison offerte / retente. */}
+        <span
+          className={cn(
+            "shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold",
+            prize.kind === "free_delivery"
+              ? "bg-primary-50 text-primary-700"
+              : prize.kind === "voucher"
+                ? "bg-success-50 text-success-700"
+                : "bg-surface-2 text-subtle"
+          )}
+        >
+          {prize.kind === "free_delivery"
+            ? "Livraison offerte"
+            : prize.kind === "voucher"
+              ? "Bon d'achat"
+              : "Retente"}
+        </span>
         <input
           type="number"
           min={0}
+          disabled={prize.kind !== "voucher"}
           value={form.amount_da}
           onChange={(e) =>
             setForm((f) => ({ ...f, amount_da: Number(e.target.value) || 0 }))
           }
           onBlur={() => save()}
           title="Montant (DA)"
-          className="border-border bg-surface text-foreground w-20 rounded-[10px] border px-2 py-1.5 text-sm font-semibold outline-none"
+          className="border-border bg-surface text-foreground w-20 rounded-[10px] border px-2 py-1.5 text-sm font-semibold outline-none disabled:opacity-50"
         />
         <input
           type="number"

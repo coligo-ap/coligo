@@ -62,6 +62,7 @@ import {
 } from "@/components/payments/payment-result-overlay";
 import { trackBeginCheckout } from "@/lib/analytics/ecommerce";
 import { getDeviceIdAsync } from "@/lib/customer/device-id";
+import { createClient as createBrowserSupabase } from "@/lib/supabase/client";
 import {
   computeServiceFeeDa,
   daUntilFreeServiceFee,
@@ -223,6 +224,45 @@ export function CheckoutView({
   // Code promo : saisie + code validé côté serveur (estimation ; le serveur
   // retranche et revalide à la création de la commande).
   const [promoInput, setPromoInput] = useState("");
+  // Livraison OFFERTE gagnée à la Roue (mig 0421) — AFFICHAGE seulement : le
+  // serveur (createOrder) reste seul juge et consomme le crédit. RLS : le
+  // client ne lit que SES crédits. Non cumulable avec un code promo.
+  const [wheelCredit, setWheelCredit] = useState<{ max_fee_da: number } | null>(
+    null
+  );
+  useEffect(() => {
+    const supabase = createBrowserSupabase();
+    void (
+      supabase.from("customer_delivery_credits" as never) as unknown as {
+        select: (c: string) => {
+          eq: (
+            c: string,
+            v: string
+          ) => {
+            gt: (
+              c: string,
+              v: string
+            ) => {
+              limit: (n: number) => {
+                maybeSingle: () => Promise<{
+                  data: { max_fee_da: number } | null;
+                }>;
+              };
+            };
+          };
+        };
+      }
+    )
+      .select("max_fee_da")
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) setWheelCredit(data);
+      });
+  }, []);
+
   const [appliedPromo, setAppliedPromo] = useState<{
     code: string;
     discount_da: number;
@@ -766,7 +806,14 @@ export function CheckoutView({
     goodsAfterPromo,
     ctx.service_fee_tiers
   );
-  const totalAfterPromo = goodsAfterPromo + serviceFeeDa + deliveryFeeDa;
+  // Crédit Roue (miroir de createOrder) : livraison payante + PAS de code
+  // promo appliqué → remise plafonnée au frais réel.
+  const wheelCreditDa =
+    wheelCredit && isDelivery && deliveryFeeDa > 0 && !appliedPromo
+      ? Math.min(deliveryFeeDa, wheelCredit.max_fee_da)
+      : 0;
+  const totalAfterPromo =
+    goodsAfterPromo + serviceFeeDa + deliveryFeeDa - wheelCreditDa;
   const cashbackApplied = useCashback
     ? Math.min(ctx.cashback_balance_da, totalAfterPromo)
     : 0;
@@ -1506,6 +1553,17 @@ export function CheckoutView({
                     value={formatDA(deliveryFeeDa)}
                   />
                 )
+              )}
+              {/* Livraison offerte gagnée à la Roue Coligo (mig 0421). */}
+              {wheelCreditDa > 0 && (
+                <div className="flex items-center justify-between px-1 text-[13px]">
+                  <dt className="text-success-700 font-bold">
+                    {t("wheelFreeDelivery")}
+                  </dt>
+                  <dd className="text-success-700 font-extrabold">
+                    −{formatDA(wheelCreditDa)}
+                  </dd>
+                </div>
               )}
               {/* Nudge « plus que X pour la livraison offerte » (façon Uber Eats) :
                   tournée sélectionnée, offre existante, panier sous le minimum. */}

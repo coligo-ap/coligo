@@ -44,7 +44,9 @@ export default async function MarketingWheelTab() {
         )
         .order("position", { ascending: true }),
       from("wheel_settings")
-        .select("enabled, streak_target, streak_multiplier")
+        .select(
+          "enabled, streak_target, streak_multiplier, free_delivery_valid_days, free_delivery_max_fee_da"
+        )
         .eq("id", 1)
         .maybeSingle(),
     ]);

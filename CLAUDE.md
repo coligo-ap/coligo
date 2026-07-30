@@ -174,6 +174,9 @@ puis créer l'auth user s'il n'existe pas.
 - UI/code : français (commentaires, copy, labels).
 - Identifiants techniques : anglais (noms de fonctions, fichiers, tables).
 - Messages de commit : français accepté.
+- **Nom de marque en ARABE : « كوليغو » (avec غ) — JAMAIS « كوليقو »/« كوليڨو »
+  ni autre graphie.** Toute chaîne arabe qui mentionne la marque (UI, tickets,
+  notifications, fiches stores, contrats) utilise EXACTEMENT كوليغو.
 
 ## Performance & navigation (règles permanentes, tout le projet)
 

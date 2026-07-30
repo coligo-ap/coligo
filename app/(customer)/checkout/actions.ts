@@ -1294,7 +1294,90 @@ export async function createOrder(
     };
   }
 
-  const totalWithDelivery = totalAfterWallets + deliveryFeeDa;
+  // LIVRAISON OFFERTE (Roue Coligo, mig 0421) : consommation automatique du
+  // plus ancien crédit actif. Règles : commande LIVRÉE avec frais > 0, NON
+  // cumulable avec un code promo plateforme. Le frais livreur reste RÉEL
+  // (jamais fee=0 — mig 0103) : la remise est financée par Coligo (ledger
+  // promo_expense au paiement, trigger 0421). Consommation OPTIMISTE gardée
+  // par status='active' (anti double-usage concurrent) ; consumed_order_id
+  // posé après l'INSERT, crédit relâché si l'INSERT échoue.
+  let deliveryCreditDa = 0;
+  let deliveryCreditId: string | null = null;
+  // (deliveryFeeDa > 0 ⇒ commande LIVRÉE : le retrait n'a jamais de frais.)
+  if (deliveryFeeDa > 0 && !platformPromo) {
+    const adminDb = createAdminClient();
+    const { data: credit } = await (
+      adminDb.from("customer_delivery_credits" as never) as unknown as {
+        select: (c: string) => {
+          eq: (
+            c: string,
+            v: string
+          ) => {
+            eq: (
+              c: string,
+              v: string
+            ) => {
+              gt: (
+                c: string,
+                v: string
+              ) => {
+                order: (
+                  c: string,
+                  o: { ascending: boolean }
+                ) => {
+                  limit: (n: number) => {
+                    maybeSingle: () => Promise<{
+                      data: { id: string; max_fee_da: number } | null;
+                    }>;
+                  };
+                };
+              };
+            };
+          };
+        };
+      }
+    )
+      .select("id, max_fee_da")
+      .eq("customer_id", customer.id)
+      .eq("status", "active")
+      .gt("expires_at", new Date().toISOString())
+      .order("granted_at", { ascending: true })
+      .limit(1)
+      .maybeSingle();
+    if (credit) {
+      const { data: locked } = await (
+        adminDb.from("customer_delivery_credits" as never) as unknown as {
+          update: (v: Record<string, unknown>) => {
+            eq: (
+              c: string,
+              v: string
+            ) => {
+              eq: (
+                c: string,
+                v: string
+              ) => {
+                select: (c: string) => {
+                  maybeSingle: () => Promise<{ data: { id: string } | null }>;
+                };
+              };
+            };
+          };
+        }
+      )
+        .update({ status: "consumed", consumed_at: new Date().toISOString() })
+        .eq("id", credit.id)
+        .eq("status", "active")
+        .select("id")
+        .maybeSingle();
+      if (locked) {
+        deliveryCreditDa = Math.min(deliveryFeeDa, credit.max_fee_da);
+        deliveryCreditId = credit.id;
+      }
+    }
+  }
+
+  const totalWithDelivery =
+    totalAfterWallets + deliveryFeeDa - deliveryCreditDa;
 
   // ANTI-FRAUDE (durcissement) : la commande + ses lignes sont écrites via le
   // client service_role (`writeDb`), JAMAIS le client utilisateur. Combiné au
@@ -1363,6 +1446,9 @@ export async function createOrder(
       fulfillment_type: isDelivery ? "delivery" : "pickup",
       delivery_mode: deliverySnapshot?.mode ?? null,
       delivery_fee_da: deliveryFeeDa,
+      // Livraison offerte (roue) : remise financée Coligo, fee livreur intact.
+      delivery_credit_id: deliveryCreditId,
+      delivery_credit_da: deliveryCreditDa,
       delivery_address_id: deliverySnapshot?.address_id ?? null,
       delivery_address_text: deliverySnapshot?.text ?? null,
       delivery_lat: deliverySnapshot?.lat ?? null,
@@ -1385,6 +1471,21 @@ export async function createOrder(
     .single();
 
   if (orderErr || !order) {
+    // Crédit livraison réservé mais commande non créée → on le RELÂCHE
+    // (best-effort) pour que le client ne perde pas son gain.
+    if (deliveryCreditId) {
+      void (
+        createAdminClient().from(
+          "customer_delivery_credits" as never
+        ) as unknown as {
+          update: (v: Record<string, unknown>) => {
+            eq: (c: string, v: string) => PromiseLike<unknown>;
+          };
+        }
+      )
+        .update({ status: "active", consumed_at: null })
+        .eq("id", deliveryCreditId);
+    }
     if (orderErr?.code === "23505") {
       // Duplicate via client_operation_id : race condition, on relit.
       const { data: dup } = await supabase
@@ -1472,6 +1573,19 @@ export async function createOrder(
       ok: false,
       error: orderErr?.message ?? "Erreur à la création de la commande.",
     };
+  }
+
+  // Crédit livraison consommé → rattacher la commande (traçabilité admin).
+  if (deliveryCreditId) {
+    void (
+      writeDb.from("customer_delivery_credits" as never) as unknown as {
+        update: (v: Record<string, unknown>) => {
+          eq: (c: string, v: string) => PromiseLike<unknown>;
+        };
+      }
+    )
+      .update({ consumed_order_id: order.id })
+      .eq("id", deliveryCreditId);
   }
 
   // MÉMOIRE D'APPAREIL anti-fraude (mig 0381) : ce couple (promo, appareil)
