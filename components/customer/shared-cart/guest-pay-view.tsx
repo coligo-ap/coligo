@@ -274,6 +274,12 @@ export function GuestPayView({
           <p className="text-subtle mt-0.5 text-center text-xs font-semibold">
             {info.merchant?.name}
           </p>
+          <Link
+            href="/"
+            className="border-border text-foreground mt-4 flex h-11 w-full items-center justify-center rounded-[13px] border text-sm font-bold"
+          >
+            {t("goHome")}
+          </Link>
         </Card>
       </Screen>
     );
