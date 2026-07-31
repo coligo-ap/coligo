@@ -229,9 +229,65 @@ export async function unlockCart(cartId: string): Promise<Result> {
   return { ok: true };
 }
 
-/** Adresses du client (choix livraison de la room) — RLS : les siennes. */
-export async function getMyDeliveryAddresses(): Promise<
-  { id: string; address_text: string; lat: number | null; lng: number | null }[]
+/**
+ * Ce commerçant propose-t-il RÉELLEMENT la livraison ? (wizard d'invitation)
+ *
+ * Mêmes conditions que le checkout : service express actif côté plateforme,
+ * `delivery_enabled` + `express_enabled` chez le commerçant, et coordonnées
+ * connues (sans elles aucun rayon n'est calculable). Si c'est non, on ne
+ * propose PAS le choix « Livraison » — au lieu de le laisser échouer plus tard.
+ */
+export async function getMerchantDeliveryOffer(merchantId: string): Promise<{
+  delivery: boolean;
+  /** Rayon appliqué (km), pour l'expliquer au client le cas échéant. */
+  radius_km: number | null;
+}> {
+  const { supabase } = await db();
+  const { data } = await supabase
+    .from("merchants_public")
+    .select(
+      "delivery_enabled, express_enabled, latitude, longitude, delivery_radius_km"
+    )
+    .eq("id", merchantId)
+    .maybeSingle();
+  const m = data as {
+    delivery_enabled: boolean | null;
+    express_enabled: boolean | null;
+    latitude: number | null;
+    longitude: number | null;
+    delivery_radius_km: number | null;
+  } | null;
+  const { getFeatureFlags } = await import("@/lib/data/feature-flags");
+  const flags = await getFeatureFlags();
+  const delivery =
+    flags.express.status === "active" &&
+    !!m &&
+    m.delivery_enabled !== false &&
+    m.express_enabled !== false &&
+    m.latitude != null &&
+    m.longitude != null;
+  return { delivery, radius_km: m?.delivery_radius_km ?? null };
+}
+
+/**
+ * Adresses du client (choix livraison : wizard d'invitation ET room).
+ * RLS : les siennes uniquement.
+ *
+ * Avec `merchantId`, chaque adresse est ÉVALUÉE comme au checkout : distance,
+ * frais au barème, et surtout `out_of_range` quand elle sort du rayon de
+ * livraison du commerçant. Le sélecteur la grise alors au lieu de laisser le
+ * client la choisir pour se faire refuser ensuite.
+ */
+export async function getMyDeliveryAddresses(merchantId?: string): Promise<
+  {
+    id: string;
+    address_text: string;
+    lat: number | null;
+    lng: number | null;
+    distance_km: number | null;
+    fee_da: number | null;
+    out_of_range: boolean;
+  }[]
 > {
   const { supabase } = await db();
   const { data } = await supabase
@@ -239,7 +295,7 @@ export async function getMyDeliveryAddresses(): Promise<
     .select("id, address_text, lat, lng")
     .order("created_at", { ascending: false })
     .limit(12);
-  return (
+  const rows =
     (data as
       | {
           id: string;
@@ -247,7 +303,37 @@ export async function getMyDeliveryAddresses(): Promise<
           lat: number | null;
           lng: number | null;
         }[]
-      | null) ?? []
+      | null) ?? [];
+
+  if (!merchantId) {
+    return rows.map((a) => ({
+      ...a,
+      distance_km: null,
+      fee_da: null,
+      out_of_range: false,
+    }));
+  }
+
+  const { loadDeliveryContext, judgeDeliveryPoint } =
+    await import("@/lib/shared-cart/delivery-guard");
+  // Contexte chargé UNE fois pour toute la liste (règle perf : pas N lectures).
+  const ctx = await loadDeliveryContext(merchantId);
+  return Promise.all(
+    rows.map(async (a) => {
+      if (a.lat == null || a.lng == null) {
+        // Sans coordonnées, impossible de livrer : on la grise franchement.
+        return { ...a, distance_km: null, fee_da: null, out_of_range: true };
+      }
+      const v = await judgeDeliveryPoint(ctx, a.lat, a.lng);
+      return {
+        ...a,
+        distance_km: v.ok
+          ? Number(v.distanceKm.toFixed(1))
+          : (v.distanceKm ?? null),
+        fee_da: v.ok ? v.feeDa : null,
+        out_of_range: !v.ok,
+      };
+    })
   );
 }
 
@@ -265,7 +351,7 @@ export async function setSharedCartDelivery(input: {
   /** Adresse ENREGISTRÉE du client (propriété vérifiée par RLS ci-dessous). */
   address_id?: string | null;
   /** OU point libre (« Ma position » / « Sur la carte ») — même UI que le
-   *  checkout ; les coordonnées sont revalidées à la commande (zone + frais). */
+   *  checkout ; les frais définitifs restent recalculés à la commande. */
   point?: { lat: number; lng: number; text?: string | null } | null;
 }): Promise<Result> {
   if (!input.cart_id && !input.token) {
@@ -281,95 +367,73 @@ export async function setSharedCartDelivery(input: {
     delivery_lng: null,
     updated_at: new Date().toISOString(),
   };
+
   if (input.fulfillment === "delivery") {
-    // Point libre (position actuelle / carte) : mêmes champs qu'une adresse
-    // enregistrée. Bornes de sûreté (coordonnées plausibles) ; la zone et les
-    // frais restent jugés SERVEUR à la création de la commande.
-    if (!input.address_id && input.point) {
-      const { lat, lng } = input.point;
-      if (
-        !Number.isFinite(lat) ||
-        !Number.isFinite(lng) ||
-        Math.abs(lat) > 90 ||
-        Math.abs(lng) > 180
-      ) {
-        return { ok: false, error: "Position invalide." };
-      }
-      const patchPoint = {
-        ...patch,
-        fulfillment_type: "delivery",
-        delivery_mode: "express",
-        delivery_address_id: null,
-        delivery_address_text: (input.point.text ?? "").slice(0, 200) || null,
-        delivery_lat: lat,
-        delivery_lng: lng,
-      };
-      const { data: dataPoint, error: errPoint } = await (
-        supabase.from("shared_carts" as never) as unknown as {
-          update: (v: Record<string, unknown>) => {
-            eq: (
-              c: string,
-              v: string
-            ) => {
-              is: (
-                c: string,
-                v: null
-              ) => {
-                select: (c: string) => {
-                  maybeSingle: () => Promise<{
-                    data: { share_token: string } | null;
-                    error: { message: string } | null;
-                  }>;
-                };
-              };
-            };
-          };
-        }
-      )
-        .update(patchPoint)
-        .eq(
-          input.cart_id ? "id" : "share_token",
-          (input.cart_id ?? input.token) as string
-        )
-        .is("order_id", null)
-        .select("share_token")
+    // ── Le point retenu, quelle que soit son origine (adresse enregistrée ou
+    //    position libre) : une seule route, une seule vérification.
+    let lat: number;
+    let lng: number;
+    let addressId: string | null = null;
+    let addressText: string | null = null;
+
+    if (input.address_id) {
+      const { data: addr } = await supabase
+        .from("customer_addresses")
+        .select("id, address_text, lat, lng")
+        .eq("id", input.address_id)
         .maybeSingle();
-      if (errPoint || !dataPoint) {
-        return {
-          ok: false,
-          error: "Modification impossible (déjà commandé ?).",
-        };
+      const a = addr as {
+        id: string;
+        address_text: string;
+        lat: number | null;
+        lng: number | null;
+      } | null;
+      if (!a || a.lat == null || a.lng == null) {
+        return { ok: false, error: "Adresse introuvable ou sans position." };
       }
-      void broadcastSharedCartBump(dataPoint.share_token);
-      return { ok: true };
-    }
-    if (!input.address_id) {
+      lat = a.lat;
+      lng = a.lng;
+      addressId = a.id;
+      addressText = a.address_text;
+    } else if (input.point) {
+      lat = input.point.lat;
+      lng = input.point.lng;
+      addressText = (input.point.text ?? "").slice(0, 200) || null;
+    } else {
       return { ok: false, error: "Choisis une adresse de livraison." };
     }
-    const { data: addr } = await supabase
-      .from("customer_addresses")
-      .select("id, address_text, lat, lng")
-      .eq("id", input.address_id)
+
+    // ── RÈGLE MÉTIER (identique au checkout et à la commande de room) :
+    //    le commerçant doit RÉELLEMENT livrer, et l'adresse doit tenir dans
+    //    SON rayon de livraison + les zones autorisées. On le dit MAINTENANT,
+    //    pas après que toute la famille ait rempli le panier.
+    const cartRow = await from("shared_carts")
+      .select("merchant_id")
+      .eq(
+        input.cart_id ? "id" : "share_token",
+        (input.cart_id ?? input.token) as string
+      )
       .maybeSingle();
-    const a = addr as {
-      id: string;
-      address_text: string;
-      lat: number | null;
-      lng: number | null;
-    } | null;
-    if (!a || a.lat == null || a.lng == null) {
-      return { ok: false, error: "Adresse introuvable ou sans position." };
+    const merchantId = cartRow.data?.merchant_id as string | undefined;
+    if (!merchantId) {
+      return { ok: false, error: "Panier introuvable." };
     }
+    const { checkMerchantDeliveryPoint } =
+      await import("@/lib/shared-cart/delivery-guard");
+    const verdict = await checkMerchantDeliveryPoint(merchantId, lat, lng);
+    if (!verdict.ok) return { ok: false, error: verdict.error };
+
     patch = {
       ...patch,
       fulfillment_type: "delivery",
       delivery_mode: "express",
-      delivery_address_id: a.id,
-      delivery_address_text: a.address_text,
-      delivery_lat: a.lat,
-      delivery_lng: a.lng,
+      delivery_address_id: addressId,
+      delivery_address_text: addressText,
+      delivery_lat: lat,
+      delivery_lng: lng,
     };
   }
+
   // Cast local (chaîne update→eq→is hors du builder générique de db()).
   const { data, error } = await (
     supabase.from("shared_carts" as never) as unknown as {

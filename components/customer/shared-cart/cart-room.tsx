@@ -672,6 +672,7 @@ export function CartRoom({
         {!cart.ordered && (
           <RecoveryCard
             cart={cart}
+            merchantId={view.merchant?.id ?? null}
             isCaptain={isCaptain}
             captainName={view.captain_name ?? t("captain")}
             onSaved={() => void fetchView()}
@@ -1316,11 +1317,14 @@ function Banner({
  */
 function RecoveryCard({
   cart,
+  merchantId,
   isCaptain,
   captainName,
   onSaved,
 }: {
   cart: SharedCartView["cart"];
+  /** Sert à juger chaque adresse contre le RAYON DE LIVRAISON du commerçant. */
+  merchantId: string | null;
   isCaptain: boolean;
   captainName: string;
   onSaved: () => void;
@@ -1335,6 +1339,10 @@ function RecoveryCard({
         address_text: string;
         lat: number | null;
         lng: number | null;
+        distance_km: number | null;
+        fee_da: number | null;
+        /** Hors du rayon de livraison du commerçant → non sélectionnable. */
+        out_of_range: boolean;
       }[]
     | null
   >(null);
@@ -1343,7 +1351,9 @@ function RecoveryCard({
     setEditing(true);
     setErr(null);
     if (addresses === null) {
-      setAddresses(await getMyDeliveryAddresses());
+      // Adresses jugées POUR CE commerçant : celles qui sortent de son rayon
+      // arrivent déjà marquées, on ne les propose pas comme un choix valable.
+      setAddresses(await getMyDeliveryAddresses(merchantId ?? undefined));
     }
   };
 
@@ -1461,13 +1471,25 @@ function RecoveryCard({
                 <button
                   key={a.id}
                   type="button"
-                  disabled={busy || a.lat == null || a.lng == null}
+                  disabled={
+                    busy || a.lat == null || a.lng == null || a.out_of_range
+                  }
                   onClick={() => void save("delivery", a.id)}
                   className="border-border bg-surface-2 flex w-full items-center gap-2 rounded-[12px] border px-3 py-2 text-start text-[12.5px] font-semibold disabled:opacity-50"
                 >
                   <Truck className="text-primary-700 size-3.5 shrink-0" />
-                  <span className="min-w-0 flex-1 truncate">
-                    {a.address_text}
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate">{a.address_text}</span>
+                    {a.out_of_range ? (
+                      <small className="block truncate text-[11px] font-bold text-rose-600">
+                        {t("recoveryOutOfRange")}
+                        {a.distance_km != null ? ` · ${a.distance_km} km` : ""}
+                      </small>
+                    ) : a.fee_da != null ? (
+                      <small className="text-muted block truncate text-[11px] font-semibold">
+                        {t("recoveryFeeFrom", { fee: a.fee_da })}
+                      </small>
+                    ) : null}
                   </span>
                   {busy && <Loader2 className="size-3.5 animate-spin" />}
                 </button>

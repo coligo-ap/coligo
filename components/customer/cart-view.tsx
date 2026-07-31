@@ -40,6 +40,7 @@ import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
 import {
   createSharedCartFromLocal,
+  getMerchantDeliveryOffer,
   getMyDeliveryAddresses,
   getOpenSharedCart,
   setSharedCartDelivery,
@@ -79,12 +80,18 @@ export function CartView({
   // invités rejoignent un panier déjà configuré (modifiable dans la room).
   const [inviteConfig, setInviteConfig] = useState<{
     step: "mode" | "addr";
+    /** Le commerçant propose-t-il la livraison ? `null` = en cours de lecture. */
+    deliveryOffered: boolean | null;
     addresses:
       | {
           id: string;
           address_text: string;
           lat: number | null;
           lng: number | null;
+          distance_km: number | null;
+          fee_da: number | null;
+          /** Hors du rayon de livraison du commerçant → choix impossible. */
+          out_of_range: boolean;
         }[]
       | null;
   } | null>(null);
@@ -132,12 +139,20 @@ export function CartView({
   const openInvite = () => {
     if (!cart.merchant_id || inviteBusy) return;
     setInviteError(null);
-    setInviteConfig({ step: "mode", addresses: null });
+    setInviteConfig({ step: "mode", addresses: null, deliveryOffered: null });
+    // RÈGLE MÉTIER : on ne propose « Livraison » que si le commerçant livre
+    // vraiment (comme au checkout). Sinon seul le retrait reste affiché.
+    const mid = cart.merchant_id;
+    void getMerchantDeliveryOffer(mid).then((o) =>
+      setInviteConfig((c) => (c ? { ...c, deliveryOffered: o.delivery } : c))
+    );
   };
 
   const pickDeliveryStep = async () => {
     setInviteConfig((c) => (c ? { ...c, step: "addr" } : c));
-    const list = await getMyDeliveryAddresses();
+    // Évaluées pour CE commerçant : les adresses hors rayon arrivent déjà
+    // marquées et le sélecteur les grise (même comportement qu'au checkout).
+    const list = await getMyDeliveryAddresses(cart.merchant_id ?? undefined);
     setInviteConfig((c) => (c ? { ...c, addresses: list } : c));
   };
 
@@ -843,28 +858,34 @@ export function CartView({
                     </span>
                     {inviteBusy && <Loader2 className="size-4 animate-spin" />}
                   </button>
-                  <button
-                    type="button"
-                    disabled={inviteBusy}
-                    onClick={() => void pickDeliveryStep()}
-                    className="border-primary-200 bg-primary-50 flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start disabled:opacity-60"
-                  >
-                    <span className="text-primary-700 grid size-10 shrink-0 place-items-center rounded-[11px] bg-white">
-                      <Truck className="size-5" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <b className="text-foreground block text-[14px] font-extrabold">
-                        {tsc("recoveryDelivery")}
-                      </b>
-                      <small className="text-muted text-[11.5px] font-semibold">
-                        {tsc("inviteDeliverySub")}
-                      </small>
-                    </span>
-                    <ArrowRight className="text-primary-700 size-4 rtl:-scale-x-100" />
-                  </button>
+                  {inviteConfig.deliveryOffered !== false && (
+                    <button
+                      type="button"
+                      disabled={
+                        inviteBusy || inviteConfig.deliveryOffered !== true
+                      }
+                      onClick={() => void pickDeliveryStep()}
+                      className="border-primary-200 bg-primary-50 flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start disabled:opacity-60"
+                    >
+                      <span className="text-primary-700 grid size-10 shrink-0 place-items-center rounded-[11px] bg-white">
+                        <Truck className="size-5" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <b className="text-foreground block text-[14px] font-extrabold">
+                          {tsc("recoveryDelivery")}
+                        </b>
+                        <small className="text-muted text-[11.5px] font-semibold">
+                          {tsc("inviteDeliverySub")}
+                        </small>
+                      </span>
+                      <ArrowRight className="text-primary-700 size-4 rtl:-scale-x-100" />
+                    </button>
+                  )}
                 </div>
                 <p className="text-subtle mt-2.5 text-[11px] font-semibold">
-                  {tsc("inviteTourNote")}
+                  {inviteConfig.deliveryOffered === false
+                    ? tsc("inviteDeliveryUnavailable")
+                    : tsc("inviteTourNote")}
                 </p>
               </>
             ) : (
@@ -944,10 +965,11 @@ export function CartView({
             address_text: a.address_text,
             phone_override: null,
             is_default: false,
-            distance_km: -1,
-            fee_da: null,
+            distance_km: a.distance_km ?? -1,
+            fee_da: a.fee_da,
             tour_fee_da: null,
-            out_of_range: false,
+            // Hors rayon du commerçant : la ligne est grisée et non cliquable.
+            out_of_range: a.out_of_range,
           }))}
           onPickSaved={(a) => {
             setAddrModalOpen(false);

@@ -1042,7 +1042,10 @@
     "revokeFailed": "Could not remove this member.",
     "gpsRefused": "Location denied — pick an address or a point on the map.",
     "inviteCreating": "Preparing the shared cart…",
-    "payItemsTitle": "Items ({count})"
+    "payItemsTitle": "Items ({count})",
+    "recoveryOutOfRange": "Outside the delivery radius",
+    "recoveryFeeFrom": "Delivery ≈ {fee} DA",
+    "inviteDeliveryUnavailable": "This merchant does not offer delivery — pickup is the only option."
   },
   "referral": {
     "title": "Referral",

@@ -86,7 +86,8 @@
     "test:tour:schedule": "node scripts/test-tour-schedule.mjs",
     "test:slots": "npm run test:slot:expiry && npm run test:pickup:expiry && npm run test:tour:schedule",
     "test:all": "npm run test:phone && npm run test:kyc && npm run test:idv && npm run test:idv:pipeline && npm run test:idv:e2e && npm run test:driver:cash && npm run test:offline:idempotency && npm run test:offline:scenarios && npm run test:offline:queue && npm run test:promo:money && npm run test:driver:money && npm run test:tour:money && npm run test:tour:e2e && npm run test:audit:cod && npm run test:audit:cancel && npm run test:noshow:claim && npm run test:merchant:guard && npm run test:vtc && npm run test:coligo:pay && npm run test:agent && npm run test:drive:money && npm run test:drive:demo && npm run verify:spec && npm run test:priority && npm run test:config && npm run test:zones && npm run test:slots && npm run test:offline:e2e:serve",
-    "test:idv:e2e": "node --experimental-strip-types scripts/test-idv-e2e.mjs"
+    "test:idv:e2e": "node --experimental-strip-types scripts/test-idv-e2e.mjs",
+    "test:sharedcart:radius": "node --experimental-strip-types scripts/test-shared-cart-radius.mjs"
   },
   "dependencies": {
     "@capacitor-community/background-geolocation": "^1.2.26",

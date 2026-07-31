@@ -1042,7 +1042,10 @@
     "revokeFailed": "Impossible de retirer ce membre.",
     "gpsRefused": "Position refusée — choisis une adresse ou un point sur la carte.",
     "inviteCreating": "Préparation du panier partagé…",
-    "payItemsTitle": "Articles ({count})"
+    "payItemsTitle": "Articles ({count})",
+    "recoveryOutOfRange": "Hors du rayon de livraison",
+    "recoveryFeeFrom": "Livraison ≈ {fee} DA",
+    "inviteDeliveryUnavailable": "Ce commerçant ne propose pas la livraison — le retrait sur place est le seul choix possible."
   },
   "referral": {
     "title": "Parrainage",
