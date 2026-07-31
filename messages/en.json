@@ -1035,7 +1035,11 @@
     "inviteAddAddress": "Add an address",
     "inviteBack": "Back",
     "roomFeesNote": "+ service fee (and delivery per the owner's choice) — full detail at payment.",
-    "payThrottled": "Too many payment attempts — try again in an hour."
+    "payThrottled": "Too many payment attempts — try again in an hour.",
+    "revokeTitle": "Remove this member?",
+    "revokeBody": "{name} won't be able to edit the cart anymore. Their items stay.",
+    "revokeCta": "Remove",
+    "revokeFailed": "Could not remove this member."
   },
   "referral": {
     "title": "Referral",

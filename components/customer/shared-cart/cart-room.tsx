@@ -40,6 +40,7 @@ import {
   guestJoin,
   guestOrderAndPay,
   guestSetQty,
+  revokeGuestMember,
 } from "@/app/p/[token]/actions";
 import {
   attachOrderToSharedCart,
@@ -855,6 +856,46 @@ export function CartRoom({
                   )}
                 />
               </button>
+              {/* RÉVOCATION (mig 0426) : le propriétaire retire un invité —
+                  son identité est invalidée immédiatement côté serveur. */}
+              {isCaptain && member.kind === "guest" && !cart.ordered && (
+                <div className="flex justify-end px-3 pb-1">
+                  <button
+                    type="button"
+                    disabled={actionBusy === `revoke:${member.id}`}
+                    onClick={() => {
+                      void (async () => {
+                        const ok = await confirm({
+                          title: t("revokeTitle"),
+                          message: t("revokeBody", {
+                            name: memberName(member),
+                          }),
+                          confirmLabel: t("revokeCta"),
+                          danger: true,
+                        });
+                        if (!ok) return;
+                        setActionBusy(`revoke:${member.id}`);
+                        const res = await revokeGuestMember({
+                          cartId: cart.id,
+                          memberId: member.id,
+                          token,
+                        });
+                        setActionBusy(null);
+                        if (res.ok) void fetchView();
+                        else setActionError(t("revokeFailed"));
+                      })();
+                    }}
+                    className="text-subtle hover:text-danger-600 inline-flex items-center gap-1 text-[11px] font-bold disabled:opacity-50"
+                  >
+                    {actionBusy === `revoke:${member.id}` ? (
+                      <Loader2 className="size-3 animate-spin" />
+                    ) : (
+                      <UserX className="size-3" />
+                    )}
+                    {t("revokeCta")}
+                  </button>
+                </div>
+              )}
               <ul
                 className={cn(
                   "divide-border divide-y",

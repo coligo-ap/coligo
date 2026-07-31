@@ -1,5 +1,7 @@
 "use server";
 
+import { randomUUID } from "node:crypto";
+import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { broadcastSharedCartBump } from "@/lib/realtime/broadcast";
@@ -53,17 +55,101 @@ async function callRpc(
   }
 }
 
+// ─────────────────────────────────────────────────────────────────────────────
+// IDENTITÉ INVITÉ (audit 31/07, mig 0426) — le jeton ne vit PLUS dans le
+// navigateur : il est stocké dans un cookie **httpOnly** (illisible en JS,
+// donc hors de portée d'une XSS), scopé PAR PANIER, et **roté par le serveur
+// après chaque écriture** (un jeton volé n'est utilisable qu'une fois). Le
+// propriétaire peut révoquer un invité (RPC shared_cart_revoke_member).
+// Compatibilité : un ancien jeton localStorage passé en argument est ADOPTÉ
+// une dernière fois, puis remplacé par le cookie.
+// ─────────────────────────────────────────────────────────────────────────────
+
+const GUEST_COOKIE_MAX_AGE = 60 * 60 * 48; // durée de vie d'un panier
+
+function guestCookieName(cartToken: string) {
+  return `coligo_gc_${cartToken}`;
+}
+
+async function readGuestToken(
+  cartToken: string,
+  legacy?: string | null
+): Promise<string | null> {
+  const jar = await cookies();
+  return jar.get(guestCookieName(cartToken))?.value ?? legacy ?? null;
+}
+
+async function writeGuestToken(cartToken: string, value: string) {
+  const jar = await cookies();
+  jar.set(guestCookieName(cartToken), value, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
+    path: "/",
+    maxAge: GUEST_COOKIE_MAX_AGE,
+  });
+}
+
+/** Rotation post-écriture : nouveau jeton en base + cookie mis à jour. */
+async function rotateGuestToken(cartToken: string, current: string | null) {
+  if (!current) return; // capitaine (session) : rien à faire
+  try {
+    const admin = createAdminClient();
+    const rpc = admin.rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: string | null }>;
+    const { data: next } = await rpc("shared_cart_rotate_guest_token", {
+      p_token: cartToken,
+      p_guest_token: current,
+    });
+    if (next) await writeGuestToken(cartToken, next);
+  } catch {
+    /* best-effort : le jeton courant reste valide */
+  }
+}
+
+/** Le PROPRIÉTAIRE retire un invité : son jeton est invalidé immédiatement. */
+export async function revokeGuestMember(input: {
+  cartId: string;
+  memberId: string;
+  token: string;
+}): Promise<{ ok: boolean }> {
+  try {
+    const supabase = await createClient();
+    const rpc = supabase.rpc.bind(supabase) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: boolean | null }>;
+    const { data } = await rpc("shared_cart_revoke_member", {
+      p_cart_id: input.cartId,
+      p_member_id: input.memberId,
+    });
+    if (data) void broadcastSharedCartBump(input.token);
+    return { ok: data === true };
+  } catch {
+    return { ok: false };
+  }
+}
+
 export async function guestJoin(input: {
   token: string;
-  guestToken: string;
+  /** Ancien jeton localStorage (compat) — sinon le serveur en génère un. */
+  guestToken?: string | null;
   name?: string | null;
 }): Promise<GuestActionResult> {
+  const existing = await readGuestToken(input.token, input.guestToken);
+  const guest = existing ?? randomUUID();
   const res = await callRpc("shared_cart_join", {
     p_token: input.token,
-    p_guest_token: input.guestToken,
+    p_guest_token: guest,
     p_display_name: input.name ?? null,
   });
-  if (res.ok) void broadcastSharedCartBump(input.token);
+  if (res.ok) {
+    await writeGuestToken(input.token, guest);
+    await rotateGuestToken(input.token, guest);
+    void broadcastSharedCartBump(input.token);
+  }
   return res;
 }
 
@@ -74,14 +160,18 @@ export async function guestAddItem(input: {
   optionIds: string[];
   quantity: number;
 }): Promise<GuestActionResult> {
+  const guest = await readGuestToken(input.token, input.guestToken);
   const res = await callRpc("shared_cart_add_item", {
     p_token: input.token,
-    p_guest_token: input.guestToken,
+    p_guest_token: guest,
     p_product_id: input.productId,
     p_option_ids: input.optionIds,
     p_quantity: input.quantity,
   });
-  if (res.ok) void broadcastSharedCartBump(input.token);
+  if (res.ok) {
+    await rotateGuestToken(input.token, guest);
+    void broadcastSharedCartBump(input.token);
+  }
   return res;
 }
 
@@ -91,13 +181,17 @@ export async function guestSetQty(input: {
   itemId: string;
   quantity: number;
 }): Promise<GuestActionResult> {
+  const guest = await readGuestToken(input.token, input.guestToken);
   const res = await callRpc("shared_cart_set_qty", {
     p_token: input.token,
-    p_guest_token: input.guestToken,
+    p_guest_token: guest,
     p_item_id: input.itemId,
     p_quantity: input.quantity,
   });
-  if (res.ok) void broadcastSharedCartBump(input.token);
+  if (res.ok) {
+    await rotateGuestToken(input.token, guest);
+    void broadcastSharedCartBump(input.token);
+  }
   return res;
 }
 
@@ -121,9 +215,10 @@ export async function guestOrderAndPay(input: {
     fn: string,
     args: Record<string, unknown>
   ) => Promise<{ data: string | null }>;
+  const guest = await readGuestToken(input.token, input.guestToken);
   const { data: verdict } = await rpc("shared_cart_can_room_order", {
     p_token: input.token,
-    p_guest_token: input.guestToken ?? null,
+    p_guest_token: guest,
   });
   if (verdict === "not_member") {
     return {

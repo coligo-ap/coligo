@@ -1035,7 +1035,11 @@
     "inviteAddAddress": "Ajouter une adresse",
     "inviteBack": "Retour",
     "roomFeesNote": "+ frais de service (et livraison selon le choix du propriétaire) — détail complet au paiement.",
-    "payThrottled": "Trop de tentatives de paiement — réessaie dans une heure."
+    "payThrottled": "Trop de tentatives de paiement — réessaie dans une heure.",
+    "revokeTitle": "Retirer ce membre ?",
+    "revokeBody": "{name} ne pourra plus modifier le panier. Ses articles déjà ajoutés restent.",
+    "revokeCta": "Retirer",
+    "revokeFailed": "Impossible de retirer ce membre."
   },
   "referral": {
     "title": "Parrainage",
