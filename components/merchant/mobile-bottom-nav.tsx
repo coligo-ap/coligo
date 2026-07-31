@@ -54,7 +54,9 @@ export function MerchantMobileBottomNav({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex flex-col items-center justify-center gap-1 text-[10px] font-medium transition-colors",
+                // `min-w-0` + libellé `truncate` : police système agrandie ⇒
+                // le libellé se tronque au lieu de déborder sur le voisin.
+                "flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 text-[10px] font-medium transition-colors",
                 active ? "text-primary-700" : "text-muted"
               )}
             >
@@ -69,7 +71,7 @@ export function MerchantMobileBottomNav({
                   />
                 )}
               </span>
-              <span>{item.label}</span>
+              <span className="max-w-full truncate">{item.label}</span>
             </Link>
           );
         })}

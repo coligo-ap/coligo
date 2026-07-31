@@ -277,7 +277,7 @@ export function PopCard({
         )}
       </div>
       <div className="px-1 pt-2 pb-1">
-        <div className="text-foreground line-clamp-2 h-8 text-[13px] leading-tight font-semibold">
+        <div className="text-foreground line-clamp-2 min-h-8 text-[13px] leading-tight font-semibold">
           {product.name_fr}
         </div>
         <div className="mt-1.5 flex items-center gap-1.5">

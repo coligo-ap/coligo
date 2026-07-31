@@ -103,11 +103,17 @@ export function PartnerTabbar({
               // prefetch complet : routes dynamiques (gate dans la coque) — sans
               // ce flag, chaque tap attendrait un aller-retour serveur.
               prefetch
-              className="flex flex-col items-center justify-center gap-[3px] text-[10px] font-semibold whitespace-nowrap"
+              // `min-w-0` + `truncate` sur le libellé : avec une POLICE
+              // SYSTÈME AGRANDIE (réglage Android/iOS), un libellé long
+              // débordait de sa colonne sur l'onglet voisin. Il se tronque
+              // désormais (…) sans jamais sortir de sa case.
+              className="flex min-w-0 flex-col items-center justify-center gap-[3px] px-0.5 text-[10px] font-semibold"
               style={{ color: active ? BRAND_VIOLET : "var(--d-muted)" }}
             >
-              <Icon className="size-[22px]" />
-              {isAr ? tab.labelAr : tab.label}
+              <Icon className="size-[22px] shrink-0" />
+              <span className="max-w-full truncate">
+                {isAr ? tab.labelAr : tab.label}
+              </span>
             </Link>
           );
         })}

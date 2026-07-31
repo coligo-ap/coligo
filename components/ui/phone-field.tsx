@@ -106,7 +106,10 @@ export function PhoneField({
         onChange={(e) => update(e.target.value, national)}
         disabled={disabled}
         aria-label={isAr ? "رمز البلد" : "Indicatif pays"}
-        className="text-foreground h-full shrink-0 bg-transparent pr-1 text-sm font-semibold outline-none disabled:cursor-not-allowed"
+        // `max-w-[42%]` : avec une POLICE SYSTÈME AGRANDIE, la largeur du
+        // <select> suit celle de son option la plus longue et poussait la
+        // ligne hors de l'écran. Il est désormais borné.
+        className="text-foreground h-full max-w-[42%] shrink-0 bg-transparent pr-1 text-sm font-semibold outline-none disabled:cursor-not-allowed"
       >
         {COUNTRY_CODES.map((c) => (
           <option key={c.dial} value={c.dial}>
@@ -140,7 +143,11 @@ export function PhoneField({
         }
         // `h-full` : sans lui, l'input ne fait que la hauteur de sa ligne (20 px)
         // dans un conteneur de 48 — on ne peut le viser qu'au pixel près.
-        className="text-foreground placeholder:text-subtle h-full w-full bg-transparent text-sm font-semibold outline-none disabled:cursor-not-allowed"
+        // `min-w-0` : un <input> a une largeur MINIMALE implicite (~20
+        // caractères) qui, dans un conteneur flex, l'empêche de rétrécir —
+        // sur un écran étroit (320 px) ou avec une police agrandie, la ligne
+        // débordait de la page. Avec `min-w-0` elle s'adapte toujours.
+        className="text-foreground placeholder:text-subtle h-full w-full min-w-0 bg-transparent text-sm font-semibold outline-none disabled:cursor-not-allowed"
       />
 
       {valid && (

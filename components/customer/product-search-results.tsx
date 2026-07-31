@@ -433,7 +433,7 @@ function ProductCard({
         </span>
       </div>
       <div className="px-1 pt-2">
-        <p className="text-foreground line-clamp-2 h-8 text-[13px] leading-tight font-semibold tracking-[-0.2px]">
+        <p className="text-foreground line-clamp-2 min-h-8 text-[13px] leading-tight font-semibold tracking-[-0.2px]">
           {product.name_fr}
         </p>
         <p className="text-foreground mt-1 text-[15px] font-extrabold tabular-nums">

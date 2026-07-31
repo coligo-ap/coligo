@@ -95,14 +95,19 @@ export function CustomerBottomNav({
             className={cn(
               // Icônes GRANDES façon Bolt (26 px) et padding réduit : l'espace
               // du composant sert à l'icône, pas à de l'air (règle produit).
-              "flex flex-col items-center justify-center gap-1 py-1.5 text-[11px] transition-colors",
+              // `min-w-0` + libellé `truncate` : police système agrandie ⇒
+              // le libellé se tronque au lieu de déborder sur le voisin.
+              "flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[11px] transition-colors",
               active ? "text-primary-700" : "text-muted hover:text-foreground"
             )}
           >
-            <Icon className="size-[26px]" strokeWidth={active ? 2.4 : 1.8} />
+            <Icon
+              className="size-[26px] shrink-0"
+              strokeWidth={active ? 2.4 : 1.8}
+            />
             <span
               className={cn(
-                "leading-none",
+                "max-w-full truncate leading-none",
                 active ? "font-bold" : "font-medium"
               )}
             >

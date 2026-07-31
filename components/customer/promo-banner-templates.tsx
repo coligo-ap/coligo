@@ -188,9 +188,21 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
 
   return (
     <article
-      className="relative aspect-[64/26] w-full overflow-hidden rounded-[16px] shadow-md"
+      // Plus d'`aspect-ratio` FIGÉ : la carte garde la proportion 64/26 grâce
+      // au gabarit ci-dessous, mais elle GRANDIT si le texte a besoin de place
+      // — typiquement quand l'utilisateur a agrandi la police de son téléphone.
+      // Avant, le titre était coupé en deux (bug vécu sur Galaxy S10E).
+      className="@container relative flex w-full overflow-hidden rounded-[16px] shadow-md"
       style={{ background: grad, containerType: "inline-size" }}
     >
+      {/* Gabarit de proportion : `padding-top` en % se calcule sur la LARGEUR
+          de la carte → hauteur = 26/64 de la largeur, sans occuper de place
+          horizontale. C'est le PLANCHER de hauteur ; le texte peut dépasser. */}
+      <div
+        aria-hidden
+        className="w-0 shrink-0"
+        style={{ paddingTop: "40.625%" }}
+      />
       {/* Image de fond optionnelle (fondu de marque + image derrière). */}
       {hasImg && (
         // eslint-disable-next-line @next/next/no-img-element
@@ -253,7 +265,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
           tailles suivent la largeur réelle de la carte (cqw) → un titre long
           rétrécit au lieu de passer sous l'autocollant ou d'être coupé. */}
       <div
-        className="absolute inset-y-0 left-0 z-10 flex flex-col justify-center overflow-hidden px-4 text-white sm:px-5"
+        className="relative z-10 flex shrink-0 flex-col justify-center px-4 py-3 text-white sm:px-5"
         style={{ width: textWidth }}
       >
         <h3

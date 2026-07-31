@@ -42,8 +42,12 @@ export function AuthModeTabs({
   // navigateur — ne pas descendre). `whitespace-nowrap` + text-xs : le libellé
   // tient sur UNE ligne → l'onglet reste à 44 px au lieu de gonfler à deux
   // lignes (gain vertical sur tous les portails).
+  // `min-w-0` + `truncate` : avec une POLICE SYSTÈME AGRANDIE (réglage
+  // « Taille de police » d'Android/iOS), un libellé en `whitespace-nowrap`
+  // débordait de la pilule. Il se tronque désormais proprement (…) au lieu de
+  // sortir du cadre, et la cible tactile reste à 44 px.
   const base =
-    "flex min-h-[44px] flex-1 items-center justify-center rounded-[10px] px-2 py-1 text-center text-xs whitespace-nowrap font-semibold transition";
+    "flex min-h-[44px] min-w-0 flex-1 items-center justify-center rounded-[10px] px-2 py-1 text-center text-xs font-semibold transition";
   const active = "bg-white text-foreground shadow-sm";
   const idle = "text-muted hover:text-foreground";
 
@@ -60,14 +64,14 @@ export function AuthModeTabs({
         aria-current={mode === "login" ? "page" : undefined}
         className={`${base} ${mode === "login" ? active : idle}`}
       >
-        {login}
+        <span className="min-w-0 truncate">{login}</span>
       </Link>
       <Link
         href={signupHref}
         aria-current={mode === "signup" ? "page" : undefined}
         className={`${base} ${mode === "signup" ? active : idle}`}
       >
-        {signup}
+        <span className="min-w-0 truncate">{signup}</span>
       </Link>
     </nav>
   );
