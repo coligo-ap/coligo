@@ -12,6 +12,7 @@ import { pwaMetadata } from "@/lib/config/pwa";
 import { Toaster } from "@/components/ui/toast";
 import { RegisterServiceWorker } from "@/components/pwa/register-service-worker";
 import { ChunkErrorReload } from "@/components/pwa/chunk-error-reload";
+import { StatusBarSync } from "@/components/native/status-bar-sync";
 import { CapacitorBootLog } from "@/components/pwa/capacitor-boot-log";
 import { AppUpdateBanner } from "@/components/pwa/app-update-banner";
 import { RouteProgressBar } from "@/components/shared/route-progress-bar";
@@ -245,6 +246,11 @@ export default async function RootLayout({
           {children}
           <Toaster />
           <ChunkErrorReload />
+          {/* Barre de statut intégrée : contraste des icônes système
+              recalculé à chaque écran (no-op hors app installée). */}
+          <Suspense fallback={null}>
+            <StatusBarSync />
+          </Suspense>
           <RegisterServiceWorker />
           <CapacitorBootLog />
           {/* Bandeau « nouvelle version » — visible uniquement dans un APK

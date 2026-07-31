@@ -54,6 +54,17 @@ public class MainActivity extends BridgeActivity {
     registerPlugin(SunmiPrinterPlugin.class);
     super.onCreate(savedInstanceState);
 
+    // ── BARRE DE STATUT INTÉGRÉE (edge-to-edge), comme Snapchat/Instagram ──
+    // La WebView peint SOUS les barres système ; le CSS réserve déjà la place
+    // avec env(safe-area-inset-*) sur chaque en-tête/nav (règle du repo).
+    // Sans ça, Android peint une bande unie (grise) au-dessus du contenu.
+    // Les icônes système (heure/batterie) sont mises en contraste
+    // DYNAMIQUEMENT depuis le web (plugin @capacitor/status-bar) selon la
+    // couleur réellement présente sous la barre.
+    WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+    getWindow().setStatusBarColor(Color.TRANSPARENT);
+    getWindow().setNavigationBarColor(Color.TRANSPARENT);
+
     // Intro de marque — SEULEMENT au vrai démarrage à froid.
     //
     // `savedInstanceState != null` signifie que l'activité est RECRÉÉE : Android
@@ -230,8 +241,10 @@ public class MainActivity extends BridgeActivity {
       if (!barsOverridden) return;
       barsOverridden = false;
       try {
-        getWindow().setStatusBarColor(savedStatusBar);
-        getWindow().setNavigationBarColor(savedNavBar);
+        // On garde les barres TRANSPARENTES (edge-to-edge permanent) : restaurer
+        // `savedStatusBar` redonnait la bande opaque grise après l'intro.
+        getWindow().setStatusBarColor(Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(Color.TRANSPARENT);
         WindowInsetsControllerCompat bars =
             WindowCompat.getInsetsController(getWindow(), getWindow().getDecorView());
         bars.setAppearanceLightStatusBars(savedLightStatus);
