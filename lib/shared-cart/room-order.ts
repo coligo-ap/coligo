@@ -15,6 +15,11 @@ import { computeDeliveryFee } from "@/lib/delivery/pricing";
 import { evaluateZone } from "@/lib/zones/server";
 import { zoneMessageFr } from "@/lib/zones/service-zones";
 import { isValidContactPhone } from "@/lib/dz/phone";
+import {
+  computePauseState,
+  pauseReasonMessage,
+} from "@/lib/merchant/pause-state";
+import { isOpenNow, normalizeOpeningHours } from "@/lib/merchant/opening-hours";
 
 // =============================================================================
 // createRoomOrder — « LE PREMIER QUI PAIE, PAIE » (panier partagé).
@@ -78,7 +83,7 @@ export async function createRoomOrder(
   const { data: merchant } = await admin
     .from("merchants")
     .select(
-      "id, name, is_active, is_frozen, accepts_online, orders_paused, prep_time_min, min_order_da"
+      "id, name, is_active, is_frozen, accepts_online, orders_paused, paused_until, closure_start, closure_end, opening_hours, prep_time_min, min_order_da"
     )
     .eq("id", cart.merchant_id as string)
     .maybeSingle();
@@ -91,8 +96,34 @@ export async function createRoomOrder(
       "Ce commerçant n'accepte pas le paiement en ligne."
     );
   }
-  if (merchant.orders_paused) {
-    return fail("paused", "Ce commerçant a suspendu les commandes.");
+  // PARITÉ CHECKOUT (audit 31/07) : la commande de room est TOUJOURS immédiate
+  // (asap) → pause, fermeture programmée ET horaires d'ouverture s'appliquent,
+  // exactement comme createOrder. Sans ça, le groupe pouvait commander à 3 h
+  // du matin chez un commerce fermé.
+  const pauseState = computePauseState({
+    orders_paused: merchant.orders_paused,
+    paused_until: merchant.paused_until,
+    closure_start: merchant.closure_start,
+    closure_end: merchant.closure_end,
+  });
+  if (pauseState.closedNow) {
+    return fail(
+      "paused",
+      pauseReasonMessage(pauseState) ||
+        "Ce commerçant ne prend pas de commandes pour l'instant."
+    );
+  }
+  if (
+    !isOpenNow(
+      normalizeOpeningHours(
+        merchant.opening_hours as Parameters<typeof normalizeOpeningHours>[0]
+      )
+    )
+  ) {
+    return fail(
+      "closed",
+      "Le commerce est fermé pour le moment — réessayez à l'ouverture."
+    );
   }
 
   const { data: captain } = await admin
@@ -142,6 +173,33 @@ export async function createRoomOrder(
   const usable = inputItems.filter((i) => availIds.has(i.product_id));
   if (usable.length === 0) {
     return fail("empty", "Aucun article encore disponible.");
+  }
+
+  // PARITÉ CHECKOUT (audit 31/07) : bornes du commerçant — max par commande et
+  // STOCK. Cumulé PAR PRODUIT (le groupe additionne les lignes de chacun).
+  const qtyByProduct = new Map<string, number>();
+  for (const it of usable) {
+    qtyByProduct.set(
+      it.product_id,
+      (qtyByProduct.get(it.product_id) ?? 0) + it.quantity
+    );
+  }
+  for (const p of avail) {
+    const totalQty = qtyByProduct.get(p.id) ?? 0;
+    if (totalQty <= 0) continue;
+    const maxQty = p.max_qty == null ? null : Number(p.max_qty);
+    if (maxQty != null && totalQty > maxQty + 1e-9) {
+      return fail(
+        "max_qty",
+        `Quantité maximum par commande pour « ${p.name_fr} » : ${maxQty}.`
+      );
+    }
+    if (p.stock_qty != null && totalQty > p.stock_qty) {
+      return fail(
+        "stock",
+        `Stock insuffisant pour « ${p.name_fr} » (max ${p.stock_qty}).`
+      );
+    }
   }
 
   // Options revalidées + deltas (helper PARTAGÉ avec le checkout).
@@ -237,6 +295,8 @@ export async function createRoomOrder(
     cart.delivery_lat != null &&
     cart.delivery_lng != null;
   let deliveryFeeDa = 0;
+  let deliveryWilaya: string | null = null;
+  let deliveryCommune: string | null = null;
   if (isDelivery) {
     if (flags.express.status !== "active") {
       return fail(
@@ -300,16 +360,14 @@ export async function createRoomOrder(
     //     de zone par wilaya/commune/direction étaient silencieusement ignorées ;
     //  2. FAIL-CLOSED : evaluateZone est fail-open par conception (il compte
     //     sur le trigger) — ici toute erreur/indisponibilité doit REFUSER.
-    let zWilaya: string | null = null;
-    let zCommune: string | null = null;
     try {
       const { resolveWilayaCommune } = await import("@/lib/zones/server");
       const rc = await resolveWilayaCommune(
         cart.delivery_lat as number,
         cart.delivery_lng as number
       );
-      zWilaya = rc?.wilayaCode ?? null;
-      zCommune = rc?.commune ?? null;
+      deliveryWilaya = rc?.wilayaCode ?? null;
+      deliveryCommune = rc?.commune ?? null;
     } catch {
       /* best-effort : le check géométrique reste appliqué */
     }
@@ -319,7 +377,11 @@ export async function createRoomOrder(
         "express",
         cart.delivery_lat as number,
         cart.delivery_lng as number,
-        { role: "destination", wilayaCode: zWilaya, commune: zCommune }
+        {
+          role: "destination",
+          wilayaCode: deliveryWilaya,
+          commune: deliveryCommune,
+        }
       );
     } catch {
       return fail(
@@ -402,6 +464,9 @@ export async function createRoomOrder(
       delivery_lat: isDelivery ? cart.delivery_lat : null,
       delivery_lng: isDelivery ? cart.delivery_lng : null,
       delivery_phone: isDelivery ? captain.phone : null,
+      // Parité checkout : la zone administrative sert aux zones/stats admin.
+      delivery_wilaya_code: isDelivery ? deliveryWilaya : null,
+      delivery_commune: isDelivery ? deliveryCommune : null,
     })
     .select("id, pickup_code")
     .single();
@@ -463,6 +528,72 @@ export async function createRoomOrder(
   );
   if (optionRows.length > 0) {
     await admin.from("order_item_options").insert(optionRows);
+  }
+
+  // SNAPSHOT DES PROMOTIONS (parité checkout, audit 31/07) : sans lui, une
+  // remise automatique appliquée au groupe n'apparaissait ni sur le ticket ni
+  // dans le reporting. Best-effort : n'échoue jamais la commande.
+  try {
+    const promoInfo = new Map(
+      (
+        (promosRaw ?? []) as unknown as {
+          id: string;
+          type: string;
+          title_fr: string;
+          title_ar: string | null;
+          code: string | null;
+        }[]
+      ).map((p) => [p.id, p])
+    );
+    const promoAgg = new Map<string, { discount: number; free: number }>();
+    for (const l of settled.lines) {
+      if (l.productPromotionId) {
+        const cur = promoAgg.get(l.productPromotionId) ?? {
+          discount: 0,
+          free: 0,
+        };
+        cur.discount += Math.round(
+          (l.unitPriceDa - l.appliedUnitPriceDa) * l.paidQuantity
+        );
+        promoAgg.set(l.productPromotionId, cur);
+      }
+      if (l.quantityPromotionId && l.freeUnits > 0) {
+        const cur = promoAgg.get(l.quantityPromotionId) ?? {
+          discount: 0,
+          free: 0,
+        };
+        cur.discount += Math.round(l.appliedUnitPriceDa * l.freeUnits);
+        cur.free += l.freeUnits;
+        promoAgg.set(l.quantityPromotionId, cur);
+      }
+    }
+    let promoPos = 0;
+    const promoRows = [...promoAgg.entries()].flatMap(([pid, a]) => {
+      const info = promoInfo.get(pid);
+      if (!info) return [];
+      return [
+        {
+          order_id: order.id,
+          promotion_id: pid,
+          type: info.type,
+          title_fr: info.title_fr,
+          title_ar: info.title_ar,
+          code: info.code,
+          discount_da: a.discount,
+          free_qty: a.free,
+          position: promoPos++,
+        },
+      ];
+    });
+    if (promoRows.length > 0) {
+      await (
+        admin.from("order_promotions" as never) as unknown as {
+          insert: (v: Record<string, unknown>[]) => PromiseLike<unknown>;
+        }
+      ).insert(promoRows);
+    }
+  } catch (e) {
+    console.warn("[room-order] snapshot promotions:", e);
   }
 
   // ── 6. Liaison au panier — UN SEUL gagnant (order_id IS NULL) ─────────────

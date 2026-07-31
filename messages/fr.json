@@ -1034,7 +1034,8 @@
     "inviteTourNote": "La livraison en tournée (créneaux) se choisit au paiement classique.",
     "inviteAddAddress": "Ajouter une adresse",
     "inviteBack": "Retour",
-    "roomFeesNote": "+ frais de service (et livraison selon le choix du propriétaire) — détail complet au paiement."
+    "roomFeesNote": "+ frais de service (et livraison selon le choix du propriétaire) — détail complet au paiement.",
+    "payThrottled": "Trop de tentatives de paiement — réessaie dans une heure."
   },
   "referral": {
     "title": "Parrainage",

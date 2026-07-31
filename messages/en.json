@@ -1034,7 +1034,8 @@
     "inviteTourNote": "Tour delivery (time slots) is chosen in the classic checkout.",
     "inviteAddAddress": "Add an address",
     "inviteBack": "Back",
-    "roomFeesNote": "+ service fee (and delivery per the owner's choice) — full detail at payment."
+    "roomFeesNote": "+ service fee (and delivery per the owner's choice) — full detail at payment.",
+    "payThrottled": "Too many payment attempts — try again in an hour."
   },
   "referral": {
     "title": "Referral",

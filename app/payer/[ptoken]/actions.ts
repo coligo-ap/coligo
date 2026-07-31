@@ -33,7 +33,10 @@ import {
 
 export type StartGuestPaymentResult =
   | { ok: true; url: string; reveal: string }
-  | { ok: false; reason: "not_found" | "already_paid" | "expired" | "error" };
+  | {
+      ok: false;
+      reason: "not_found" | "already_paid" | "expired" | "throttled" | "error";
+    };
 
 export type StartGuestIntlResult =
   | {
@@ -48,7 +51,13 @@ export type StartGuestIntlResult =
     }
   | {
       ok: false;
-      reason: "not_found" | "already_paid" | "expired" | "ineligible" | "error";
+      reason:
+        | "not_found"
+        | "already_paid"
+        | "expired"
+        | "ineligible"
+        | "throttled"
+        | "error";
       message?: string;
     };
 
@@ -87,6 +96,32 @@ async function mintRevealSecret(
     .eq("id", cartId)
     .is("payer_reveal_hash", null);
   return reveal;
+}
+
+/**
+ * THROTTLE des démarrages de paiement (mig 0425, audit 31/07) : le lien
+ * /payer circule — sans limite, n'importe qui pouvait ouvrir des checkouts
+ * Chargily/Stripe en boucle sur la même commande (coût PSP + bruit). 6
+ * tentatives par heure et par panier, comptées côté SERVEUR.
+ */
+async function takePayAttempt(
+  admin: unknown,
+  cartId: string
+): Promise<boolean> {
+  try {
+    const rpc = (
+      admin as { rpc: (fn: string, args: Record<string, unknown>) => unknown }
+    ).rpc.bind(admin) as unknown as (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: boolean | null }>;
+    const { data } = await rpc("shared_cart_take_pay_attempt", {
+      p_cart_id: cartId,
+    });
+    return data !== false;
+  } catch {
+    return true; // best-effort : jamais bloquer un paiement légitime
+  }
 }
 
 function intlRefusalText(reason: IntlRefusal): string {
@@ -137,6 +172,9 @@ export async function startGuestIntlPayment(
       .eq("payment_token", ptoken)
       .maybeSingle();
     if (!cart?.order_id) return { ok: false, reason: "not_found" };
+    if (!(await takePayAttempt(admin, cart.id as string))) {
+      return { ok: false, reason: "throttled" };
+    }
 
     const { data: order } = await admin
       .from("orders")
@@ -254,6 +292,9 @@ export async function startGuestPayment(
       .eq("payment_token", ptoken)
       .maybeSingle();
     if (!cart?.order_id) return { ok: false, reason: "not_found" };
+    if (!(await takePayAttempt(admin, cart.id as string))) {
+      return { ok: false, reason: "throttled" };
+    }
 
     const { data: order } = await admin
       .from("orders")

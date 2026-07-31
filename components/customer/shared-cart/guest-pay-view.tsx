@@ -181,15 +181,17 @@ export function GuestPayView({
         return;
       }
       setPayError(
-        res.reason === "ineligible"
-          ? (res.message ?? t("payFailedBanner"))
-          : res.reason === "expired"
-            ? t("payExpiredDesc", {
-                name:
-                  (info !== "notfound" ? info?.captain_name : null) ??
-                  t("captain"),
-              })
-            : t("payFailedBanner")
+        res.reason === "throttled"
+          ? t("payThrottled")
+          : res.reason === "ineligible"
+            ? (res.message ?? t("payFailedBanner"))
+            : res.reason === "expired"
+              ? t("payExpiredDesc", {
+                  name:
+                    (info !== "notfound" ? info?.captain_name : null) ??
+                    t("captain"),
+                })
+              : t("payFailedBanner")
       );
       return;
     }
@@ -208,12 +210,15 @@ export function GuestPayView({
       return;
     }
     setPayError(
-      res.reason === "expired"
-        ? t("payExpiredDesc", {
-            name:
-              (info !== "notfound" ? info?.captain_name : null) ?? t("captain"),
-          })
-        : t("payFailedBanner")
+      res.reason === "throttled"
+        ? t("payThrottled")
+        : res.reason === "expired"
+          ? t("payExpiredDesc", {
+              name:
+                (info !== "notfound" ? info?.captain_name : null) ??
+                t("captain"),
+            })
+          : t("payFailedBanner")
     );
   };
 
