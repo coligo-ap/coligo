@@ -408,6 +408,50 @@ export async function setSharedCartDelivery(input: {
   return { ok: true };
 }
 
+/**
+ * Config de RÉCUPÉRATION du panier partagé (mig 0423) pour PRÉ-REMPLIR le
+ * checkout du propriétaire : ce qu'il a choisi en invitant la famille doit se
+ * retrouver tel quel à l'étape paiement — même logique, mêmes règles, zéro
+ * ressaisie. RLS : seul le capitaine lit son panier.
+ */
+export async function getSharedCartDelivery(cartId: string): Promise<{
+  fulfillment_type: "pickup" | "delivery";
+  delivery_mode: "express" | null;
+  delivery_address_id: string | null;
+  delivery_address_text: string | null;
+  delivery_lat: number | null;
+  delivery_lng: number | null;
+} | null> {
+  const { supabase } = await db();
+  const { data } = await (
+    supabase.from("shared_carts" as never) as unknown as {
+      select: (c: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          maybeSingle: () => Promise<{
+            data: {
+              fulfillment_type: "pickup" | "delivery";
+              delivery_mode: "express" | null;
+              delivery_address_id: string | null;
+              delivery_address_text: string | null;
+              delivery_lat: number | null;
+              delivery_lng: number | null;
+            } | null;
+          }>;
+        };
+      };
+    }
+  )
+    .select(
+      "fulfillment_type, delivery_mode, delivery_address_id, delivery_address_text, delivery_lat, delivery_lng"
+    )
+    .eq("id", cartId)
+    .maybeSingle();
+  return data ?? null;
+}
+
 export async function cancelCart(cartId: string): Promise<Result> {
   const { from } = await db();
   // Deux tentatives conditionnelles (open puis locked) — jamais un panier

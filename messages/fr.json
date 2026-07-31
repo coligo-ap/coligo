@@ -1041,7 +1041,8 @@
     "revokeCta": "Retirer",
     "revokeFailed": "Impossible de retirer ce membre.",
     "gpsRefused": "Position refusée — choisis une adresse ou un point sur la carte.",
-    "inviteCreating": "Préparation du panier partagé…"
+    "inviteCreating": "Préparation du panier partagé…",
+    "payItemsTitle": "Articles ({count})"
   },
   "referral": {
     "title": "Parrainage",

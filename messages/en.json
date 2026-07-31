@@ -1041,7 +1041,8 @@
     "revokeCta": "Remove",
     "revokeFailed": "Could not remove this member.",
     "gpsRefused": "Location denied — pick an address or a point on the map.",
-    "inviteCreating": "Preparing the shared cart…"
+    "inviteCreating": "Preparing the shared cart…",
+    "payItemsTitle": "Items ({count})"
   },
   "referral": {
     "title": "Referral",

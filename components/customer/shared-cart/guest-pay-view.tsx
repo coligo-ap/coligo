@@ -57,6 +57,15 @@ type PayInfo = {
   /** Détail des montants (mig 0423) — transparence totale avant paiement. */
   subtotal_da: number | null;
   service_fee_da: number | null;
+  /** Articles de la commande (mig 0427) — même récap que le checkout. */
+  items:
+    | {
+        name: string;
+        qty: number;
+        unit: string | null;
+        line_total_da: number;
+      }[]
+    | null;
   /** Révélés APRÈS paiement et AU PAYEUR seulement (secret mig 0412). */
   order_number: string | null;
   pickup_code: string | null;
@@ -452,6 +461,31 @@ export function GuestPayView({
           {info.merchant?.name}
         </p>
 
+        {/* RÉCAP ARTICLES — identique au checkout du propriétaire (mig 0427). */}
+        {(info.items?.length ?? 0) > 0 && (
+          <div className="border-border mt-4 rounded-[16px] border px-4 py-3">
+            <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+              {t("payItemsTitle", { count: info.items!.length })}
+            </p>
+            {info.items!.map((it, i) => (
+              <div
+                key={i}
+                className="flex items-baseline justify-between py-1 text-[13px]"
+              >
+                <span className="min-w-0 pe-2 font-semibold">
+                  <span className="text-primary-600 me-1 font-extrabold">
+                    {it.qty}
+                    {it.unit && it.unit !== "piece" ? ` ${it.unit}` : "×"}
+                  </span>
+                  {it.name}
+                </span>
+                <span className="shrink-0 font-bold tabular-nums">
+                  {formatDA(it.line_total_da)}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
         <div className="bg-surface-2 mt-4 rounded-[16px] px-4 py-3 text-center">
           <p className="text-muted text-[11px] font-bold tracking-wide uppercase">
             {t("payAmountLabel")}

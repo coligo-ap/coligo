@@ -1041,7 +1041,8 @@
     "revokeCta": "إزالة",
     "revokeFailed": "تعذّرت إزالة هذا العضو.",
     "gpsRefused": "تم رفض تحديد الموقع — اختر عنواناً أو نقطة على الخريطة.",
-    "inviteCreating": "جارٍ تحضير السلة المشتركة…"
+    "inviteCreating": "جارٍ تحضير السلة المشتركة…",
+    "payItemsTitle": "المنتجات ({count})"
   },
   "referral": {
     "title": "برنامج الإحالة",

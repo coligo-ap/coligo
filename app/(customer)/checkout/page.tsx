@@ -5,6 +5,7 @@ import { getFeatureFlag } from "@/lib/data/feature-flags";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
+import { getSharedCartDelivery } from "@/app/(customer)/panier-partage/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -24,11 +25,15 @@ export default async function CheckoutPage({
 
   // `getFeatureFlag` (singulier) = kill-switch global PUIS coupure propre au
   // compte (mig 0397) → le checkout dit la vérité à ce client-là.
-  const [customer, online, pay, cashback] = await Promise.all([
+  const [customer, online, pay, cashback, sharedDelivery] = await Promise.all([
     getCurrentCustomerFull(),
     getFeatureFlag("online_payment"),
     getFeatureFlag("coligo_pay"),
     getFeatureFlag("cashback"),
+    // Panier partagé : la récupération choisie EN INVITANT la famille
+    // pré-remplit le checkout (même logique que le parcours normal, aucune
+    // ressaisie — le propriétaire peut toujours la changer ici).
+    sharedCartId ? getSharedCartDelivery(sharedCartId) : Promise.resolve(null),
   ]);
 
   return (
@@ -47,6 +52,7 @@ export default async function CheckoutPage({
           coligoPayStatus={pay.status}
           cashbackStatus={cashback.status}
           sharedCartId={sharedCartId}
+          sharedDelivery={sharedDelivery}
         />
       </div>
     </CustomerShell>

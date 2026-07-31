@@ -20,7 +20,6 @@ import {
   Sparkles,
   Store,
   Tag,
-  Users,
   Wallet,
   X,
   Zap,
@@ -72,7 +71,6 @@ import { joinIntlWaitlist } from "@/app/(customer)/checkout/intl-actions";
 import {
   assertSharedCartOrderable,
   attachOrderToSharedCart,
-  createGuestPaymentLink,
 } from "@/app/(customer)/panier-partage/actions";
 import {
   IntlPaymentSheet,
@@ -112,6 +110,16 @@ type Props = {
   cashbackStatus?: FeatureStatus;
   /** Panier PARTAGÉ (?shared=) : la commande créée lui sera liée. */
   sharedCartId?: string | null;
+  /** Récupération choisie en INVITANT la famille (mig 0423) — pré-remplit
+   *  l'étape livraison : même logique que le checkout normal, zéro ressaisie. */
+  sharedDelivery?: {
+    fulfillment_type: "pickup" | "delivery";
+    delivery_mode: "express" | null;
+    delivery_address_id: string | null;
+    delivery_address_text: string | null;
+    delivery_lat: number | null;
+    delivery_lng: number | null;
+  } | null;
 };
 
 export function CheckoutView({
@@ -121,6 +129,7 @@ export function CheckoutView({
   coligoPayStatus = "active",
   cashbackStatus = "active",
   sharedCartId = null,
+  sharedDelivery = null,
 }: Props) {
   // Raccourcis de disponibilité (super-admin).
   const onlineVisible = onlinePaymentStatus !== "hidden";
@@ -144,11 +153,6 @@ export function CheckoutView({
   const [payment, setPayment] = useState<PaymentMethod>("cash");
   // Panier partagé : « Faire payer un proche » — commande online SANS ouvrir
   // Chargily ici (defer_payment) ; l'invité paie via /payer/{ptoken}.
-  const [guestPays, setGuestPays] = useState(false);
-  const [guestPayShare, setGuestPayShare] = useState<{
-    ptoken: string;
-    shareToken: string;
-  } | null>(null);
   // Rail du paiement en ligne : Chargily (CIB/EDAHABIA, DA) ou Stripe (carte
   // internationale, €). Le taux de change n'apparaît JAMAIS ici — le client
   // voit son total en DA, le montant € s'affiche sur la page Stripe.
@@ -195,17 +199,44 @@ export function CheckoutView({
     );
   };
   const [note, setNote] = useState("");
-  const [delivery, setDelivery] = useState<DeliveryChoice>({
-    fulfillment: "pickup",
-    addressId: null,
-    customPosition: null,
-    customAddressText: null,
-    positionConfirmed: false,
-    mode: null,
-    slotId: null,
-    phoneOverride: "",
-    recipientName: "",
-    deliveryNote: "",
+  const [delivery, setDelivery] = useState<DeliveryChoice>(() => {
+    const base: DeliveryChoice = {
+      fulfillment: "pickup",
+      addressId: null,
+      customPosition: null,
+      customAddressText: null,
+      positionConfirmed: false,
+      mode: null,
+      slotId: null,
+      phoneOverride: "",
+      recipientName: "",
+      deliveryNote: "",
+    };
+    // Panier partagé : on REPREND le choix fait à l'invitation (adresse
+    // enregistrée OU point libre) — le propriétaire retrouve exactement sa
+    // sélection, et peut la modifier ici comme dans un checkout normal.
+    if (sharedDelivery?.fulfillment_type === "delivery") {
+      return {
+        ...base,
+        fulfillment: "delivery",
+        mode: sharedDelivery.delivery_mode ?? "express",
+        addressId: sharedDelivery.delivery_address_id,
+        customPosition:
+          !sharedDelivery.delivery_address_id &&
+          sharedDelivery.delivery_lat != null &&
+          sharedDelivery.delivery_lng != null
+            ? {
+                lat: sharedDelivery.delivery_lat,
+                lng: sharedDelivery.delivery_lng,
+              }
+            : null,
+        customAddressText: sharedDelivery.delivery_address_id
+          ? null
+          : sharedDelivery.delivery_address_text,
+        positionConfirmed: true,
+      };
+    }
+    return base;
   });
   const [conflictDismissed, setConflictDismissed] = useState(false);
   const showConflict = otherCarts.length > 0 && !conflictDismissed;
@@ -632,7 +663,6 @@ export function CheckoutView({
         // Identifiant d'appareil PHYSIQUE (nat:ANDROID_ID en app) d'abord —
         // résiste à la déconnexion ET à la réinstallation, façon Uber.
         device_id: await getDeviceIdAsync(),
-        defer_payment: guestPays || undefined,
       });
       if (!res.ok) {
         setSubmitError(res.error);
@@ -644,18 +674,6 @@ export function CheckoutView({
       // le panier soit passé `ordered` avant de générer le token.
       if (sharedCartId) {
         await attachOrderToSharedCart(sharedCartId, res.order_id);
-      }
-      // « Faire payer un proche » : pas de Chargily ici — on génère le lien
-      // public /payer/{ptoken} et on ouvre l'écran de partage WhatsApp.
-      if (guestPays && sharedCartId) {
-        const link = await createGuestPaymentLink(sharedCartId);
-        if (!link.ok) {
-          setSubmitError(link.error);
-          return;
-        }
-        clearCart();
-        setGuestPayShare({ ptoken: link.ptoken, shareToken: link.shareToken });
-        return;
       }
       if (payment === "online" && res.stripe_intent) {
         // Rail € : la feuille de paiement embarquée s'ouvre DANS la page —
@@ -1119,10 +1137,9 @@ export function CheckoutView({
           >
             <PayCard
               icon={Banknote}
-              selected={payment === "cash" && !guestPays}
+              selected={payment === "cash"}
               onClick={() => {
                 setPayment("cash");
-                setGuestPays(false);
               }}
               title={isDelivery ? t("cashOnDelivery") : t("cashOnPickup")}
               sub={isDelivery ? t("cashDeliverySub") : t("cashPickupSub")}
@@ -1140,16 +1157,11 @@ export function CheckoutView({
             {onlineVisible && (
               <PayCard
                 icon={CreditCard}
-                selected={
-                  payment === "online" &&
-                  onlineRail === "chargily" &&
-                  !guestPays
-                }
+                selected={payment === "online" && onlineRail === "chargily"}
                 onClick={() => {
                   if (!onlineUsable) return;
                   setPayment("online");
                   setOnlineRail("chargily");
-                  setGuestPays(false);
                 }}
                 title={t("online")}
                 bolt
@@ -1174,37 +1186,11 @@ export function CheckoutView({
                 className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
               />
             )}
-            {/* Panier PARTAGÉ : un proche paie à distance (lien /payer). */}
-            {sharedCartId && onlineVisible && (
-              <PayCard
-                icon={Users}
-                selected={guestPays}
-                onClick={() => {
-                  if (!onlineUsable || !ctx.merchant.accepts_online) return;
-                  setPayment("online");
-                  setOnlineRail("chargily");
-                  setGuestPays(true);
-                }}
-                title={tShared("payLinkTitle")}
-                sub={
-                  onlineUsable && ctx.merchant.accepts_online
-                    ? tShared("payLinkSub")
-                    : "Bientôt"
-                }
-                disabled={!ctx.merchant.accepts_online || !onlineUsable}
-                chip={
-                  cashbackOn && cashbackEarnOnline > 0
-                    ? t("cashbackChip", {
-                        amount: formatDA(cashbackEarnOnline),
-                      })
-                    : t("noCashbackChip")
-                }
-                chipTone={
-                  cashbackOn && cashbackEarnOnline > 0 ? "success" : "muted"
-                }
-                className="min-w-[102px] shrink-0 basis-[calc((100%-16px)/3)] snap-start"
-              />
-            )}
+            {/* (Le paiement par un proche N'EST PLUS un moyen de paiement ici :
+                le propriétaire envoie le lien depuis la room « Inviter la
+                famille », et c'est le proche qui règle sur /payer — même
+                parcours, mêmes règles commerçant, sans accès au Coligo Pay ni
+                au cashback du propriétaire.) */}
             {/* Carte internationale € — visible UNIQUEMENT si le serveur l'a
                 jugée éligible (flag + pays IP + plafonds). Aucun taux ni
                 montant € ici : le client paie son total en DA, la conversion
@@ -1212,16 +1198,11 @@ export function CheckoutView({
             {onlineVisible && onlineUsable && ctx.intl_payment.available && (
               <PayCard
                 icon={Globe}
-                selected={
-                  payment === "online" &&
-                  onlineRail === "stripe_eur" &&
-                  !guestPays
-                }
+                selected={payment === "online" && onlineRail === "stripe_eur"}
                 onClick={() => {
                   if (!ctx.merchant.accepts_online) return;
                   setPayment("online");
                   setOnlineRail("stripe_eur");
-                  setGuestPays(false);
                 }}
                 title={t("intlCard")}
                 sub={t("intlCardSub")}
@@ -1788,94 +1769,12 @@ export function CheckoutView({
 
       {/* « Faire payer un proche » : commande créée, lien de paiement prêt —
           écran de partage plein écran (WhatsApp / copie / retour room). */}
-      {guestPayShare && (
-        <GuestPayShareOverlay
-          ptoken={guestPayShare.ptoken}
-          shareToken={guestPayShare.shareToken}
-          merchantName={cart.merchant_name ?? ""}
-        />
-      )}
     </div>
   );
 }
 
 /** Écran de partage du lien de paiement invité (panier partagé). */
-function GuestPayShareOverlay({
-  ptoken,
-  shareToken,
-  merchantName,
-}: {
-  ptoken: string;
-  shareToken: string;
-  merchantName: string;
-}) {
-  const tShared = useTranslations("sharedCart");
-  const router = useRouter();
-  const [copied, setCopied] = useState(false);
-  const base = (
-    process.env.NEXT_PUBLIC_APP_URL ?? "https://coligo.app"
-  ).replace(/\/+$/, "");
-  const link = `${base}/payer/${ptoken}`;
-  const waHref = `https://wa.me/?text=${encodeURIComponent(
-    tShared("waPayMsg", { merchant: merchantName, link })
-  )}`;
 
-  return (
-    <div className="bg-surface fixed inset-0 z-[96] flex items-center justify-center px-5">
-      <div className="w-full max-w-sm text-center">
-        <span className="bg-success-50 text-success-600 mx-auto grid size-16 place-items-center rounded-3xl">
-          <Check className="size-8" />
-        </span>
-        <h2 className="text-foreground mt-4 text-xl font-extrabold tracking-tight">
-          {tShared("payLinkReady")}
-        </h2>
-        <p className="text-muted mt-1.5 text-sm font-medium">
-          {tShared("payLinkReadyDesc")}
-        </p>
-
-        <a
-          href={waHref}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-4 text-base font-extrabold text-white shadow-[0_10px_24px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98]"
-        >
-          {tShared("payLinkWhatsapp")}
-        </a>
-        <button
-          type="button"
-          onClick={async () => {
-            try {
-              await navigator.clipboard.writeText(link);
-              setCopied(true);
-              setTimeout(() => setCopied(false), 1600);
-            } catch {
-              /* clipboard indisponible */
-            }
-          }}
-          className="border-border text-foreground mt-2.5 inline-flex w-full items-center justify-center gap-2 rounded-[14px] border-2 px-4 py-3.5 text-sm font-extrabold transition active:scale-[0.98]"
-        >
-          {copied ? (
-            <>
-              <Check className="text-success-600 size-4" />
-              {tShared("copied")}
-            </>
-          ) : (
-            tShared("copyLink")
-          )}
-        </button>
-        <button
-          type="button"
-          onClick={() => router.push(`/p/${shareToken}`)}
-          className="text-muted hover:text-foreground mt-3 text-sm font-bold transition"
-        >
-          {tShared("backToSharedCart")}
-        </button>
-      </div>
-    </div>
-  );
-}
-
-/** Clés i18n (namespace checkout) du texte de résultat selon l'état. */
 function resKey(s: PaymentResultState): { title: string; sub: string } {
   switch (s) {
     case "processing":
