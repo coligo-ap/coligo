@@ -15,6 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { type OrderStatus } from "@/lib/types";
 import { cn, formatDA } from "@/lib/utils";
 import { CustomerOrderLive } from "@/components/customer/customer-order-live";
+import { OrderPlacedCelebration } from "@/components/customer/order-celebration";
 import { OrderCallListener } from "@/components/customer/order-call-listener";
 import { OrderShareCard } from "@/components/customer/referral/order-share-card";
 import { getMyReferralOverview } from "@/lib/referral/overview";
@@ -40,10 +41,13 @@ export const dynamic = "force-dynamic";
 
 export default async function CustomerOrderDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<{ placed?: string }>;
 }) {
   const { id } = await params;
+  const { placed } = await searchParams;
   const t = await getTranslations("orders");
   const supabase = await createClient();
   const {
@@ -436,6 +440,16 @@ export default async function CustomerOrderDetailPage({
 
   return (
     <CustomerShell>
+      {/* Fête « commande envoyée » (cash / paiement au retrait) — one-shot :
+          ?placed=1 posé par le checkout, retiré côté client (anti-rejeu).
+          L'online a la sienne sur /checkout/success. */}
+      <OrderPlacedCelebration
+        placed={placed === "1" && !isCancelled}
+        title={t("placedTitle")}
+        desc={isDelivery ? t("placedDescDelivery") : t("placedDescPickup")}
+        closeLabel={t("placedClose")}
+      />
+
       {/* Suivi live (Realtime + polling) : pop-up + son sur changement de statut. */}
       <CustomerOrderLive orderId={order.id} initialStatus={status} />
 

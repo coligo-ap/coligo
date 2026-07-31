@@ -217,7 +217,8 @@
     "itemsTitle": "سلتك",
     "clearTitle": "إفراغ السلة؟",
     "cancel": "إلغاء",
-    "promoCodeCopied": "تم النسخ!"
+    "promoCodeCopied": "تم النسخ!",
+    "feesAtCheckout": "+ رسوم الخدمة والتوصيل حسب اختيارك — تُفصَّل في خطوة الدفع."
   },
   "checkout": {
     "redirectingOnlineTitle": "جارٍ التحويل إلى Chargily Pay…",
@@ -575,7 +576,11 @@
     "reportSubmit": "إرسال البلاغ",
     "reportCancel": "إلغاء",
     "reportSent": "تم إرسال البلاغ. شكراً.",
-    "reportSentBadge": "تم الإبلاغ عن عامل التوصيل"
+    "reportSentBadge": "تم الإبلاغ عن عامل التوصيل",
+    "placedTitle": "أُرسل الطلب!",
+    "placedDescDelivery": "التاجر يحضّر — تابع كل خطوة هنا حتى التوصيل.",
+    "placedDescPickup": "التاجر يحضّر — قدّم رقم طلبك عند الاستلام.",
+    "placedClose": "متابعة طلبي"
   },
   "reviews": {
     "customerReviews": "تقييمات العملاء",

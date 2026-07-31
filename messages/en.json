@@ -217,7 +217,8 @@
     "itemsTitle": "Your cart",
     "clearTitle": "Clear the cart?",
     "cancel": "Cancel",
-    "promoCodeCopied": "Copied!"
+    "promoCodeCopied": "Copied!",
+    "feesAtCheckout": "+ service fee and delivery based on your choice — detailed at checkout."
   },
   "checkout": {
     "redirectingOnlineTitle": "Redirecting to Chargily Pay…",
@@ -575,7 +576,11 @@
     "reportSubmit": "Send the report",
     "reportCancel": "Cancel",
     "reportSent": "Report sent. Thank you.",
-    "reportSentBadge": "Courier reported"
+    "reportSentBadge": "Courier reported",
+    "placedTitle": "Order sent!",
+    "placedDescDelivery": "The merchant is preparing — follow every step here until delivery.",
+    "placedDescPickup": "The merchant is preparing — show your order number at pickup.",
+    "placedClose": "Track my order"
   },
   "reviews": {
     "customerReviews": "Customer reviews",

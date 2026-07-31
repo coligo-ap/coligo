@@ -653,6 +653,12 @@ export function CartView({
               </span>
             </span>
           </div>
+          {/* Transparence (même esprit que /payer) : le client sait AVANT de
+              continuer que service/livraison s'ajoutent — détaillés au
+              paiement, jamais de surprise sur le total final. */}
+          <p className="text-subtle -mt-1 text-[11.5px] font-semibold">
+            {t("feesAtCheckout")}
+          </p>
           <Link
             href="/checkout"
             className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"

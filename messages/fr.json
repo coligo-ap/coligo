@@ -217,7 +217,8 @@
     "itemsTitle": "Votre panier",
     "clearTitle": "Vider le panier ?",
     "cancel": "Annuler",
-    "promoCodeCopied": "Copié !"
+    "promoCodeCopied": "Copié !",
+    "feesAtCheckout": "+ frais de service et livraison selon ton choix — détaillés à l'étape paiement."
   },
   "checkout": {
     "redirectingOnlineTitle": "Redirection vers Chargily Pay…",
@@ -575,7 +576,11 @@
     "reportSubmit": "Envoyer le signalement",
     "reportCancel": "Annuler",
     "reportSent": "Signalement envoyé. Merci.",
-    "reportSentBadge": "Livreur signalé"
+    "reportSentBadge": "Livreur signalé",
+    "placedTitle": "Commande envoyée !",
+    "placedDescDelivery": "Le commerçant prépare — suis chaque étape ici, jusqu'à la livraison.",
+    "placedDescPickup": "Le commerçant prépare — présente ton numéro au retrait.",
+    "placedClose": "Suivre ma commande"
   },
   "reviews": {
     "customerReviews": "Avis clients",

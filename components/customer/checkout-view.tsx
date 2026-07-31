@@ -678,7 +678,9 @@ export function CheckoutView({
       }
       setIsRedirecting(true);
       clearCart();
-      router.push(`/commandes/${res.order_id}`);
+      // ?placed=1 : la page commande joue la célébration UNE fois (cash /
+      // paiement au retrait — l'online a sa fête sur /checkout/success).
+      router.push(`/commandes/${res.order_id}?placed=1`);
     });
   }
 

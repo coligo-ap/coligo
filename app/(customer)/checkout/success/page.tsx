@@ -6,6 +6,7 @@ import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { CheckoutPaymentWatcher } from "@/components/customer/checkout-payment-watcher";
 import { ClearCartOnMount } from "@/components/customer/clear-cart-on-mount";
+import { OrderCelebrationDecor } from "@/components/customer/order-celebration";
 import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tracking";
 
 export const dynamic = "force-dynamic";
@@ -137,12 +138,9 @@ function Paid({
   return (
     <>
       <ClearCartOnMount />
-      <div className="bg-success-100 text-success-700 mx-auto flex size-16 items-center justify-center rounded-full">
-        <CheckCircle2 className="size-8" />
-      </div>
-      <h1 className="text-foreground mt-4 text-2xl font-bold">
-        {t("paidTitle")}
-      </h1>
+      {/* Fête « paiement accepté » — même langage que la Roue et le panier
+          partagé (confettis + boom, reduced-motion respecté). */}
+      <OrderCelebrationDecor title={t("paidTitle")} />
       <p className="text-muted mt-2 text-sm">{t("paidSubtitle")}</p>
       <p className="text-primary-700 mt-4 text-4xl font-bold tracking-widest tabular-nums">
         {pickupCode}
