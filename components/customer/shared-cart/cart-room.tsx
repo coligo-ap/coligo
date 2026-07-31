@@ -490,7 +490,11 @@ export function CartRoom({
     setActionBusy("paybtn");
     try {
       if (await payNow(true)) return; // une commande existait déjà
-      const res = await guestOrderAndPay({ token });
+      const res = await guestOrderAndPay({
+        token,
+        // Le capitaine est identifié par sa session ; l'invité par son jeton.
+        guestToken: isCaptain ? null : (guest?.id ?? null),
+      });
       if (res.ok) {
         router.push(`/payer/${res.ptoken}`);
         return;

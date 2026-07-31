@@ -56,19 +56,36 @@ export type StartGuestIntlResult =
  * SECRET DE RÉVÉLATION (mig 0412) : généré au démarrage du paiement et remis
  * au SEUL navigateur du payeur — après confirmation, la RPC ne révèle numéro
  * + code de retrait qu'à lui (le lien public, lui, continue de circuler).
- * Deux payeurs simultanés : le dernier à démarrer gagne le secret, l'autre
- * verra « payé » sans les codes (le capitaine a tout sur SA commande).
+ *
+ * ⚠️ SÉCURITÉ (audit 31/07) : le hash n'est posé QU'UNE FOIS (UPDATE
+ * conditionnel `payer_reveal_hash IS NULL`). Avant, chaque appel l'ÉCRASAIT :
+ * n'importe quel porteur du lien pouvait démarrer un paiement SANS payer,
+ * capter le secret courant, puis lire le code de retrait dès que la famille
+ * réglait (et invalider au passage le secret du payeur légitime). Désormais
+ * le PREMIER qui démarre garde la capacité de révélation ; les suivants
+ * voient « payé » sans les codes — le propriétaire, lui, a tout sur SA
+ * commande.
  */
 async function mintRevealSecret(
   admin: unknown,
   cartId: string
 ): Promise<string> {
   const reveal = randomUUID().replace(/-/g, "");
-  await sharedCarts(admin)
+  await (
+    sharedCarts(admin) as unknown as {
+      update: (v: Record<string, unknown>) => {
+        eq: (
+          c: string,
+          v: string
+        ) => { is: (c: string, v: null) => PromiseLike<unknown> };
+      };
+    }
+  )
     .update({
       payer_reveal_hash: createHash("sha256").update(reveal).digest("hex"),
     })
-    .eq("id", cartId);
+    .eq("id", cartId)
+    .is("payer_reveal_hash", null);
   return reveal;
 }
 

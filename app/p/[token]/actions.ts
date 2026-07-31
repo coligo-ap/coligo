@@ -110,7 +110,36 @@ export async function guestSetQty(input: {
  */
 export async function guestOrderAndPay(input: {
   token: string;
+  /** Identité invité (localStorage) — le capitaine connecté passe null. */
+  guestToken?: string | null;
 }): Promise<RoomOrderResult> {
+  // GARDE ANTI-ABUS (mig 0424, audit 31/07) : le simple porteur du lien ne
+  // peut plus geler le panier en boucle — il faut être MEMBRE, et une seule
+  // tentative par 10 min. La RPC est SECURITY DEFINER (REVOKE public).
+  const guard = createAdminClient();
+  const rpc = guard.rpc.bind(guard) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: string | null }>;
+  const { data: verdict } = await rpc("shared_cart_can_room_order", {
+    p_token: input.token,
+    p_guest_token: input.guestToken ?? null,
+  });
+  if (verdict === "not_member") {
+    return {
+      ok: false,
+      reason: "not_member",
+      message: "Rejoins le panier pour pouvoir régler la commande.",
+    };
+  }
+  if (verdict === "too_soon") {
+    return {
+      ok: false,
+      reason: "too_soon",
+      message: "Une demande vient d'être lancée — réessaie dans un instant.",
+    };
+  }
+
   const res = await createRoomOrder(input.token);
   if (res.ok) {
     void broadcastSharedCartBump(input.token);

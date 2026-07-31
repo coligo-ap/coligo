@@ -252,10 +252,19 @@ export async function createRoomOrder(
     }
     const { data: merchGeo } = await admin
       .from("merchants")
-      .select("latitude, longitude, delivery_radius_km")
+      .select(
+        "latitude, longitude, delivery_radius_km, delivery_enabled, express_enabled"
+      )
       .eq("id", merchant.id)
       .maybeSingle();
-    if (merchGeo?.latitude == null || merchGeo?.longitude == null) {
+    // Parité checkout (audit 31/07) : le commerçant doit RÉELLEMENT proposer
+    // la livraison express, pas seulement avoir des coordonnées.
+    if (
+      merchGeo?.latitude == null ||
+      merchGeo?.longitude == null ||
+      merchGeo.delivery_enabled === false ||
+      merchGeo.express_enabled === false
+    ) {
       return fail(
         "no_delivery",
         "Ce commerçant ne livre pas — repassez en retrait."
@@ -284,15 +293,47 @@ export async function createRoomOrder(
         `Adresse hors zone de livraison (${distanceKm.toFixed(1)} km) — le propriétaire peut repasser en retrait.`
       );
     }
-    // Moteur de zones (mig 0169) : check géométrique — le trigger SQL reste
-    // le garde-fou bypass-proof.
-    const zone = await evaluateZone(
-      "express",
-      cart.delivery_lat as number,
-      cart.delivery_lng as number
-    );
-    if (!zone.allowed) {
-      return fail("zone", zoneMessageFr(zone, "destination", "express"));
+    // MOTEUR DE ZONES (mig 0169). ⚠️ Sur CE chemin l'insert est fait en
+    // service_role → le trigger SQL 0169/0173 ne s'applique PAS (il ne bride
+    // que authenticated/anon). Deux conséquences traitées ici (audit 31/07) :
+    //  1. on passe le rôle « destination » + wilaya/commune, sinon les règles
+    //     de zone par wilaya/commune/direction étaient silencieusement ignorées ;
+    //  2. FAIL-CLOSED : evaluateZone est fail-open par conception (il compte
+    //     sur le trigger) — ici toute erreur/indisponibilité doit REFUSER.
+    let zWilaya: string | null = null;
+    let zCommune: string | null = null;
+    try {
+      const { resolveWilayaCommune } = await import("@/lib/zones/server");
+      const rc = await resolveWilayaCommune(
+        cart.delivery_lat as number,
+        cart.delivery_lng as number
+      );
+      zWilaya = rc?.wilayaCode ?? null;
+      zCommune = rc?.commune ?? null;
+    } catch {
+      /* best-effort : le check géométrique reste appliqué */
+    }
+    let zone;
+    try {
+      zone = await evaluateZone(
+        "express",
+        cart.delivery_lat as number,
+        cart.delivery_lng as number,
+        { role: "destination", wilayaCode: zWilaya, commune: zCommune }
+      );
+    } catch {
+      return fail(
+        "zone",
+        "Vérification de zone indisponible — réessayez dans un instant."
+      );
+    }
+    if (!zone || !zone.allowed) {
+      return fail(
+        "zone",
+        zone
+          ? zoneMessageFr(zone, "destination", "express")
+          : "Vérification de zone indisponible — réessayez dans un instant."
+      );
     }
     deliveryFeeDa = quote.feeDa;
   }

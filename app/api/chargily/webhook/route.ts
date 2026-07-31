@@ -163,11 +163,13 @@ export async function POST(req: NextRequest) {
       //     payé sur son Coligo Pay (idempotent via chargily_checkout_id) + log
       //     pour réconciliation. Principe : JAMAIS un client débité sans
       //     contrepartie. (Le montant a déjà été vérifié == total_da ci-dessus.)
-      if (
-        target.payment_status !== "paid" &&
-        target.customer_id &&
-        event.data.id
-      ) {
+      // ⚠️ SÉCURITÉ (audit 31/07) : on NE conditionne PLUS à
+      // `payment_status !== 'paid'`. Cas panier partagé : deux invités
+      // ouvrent chacun un checkout, le 2e paie APRÈS que la commande soit
+      // déjà `paid` → l'ancienne garde laissait ce débit SANS trace ni
+      // contrepartie. Le crédit reste idempotent (unique chargily_checkout_id)
+      // et l'alerte de réconciliation part dans tous les cas.
+      if (target.customer_id && event.data.id) {
         const { error: compErr } = await (
           admin.from("customer_wallet_entries") as unknown as {
             insert: (row: Record<string, unknown>) => Promise<{
