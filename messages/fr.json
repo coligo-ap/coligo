@@ -1039,7 +1039,9 @@
     "revokeTitle": "Retirer ce membre ?",
     "revokeBody": "{name} ne pourra plus modifier le panier. Ses articles déjà ajoutés restent.",
     "revokeCta": "Retirer",
-    "revokeFailed": "Impossible de retirer ce membre."
+    "revokeFailed": "Impossible de retirer ce membre.",
+    "gpsRefused": "Position refusée — choisis une adresse ou un point sur la carte.",
+    "inviteCreating": "Préparation du panier partagé…"
   },
   "referral": {
     "title": "Parrainage",

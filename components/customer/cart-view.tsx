@@ -44,6 +44,14 @@ import {
   getOpenSharedCart,
   setSharedCartDelivery,
 } from "@/app/(customer)/panier-partage/actions";
+import {
+  ChoiceTile,
+  FullscreenMap,
+  SavedAddressesModal,
+} from "@/components/customer/checkout-delivery-ui";
+import { getPosition } from "@/lib/native/geolocation";
+import { reverseGeocode } from "@/app/(customer)/actions";
+import { Bookmark, LocateFixed, Map as MapIcon } from "lucide-react";
 import type { PublicPromotion } from "@/lib/data/customer-catalog";
 
 export function CartView({
@@ -54,6 +62,7 @@ export function CartView({
 }) {
   const t = useTranslations("cart");
   const tsc = useTranslations("sharedCart");
+  const tCk = useTranslations("checkout");
   const router = useRouter();
   const locale = useLocale();
   const isAr = locale === "ar";
@@ -80,6 +89,46 @@ export function CartView({
       | null;
   } | null>(null);
 
+  // Sélecteur de position IDENTIQUE au checkout : Ma position / Mes adresses /
+  // Sur la carte (mêmes composants ChoiceTile / SavedAddressesModal /
+  // FullscreenMap) — une seule interface à apprendre pour le client.
+  const [pickSource, setPickSource] = useState<
+    "current" | "saved" | "map" | null
+  >(null);
+  const [gpsBusy, setGpsBusy] = useState(false);
+  const [addrModalOpen, setAddrModalOpen] = useState(false);
+  const [mapOpen, setMapOpen] = useState(false);
+
+  /** Point choisi (position/carte) → libellé lisible puis création du panier. */
+  const applyFreePoint = async (lat: number, lng: number, label?: string) => {
+    let text: string | null = label ?? null;
+    if (!text) {
+      try {
+        const rg = await reverseGeocode({ latitude: lat, longitude: lng });
+        text = rg?.ok ? (rg.display ?? null) : null;
+      } catch {
+        /* libellé optionnel */
+      }
+    }
+    await inviteFamily({
+      fulfillment: "delivery",
+      point: { lat, lng, text },
+    });
+  };
+
+  const detectCurrent = async () => {
+    setPickSource("current");
+    setGpsBusy(true);
+    try {
+      const pos = await getPosition();
+      await applyFreePoint(pos.latitude, pos.longitude);
+    } catch {
+      setInviteError(tsc("gpsRefused"));
+    } finally {
+      setGpsBusy(false);
+    }
+  };
+
   const openInvite = () => {
     if (!cart.merchant_id || inviteBusy) return;
     setInviteError(null);
@@ -96,6 +145,7 @@ export function CartView({
   const inviteFamily = async (config?: {
     fulfillment: "pickup" | "delivery";
     address_id?: string;
+    point?: { lat: number; lng: number; text?: string | null };
   }) => {
     if (!cart.merchant_id || inviteBusy) return;
     setInviteError(null);
@@ -133,6 +183,7 @@ export function CartView({
           token,
           fulfillment: config.fulfillment,
           address_id: config.address_id ?? null,
+          point: config.point ?? null,
         });
         if (!set.ok) {
           setInviteError(set.error);
@@ -821,53 +872,46 @@ export function CartView({
                 <p className="text-muted mb-3 text-[13px] font-semibold">
                   {tsc("recoveryChooseAddr")}
                 </p>
-                {inviteConfig.addresses === null ? (
-                  <div className="text-muted flex items-center gap-2 py-3 text-sm font-semibold">
-                    <Loader2 className="size-4 animate-spin" /> …
-                  </div>
-                ) : inviteConfig.addresses.length === 0 ? (
-                  <div className="space-y-3">
-                    <p className="text-muted text-[13px] font-semibold">
-                      {tsc("recoveryNoAddr")}
-                    </p>
-                    <Link
-                      href="/adresses"
-                      className="bg-primary-600 hover:bg-primary-700 flex h-11 w-full items-center justify-center rounded-[13px] text-sm font-extrabold text-white"
-                    >
-                      {tsc("inviteAddAddress")}
-                    </Link>
-                  </div>
-                ) : (
-                  <div className="space-y-1.5">
-                    {inviteConfig.addresses.map((a) => (
-                      <button
-                        key={a.id}
-                        type="button"
-                        disabled={inviteBusy || a.lat == null || a.lng == null}
-                        onClick={() =>
-                          void inviteFamily({
-                            fulfillment: "delivery",
-                            address_id: a.id,
-                          })
-                        }
-                        className="border-border bg-surface-2 flex w-full items-center gap-2.5 rounded-[13px] border px-3.5 py-3 text-start text-[13px] font-semibold disabled:opacity-50"
-                      >
-                        <Truck className="text-primary-700 size-4 shrink-0" />
-                        <span className="min-w-0 flex-1 truncate">
-                          {a.address_text}
-                        </span>
-                        {inviteBusy && (
-                          <Loader2 className="size-4 animate-spin" />
-                        )}
-                      </button>
-                    ))}
-                    <Link
-                      href="/adresses"
-                      className="text-primary-700 block px-1 pt-1 text-[12.5px] font-bold hover:underline"
-                    >
-                      + {tsc("inviteAddAddress")}
-                    </Link>
-                  </div>
+                {/* MÊME interface que le checkout (« Où livrer ? ») : 3 tuiles
+                    Ma position / Mes adresses / Sur la carte — composants
+                    partagés, zéro divergence d'expérience. */}
+                <div className="grid grid-cols-3 gap-2">
+                  <ChoiceTile
+                    icon={
+                      gpsBusy ? (
+                        <Loader2 className="size-[18px] animate-spin" />
+                      ) : (
+                        <LocateFixed className="size-[18px]" />
+                      )
+                    }
+                    label={tCk("tileMyPosition")}
+                    active={pickSource === "current"}
+                    onClick={() => void detectCurrent()}
+                  />
+                  <ChoiceTile
+                    icon={<Bookmark className="size-[18px]" />}
+                    label={tCk("tileMyAddresses")}
+                    active={pickSource === "saved"}
+                    onClick={() => {
+                      setPickSource("saved");
+                      setAddrModalOpen(true);
+                    }}
+                  />
+                  <ChoiceTile
+                    icon={<MapIcon className="size-[18px]" />}
+                    label={tCk("tileOnMap")}
+                    active={pickSource === "map"}
+                    onClick={() => {
+                      setPickSource("map");
+                      setMapOpen(true);
+                    }}
+                  />
+                </div>
+                {inviteBusy && (
+                  <p className="text-muted mt-2.5 flex items-center gap-2 text-[12.5px] font-semibold">
+                    <Loader2 className="size-3.5 animate-spin" />
+                    {tsc("inviteCreating")}
+                  </p>
                 )}
                 <button
                   type="button"
@@ -887,6 +931,44 @@ export function CartView({
             )}
           </div>
         </div>
+      )}
+
+      {/* Modales PARTAGÉES avec le checkout (mêmes composants). */}
+      {addrModalOpen && (
+        <SavedAddressesModal
+          addresses={(inviteConfig?.addresses ?? []).map((a) => ({
+            id: a.id,
+            label: a.address_text,
+            lat: a.lat ?? 0,
+            lng: a.lng ?? 0,
+            address_text: a.address_text,
+            phone_override: null,
+            is_default: false,
+            distance_km: -1,
+            fee_da: null,
+            tour_fee_da: null,
+            out_of_range: false,
+          }))}
+          onPickSaved={(a) => {
+            setAddrModalOpen(false);
+            void inviteFamily({ fulfillment: "delivery", address_id: a.id });
+          }}
+          onPickPlace={(pl) => {
+            setAddrModalOpen(false);
+            void applyFreePoint(pl.lat, pl.lng, pl.label);
+          }}
+          onClose={() => setAddrModalOpen(false)}
+        />
+      )}
+      {mapOpen && (
+        <FullscreenMap
+          initial={null}
+          onValidate={(pt) => {
+            setMapOpen(false);
+            void applyFreePoint(pt.lat, pt.lng);
+          }}
+          onClose={() => setMapOpen(false)}
+        />
       )}
     </div>
   );

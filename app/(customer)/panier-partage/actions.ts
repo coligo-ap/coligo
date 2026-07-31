@@ -262,7 +262,11 @@ export async function setSharedCartDelivery(input: {
   cart_id?: string;
   token?: string;
   fulfillment: "pickup" | "delivery";
+  /** Adresse ENREGISTRÉE du client (propriété vérifiée par RLS ci-dessous). */
   address_id?: string | null;
+  /** OU point libre (« Ma position » / « Sur la carte ») — même UI que le
+   *  checkout ; les coordonnées sont revalidées à la commande (zone + frais). */
+  point?: { lat: number; lng: number; text?: string | null } | null;
 }): Promise<Result> {
   if (!input.cart_id && !input.token) {
     return { ok: false, error: "Panier manquant." };
@@ -278,6 +282,67 @@ export async function setSharedCartDelivery(input: {
     updated_at: new Date().toISOString(),
   };
   if (input.fulfillment === "delivery") {
+    // Point libre (position actuelle / carte) : mêmes champs qu'une adresse
+    // enregistrée. Bornes de sûreté (coordonnées plausibles) ; la zone et les
+    // frais restent jugés SERVEUR à la création de la commande.
+    if (!input.address_id && input.point) {
+      const { lat, lng } = input.point;
+      if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lng) ||
+        Math.abs(lat) > 90 ||
+        Math.abs(lng) > 180
+      ) {
+        return { ok: false, error: "Position invalide." };
+      }
+      const patchPoint = {
+        ...patch,
+        fulfillment_type: "delivery",
+        delivery_mode: "express",
+        delivery_address_id: null,
+        delivery_address_text: (input.point.text ?? "").slice(0, 200) || null,
+        delivery_lat: lat,
+        delivery_lng: lng,
+      };
+      const { data: dataPoint, error: errPoint } = await (
+        supabase.from("shared_carts" as never) as unknown as {
+          update: (v: Record<string, unknown>) => {
+            eq: (
+              c: string,
+              v: string
+            ) => {
+              is: (
+                c: string,
+                v: null
+              ) => {
+                select: (c: string) => {
+                  maybeSingle: () => Promise<{
+                    data: { share_token: string } | null;
+                    error: { message: string } | null;
+                  }>;
+                };
+              };
+            };
+          };
+        }
+      )
+        .update(patchPoint)
+        .eq(
+          input.cart_id ? "id" : "share_token",
+          (input.cart_id ?? input.token) as string
+        )
+        .is("order_id", null)
+        .select("share_token")
+        .maybeSingle();
+      if (errPoint || !dataPoint) {
+        return {
+          ok: false,
+          error: "Modification impossible (déjà commandé ?).",
+        };
+      }
+      void broadcastSharedCartBump(dataPoint.share_token);
+      return { ok: true };
+    }
     if (!input.address_id) {
       return { ok: false, error: "Choisis une adresse de livraison." };
     }

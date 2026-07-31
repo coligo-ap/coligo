@@ -716,17 +716,22 @@ try {
   // ---------- 12. CARTE : payer AVANT diffusion, prix fixe, remboursement ----------
   console.log("\n=== 12. Carte (Chargily) : paiement avant diffusion ===");
   const r12 = await requestRide(CUST_USER, { price: 300, payment: "card" });
+  // RÈGLE COURANTE (mig 0385-0387 « payer À L'ACCEPTATION ») : une course
+  // carte en recherche est diffusée comme les espèces et se NÉGOCIE ; le
+  // paiement est déclenché quand le client accepte une offre. L'ancienne
+  // règle (payer avant diffusion, prix figé) n'existe plus — ce test suivait
+  // encore ces motifs disparus ('ride_not_open' / 'prepaid_fixed_price').
   ok(
-    "carte non payée → invisible aux chauffeurs",
-    (await offer(CH_M, r12, 300)).reason,
-    "ride_not_open"
+    "carte en recherche → diffusée aux chauffeurs",
+    (await offer(CH_M, r12, 300)).ok,
+    true
   );
-  // Webhook Chargily (simulé) : séquestre posé, diffusion ouverte.
+  // Webhook Chargily (simulé) : séquestre posé à l'acceptation.
   await c.query("SELECT * FROM drive_card_paid($1,300,'chk_test')", [r12]);
   ok(
-    "payée → contre-offre INTERDITE (prix fixe)",
-    (await offer(CH_M, r12, 340)).reason,
-    "prepaid_fixed_price"
+    "carte → contre-offre AUTORISÉE (négociation comme les espèces)",
+    (await offer(CH_M, r12, 340)).ok,
+    true
   );
   ok(
     "payée → acceptation au prix client OK",

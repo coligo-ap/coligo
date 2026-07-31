@@ -1039,7 +1039,9 @@
     "revokeTitle": "Remove this member?",
     "revokeBody": "{name} won't be able to edit the cart anymore. Their items stay.",
     "revokeCta": "Remove",
-    "revokeFailed": "Could not remove this member."
+    "revokeFailed": "Could not remove this member.",
+    "gpsRefused": "Location denied — pick an address or a point on the map.",
+    "inviteCreating": "Preparing the shared cart…"
   },
   "referral": {
     "title": "Referral",
