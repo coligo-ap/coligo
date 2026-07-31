@@ -131,12 +131,9 @@ function expectedTags(pdistByTag, radius) {
 }
 
 try {
-  // Client de test présent ?
-  const cust = await c.query(
-    "SELECT id FROM customers WHERE user_id=$1 OR id=$1 LIMIT 1",
-    [CUST_USER]
-  );
-  const customerId = cust.rows[0]?.id ?? "60eec155-fb82-4a8b-9223-8ac2dd24d922";
+  // (Chaque course reçoit SON client de test dédié — cf. plus bas : l'index
+  // « une course active par client » interdit d'empiler les courses sur un
+  // même compte.)
 
   // Chauffeur de test (vérifié, gamme confort → matche les courses 'classic').
   await c.query(
@@ -146,15 +143,37 @@ try {
   );
 
   // 30 courses 'searching' (cash, gamme classic). Insertion directe (on teste le
-  // dispatch, pas request_ride qui interdit > 1 course active par client).
+  // dispatch, pas request_ride).
+  //
+  // ⚠️ UNE COURSE ACTIVE PAR CLIENT : l'index unique partiel
+  // `uq_rides_one_active_per_customer` (garde métier « 1 course à la fois »)
+  // s'applique AUSSI aux insertions directes. Il faut donc UN CLIENT PAR
+  // COURSE — on crée des clients de test dédiés dans la transaction (tout est
+  // ROLLBACK à la fin), au lieu d'empiler 30 courses sur le même compte.
   const ids = {};
-  for (const { tag, p } of RIDES) {
+  for (const [i, { tag, p }] of RIDES.entries()) {
     const dest = off(p, 0.01, 0.01); // destination quelconque (non filtrée)
+    const uid = (
+      await c.query(
+        `INSERT INTO auth.users (id, instance_id, aud, role, email, created_at, updated_at)
+         VALUES (gen_random_uuid(), '00000000-0000-0000-0000-000000000000',
+                 'authenticated','authenticated', $1, now(), now())
+         RETURNING id`,
+        [`dispatch.test.${i}@coligo.local`]
+      )
+    ).rows[0].id;
+    const cid = (
+      await c.query(
+        `INSERT INTO customers (user_id, full_name, phone)
+         VALUES ($1, $2, $3) RETURNING id`,
+        [uid, `Dispatch Test ${i}`, `+21370000${String(1000 + i).slice(-4)}`]
+      )
+    ).rows[0].id;
     const res = await c.query(
       `INSERT INTO rides (customer_id, status, payment_method, gamme, female_only,
                           pickup_lat, pickup_lng, dest_lat, dest_lng, pickup_text)
        VALUES ($1,'searching','cash','classic',false,$2,$3,$4,$5,$6) RETURNING id`,
-      [customerId, p.lat, p.lng, dest.lat, dest.lng, tag]
+      [cid, p.lat, p.lng, dest.lat, dest.lng, tag]
     );
     ids[tag] = res.rows[0].id;
   }
