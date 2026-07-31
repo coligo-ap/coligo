@@ -14,9 +14,12 @@ import {
   Minus,
   Plus,
   ShoppingCart,
+  Store,
   Ticket,
   Trash2,
+  Truck,
   Users,
+  X,
 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -37,7 +40,9 @@ import { useConfirm } from "@/components/ui/confirm";
 import { getCartPromotions } from "@/app/(customer)/cart/actions";
 import {
   createSharedCartFromLocal,
+  getMyDeliveryAddresses,
   getOpenSharedCart,
+  setSharedCartDelivery,
 } from "@/app/(customer)/panier-partage/actions";
 import type { PublicPromotion } from "@/lib/data/customer-catalog";
 
@@ -59,40 +64,83 @@ export function CartView({
   const cart = useCart();
   const empty = cart.items.length === 0;
 
-  // « Inviter la famille » : reprend un panier partagé encore OUVERT chez ce
-  // commerçant, sinon en crée un à partir du panier local, puis ouvre la room.
-  const inviteFamily = async () => {
+  // « Inviter la famille » — FLOW EN ÉTAPES (façon Bolt Food/Uber, demande
+  // produit) : le PROPRIÉTAIRE choisit D'ABORD la récupération (retrait /
+  // livraison express + adresse), le lien de partage n'arrive QU'APRÈS. Les
+  // invités rejoignent un panier déjà configuré (modifiable dans la room).
+  const [inviteConfig, setInviteConfig] = useState<{
+    step: "mode" | "addr";
+    addresses:
+      | {
+          id: string;
+          address_text: string;
+          lat: number | null;
+          lng: number | null;
+        }[]
+      | null;
+  } | null>(null);
+
+  const openInvite = () => {
+    if (!cart.merchant_id || inviteBusy) return;
+    setInviteError(null);
+    setInviteConfig({ step: "mode", addresses: null });
+  };
+
+  const pickDeliveryStep = async () => {
+    setInviteConfig((c) => (c ? { ...c, step: "addr" } : c));
+    const list = await getMyDeliveryAddresses();
+    setInviteConfig((c) => (c ? { ...c, addresses: list } : c));
+  };
+
+  // Création (ou reprise) du panier partagé AVEC la config choisie.
+  const inviteFamily = async (config?: {
+    fulfillment: "pickup" | "delivery";
+    address_id?: string;
+  }) => {
     if (!cart.merchant_id || inviteBusy) return;
     setInviteError(null);
     setInviteBusy(true);
     try {
       const existing = await getOpenSharedCart(cart.merchant_id);
-      if (existing) {
-        router.push(`/p/${existing.token}`);
-        return;
+      let token = existing?.token ?? null;
+      if (!token) {
+        const res = await createSharedCartFromLocal({
+          merchant_id: cart.merchant_id,
+          items: cart.items.map((i) => ({
+            product_id: i.product_id,
+            option_ids: (i.options ?? []).map((o) => o.option_id),
+            quantity: i.quantity,
+          })),
+        });
+        if (!res.ok) {
+          if (res.reason === "not_a_customer") {
+            // Non connecté → authentification PUIS reprise AUTOMATIQUE de
+            // l'invitation (`?invite=1` relance le wizard au retour).
+            router.push(
+              `/se-connecter?next=${encodeURIComponent("/cart?invite=1")}`
+            );
+            return;
+          }
+          setInviteError(res.error);
+          return;
+        }
+        token = res.token;
       }
-      const res = await createSharedCartFromLocal({
-        merchant_id: cart.merchant_id,
-        items: cart.items.map((i) => ({
-          product_id: i.product_id,
-          option_ids: (i.options ?? []).map((o) => o.option_id),
-          quantity: i.quantity,
-        })),
-      });
-      if (res.ok) {
-        router.push(`/p/${res.token}`);
-        return;
+      // La config du wizard s'applique au panier (neuf OU repris) — best
+      // effort : la room permet de la modifier de toute façon.
+      if (config) {
+        const set = await setSharedCartDelivery({
+          token,
+          fulfillment: config.fulfillment,
+          address_id: config.address_id ?? null,
+        });
+        if (!set.ok) {
+          setInviteError(set.error);
+          return;
+        }
       }
-      if (res.reason === "not_a_customer") {
-        // Non connecté → authentification PUIS reprise AUTOMATIQUE de
-        // l'invitation (`?invite=1` relance inviteFamily au retour : le
-        // client atterrit directement dans la room du panier partagé).
-        router.push(
-          `/se-connecter?next=${encodeURIComponent("/cart?invite=1")}`
-        );
-        return;
-      }
-      setInviteError(res.error);
+      setInviteConfig(null);
+      router.push(`/p/${token}`);
     } finally {
       setInviteBusy(false);
     }
@@ -113,7 +161,7 @@ export function CartView({
     } catch {
       /* URL API indispo — sans gravité */
     }
-    void inviteFamily();
+    openInvite();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sp, cart.merchant_id]);
 
@@ -670,7 +718,7 @@ export function CartView({
             <>
               <button
                 type="button"
-                onClick={() => void inviteFamily()}
+                onClick={openInvite}
                 disabled={inviteBusy}
                 className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-[10px] border-2 text-[15px] font-extrabold transition-colors disabled:opacity-60"
               >
@@ -690,6 +738,156 @@ export function CartView({
           )}
         </div>
       </div>
+
+      {/* ── WIZARD D'INVITATION (mig 0423) : mode → adresse → lien. Le
+          propriétaire configure AVANT que la famille reçoive quoi que ce
+          soit — les invités arrivent dans une room déjà réglée. ── */}
+      {inviteConfig && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[95] flex items-end justify-center bg-[rgba(11,11,15,0.5)] backdrop-blur-[2px] sm:items-center"
+          onClick={() => !inviteBusy && setInviteConfig(null)}
+        >
+          <div
+            className="bg-surface w-full max-w-[420px] rounded-t-[26px] px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[26px] sm:pb-6"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-3 flex items-center justify-between">
+              <b className="text-foreground text-[16px] font-extrabold">
+                {tsc("inviteCta")}
+              </b>
+              <button
+                type="button"
+                onClick={() => setInviteConfig(null)}
+                aria-label={t("close")}
+                className="text-subtle grid size-8 place-items-center rounded-full"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+
+            {inviteConfig.step === "mode" ? (
+              <>
+                <p className="text-muted mb-3 text-[13px] font-semibold">
+                  {tsc("inviteModeSub")}
+                </p>
+                <div className="space-y-2">
+                  <button
+                    type="button"
+                    disabled={inviteBusy}
+                    onClick={() => void inviteFamily({ fulfillment: "pickup" })}
+                    className="border-border bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start disabled:opacity-60"
+                  >
+                    <span className="bg-surface text-subtle grid size-10 shrink-0 place-items-center rounded-[11px]">
+                      <Store className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <b className="text-foreground block text-[14px] font-extrabold">
+                        {tsc("recoveryPickup")}
+                      </b>
+                      <small className="text-muted text-[11.5px] font-semibold">
+                        {tsc("invitePickupSub")}
+                      </small>
+                    </span>
+                    {inviteBusy && <Loader2 className="size-4 animate-spin" />}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={inviteBusy}
+                    onClick={() => void pickDeliveryStep()}
+                    className="border-primary-200 bg-primary-50 flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start disabled:opacity-60"
+                  >
+                    <span className="text-primary-700 grid size-10 shrink-0 place-items-center rounded-[11px] bg-white">
+                      <Truck className="size-5" />
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <b className="text-foreground block text-[14px] font-extrabold">
+                        {tsc("recoveryDelivery")}
+                      </b>
+                      <small className="text-muted text-[11.5px] font-semibold">
+                        {tsc("inviteDeliverySub")}
+                      </small>
+                    </span>
+                    <ArrowRight className="text-primary-700 size-4 rtl:-scale-x-100" />
+                  </button>
+                </div>
+                <p className="text-subtle mt-2.5 text-[11px] font-semibold">
+                  {tsc("inviteTourNote")}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-muted mb-3 text-[13px] font-semibold">
+                  {tsc("recoveryChooseAddr")}
+                </p>
+                {inviteConfig.addresses === null ? (
+                  <div className="text-muted flex items-center gap-2 py-3 text-sm font-semibold">
+                    <Loader2 className="size-4 animate-spin" /> …
+                  </div>
+                ) : inviteConfig.addresses.length === 0 ? (
+                  <div className="space-y-3">
+                    <p className="text-muted text-[13px] font-semibold">
+                      {tsc("recoveryNoAddr")}
+                    </p>
+                    <Link
+                      href="/adresses"
+                      className="bg-primary-600 hover:bg-primary-700 flex h-11 w-full items-center justify-center rounded-[13px] text-sm font-extrabold text-white"
+                    >
+                      {tsc("inviteAddAddress")}
+                    </Link>
+                  </div>
+                ) : (
+                  <div className="space-y-1.5">
+                    {inviteConfig.addresses.map((a) => (
+                      <button
+                        key={a.id}
+                        type="button"
+                        disabled={inviteBusy || a.lat == null || a.lng == null}
+                        onClick={() =>
+                          void inviteFamily({
+                            fulfillment: "delivery",
+                            address_id: a.id,
+                          })
+                        }
+                        className="border-border bg-surface-2 flex w-full items-center gap-2.5 rounded-[13px] border px-3.5 py-3 text-start text-[13px] font-semibold disabled:opacity-50"
+                      >
+                        <Truck className="text-primary-700 size-4 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">
+                          {a.address_text}
+                        </span>
+                        {inviteBusy && (
+                          <Loader2 className="size-4 animate-spin" />
+                        )}
+                      </button>
+                    ))}
+                    <Link
+                      href="/adresses"
+                      className="text-primary-700 block px-1 pt-1 text-[12.5px] font-bold hover:underline"
+                    >
+                      + {tsc("inviteAddAddress")}
+                    </Link>
+                  </div>
+                )}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setInviteConfig((c) => (c ? { ...c, step: "mode" } : c))
+                  }
+                  className="text-muted mt-3 text-[12.5px] font-bold"
+                >
+                  ← {tsc("inviteBack")}
+                </button>
+              </>
+            )}
+            {inviteError && (
+              <p className="mt-2 text-center text-xs font-medium text-rose-600">
+                {inviteError}
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

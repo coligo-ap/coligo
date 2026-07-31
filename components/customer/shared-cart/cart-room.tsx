@@ -1005,6 +1005,11 @@ export function CartRoom({
               {formatDA(total_da)}
             </span>
           </div>
+          {/* Transparence : frais de service (+ livraison si le propriétaire
+              l'a choisie) s'ajoutent — le payeur voit le détail sur /payer. */}
+          <p className="text-subtle mt-0.5 text-[11px] font-semibold">
+            {t("roomFeesNote")}
+          </p>
           {/* Progression vers le minimum de commande (style Bolt) : le groupe
               voit d'un coup d'œil combien il reste à ajouter — et la barre
               avance en DIRECT avec les ajouts de chacun. */}

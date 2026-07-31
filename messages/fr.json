@@ -1027,7 +1027,14 @@
     "recoveryNoAddr": "Aucune adresse enregistrée — ajoute-la depuis Compte → Adresses.",
     "payBreakSubtotal": "Sous-total",
     "payBreakService": "Frais de service",
-    "payBreakDelivery": "Livraison"
+    "payBreakDelivery": "Livraison",
+    "inviteModeSub": "D'abord, comment sera récupérée la commande ? La famille verra ton choix.",
+    "invitePickupSub": "Tu récupères au commerce — aucun frais de livraison.",
+    "inviteDeliverySub": "Livrée à ton adresse — frais calculés au paiement.",
+    "inviteTourNote": "La livraison en tournée (créneaux) se choisit au paiement classique.",
+    "inviteAddAddress": "Ajouter une adresse",
+    "inviteBack": "Retour",
+    "roomFeesNote": "+ frais de service (et livraison selon le choix du propriétaire) — détail complet au paiement."
   },
   "referral": {
     "title": "Parrainage",

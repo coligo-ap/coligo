@@ -1027,7 +1027,14 @@
     "recoveryNoAddr": "لا يوجد عنوان مسجّل — أضفه من الحساب ← العناوين.",
     "payBreakSubtotal": "المجموع الفرعي",
     "payBreakService": "رسوم الخدمة",
-    "payBreakDelivery": "التوصيل"
+    "payBreakDelivery": "التوصيل",
+    "inviteModeSub": "أولاً، كيف سيُستلم الطلب؟ ستظهر اختيارك للعائلة.",
+    "invitePickupSub": "تستلمه من المحل — بدون رسوم توصيل.",
+    "inviteDeliverySub": "يُوصَّل إلى عنوانك — تُحسب الرسوم عند الدفع.",
+    "inviteTourNote": "التوصيل ضمن جولة (مواعيد) يُختار في الدفع العادي.",
+    "inviteAddAddress": "إضافة عنوان",
+    "inviteBack": "رجوع",
+    "roomFeesNote": "+ رسوم الخدمة (والتوصيل حسب اختيار صاحب الحساب) — التفاصيل الكاملة عند الدفع."
   },
   "referral": {
     "title": "برنامج الإحالة",

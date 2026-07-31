@@ -258,10 +258,15 @@ export async function getMyDeliveryAddresses(): Promise<
  * le capitaine passe. Tant que le panier n'est pas commandé.
  */
 export async function setSharedCartDelivery(input: {
-  cart_id: string;
+  /** id OU share_token du panier (wizard d'invitation = token). */
+  cart_id?: string;
+  token?: string;
   fulfillment: "pickup" | "delivery";
   address_id?: string | null;
 }): Promise<Result> {
+  if (!input.cart_id && !input.token) {
+    return { ok: false, error: "Panier manquant." };
+  }
   const { supabase, from } = await db();
   let patch: Record<string, unknown> = {
     fulfillment_type: "pickup",
@@ -324,7 +329,10 @@ export async function setSharedCartDelivery(input: {
     }
   )
     .update(patch)
-    .eq("id", input.cart_id)
+    .eq(
+      input.cart_id ? "id" : "share_token",
+      (input.cart_id ?? input.token) as string
+    )
     .is("order_id", null)
     .select("share_token")
     .maybeSingle();

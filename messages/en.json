@@ -1027,7 +1027,14 @@
     "recoveryNoAddr": "No saved address — add one from Account → Addresses.",
     "payBreakSubtotal": "Subtotal",
     "payBreakService": "Service fee",
-    "payBreakDelivery": "Delivery"
+    "payBreakDelivery": "Delivery",
+    "inviteModeSub": "First, how will the order be received? Your family will see your choice.",
+    "invitePickupSub": "You pick it up at the shop — no delivery fee.",
+    "inviteDeliverySub": "Delivered to your address — fee calculated at checkout.",
+    "inviteTourNote": "Tour delivery (time slots) is chosen in the classic checkout.",
+    "inviteAddAddress": "Add an address",
+    "inviteBack": "Back",
+    "roomFeesNote": "+ service fee (and delivery per the owner's choice) — full detail at payment."
   },
   "referral": {
     "title": "Referral",
