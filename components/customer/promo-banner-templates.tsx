@@ -265,7 +265,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
           tailles suivent la largeur réelle de la carte (cqw) → un titre long
           rétrécit au lieu de passer sous l'autocollant ou d'être coupé. */}
       <div
-        className="relative z-10 flex shrink-0 flex-col justify-center px-4 py-3 text-white sm:px-5"
+        className="relative z-10 flex shrink-0 flex-col justify-center px-4 text-white sm:px-5"
         style={{ width: textWidth }}
       >
         <h3
