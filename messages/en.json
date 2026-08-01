@@ -1711,5 +1711,13 @@
     "card": "Bank card",
     "failed": "Payment failed",
     "refunded": "Refunded"
+  },
+  "download": {
+    "title": "The Coligo app",
+    "subtitle": "Orders, delivery, Drive and Coligo Pay — all in one place, faster than the website.",
+    "hint": "Pick your device's store.",
+    "continueWeb": "Continue on the website",
+    "availableOn": "Available on iPhone and Android",
+    "footerTitle": "The app"
   }
 }

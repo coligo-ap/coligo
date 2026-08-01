@@ -7,6 +7,7 @@ import { dirFor, type Locale } from "@/i18n/locale";
 import { THEME_COOKIE } from "@/lib/theme/theme";
 import { NATIVE_COOKIE } from "@/lib/config/native";
 import { getAppTheme, appThemeCssVars } from "@/lib/data/app-theme";
+import { APP_STORE_ID } from "@/lib/config/app-stores";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { Toaster } from "@/components/ui/toast";
@@ -80,6 +81,10 @@ export const metadata: Metadata = {
   formatDetection: {
     telephone: false,
   },
+  // Bandeau natif « Smart App Banner » de Safari iOS : Apple affiche lui-même,
+  // en haut du site, un bandeau d'installation vers NOTRE fiche App Store.
+  // C'est la voie officielle sur iPhone/iPad, et elle ne coûte rien à rendre.
+  other: { "apple-itunes-app": `app-id=${APP_STORE_ID}` },
   // Manifest + icônes + titre iOS de l'app CLIENT (les espaces livreur /
   // chauffeur / commerçant surchargent dans leur layout).
   ...pwaMetadata("client"),

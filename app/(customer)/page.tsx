@@ -24,6 +24,7 @@ import { getAuthUser } from "@/lib/auth/session";
 import { getEffectiveFlags } from "@/lib/data/feature-flags";
 import { getAppTheme } from "@/lib/data/app-theme";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
+import { InstallAppBanner } from "@/components/shared/install-app-banner";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
 import { HomeFilterPills } from "@/components/customer/home-filter-pills";
@@ -170,6 +171,11 @@ export default async function CustomerHomePage() {
             scanEnabled={flags.barcode_marketplace.status === "active"}
             floating={appTheme.marketplaceHero}
           />
+
+          {/* Visiteur sur le WEB MOBILE : proposition d'installer l'app, vers
+              la boutique de SON appareil. Invisible dans l'app native, sur
+              ordinateur, et après un refus. */}
+          <InstallAppBanner />
 
           {/* Catégories rondes (mécanique Uber Eats). Héro thémé : soit ELLES
               SONT DANS le design (hero_categories, libellés blancs), soit un

@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useTranslations } from "next-intl";
 import { Logo } from "@/components/shared/logo";
+import { StoreBadges } from "@/components/shared/store-badges";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 // Client Component : rendu par CustomerChrome (client) → useTranslations, JAMAIS
@@ -10,6 +11,7 @@ import { APP_CONFIG } from "@/lib/config/app-config";
 // Client Components » → 500 sur toutes les pages client).
 export function CustomerFooter() {
   const t = useTranslations("footer");
+  const tDl = useTranslations("download");
   return (
     <footer className="border-border mt-12 hidden border-t bg-white lg:block">
       <div className="mx-auto grid max-w-[1400px] gap-10 px-6 py-10 lg:grid-cols-5">
@@ -38,6 +40,17 @@ export function CustomerFooter() {
           <Item href="/confidentialite">{t("privacy")}</Item>
           <Item href="/mentions-legales">{t("legalNotice")}</Item>
         </Column>
+      </div>
+
+      {/* Bandeau d'installation : les deux boutiques officielles, toujours
+          visibles sur ordinateur (c'est là qu'on ne peut pas rediriger). */}
+      <div className="border-border border-t">
+        <div className="mx-auto flex max-w-[1400px] flex-wrap items-center gap-x-6 gap-y-3 px-6 py-6">
+          <p className="text-foreground text-sm font-semibold">
+            {tDl("availableOn")}
+          </p>
+          <StoreBadges size="sm" />
+        </div>
       </div>
     </footer>
   );
