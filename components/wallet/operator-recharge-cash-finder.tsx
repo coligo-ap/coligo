@@ -53,6 +53,12 @@ type Point = {
   lat: number;
   lng: number;
   distance_km: number;
+  /* Enrichissements mig 0428 : de quoi décider SANS se déplacer pour rien. */
+  is_verified: boolean | null;
+  wilaya: string | null;
+  commune: string | null;
+  owner_name: string | null;
+  since: string | null;
 };
 type Origin = { lat: number; lng: number; label: string };
 
@@ -71,6 +77,12 @@ export function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
   const [citySearching, setCitySearching] = useState(false);
   const [cityErr, setCityErr] = useState<string | null>(null);
   const [navFor, setNavFor] = useState<Point | null>(null);
+  // Filtre d'affichage — on ne relance JAMAIS la requête pour ça (le tri se
+  // fait sur la liste déjà chargée : réponse instantanée au tap).
+  const [filter, setFilter] = useState<"all" | "open" | "verified">("all");
+  // Fiche dépliée (liste fermée/ouvrante) : une seule à la fois, pour que la
+  // liste reste lisible sur un téléphone.
+  const [openId, setOpenId] = useState<string | null>(null);
 
   const locate = useCallback(async () => {
     setPhase("locating");
@@ -145,6 +157,13 @@ export function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
     lng: p.lng,
     distance_km: p.distance_km,
   }));
+  // Filtrage LOCAL (aucune requête) : « Ouverts » s'appuie sur les horaires
+  // déclarés, « Vérifiés » sur le contrôle fait par l'équipe Coligo.
+  const shown = (points ?? []).filter((p) => {
+    if (filter === "verified") return p.is_verified === true;
+    if (filter === "open") return openStatus(p.hours) === true;
+    return true;
+  });
   const selected = points?.find((p) => p.wallet_id === selectedId) ?? null;
   const showMap =
     view === "map" && !mapFailed && origin && (points?.length ?? 0) > 0;
@@ -204,6 +223,31 @@ export function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
         {t.useMyPos}
       </div>
 
+      {/* Filtres — le partenaire trie en un tap, sans nouvelle recherche. */}
+      {!loadingPoints && points && points.length > 0 && (
+        <div className="agfilters">
+          {(
+            [
+              ["all", t.filterAll],
+              ["open", t.filterOpen],
+              ["verified", t.filterVerified],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              key={id}
+              type="button"
+              className={filter === id ? "on" : ""}
+              onClick={() => setFilter(id)}
+            >
+              {label}
+            </button>
+          ))}
+          <span className="agcount">
+            {shown.length} {t.agentsCount}
+          </span>
+        </div>
+      )}
+
       {(phase === "locating" || loadingPoints) && (
         <div className="cgw-mini-load">
           <span className="cgw-ret-ic">{Ico.spinner}</span>
@@ -230,6 +274,8 @@ export function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
               <AgentCard
                 p={selected}
                 t={t}
+                expanded
+                onToggle={() => setSelectedId(null)}
                 onItinerary={() => goItinerary(selected)}
               />
             </div>
@@ -243,12 +289,16 @@ export function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
         phase === "ready" &&
         (view === "list" || mapFailed || !showMap) &&
         points &&
-        points.length > 0 &&
-        points.map((p) => (
+        shown.length > 0 &&
+        shown.map((p) => (
           <AgentCard
             key={p.wallet_id}
             p={p}
             t={t}
+            expanded={openId === p.wallet_id}
+            onToggle={() =>
+              setOpenId((id) => (id === p.wallet_id ? null : p.wallet_id))
+            }
             onItinerary={() => goItinerary(p)}
           />
         ))}
@@ -277,32 +327,90 @@ export function CashFinder({ t }: { t: (typeof STR)[Lang] }) {
   );
 }
 
+/**
+ * Fiche agent — REPLIÉE par défaut (une ligne dense : nom, zone, distance,
+ * ouvert/fermé, badge vérifié), DÉPLIABLE d'un tap pour tout le reste
+ * (adresse complète, horaires, responsable, ancienneté, appeler, itinéraire).
+ *
+ * Pourquoi ce découpage : sur un téléphone, une liste d'agents tous « pleins »
+ * devient illisible et oblige à faire défiler pour comparer. On montre donc
+ * d'abord ce qui sert à CHOISIR, et le détail à la demande.
+ */
 function AgentCard({
   p,
   t,
+  expanded,
+  onToggle,
   onItinerary,
 }: {
   p: Point;
   t: (typeof STR)[Lang];
+  expanded: boolean;
+  onToggle: () => void;
   onItinerary: () => void;
 }) {
   const open = openStatus(p.hours);
-  const sub = [p.address, p.hours].filter(Boolean).join(" · ");
+  const zone = [p.commune, p.wilaya].filter(Boolean).join(" · ");
+  const year = p.since ? new Date(p.since).getFullYear() : null;
+
   return (
-    <div className="agent">
-      <div className="ai">{Ico.store}</div>
-      <div className="am">
-        <b>{p.display_name ?? "Agent Coligo Pay"}</b>
-        <span>
-          {sub}
-          {open !== null && ` · ${open ? t.openNow : t.closedNow}`}
+    <div className={expanded ? "agent open" : "agent"}>
+      {/* Ligne repliée — cliquable en entier (cible tactile large). */}
+      <button type="button" className="aghead" onClick={onToggle}>
+        <span className="ai">{Ico.store}</span>
+        <span className="am">
+          <b>
+            {p.display_name ?? "Agent Coligo Pay"}
+            {p.is_verified && (
+              <i className="agbadge" title={t.agentVerified}>
+                ✓
+              </i>
+            )}
+          </b>
+          <span className="agmeta">
+            {zone || p.address}
+            {open !== null && (
+              <i className={open ? "agopen" : "agclosed"}>
+                {open ? t.openNow : t.closedNow}
+              </i>
+            )}
+          </span>
         </span>
-        <button className="miniroute" type="button" onClick={onItinerary}>
-          {Ico.send}
-          {t.itinerary}
-        </button>
-      </div>
-      <div className="dist">{fmtDistance(p.distance_km)}</div>
+        <span className="dist">{fmtDistance(p.distance_km)}</span>
+      </button>
+
+      {expanded && (
+        <div className="agbody">
+          <Row label={t.agentCashOnly} value={p.address ?? "—"} />
+          <Row label={t.filterOpen} value={p.hours ?? t.agentNoHours} />
+          {p.owner_name && <Row label="Responsable" value={p.owner_name} />}
+          {year && <Row label={t.agentSince} value={String(year)} />}
+          <div className="agactions">
+            {p.phone ? (
+              <a className="miniroute" href={`tel:${p.phone}`}>
+                {Ico.send}
+                {t.agentCall}
+              </a>
+            ) : (
+              <span className="agnophone">{t.agentNoPhone}</span>
+            )}
+            <button className="miniroute" type="button" onClick={onItinerary}>
+              {Ico.send}
+              {t.itinerary}
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Ligne d'information du détail (libellé à gauche, valeur à droite). */
+function Row({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="agrow">
+      <span>{label}</span>
+      <b>{value}</b>
     </div>
   );
 }

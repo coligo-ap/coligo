@@ -109,10 +109,33 @@ export const RECHARGE_STYLE = `
 .cgw .citybox{display:flex;gap:8px;margin-bottom:11px}
 .cgw .citybtn{border:0;border-radius:14px;background:var(--violet);color:#fff;font-family:var(--sora);font-weight:700;font-size:13px;padding:0 18px;cursor:pointer;display:flex;align-items:center;justify-content:center;min-width:64px}.cgw .citybtn:disabled{opacity:.5}.cgw .citybtn svg{width:18px;height:18px;stroke:#fff}
 .cgw .useloc{display:flex;align-items:center;gap:8px;color:var(--violet);font-weight:700;font-size:13px;cursor:pointer;margin-bottom:12px}.cgw .useloc svg{width:15px;height:15px;stroke:var(--violet)}
-.cgw .agent{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:16px;padding:13px;margin-bottom:10px;background:var(--surface)}
-.cgw .agent .ai{width:46px;height:46px;border-radius:14px;background:var(--violet-soft);display:flex;align-items:center;justify-content:center;flex:none}.cgw .agent .ai svg{width:22px;height:22px;stroke:var(--violet)}
-.cgw .agent .am{flex:1;min-width:0}.cgw .agent .am b{font-family:var(--sora);font-weight:700;font-size:14px;display:block}.cgw .agent .am span{font-size:11.5px;color:var(--muted)}
-.cgw .agent .dist{font-size:11px;font-weight:800;color:var(--violet);background:var(--violet-soft);padding:4px 9px;border-radius:20px;flex:none}
+/* Fiche agent — repliée par défaut, dense et à plat (aucune ombre). */
+.cgw .agent{border:1px solid var(--line);border-radius:14px;margin-bottom:8px;background:var(--surface);overflow:hidden}
+.cgw .agent.open{border-color:var(--violet)}
+.cgw .aghead{display:flex;align-items:center;gap:11px;width:100%;padding:10px 12px;background:none;border:0;text-align:start;cursor:pointer;font-family:inherit;color:inherit}
+.cgw .agent .ai{width:38px;height:38px;border-radius:11px;background:var(--violet-soft);display:flex;align-items:center;justify-content:center;flex:none}.cgw .agent .ai svg{width:19px;height:19px;stroke:var(--violet)}
+.cgw .agent .am{flex:1;min-width:0}
+.cgw .agent .am b{font-family:var(--sora);font-weight:700;font-size:13.5px;display:flex;align-items:center;gap:5px;min-width:0}
+.cgw .agent .am b>i.agbadge{font-style:normal;font-size:10px;font-weight:800;color:#fff;background:var(--go,#16b364);width:14px;height:14px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;flex:none}
+.cgw .agent .agmeta{display:block;font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.cgw .agent .agmeta>i{font-style:normal;font-weight:700;margin-inline-start:6px}
+.cgw .agent .agmeta>i.agopen{color:var(--go,#16b364)}
+.cgw .agent .agmeta>i.agclosed{color:var(--muted)}
+.cgw .agent .dist{font-size:11px;font-weight:800;color:var(--violet);background:var(--violet-soft);padding:3px 8px;border-radius:20px;flex:none}
+/* Détail déplié : informations complètes, une ligne par donnée. */
+.cgw .agbody{padding:0 12px 11px;border-top:1px solid var(--line)}
+.cgw .agrow{display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:7px 0;font-size:12px;border-bottom:1px solid var(--line)}
+.cgw .agrow:last-of-type{border-bottom:0}
+.cgw .agrow>span{color:var(--muted);flex:none}
+.cgw .agrow>b{font-weight:700;text-align:end;min-width:0;overflow-wrap:anywhere}
+.cgw .agactions{display:flex;gap:8px;margin-top:8px}
+.cgw .agactions .miniroute{flex:1;margin-top:0;text-decoration:none}
+.cgw .agnophone{flex:1;font-size:11.5px;color:var(--muted);display:flex;align-items:center}
+/* Filtres — pilules compactes, sans relief. */
+.cgw .agfilters{display:flex;align-items:center;gap:6px;margin:10px 0 8px;flex-wrap:wrap}
+.cgw .agfilters button{border:1px solid var(--line);background:var(--surface);color:var(--muted);border-radius:20px;padding:5px 11px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit}
+.cgw .agfilters button.on{background:var(--violet);border-color:var(--violet);color:#fff}
+.cgw .agcount{margin-inline-start:auto;font-size:11px;font-weight:700;color:var(--muted)}
 .cgw .miniroute{width:100%;height:42px;border:0;border-radius:12px;background:var(--violet);color:#fff;font-weight:700;font-size:13px;display:flex;align-items:center;justify-content:center;gap:8px;cursor:pointer;margin-top:7px;font-family:inherit}.cgw .miniroute svg{width:15px;height:15px;stroke:#fff}
 .cgw .empty{text-align:center;padding:22px 10px}.cgw .empty .ei{width:48px;height:48px;border-radius:50%;background:var(--soft);display:flex;align-items:center;justify-content:center;margin:0 auto 10px}.cgw .empty .ei svg{width:24px;height:24px;stroke:var(--muted)}
 .cgw .empty b{font-size:14px;font-family:var(--sora);display:block}.cgw .empty span{font-size:12px;color:var(--muted)}

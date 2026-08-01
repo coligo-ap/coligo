@@ -373,82 +373,9 @@
     opacity: 0;
   }
 }
-/* Hors ligne : violet plein (SANS dégradé) + fine bordure blanche + anneau
-   interne fin + libellé GO. */
-[data-space="driver"] .go-btn {
-  width: 66px;
-  height: 66px;
-  border-radius: 50%;
-  border: 4px solid var(--surface);
-  cursor: pointer;
-  position: relative;
-  background: var(--violet);
-  box-shadow: 0 10px 24px -6px var(--violet-glow);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: #fff;
-  font-family: var(--font-sora), "Sora", sans-serif;
-  font-weight: 800;
-  font-size: 18px;
-  letter-spacing: 0.5px;
-  transition:
-    transform 0.12s,
-    background 0.3s,
-    box-shadow 0.3s,
-    font-size 0.2s;
-}
-[data-space="driver"] .go-btn::after {
-  content: "";
-  position: absolute;
-  inset: 6px;
-  border-radius: 50%;
-  border: 1.5px solid rgba(255, 255, 255, 0.34);
-}
-[data-space="driver"] .go-btn:active {
-  transform: scale(0.93);
-}
-[data-space="driver"] .go-btn .go-off {
-  display: inline;
-}
-[data-space="driver"] .go-btn .go-on {
-  display: none;
-}
-/* En ligne : vert plein, SANS anneau interne, SANS point blanc, libellé
-   EN LIGNE seul, halo doux (anneau concentrique) + vagues encerclées (radar). */
-[data-space="driver"] .mq-sheet.online .go-btn {
-  background: var(--go);
-  font-size: 9px;
-  letter-spacing: 0.4px;
-  box-shadow:
-    0 0 0 5px rgba(22, 179, 100, 0.15),
-    0 10px 24px -6px var(--go-glow);
-}
-[data-space="driver"] .mq-sheet.online .go-btn::after {
-  display: none;
-}
-[data-space="driver"] .mq-sheet.online .go-btn .go-off {
-  display: none;
-}
-[data-space="driver"] .mq-sheet.online .go-btn .go-on {
-  display: inline;
-}
-/* Légende fine AU-DESSUS du bouton (pilule discrète), visible dans les 2 états. */
-[data-space="driver"] .go-cap {
-  position: absolute;
-  left: 50%;
-  top: 0;
-  transform: translate(-50%, calc(-50% - 56px));
-  z-index: 56;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--ink);
-  background: var(--surface);
-  padding: 5px 12px;
-  border-radius: 20px;
-  box-shadow: var(--pill-shadow);
-  white-space: nowrap;
-}
+/* Le BOUTON « GO » n'existe plus : la mise en ligne passe par l'interrupteur
+   En ligne / Hors ligne, comme côté chauffeur. Styles supprimés (aucun
+   composant ne les utilisait — CSS mort). */
 
 /* ---------- en-tête de la feuille (raccourci vers Gains) ---------- */
 [data-space="driver"] .home-head {
