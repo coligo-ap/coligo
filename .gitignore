@@ -68,3 +68,7 @@ android/coligo-release-ci.jks
 
 # Visuels stores (lourds) — générés par store-assets/panorama.html
 store-assets/*.png
+
+# Clés de signature (App Store Connect…) — JAMAIS versionnées
+.secrets/
+store-assets/ios/*.png
