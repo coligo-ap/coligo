@@ -1515,6 +1515,35 @@ export async function notifyDriversNewExpress(input: {
       }
     }
 
+    // ── ON N'IMPORTUNE PAS CELUI QUI A DÉJÀ DIT NON ────────────────────────
+    // Un livreur qui a refusé CETTE course ne doit pas la revoir arriver à
+    // chaque réattribution : c'est le meilleur moyen de le pousser à couper
+    // ses notifications. (Il la voit toujours dans sa liste s'il change d'avis.)
+    // Table hors types générés → cast local du builder (pattern du repo).
+    const fromAny = admin.from.bind(admin) as unknown as (t: string) => {
+      select: (c: string) => {
+        eq: (
+          col: string,
+          v: string
+        ) => Promise<{ data: { driver_id: string }[] | null }>;
+      };
+    };
+    const { data: declines } = await fromAny("express_declines")
+      .select("driver_id")
+      .eq("order_id", input.orderId);
+    const declinedDriverIds = (declines ?? [])
+      .map((d) => d.driver_id)
+      .filter(Boolean);
+    if (declinedDriverIds.length > 0) {
+      const { data: declinedUsers } = await admin
+        .from("drivers")
+        .select("user_id")
+        .in("id", declinedDriverIds);
+      for (const d of declinedUsers ?? []) {
+        if (d.user_id) userIdSet.delete(d.user_id as string);
+      }
+    }
+
     const userIds = [...userIdSet];
     if (userIds.length === 0) return;
 
@@ -1525,6 +1554,30 @@ export async function notifyDriversNewExpress(input: {
       orderId: input.orderId,
     });
 
+    const title = "Nouvelle course Express ⚡";
+    const body = `Une livraison de ${formatDA(order.total_da ?? 0)} à récupérer — fonce, le commerçant prépare.`;
+    // Route CIBLÉE : le tap ouvre LA course, pas l'accueil. Un livreur qui
+    // tape une notification veut la course qu'on vient de lui proposer.
+    const route = `/driver?offer=${input.orderId}`;
+
+    // Trace in-app pour CHAQUE destinataire : sans elle, la cloche reste vide
+    // et un push manqué (téléphone silencieux, écran verrouillé) disparaît
+    // pour de bon. `push: false` — le FCM groupé part juste après, on ne veut
+    // pas deux notifications pour le même événement.
+    await Promise.all(
+      userIds.map((uid) =>
+        storeAndPushNotification({
+          userId: uid,
+          audience: "driver",
+          kind: "driver_new_express",
+          title,
+          body,
+          route,
+          push: false,
+        })
+      )
+    );
+
     const tokenLists = await Promise.all(
       userIds.map((uid) => tokensFor(uid, "courier"))
     );
@@ -1533,11 +1586,8 @@ export async function notifyDriversNewExpress(input: {
 
     await sendFcm(
       tokens,
-      {
-        title: "Nouvelle course Express ⚡",
-        body: `Une livraison de ${formatDA(order.total_da ?? 0)} à récupérer — fonce, le commerçant prépare.`,
-      },
-      { route: "/driver", kind: "driver_new_express" }
+      { title, body },
+      { route, kind: "driver_new_express" }
     );
   } catch (err) {
     console.warn("[fcm] notifyDriversNewExpress failed:", err);
