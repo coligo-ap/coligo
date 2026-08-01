@@ -1018,7 +1018,6 @@
     "payModeTour": "Tour delivery",
     "payModeFee": "Delivery included: {fee}",
     "goHome": "Back to Coligo home",
-    "guestPayPickupHint": "Paying here = PICKUP order under {name}'s name. For delivery, {name} orders and sends you the payment link.",
     "recoveryPickup": "Pickup at the shop",
     "recoveryDelivery": "Express delivery",
     "recoveryByOwner": "Chosen by {name}",
@@ -1045,7 +1044,9 @@
     "payItemsTitle": "Items ({count})",
     "recoveryOutOfRange": "Outside the delivery radius",
     "recoveryFeeFrom": "Delivery ≈ {fee} DA",
-    "inviteDeliveryUnavailable": "This merchant does not offer delivery — pickup is the only option."
+    "inviteDeliveryUnavailable": "This merchant does not offer delivery — pickup is the only option.",
+    "guestBadge": "Guest",
+    "guestDiscoverCta": "Discover Coligo"
   },
   "referral": {
     "title": "Referral",

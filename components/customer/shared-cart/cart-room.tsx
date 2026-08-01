@@ -33,6 +33,7 @@ import { useBroadcastBump } from "@/lib/realtime/use-broadcast-bump";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 import { PaidCelebrationSheet } from "@/components/customer/shared-cart/paid-celebration-sheet";
 import { useConfirm } from "@/components/ui/confirm";
+import { GuestHeader } from "@/components/customer/shared-cart/guest-header";
 import { AvatarDot } from "@/components/ui/avatar-dot";
 import { setLocale } from "@/i18n/actions";
 import { addItem, clearMerchantCart } from "@/lib/customer/cart-store";
@@ -520,8 +521,20 @@ export function CartRoom({
       {/* Micro-animation d'apparition des ajouts temps réel. */}
       <style>{`@keyframes scAdd{from{opacity:0;transform:translateY(6px) scale(.98)}to{opacity:1;transform:none}}`}</style>
 
+      {/* Invité SANS compte : pas de coque client ni de barre du bas — cette
+          barre de marque est son seul repère et reste visible au défilement.
+          Le client connecté a déjà sa coque, on ne la double pas. */}
+      {!showChrome && <GuestHeader tone="onColor" />}
+
       {/* ── EN-TÊTE ── */}
-      <header className="from-primary-500 via-primary-600 to-primary-800 bg-gradient-to-br px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-12 text-white">
+      <header
+        className={cn(
+          "from-primary-500 via-primary-600 to-primary-800 bg-gradient-to-br px-4 pb-12 text-white",
+          // La zone sûre du haut est portée par la barre de marque quand elle
+          // est là (sinon l'en-tête la porte lui-même).
+          showChrome ? "pt-[calc(env(safe-area-inset-top)+1rem)]" : "pt-4"
+        )}
+      >
         <div className="mx-auto flex max-w-lg items-center gap-3">
           {showChrome && (
             <button
@@ -1130,17 +1143,6 @@ export function CartRoom({
                   </button>
                 )}
               </>
-            )}
-            {/* Invité qui paie depuis la room OUVERTE : la commande part en
-                RETRAIT sur le compte du propriétaire — dit AVANT le tap. Pour
-                une livraison, c'est le propriétaire qui commande (checkout,
-                mode + adresse) puis envoie le lien de paiement. */}
-            {open && !isCaptain && items.length > 0 && (
-              <p className="text-muted mt-1.5 w-full text-center text-[11.5px] font-semibold">
-                {t("guestPayPickupHint", {
-                  name: view.captain_name ?? t("captain"),
-                })}
-              </p>
             )}
             {!open && canPayNow && (
               <button

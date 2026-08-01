@@ -7,6 +7,8 @@ import { getAuthUser } from "@/lib/auth/session";
 import { listMerchantProducts } from "@/lib/data/customer-catalog";
 import { MerchantCatalog } from "@/components/customer/merchant-catalog";
 import { SharedCartAddProvider } from "@/components/customer/shared-cart/shared-cart-add-provider";
+import { GuestHeader } from "@/components/customer/shared-cart/guest-header";
+import { cn } from "@/lib/utils";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
 
 export const dynamic = "force-dynamic";
@@ -76,7 +78,16 @@ export default async function SharedCartCataloguePage({
   return (
     <SharedCartAddProvider token={token} isCaptain={!!mine}>
       <div className="bg-surface-2 min-h-dvh pb-24">
-        <header className="border-border bg-surface sticky top-0 z-40 border-b px-4 pt-[calc(env(safe-area-inset-top)+0.6rem)] pb-2.5">
+        {/* Invité sans compte : même barre de marque que sur le reste du lien.
+            Non collante ici — l'en-tête du commerçant prend le relais au
+            défilement (deux barres au même bord se chevaucheraient). */}
+        {!showChrome && <GuestHeader sticky={false} />}
+        <header
+          className={cn(
+            "border-border bg-surface sticky top-0 z-40 border-b px-4 pb-2.5",
+            showChrome ? "pt-[calc(env(safe-area-inset-top)+0.6rem)]" : "pt-2.5"
+          )}
+        >
           <div className="mx-auto flex max-w-2xl items-center gap-3">
             <Link
               href={`/p/${token}`}

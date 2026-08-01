@@ -1018,7 +1018,6 @@
     "payModeTour": "توصيل ضمن جولة",
     "payModeFee": "التوصيل مشمول: {fee}",
     "goHome": "العودة إلى كوليغو",
-    "guestPayPickupHint": "الدفع هنا = طلب استلام من المحل باسم {name}. للتوصيل، يطلب {name} ثم يرسل لك رابط الدفع.",
     "recoveryPickup": "استلام من المحل",
     "recoveryDelivery": "توصيل سريع",
     "recoveryByOwner": "اختيار {name}",
@@ -1045,7 +1044,9 @@
     "payItemsTitle": "المنتجات ({count})",
     "recoveryOutOfRange": "خارج نطاق التوصيل",
     "recoveryFeeFrom": "التوصيل ≈ {fee} دج",
-    "inviteDeliveryUnavailable": "هذا التاجر لا يوفّر التوصيل — الاستلام من المحل هو الخيار الوحيد."
+    "inviteDeliveryUnavailable": "هذا التاجر لا يوفّر التوصيل — الاستلام من المحل هو الخيار الوحيد.",
+    "guestBadge": "ضيف",
+    "guestDiscoverCta": "اكتشف كوليغو"
   },
   "referral": {
     "title": "برنامج الإحالة",

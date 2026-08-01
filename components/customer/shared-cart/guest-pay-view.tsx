@@ -18,6 +18,7 @@ import { sharedCartChannel } from "@/lib/realtime/broadcast";
 import { useBroadcastBump } from "@/lib/realtime/use-broadcast-bump";
 import { openCheckout } from "@/lib/payments/open-checkout";
 import { useResumeResync } from "@/lib/hooks/use-resume-resync";
+import { GuestHeader } from "@/components/customer/shared-cart/guest-header";
 import { QrZoom } from "@/components/shared/qr-zoom";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
 import { PaidCelebrationSheet } from "@/components/customer/shared-cart/paid-celebration-sheet";
@@ -387,6 +388,16 @@ export function GuestPayView({
           {!showPopup && paidDetails}
         </Card>
 
+        {/* Une fois la célébration fermée, l'invité n'avait plus AUCUNE action
+            à l'écran. Porte de sortie claire (et découverte de l'app pour
+            quelqu'un qui ne l'a pas encore). */}
+        <Link
+          href="/"
+          className="border-border bg-surface text-foreground mt-3 block rounded-[14px] border px-4 py-3 text-center text-sm font-extrabold transition active:scale-[0.98]"
+        >
+          {t("guestDiscoverCta")}
+        </Link>
+
         {/* Feuille célébration PARTAGÉE — uniquement pour un paiement FRAIS
             (retour Chargily/Stripe ou transition vue en direct), jamais en
             revisite. */}
@@ -692,8 +703,14 @@ export function GuestPayView({
 
 function Screen({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-surface-2 grid min-h-dvh place-items-center px-4 py-[calc(env(safe-area-inset-top)+1rem)]">
-      <div className="w-full max-w-sm">{children}</div>
+    // L'invité n'a ni coque client ni barre du bas : l'en-tête de marque est
+    // son SEUL repère (où suis-je, à quel titre, comment aller sur Coligo).
+    // Il porte la zone sûre du haut ; le contenu reste centré sous lui.
+    <div className="bg-surface-2 flex min-h-dvh flex-col">
+      <GuestHeader />
+      <div className="flex flex-1 items-center justify-center px-4 py-6">
+        <div className="w-full max-w-sm">{children}</div>
+      </div>
     </div>
   );
 }
