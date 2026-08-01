@@ -10,6 +10,7 @@ import { Logo } from "@/components/shared/logo";
 import { AuthCard } from "@/components/shared/auth-card";
 import { PartnerBenefits } from "@/components/shared/partner-benefits";
 import { PartnerAppCard } from "@/components/shared/partner-app-card";
+import { AppOpenOrInstall } from "@/components/shared/app-open-or-install";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { cn } from "@/lib/utils";
 
@@ -158,9 +159,11 @@ export function AuthScreen({
         {/* Section MARKETING par rôle (découverte au scroll) — portails
             PARTENAIRES uniquement : ce que chacun gagne sur Coligo, business
             d'abord. Rendue ici pour couvrir les 8 pages sans les modifier. */}
-        {/* L'application du métier, adaptée à l'appareil. Placée AVANT les
-            arguments marketing : quelqu'un qui vient travailler cherche
-            d'abord son outil. */}
+        {/* Application déjà installée → on l'ouvre. Sinon → badge officiel de
+            la boutique de l'appareil. Sur TOUS les portails, client compris. */}
+        <AppOpenOrInstall />
+        {/* L'application MÉTIER (APK Android, hors boutiques) — uniquement
+            côté partenaires, et seulement si le portail le concerne. */}
         {navVariant !== "customer" && <PartnerAppCard variant={navVariant} />}
         {navVariant !== "customer" && <PartnerBenefits variant={navVariant} />}
         <AuthFooter showPortal={showPortal} />
