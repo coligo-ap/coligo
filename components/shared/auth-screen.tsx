@@ -9,6 +9,7 @@ import { InstallBanner } from "@/components/pwa/install-banner";
 import { Logo } from "@/components/shared/logo";
 import { AuthCard } from "@/components/shared/auth-card";
 import { PartnerBenefits } from "@/components/shared/partner-benefits";
+import { PartnerAppCard } from "@/components/shared/partner-app-card";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { cn } from "@/lib/utils";
 
@@ -157,6 +158,10 @@ export function AuthScreen({
         {/* Section MARKETING par rôle (découverte au scroll) — portails
             PARTENAIRES uniquement : ce que chacun gagne sur Coligo, business
             d'abord. Rendue ici pour couvrir les 8 pages sans les modifier. */}
+        {/* L'application du métier, adaptée à l'appareil. Placée AVANT les
+            arguments marketing : quelqu'un qui vient travailler cherche
+            d'abord son outil. */}
+        {navVariant !== "customer" && <PartnerAppCard variant={navVariant} />}
         {navVariant !== "customer" && <PartnerBenefits variant={navVariant} />}
         <AuthFooter showPortal={showPortal} />
         <InstallBanner label={installLabel} className={installClassName} />

@@ -182,7 +182,9 @@ export function ExpressRun({
           type="button"
           onClick={onMinimize}
           aria-label={tr("Réduire", "تصغير")}
-          className="absolute top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[60] inline-flex items-center gap-1.5 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2.5 text-[12.5px] font-bold text-[var(--ink)] shadow-sm active:scale-95"
+          // Plat : ni ombre portée ni mise à l'échelle à l'appui — la pilule
+          // se lit sur son filet, comme le reste de l'écran.
+          className="absolute top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[60] inline-flex items-center gap-1.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[12.5px] font-bold text-[var(--ink)] active:bg-[var(--soft)]"
         >
           <ChevronDown className="size-4" />
           {tr("Réduire", "تصغير")}
