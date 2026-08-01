@@ -11,6 +11,7 @@ import { AuthCard } from "@/components/shared/auth-card";
 import { PartnerBenefits } from "@/components/shared/partner-benefits";
 import { PartnerAppCard } from "@/components/shared/partner-app-card";
 import { AppOpenOrInstall } from "@/components/shared/app-open-or-install";
+import { ScrollToTopOnMount } from "@/components/shared/scroll-to-top-on-mount";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import { cn } from "@/lib/utils";
 
@@ -83,6 +84,10 @@ export function AuthScreen({
           bottomNav && "pb-20 lg:pb-0"
         )}
       >
+        {/* Après une déconnexion, on revenait EN BAS du portail (position de
+            défilement restaurée). La connexion doit être la première chose
+            visible. */}
+        <ScrollToTopOnMount />
         <AuthNavBar variant={navVariant} />
         <div className="flex flex-1 flex-col lg:grid lg:grid-cols-5">
           {/* PANNEAU MARKETING GAUCHE (DESKTOP) — photo + dégradé noir + texte blanc */}

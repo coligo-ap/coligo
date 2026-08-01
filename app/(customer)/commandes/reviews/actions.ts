@@ -10,6 +10,7 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { moderateReview } from "@/lib/reviews/moderation";
 import { getAuthUser } from "@/lib/auth/session";
 import { getCurrentCustomer } from "@/lib/auth/customer";
 
@@ -30,6 +31,19 @@ export async function submitReview(input: {
     return { ok: false, error: "Note invalide (1 à 5)." };
   }
   const comment = (input.comment ?? "").trim().slice(0, MAX_COMMENT) || null;
+
+  // MODÉRATION (toutes langues) : insultes, coordonnées/démarchage, chantage
+  // à la note, texte vide de sens. La NOTE n'est jamais filtrée — une mauvaise
+  // note est une opinion, pas une infraction.
+  const verdict = moderateReview(comment);
+  if (verdict.action === "reject") {
+    return {
+      ok: false,
+      error:
+        verdict.message ??
+        "Cet avis ne respecte pas nos règles de publication.",
+    };
+  }
 
   // Récupère customer + merchant_id côté serveur — interdit toute injection
   // par l'utilisateur de couples (order, customer, merchant) incohérents.
@@ -75,6 +89,9 @@ export async function submitReview(input: {
     merchant_id: order.merchant_id,
     rating: input.rating,
     comment,
+    // Signal faible (cri en majuscules…) : publié MASQUÉ, l'équipe tranche.
+    // On ne refuse pas sur un doute — on ne fait pas taire un client mécontent.
+    ...(verdict.action === "review" ? { is_hidden: true } : {}),
   });
   if (error) {
     // 23505 = violation d'unicité : soit (order_id) [mig 0027], soit
@@ -105,6 +122,17 @@ export async function submitDriverReview(input: {
   }
   const comment = (input.comment ?? "").trim().slice(0, MAX_COMMENT) || null;
 
+  // Même règle que pour l'avis commerçant : on ne modère pas selon la cible.
+  const verdict = moderateReview(comment);
+  if (verdict.action === "reject") {
+    return {
+      ok: false,
+      error:
+        verdict.message ??
+        "Cet avis ne respecte pas nos règles de publication.",
+    };
+  }
+
   const customer = await getCurrentCustomer();
   if (!customer) return { ok: false, error: "Profil client introuvable." };
 
@@ -133,6 +161,9 @@ export async function submitDriverReview(input: {
     driver_id: order.delivery_driver_id,
     rating: input.rating,
     comment,
+    // Signal faible (cri en majuscules…) : publié MASQUÉ, l'équipe tranche.
+    // On ne refuse pas sur un doute — on ne fait pas taire un client mécontent.
+    ...(verdict.action === "review" ? { is_hidden: true } : {}),
   });
   if (error) {
     if (error.code === "23505") {

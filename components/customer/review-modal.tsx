@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
 import { Loader2, Star, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -53,11 +53,34 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
     });
   }
 
+  // Armement différé : voir le commentaire sur le fond ci-dessous.
+  const [armed, setArmed] = useState(false);
+  const downOnBackdrop = useRef(false);
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 400);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-end justify-center bg-black/50 p-0 sm:items-center sm:p-4"
+      // Fermeture au clic sur le FOND, avec deux garde-fous :
+      //
+      //  • le geste doit avoir COMMENCÉ sur le fond (`downOnBackdrop`). Sans
+      //    ça, un doigt parti d'une étoile et relâché à côté fermait la
+      //    fenêtre en pleine notation ;
+      //  • rien pendant les 400 premières ms (`armedRef`). Le tap qui OUVRE la
+      //    pop-up se termine alors qu'elle est déjà à l'écran : son `click`
+      //    retombait sur le fond fraîchement monté et la refermait aussitôt.
+      //    C'est le défaut constaté — « je touche, ça se ferme tout seul ».
+      onPointerDown={(e) => {
+        downOnBackdrop.current = e.target === e.currentTarget;
+      }}
       onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
+        if (!armed) return;
+        if (e.target !== e.currentTarget) return;
+        if (!downOnBackdrop.current) return;
+        onClose();
       }}
     >
       <div className="bg-surface w-full max-w-md rounded-t-[20px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-[20px] sm:pb-5">

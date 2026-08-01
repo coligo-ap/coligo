@@ -154,14 +154,19 @@ export function ReviewPrompt({ orders }: Props) {
             </span>
           </div>
         </div>
+      </button>
+      {/* « Voir les autres » : À CÔTÉ du bouton, jamais DEDANS. Un lien
+          imbriqué dans un bouton est du HTML invalide — le navigateur
+          ré-organise le DOM à l'hydratation et les événements partent en
+          vrille (piège déjà rencontré sur ce projet). */}
+      <div className="mt-1 hidden justify-end sm:flex">
         <Link
           href="/commandes"
-          onClick={(e) => e.stopPropagation()}
-          className="shrink-0 text-[11px] font-semibold text-amber-700 hover:underline"
+          className="text-[11px] font-semibold text-amber-700 hover:underline"
         >
           {t("others")}
         </Link>
-      </button>
+      </div>
 
       {active && (
         <ReviewModal
