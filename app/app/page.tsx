@@ -20,11 +20,14 @@ export const metadata = {
   title: `Télécharger l'application — ${APP_CONFIG.name}`,
   description:
     "Installez Coligo sur iPhone ou Android : commandes, livraison, Drive et Coligo Pay dans une seule application.",
-  alternates: { canonical: "/telecharger" },
+  alternates: { canonical: "/app" },
 };
 
 /**
- * LIEN INTELLIGENT D'INSTALLATION — `coligo.app/telecharger`.
+ * LIEN INTELLIGENT D'INSTALLATION — `coligo.app/app`.
+ *
+ * (`/telecharger` est déjà pris par la page APK commerçant : on garde une
+ * adresse courte, facile à dicter, à imprimer en QR ou à envoyer par SMS.)
  *
  * Un seul lien à partager (SMS, QR imprimé, réseaux, e-mail, affiche) :
  *   - sur iPhone/iPad → App Store,

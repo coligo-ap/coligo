@@ -6,7 +6,7 @@
 // le premier pixel) et au NAVIGATEUR (correction des cas que l'en-tête ne dit
 // pas — voir `detectPlatformClient`).
 //
-// Un seul point d'entrée public : `/telecharger`. Tous les boutons du site y
+// Un seul point d'entrée public : `/app`. Tous les boutons du site y
 // pointent, et c'est LUI qui décide de la boutique. Avantage : le jour où un
 // lien de campagne, un QR imprimé ou un SMS circule, il reste valable quel que
 // soit l'appareil de la personne qui l'ouvre.

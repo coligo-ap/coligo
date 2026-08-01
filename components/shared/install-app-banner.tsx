@@ -57,10 +57,7 @@ export function InstallAppBanner() {
 
   return (
     <div className="border-primary-100 bg-primary-50 mt-3 flex items-center gap-3 rounded-[16px] border px-3.5 py-2.5">
-      <Link
-        href="/telecharger"
-        className="flex min-w-0 flex-1 items-center gap-3"
-      >
+      <Link href="/app" className="flex min-w-0 flex-1 items-center gap-3">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src="/icon-192.png"
