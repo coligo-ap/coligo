@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getCurrentPartner } from "@/lib/auth/partner";
 import { getFeatureFlags } from "@/lib/data/feature-flags";
-import { PartnerDashboard } from "@/components/partner/partner-dashboard";
+import { PartnerHub } from "@/components/partner/partner-hub";
 import { FeatureBlockedBanner } from "@/components/shared/feature-blocked-banner";
 
 export const dynamic = "force-dynamic";
@@ -28,7 +28,7 @@ export default async function PartnerHomePage() {
           />
         </div>
       )}
-      <PartnerDashboard
+      <PartnerHub
         walletId={partner.walletId}
         displayName={partner.displayName}
         status={partner.status}
