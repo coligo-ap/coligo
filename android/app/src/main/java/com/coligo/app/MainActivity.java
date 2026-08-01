@@ -1,9 +1,14 @@
 package com.coligo.app;
 
 import android.Manifest;
+import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.graphics.Color;
+import android.media.AudioAttributes;
+import android.media.RingtoneManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
@@ -35,6 +40,41 @@ public class MainActivity extends BridgeActivity {
    */
   private static final long HARD_TIMEOUT_MS = 8000;
 
+  /**
+   * Crée (ou met à jour) le canal des notifications de COMMANDE.
+   *
+   * Idempotent : Android ignore l'appel si le canal existe déjà. À noter —
+   * l'importance d'un canal existant ne peut plus être RELEVÉE par l'app
+   * (choix de l'utilisateur, volontaire côté Android) ; d'où l'importance de
+   * le créer correctement dès la première ouverture.
+   */
+  private void createOrdersChannel() {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return;
+    try {
+      NotificationManager nm = getSystemService(NotificationManager.class);
+      if (nm == null) return;
+      NotificationChannel ch = new NotificationChannel(
+        "coligo_orders",
+        "Commandes et courses",
+        NotificationManager.IMPORTANCE_HIGH
+      );
+      ch.setDescription("Nouvelles courses, statuts de commande et livraisons.");
+      ch.enableVibration(true);
+      ch.setVibrationPattern(new long[] { 0, 260, 140, 260 });
+      ch.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
+      ch.setSound(
+        RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION),
+        new AudioAttributes.Builder()
+          .setContentType(AudioAttributes.CONTENT_TYPE_SONIFICATION)
+          .setUsage(AudioAttributes.USAGE_NOTIFICATION)
+          .build()
+      );
+      nm.createNotificationChannel(ch);
+    } catch (Exception e) {
+      Log.w(TAG, "canal notifications indisponible", e);
+    }
+  }
+
   private IntroSplashView intro;
   private boolean animationDone;
   private boolean pageVisible;
@@ -53,6 +93,15 @@ public class MainActivity extends BridgeActivity {
     // pont Capacitor les expose à `Capacitor.Plugins.*` dès le premier load.
     registerPlugin(SunmiPrinterPlugin.class);
     super.onCreate(savedInstanceState);
+
+    // ── CANAL DE NOTIFICATION « commandes » ──────────────────────────────
+    // Le serveur envoie ses pushs sur le canal `coligo_orders`. Si ce canal
+    // n'EXISTE PAS sur l'appareil, Android range la notification dans un canal
+    // par défaut d'importance basse : elle s'affiche… SANS SON. C'est
+    // exactement le symptôme constaté (« le livreur reçoit, mais ça ne sonne
+    // pas »). On le crée donc au démarrage, en IMPORTANCE_HIGH, avec son et
+    // vibration — une course qui arrive doit s'entendre.
+    createOrdersChannel();
 
     // ── BARRE DE STATUT INTÉGRÉE (edge-to-edge), comme Snapchat/Instagram ──
     // La WebView peint SOUS les barres système ; le CSS réserve déjà la place
