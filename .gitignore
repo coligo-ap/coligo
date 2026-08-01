@@ -65,3 +65,6 @@ play-service-account.json
 # CI Android (artefacts générés en build, jamais commités)
 android/.ci-versioncode
 android/coligo-release-ci.jks
+
+# Visuels stores (lourds) — générés par store-assets/panorama.html
+store-assets/*.png

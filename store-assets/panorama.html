@@ -1,0 +1,314 @@
+<meta charset="utf-8" />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link
+  href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap"
+  rel="stylesheet"
+/>
+<style>
+  /* =====================================================================
+     PANORAMA STORES COLIGO — 7 volets de 1320 × 2868, dessinés d'un seul
+     tenant sur 9240 px de large. Le fond, la ligne d'itinéraire et les
+     halos traversent les coupes : posés côte à côte, les 7 visuels se
+     relisent comme UNE seule image.
+     ===================================================================== */
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  html, body { width: 9240px; height: 2868px; overflow: hidden; }
+  body {
+    font-family: "Plus Jakarta Sans", system-ui, sans-serif;
+    background: #2a0f5e;
+    position: relative;
+  }
+
+  /* Fond continu : violet profond → violet clair → rose sourd. */
+  .bg {
+    position: absolute; inset: 0;
+    background:
+      radial-gradient(1800px 1400px at 8% 18%, rgba(138,77,255,.55), transparent 62%),
+      radial-gradient(2200px 1600px at 46% 88%, rgba(108,43,217,.60), transparent 60%),
+      radial-gradient(1900px 1500px at 88% 22%, rgba(255,45,122,.34), transparent 58%),
+      linear-gradient(100deg, #37116f 0%, #4b1fa6 26%, #6c2bd9 52%, #7c3cc9 74%, #8e2f86 100%);
+  }
+  /* Grain fin : évite l'aplat « plastique » des dégradés purs. */
+  .grain {
+    position: absolute; inset: 0; opacity: .16; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3'/></filter><rect width='160' height='160' filter='url(%23n)' opacity='.5'/></svg>");
+  }
+  .route { position: absolute; inset: 0; }
+
+  .panels { position: absolute; inset: 0; display: flex; }
+  .panel {
+    width: 1320px; height: 2868px; position: relative;
+    padding: 300px 96px 220px; /* zones sûres store : haut 140, bas 160 */
+    display: flex; flex-direction: column;
+  }
+
+  .eyebrow {
+    font-family: "Sora", sans-serif; font-weight: 700; font-size: 34px;
+    letter-spacing: 5px; text-transform: uppercase;
+    color: rgba(255,255,255,.62); margin-bottom: 34px;
+  }
+  h1 {
+    font-family: "Sora", sans-serif; font-weight: 800; font-size: 122px;
+    line-height: .96; letter-spacing: -3.5px; color: #fff;
+    text-wrap: balance;
+  }
+  h1 em { font-style: normal; color: #ffd6e8; }
+  .sub {
+    margin-top: 34px; font-size: 44px; line-height: 1.34; font-weight: 500;
+    color: rgba(255,255,255,.80); max-width: 1000px;
+  }
+  .ar {
+    margin-top: 22px; font-size: 38px; font-weight: 600; direction: rtl;
+    color: rgba(255,255,255,.56);
+  }
+
+  /* Appareil — cadre titane sobre, aucune ombre 3D criarde. */
+  .device {
+    width: 1010px; height: 2196px; border-radius: 118px; padding: 13px;
+    background: linear-gradient(160deg, #d8d4dd, #8e8a95 42%, #efeaf3 78%, #7f7b88);
+    position: absolute; overflow: hidden;
+  }
+  .device .screen {
+    width: 100%; height: 100%; border-radius: 106px; overflow: hidden;
+    background: #fff; position: relative;
+  }
+  .device .screen img { width: 100%; height: 100%; object-fit: cover; object-position: top center; display: block; }
+  .device .island {
+    position: absolute; top: 34px; left: 50%; transform: translateX(-50%);
+    width: 268px; height: 74px; border-radius: 40px; background: #08070c; z-index: 3;
+  }
+
+  /* Écrans reconstitués fidèlement (parcours accessibles seulement après
+     connexion : Drive et livreur). Mêmes composants, mêmes couleurs. */
+  .ui { position: absolute; inset: 0; background: #fff; font-size: 30px; color: #14121c; display: flex; flex-direction: column; }
+  /* Zone carte : occupe tout l'espace restant — un écran d'app ne se termine
+     jamais par un aplat blanc. Trame de rues stylisée, tons Coligo. */
+  .ui .map {
+    flex: 1; min-height: 0; margin: 44px 0 0; position: relative; overflow: hidden;
+    background:
+      linear-gradient(transparent 96%, rgba(108,43,217,.16) 96%) 0 0/100% 190px,
+      linear-gradient(90deg, transparent 97%, rgba(108,43,217,.16) 97%) 0 0/230px 100%,
+      linear-gradient(160deg, #f6f3fd, #eee9fa);
+  }
+  .ui .map::after {
+    content: ""; position: absolute; left: 12%; right: 10%; top: 22%; bottom: 26%;
+    border-radius: 40%; border: 8px dashed rgba(108,43,217,.42);
+    border-right-color: transparent; border-bottom-color: transparent;
+  }
+  .ui .pin {
+    position: absolute; width: 44px; height: 44px; border-radius: 50%;
+    border: 9px solid #fff; box-sizing: content-box;
+  }
+  .ui .pin.a { background: #16b364; left: 20%; top: 26%; }
+  .ui .pin.b { background: #ff2d7a; right: 20%; bottom: 30%; }
+  .ui .top { background: linear-gradient(150deg, #6c2bd9, #4b1fa6); padding: 150px 54px 64px; color: #fff; }
+  .ui .top b { font-family: "Sora", sans-serif; font-size: 46px; font-weight: 800; display: block; }
+  .ui .card {
+    margin: -38px 42px 0; background: #fff; border-radius: 42px; padding: 40px 42px;
+    border: 2px solid #eceaf2;
+  }
+  .ui .row { display: flex; align-items: center; gap: 26px; padding: 30px 0; border-bottom: 2px solid #f2f0f7; }
+  .ui .row:last-child { border-bottom: 0; }
+  .ui .dot { width: 26px; height: 26px; border-radius: 50%; flex: none; }
+  .ui .dot.a { background: #16b364; }
+  .ui .dot.b { background: #ff2d7a; }
+  .ui .lbl { font-size: 27px; color: #6d6880; }
+  .ui .val { font-family: "Sora", sans-serif; font-weight: 700; font-size: 38px; }
+  .ui .pill {
+    display: inline-flex; align-items: center; gap: 14px; background: #f4f1fd; color: #4b1fa6;
+    border-radius: 999px; padding: 16px 30px; font-weight: 700; font-size: 27px; margin-top: 30px;
+  }
+  .ui .tier {
+    display: flex; align-items: center; gap: 26px; margin: 26px 42px 0; padding: 34px 38px;
+    border: 3px solid #eceaf2; border-radius: 36px;
+  }
+  .ui .tier.on { border-color: #6c2bd9; background: #faf7ff; }
+  .ui .tier .ic { width: 92px; height: 92px; border-radius: 28px; background: #f4f1fd; flex: none; }
+  .ui .tier .nm { flex: 1; }
+  .ui .tier .nm b { font-family: "Sora", sans-serif; font-size: 36px; display: block; }
+  .ui .tier .nm span { font-size: 26px; color: #6d6880; }
+  .ui .tier .pr { font-family: "Sora", sans-serif; font-weight: 800; font-size: 40px; }
+  .ui .cta {
+    margin: 46px 42px 0; height: 116px; border-radius: 34px; background: #6c2bd9; color: #fff;
+    display: flex; align-items: center; justify-content: center;
+    font-family: "Sora", sans-serif; font-weight: 700; font-size: 38px;
+  }
+  .ui .offer { padding: 150px 46px 0; }
+  .ui .offer .big { font-family: "Sora", sans-serif; font-weight: 800; font-size: 96px; letter-spacing: -3px; }
+  .ui .offer .muted { font-size: 30px; color: #6d6880; margin-top: 14px; }
+  .ui .timer {
+    margin-top: 34px; height: 14px; border-radius: 10px; background: #f0edf8; overflow: hidden;
+  }
+  .ui .timer i { display: block; width: 68%; height: 100%; background: #ff2d7a; }
+
+  /* Marque, répétée discrètement au bas de chaque volet. */
+  .brand {
+    position: absolute; left: 96px; bottom: 128px; display: flex; align-items: center; gap: 20px;
+    color: rgba(255,255,255,.72); font-family: "Sora", sans-serif; font-weight: 700; font-size: 34px;
+  }
+  .brand .mark {
+    width: 62px; height: 62px; border-radius: 20px; background: #fff; color: #6c2bd9;
+    display: flex; align-items: center; justify-content: center; font-size: 38px; font-weight: 800;
+  }
+</style>
+
+<div class="bg"></div>
+<div class="grain"></div>
+
+<!-- Ligne d'itinéraire : une seule courbe sur les 9 240 px. -->
+<svg class="route" viewBox="0 0 9240 2868" preserveAspectRatio="none">
+  <path
+    d="M-60 2180 C 900 1980, 1500 2500, 2400 2320 S 3900 1700, 4800 1980 S 6300 2560, 7200 2260 S 8600 1820, 9300 2020"
+    fill="none" stroke="rgba(255,255,255,.30)" stroke-width="10" stroke-linecap="round"
+    stroke-dasharray="46 34"
+  />
+  <path
+    d="M-60 640 C 1200 900, 2100 420, 3200 700 S 5200 1080, 6400 760 S 8400 420, 9300 660"
+    fill="none" stroke="rgba(255,255,255,.13)" stroke-width="6" stroke-linecap="round"
+  />
+</svg>
+
+<div class="panels">
+  <!-- 1 — Ouverture -->
+  <section class="panel">
+    <div class="eyebrow">Coligo</div>
+    <h1>Tout Coligo,<br />dans votre <em>poche</em>.</h1>
+    <p class="sub">Courses, repas, trajets et paiement — une seule application.</p>
+    <p class="ar">كل كوليغو في جيبك</p>
+    <div class="brand"><span class="mark">C</span> coligo.app</div>
+  </section>
+
+  <!-- 2 — Drive : saisie du trajet -->
+  <section class="panel">
+    <div class="eyebrow">Coligo Drive</div>
+    <h1>Béjaïa <em>→</em><br />Alger.</h1>
+    <p class="sub">Le prix est connu avant de réserver. Aucune surprise à l'arrivée.</p>
+    <div class="device" style="left: 172px; top: 980px; transform: rotate(-5deg)">
+      <div class="screen">
+        <div class="island"></div>
+        <div class="ui">
+          <div class="top"><b>Où allez-vous ?</b></div>
+          <div class="card">
+            <div class="row">
+              <span class="dot a"></span>
+              <span><span class="lbl">Départ</span><br /><span class="val">Béjaïa</span></span>
+            </div>
+            <div class="row">
+              <span class="dot b"></span>
+              <span><span class="lbl">Destination</span><br /><span class="val">Alger</span></span>
+            </div>
+            <span class="pill">Trajet inter-wilayas · 232 km</span>
+          </div>
+          <div class="cta">Voir les prix</div>
+          <div class="map"><span class="pin a"></span><span class="pin b"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3 — Drive : choix de gamme -->
+  <section class="panel">
+    <div class="eyebrow">Coligo Drive</div>
+    <h1>Choisissez<br />votre <em>confort</em>.</h1>
+    <p class="sub">Économique, Confort ou Van : le prix s'affiche avant de réserver.</p>
+    <div class="device" style="left: 148px; top: 980px; transform: rotate(5deg)">
+      <div class="screen">
+        <div class="island"></div>
+        <div class="ui">
+          <div class="top"><b>Béjaïa → Alger</b></div>
+          <div class="tier on">
+            <span class="ic"></span>
+            <span class="nm"><b>Économique</b><span>4 places · 3 h 10</span></span>
+            <span class="pr">2 400 DA</span>
+          </div>
+          <div class="tier">
+            <span class="ic"></span>
+            <span class="nm"><b>Confort</b><span>4 places · climatisé</span></span>
+            <span class="pr">3 200 DA</span>
+          </div>
+          <div class="tier">
+            <span class="ic"></span>
+            <span class="nm"><b>Van</b><span>7 places · bagages</span></span>
+            <span class="pr">4 800 DA</span>
+          </div>
+          <div class="cta">Réserver</div>
+          <div class="map"><span class="pin a"></span><span class="pin b"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 4 — Suivi -->
+  <section class="panel">
+    <div class="eyebrow">Livraison</div>
+    <h1>Livré.<br />Comme <em>prévu</em>.</h1>
+    <p class="sub">Suivi en direct, du commerçant jusqu'à votre porte.</p>
+    <p class="ar">تتبّع مباشر من المحل إلى بابك</p>
+    <div class="device" style="left: 158px; top: 1040px; transform: rotate(-4deg)">
+      <div class="screen">
+        <div class="island"></div>
+        <img src="app_accueil.png" alt="" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 5 — Commerçant : catégories -->
+  <section class="panel">
+    <div class="eyebrow">Commerces</div>
+    <h1>Votre supérette,<br />rayon par <em>rayon</em>.</h1>
+    <p class="sub">Des milliers de produits près de chez vous, en retrait ou livrés.</p>
+    <div class="device" style="left: 162px; top: 1000px; transform: rotate(4deg)">
+      <div class="screen">
+        <div class="island"></div>
+        <img src="app_superette.png" alt="" />
+      </div>
+    </div>
+  </section>
+
+  <!-- 6 — Livreur : réception de course -->
+  <section class="panel">
+    <div class="eyebrow">Espace livreur</div>
+    <h1>Une course<br /><em>arrive</em>.</h1>
+    <p class="sub">Distance, gain et adresse : tout est dit avant d'accepter.</p>
+    <div class="device" style="left: 152px; top: 1010px; transform: rotate(-6deg)">
+      <div class="screen">
+        <div class="island"></div>
+        <div class="ui">
+          <div class="offer">
+            <div class="lbl">Nouvelle course · Express</div>
+            <div class="big">+ 420 DA</div>
+            <div class="muted">3,8 km · 12 min · Akbou centre</div>
+            <div class="timer"><i></i></div>
+          </div>
+          <div class="card" style="margin-top: 60px">
+            <div class="row">
+              <span class="dot a"></span>
+              <span><span class="lbl">Récupérer</span><br /><span class="val">Supérette Yemma</span></span>
+            </div>
+            <div class="row">
+              <span class="dot b"></span>
+              <span><span class="lbl">Livrer</span><br /><span class="val">Cité Tobbal</span></span>
+            </div>
+          </div>
+          <div class="cta">Accepter</div>
+          <div class="map"><span class="pin a"></span><span class="pin b"></span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7 — Appel -->
+  <section class="panel">
+    <div class="eyebrow">Rejoignez-nous</div>
+    <h1>Client, commerçant,<br />livreur ou <em>chauffeur</em>.</h1>
+    <p class="sub">Votre place vous attend sur Coligo.</p>
+    <p class="ar">انضم إلى كوليغو</p>
+    <div class="device" style="left: 156px; top: 1060px; transform: rotate(3deg)">
+      <div class="screen">
+        <div class="island"></div>
+        <img src="app_commercant.png" alt="" />
+      </div>
+    </div>
+    <div class="brand"><span class="mark">C</span> coligo.app</div>
+  </section>
+</div>
