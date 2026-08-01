@@ -921,7 +921,9 @@
     "segFreeSub": "delivery",
     "wonFreeTitle": "FREE delivery!",
     "wonFreeDesc": "Your next delivery is free — valid {days} days, applied automatically at checkout.",
-    "prizesTitle": "Prizes to win"
+    "prizesTitle": "Prizes to win",
+    "bubbleAria": "Coligo wheel — tap to play, drag to move",
+    "bubbleClose": "Hide the wheel until tomorrow"
   },
   "sharedCart": {
     "notFoundTitle": "Cart not found",

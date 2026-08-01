@@ -3,8 +3,12 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useTranslations } from "next-intl";
-import { ChevronRight, Gift, Sparkles } from "lucide-react";
+import { ChevronRight, Gift, Sparkles, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import {
+  dismissWheelToday,
+  isWheelDismissedToday,
+} from "@/components/customer/wheel/wheel-dismiss";
 
 /**
  * Entrée ROUE COLIGO sur l'accueil marketplace — bandeau ANIMÉ style Temu
@@ -34,10 +38,20 @@ const CSS = `
 export function HomeWheelEntry() {
   const t = useTranslations("wheel");
   const [state, setState] = useState<WheelHomeState>(null);
+  // Masquable, exactement comme la bulle : quelqu'un qui a déjà joué — ou que
+  // ça n'intéresse pas — ne doit pas retrouver le bandeau à chaque écran.
+  const [uid, setUid] = useState<string | null>(null);
+  const [closed, setClosed] = useState(false);
 
   useEffect(() => {
     let alive = true;
     const supabase = createClient();
+    void supabase.auth.getSession().then(({ data }) => {
+      const id = data.session?.user.id ?? null;
+      if (!alive) return;
+      setUid(id);
+      if (id && isWheelDismissedToday(id)) setClosed(true);
+    });
     // RPC hors types générés → bind OBLIGATOIRE (reference_supabase_rpc_bind).
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string
@@ -53,6 +67,7 @@ export function HomeWheelEntry() {
   }, []);
 
   const canSpin = state?.can_spin ?? false;
+  if (closed) return null;
 
   return (
     <Link
@@ -65,6 +80,20 @@ export function HomeWheelEntry() {
       }}
     >
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
+      {/* Fermer jusqu'à demain — au-dessus du lien, sans le déclencher. */}
+      <button
+        type="button"
+        aria-label={t("bubbleClose")}
+        onClick={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dismissWheelToday(uid);
+          setClosed(true);
+        }}
+        className="absolute end-1.5 top-1.5 z-10 grid size-6 place-items-center rounded-full bg-black/20 text-white"
+      >
+        <X className="size-3" />
+      </button>
       {/* Éclat balayé périodique (accroche l'œil sans agresser). */}
       <span
         aria-hidden

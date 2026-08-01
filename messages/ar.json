@@ -921,7 +921,9 @@
     "segFreeSub": "مجاني",
     "wonFreeTitle": "توصيل مجاني!",
     "wonFreeDesc": "توصيلتك القادمة مجانية — صالحة {days} أيام وتُطبّق تلقائياً عند الدفع.",
-    "prizesTitle": "الجوائز الممكنة"
+    "prizesTitle": "الجوائز الممكنة",
+    "bubbleAria": "عجلة كوليغو — انقر للعب، اسحب للتحريك",
+    "bubbleClose": "إخفاء العجلة حتى الغد"
   },
   "sharedCart": {
     "notFoundTitle": "السلة غير موجودة",

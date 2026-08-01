@@ -921,7 +921,9 @@
     "segFreeSub": "offerte",
     "wonFreeTitle": "Livraison OFFERTE !",
     "wonFreeDesc": "Ta prochaine livraison est offerte — valable {days} jours, appliquée automatiquement au paiement.",
-    "prizesTitle": "Les lots à gagner"
+    "prizesTitle": "Les lots à gagner",
+    "bubbleAria": "Roue Coligo — appuyez pour jouer, glissez pour déplacer",
+    "bubbleClose": "Masquer la roue jusqu'à demain"
   },
   "sharedCart": {
     "notFoundTitle": "Panier introuvable",

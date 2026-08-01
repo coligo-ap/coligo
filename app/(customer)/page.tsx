@@ -34,6 +34,7 @@ import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-b
 import { MarketplaceSection } from "@/components/customer/marketplace-section";
 import { PromoBanner } from "@/components/customer/promo-banner";
 import { HomeWheelEntry } from "@/components/customer/home-wheel-entry";
+import { WheelBubble } from "@/components/customer/wheel/wheel-bubble";
 import { ReviewPrompt } from "@/components/customer/review-prompt";
 import { HomeThemeHero } from "@/components/customer/home-theme-hero";
 
@@ -212,11 +213,13 @@ export default async function CustomerHomePage() {
           {/* Roue Coligo — entrée ANIMÉE (style Temu) : client connecté ET
               roue active seulement (flag déjà lu, zéro fetch en plus). Le
               tirage reste 100 % serveur : ce bandeau n'est qu'un lien. */}
-          {isAuth && flags.wheel.status === "active" && (
-            <section className="mt-3">
-              <HomeWheelEntry />
-            </section>
-          )}
+          {isAuth &&
+            flags.wheel.status === "active" &&
+            banners.length === 0 && (
+              <section className="mt-3">
+                <HomeWheelEntry />
+              </section>
+            )}
 
           {/* Bannière promo — rendue UNIQUEMENT si une campagne est active.
               On transmet la position utilisée par le SSR : côté client, la
@@ -225,6 +228,13 @@ export default async function CustomerHomePage() {
               Béjaïa ne voit jamais les offres d'Alger restées dans son adresse
               enregistrée. Si live == SSR, aucun refetch (cache d'abord). */}
           <PromoBanner banners={banners} ssrLocation={bannerLoc} />
+
+          {/* Roue en BULLE FLOTTANTE quand des bannières marketing occupent
+              déjà la place : elle flotte au-dessus du contenu au lieu de
+              pousser les commerces vers le bas. Uniquement sur l'accueil. */}
+          {isAuth && flags.wheel.status === "active" && banners.length > 0 && (
+            <WheelBubble />
+          )}
 
           {/* Commerces près de toi. */}
           {/* ⚠️ PAS de <Suspense fallback={null}> autour de ces blocs (ni des
