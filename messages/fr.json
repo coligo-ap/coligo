@@ -1292,7 +1292,9 @@
       "locating": "Localisation…",
       "whereTo": "Où allez-vous ?",
       "continue": "Continuer",
-      "imDriver": "Je suis chauffeur"
+      "imDriver": "Je suis chauffeur",
+      "hideSuggestion": "Masquer cette suggestion",
+      "restoreSuggestions": "Réafficher les suggestions masquées"
     },
     "mappick": {
       "depLabel": "Point de départ — déplacez la carte",

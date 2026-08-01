@@ -1292,7 +1292,9 @@
       "locating": "Locating…",
       "whereTo": "Where to?",
       "continue": "Continue",
-      "imDriver": "I'm a driver"
+      "imDriver": "I'm a driver",
+      "hideSuggestion": "Hide this suggestion",
+      "restoreSuggestions": "Show hidden suggestions"
     },
     "mappick": {
       "depLabel": "Pickup point — move the map",

@@ -152,7 +152,10 @@ export async function getDriveContext(): Promise<DriveContext> {
       if (!r.dest_text || r.dest_lat == null || seen.has(r.dest_text)) continue;
       seen.add(r.dest_text);
       recents.push({ text: r.dest_text, lat: r.dest_lat, lng: r.dest_lng! });
-      if (recents.length >= 2) break;
+      // On en remonte 6 (l'écran n'en affiche que 2 ou 3) : quand le client
+      // masque une suggestion, la suivante prend sa place au lieu de laisser
+      // un trou. Coût nul — les lignes sont déjà chargées.
+      if (recents.length >= 6) break;
     }
     // Raccourci « dernière course » : on ignore les demandes annulées sans
     // chauffeur attribué (recherche abandonnée — pas une vraie course).

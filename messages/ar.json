@@ -1292,7 +1292,9 @@
       "locating": "جارٍ تحديد الموقع…",
       "whereTo": "إلى أين تذهب؟",
       "continue": "متابعة",
-      "imDriver": "أنا سائق"
+      "imDriver": "أنا سائق",
+      "hideSuggestion": "إخفاء هذا الاقتراح",
+      "restoreSuggestions": "إظهار الاقتراحات المخفية"
     },
     "mappick": {
       "depLabel": "نقطة الانطلاق — حرّك الخريطة",

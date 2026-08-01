@@ -1,6 +1,12 @@
 "use client";
 
-import { useRef, type Dispatch, type SetStateAction } from "react";
+import {
+  useEffect,
+  useRef,
+  useState,
+  type Dispatch,
+  type SetStateAction,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
@@ -9,6 +15,7 @@ import {
   Building2,
   Car,
   Clock,
+  X,
   ContactRound,
   History,
   Pencil,
@@ -16,6 +23,12 @@ import {
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
+import { createClient } from "@/lib/supabase/client";
+import {
+  clearHiddenDests,
+  getHiddenDests,
+  hideDest,
+} from "@/lib/drive/hidden-suggestions";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import {
   setSosContacts as saveSosContacts,
@@ -103,6 +116,38 @@ export function DriveHomeScreen({
   const t = useTranslations("drive");
   const isAr = useLocale() === "ar";
   const router = useRouter();
+
+  // ── Suggestions de destination masquées (par compte) ────────────────────
+  // L'historique de courses reste intact : on masque seulement la LIGNE. Le
+  // serveur remonte 6 destinations, l'écran en montre 3 après filtrage — ce
+  // qui fait qu'écarter une suggestion en révèle une autre.
+  const [uid, setUid] = useState<string | null>(null);
+  const [hidden, setHidden] = useState<string[]>([]);
+  useEffect(() => {
+    let alive = true;
+    void createClient()
+      .auth.getSession()
+      .then(({ data }) => {
+        const id = data.session?.user.id ?? null;
+        if (!alive) return;
+        setUid(id);
+        setHidden(getHiddenDests(id));
+      });
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const visibleRecents = ctx.recents
+    .filter((r) => !hidden.includes(r.text))
+    .slice(0, 3);
+  const hideRecent = (text: string) => {
+    hideDest(uid, text);
+    setHidden((h) => (h.includes(text) ? h : [text, ...h]));
+  };
+  const restoreRecents = () => {
+    clearHiddenDests(uid);
+    setHidden([]);
+  };
 
   // Swipe horizontal sur la feuille trajet → bascule Ville ⇄ Inter-wilayas
   // (les onglets restent tapables ; le swipe est un bonus de confort).
@@ -363,23 +408,50 @@ export function DriveHomeScreen({
                   </PrimaryBtn>
                 </div>
 
-                {/* Destinations récentes */}
+                {/* Destinations récentes — masquables une par une : le client
+                    écarte celles qui ne l'intéressent plus et la suivante de
+                    son historique prend la place (le serveur en remonte 6). */}
                 <div className="mt-3">
-                  {ctx.recents.map((r) => (
-                    <button
+                  {visibleRecents.map((r) => (
+                    <div
                       key={r.text}
-                      type="button"
-                      onClick={() =>
-                        setDest({ lat: r.lat, lng: r.lng, text: r.text })
-                      }
                       className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
                     >
-                      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                        <Clock className="size-4" />
-                      </span>
-                      <span className="min-w-0 flex-1 truncate">{r.text}</span>
-                    </button>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setDest({ lat: r.lat, lng: r.lng, text: r.text })
+                        }
+                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                      >
+                        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                          <Clock className="size-4" />
+                        </span>
+                        <span className="min-w-0 flex-1 truncate">
+                          {r.text}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => hideRecent(r.text)}
+                        aria-label={t("home.hideSuggestion")}
+                        title={t("home.hideSuggestion")}
+                        className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--d-muted)] transition-colors active:bg-[var(--d-soft)]"
+                      >
+                        <X className="size-4" />
+                      </button>
+                    </div>
                   ))}
+                  {/* Filet de sécurité : on ne piège jamais un choix. */}
+                  {hidden.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={restoreRecents}
+                      className="mt-1 px-0.5 py-1.5 text-[12px] font-bold text-[var(--d-muted)]"
+                    >
+                      {t("home.restoreSuggestions")}
+                    </button>
+                  )}
                   {ctx.lastRide && (
                     <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
                       <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
