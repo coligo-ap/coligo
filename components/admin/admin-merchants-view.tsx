@@ -18,6 +18,7 @@ import {
   Mail,
   PackagePlus,
   Phone,
+  SlidersHorizontal,
   Snowflake,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +40,7 @@ import type {
   AdminMerchant,
   MerchantCategoryOption,
 } from "@/lib/data/platform";
+import { MerchantManageSheet } from "@/components/admin/merchant-manage-sheet";
 import { MerchantCategoriesPanel } from "@/components/admin/merchants/merchant-categories-panel";
 import {
   seedMerchantCatalog,
@@ -101,6 +103,7 @@ export function AdminMerchantsView({
   const [total, setTotal] = useState(initialTotal);
   const [query, setQuery] = useState("");
   const [busy, setBusy] = useState(false);
+  const [managing, setManaging] = useState<AdminMerchant | null>(null);
 
   const load = useCallback(async (q: string, offset: number) => {
     setBusy(true);
@@ -176,14 +179,34 @@ export function AdminMerchantsView({
       ) : (
         <ul className="space-y-4">
           {pageItems.map((m) => (
-            <MerchantRow
-              key={m.id}
-              merchant={m}
-              settings={settings}
-              categoryOptions={categoryOptions}
-            />
+            <div key={m.id} className="relative">
+              <MerchantRow
+                merchant={m}
+                settings={settings}
+                categoryOptions={categoryOptions}
+              />
+              {/* Fiche complète : dépanner un commerçant qui n'y arrive pas
+                  seul (visuels, adresse, livraison, état). Les taux gardent
+                  leur propre réglage, juste au-dessus. */}
+              <button
+                type="button"
+                onClick={() => setManaging(m)}
+                className="border-border text-foreground hover:bg-surface-2 mt-2 flex w-full items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-bold transition-colors"
+              >
+                <SlidersHorizontal className="size-3.5" />
+                Gérer la fiche
+              </button>
+            </div>
           ))}
         </ul>
+      )}
+
+      {managing && (
+        <MerchantManageSheet
+          merchant={managing}
+          onClose={() => setManaging(null)}
+          onSaved={() => void load(query, 0)}
+        />
       )}
 
       {/* « Voir plus » plutôt qu'une pagination : on ajoute une poignée de
