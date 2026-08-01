@@ -1,6 +1,14 @@
 "use client";
 
-import { useActionState, useEffect, useMemo, useTransition } from "react";
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useTransition,
+} from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
@@ -73,50 +81,66 @@ const OVERRIDE_FIELDS: {
   },
 ];
 
+const PAGE = 3; // on n'en affiche que 3 : la suite se charge à la demande
+
 export function AdminMerchantsView({
   initialMerchants,
+  initialTotal,
   settings,
   categoryOptions,
 }: {
   initialMerchants: AdminMerchant[];
+  initialTotal: number;
   settings: PlatformSettings | null;
   categoryOptions: MerchantCategoryOption[];
 }) {
-  // Liste en cache TanStack Query (réaffichage instantané au retour de nav +
-  // refetch silencieux), hydratée par le rendu serveur (initialMerchants).
-  const merchants = useAdminList<AdminMerchant>(
-    "admin-merchants",
-    "/api/admin/merchants",
-    initialMerchants
-  );
+  // Liste PAGINÉE côté serveur (mig 0429). On ne charge plus tout l'annuaire
+  // pour le filtrer ensuite dans le navigateur : chaque ligne coûte une somme
+  // sur le portefeuille, et l'écran n'en montre que trois.
+  const [rows, setRows] = useState<AdminMerchant[]>(initialMerchants);
+  const [total, setTotal] = useState(initialTotal);
+  const [query, setQuery] = useState("");
+  const [busy, setBusy] = useState(false);
 
-  // Comptes = commerçants approuvés (les inscriptions en attente / refusées sont
-  // gérées dans l'onglet dédié « Inscriptions », mig 0273).
+  const load = useCallback(async (q: string, offset: number) => {
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/admin/merchants?q=${encodeURIComponent(q)}&limit=${PAGE}&offset=${offset}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        rows: AdminMerchant[];
+        total: number;
+      };
+      setTotal(data.total);
+      setRows((prev) => (offset === 0 ? data.rows : [...prev, ...data.rows]));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // Recherche EN BASE, temporisée : on ne part pas à chaque frappe.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const id = setTimeout(() => void load(query, 0), 350);
+    return () => clearTimeout(id);
+  }, [query, load]);
+
   const pendingCount = useMemo(
-    () => merchants.filter((m) => m.approval_status === "pending").length,
-    [merchants]
+    () => rows.filter((m) => m.approval_status === "pending").length,
+    [rows]
   );
-  const approved = useMemo(
-    () => merchants.filter((m) => m.approval_status === "approved"),
-    [merchants]
+  const pageItems = useMemo(
+    () => rows.filter((m) => m.approval_status === "approved"),
+    [rows]
   );
-
-  const {
-    query,
-    setQuery,
-    page,
-    setPage,
-    pageItems,
-    filteredCount,
-    pageCount,
-  } = usePaginatedList<AdminMerchant>({
-    items: approved,
-    search: (m, q) =>
-      [m.name, m.email, m.phone, m.id, m.slug, m.city]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    pageSize: 20,
-  });
+  const filteredCount = total;
 
   return (
     <div className="space-y-6">
@@ -138,8 +162,9 @@ export function AdminMerchantsView({
         placeholder="Rechercher : nom, e-mail, téléphone, identifiant…"
       />
       <p className="text-muted text-xs tabular-nums">
+        {pageItems.length} affiché{pageItems.length > 1 ? "s" : ""} sur{" "}
         {filteredCount} commerçant{filteredCount > 1 ? "s" : ""}
-        {query ? ` sur ${approved.length}` : ""}
+        {query ? " (recherche)" : ""}
       </p>
 
       {pageItems.length === 0 ? (
@@ -161,7 +186,20 @@ export function AdminMerchantsView({
         </ul>
       )}
 
-      <Pager page={page} pageCount={pageCount} onPage={setPage} />
+      {/* « Voir plus » plutôt qu'une pagination : on ajoute une poignée de
+          lignes à la demande, sans jamais tout charger d'un coup. */}
+      {rows.length < total && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void load(query, rows.length)}
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+        >
+          {busy
+            ? "Chargement…"
+            : `Voir plus (${total - rows.length} restant${total - rows.length > 1 ? "s" : ""})`}
+        </button>
+      )}
     </div>
   );
 }

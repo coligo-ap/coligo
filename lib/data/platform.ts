@@ -80,6 +80,9 @@ export type AdminMerchant = {
   cashback_online: number | null;
   cashback_cash: number | null;
   balance: number;
+  /** Visuels — le super-admin peut les remplacer (mig 0429). */
+  logo_url: string | null;
+  cover_url: string | null;
 };
 
 /**
@@ -88,16 +91,64 @@ export type AdminMerchant = {
  * L'e-mail vit dans auth.users → indispensable pour la recherche côté admin.
  * Solde négatif = dette de commissions (cash).
  */
-export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
+/**
+ * Annuaire commerçants du super-admin — PAGINÉ (mig 0429).
+ *
+ * On n'en charge que quelques-uns : chaque ligne coûte une somme sur
+ * `wallet_entries`, et l'écran n'en montre de toute façon qu'une poignée. La
+ * recherche est faite EN BASE (nom, slug, ville, téléphone, e-mail) — jamais en
+ * filtrant côté client une liste qu'on aurait tout entière chargée.
+ */
+export async function getMerchantsForAdmin(opts?: {
+  search?: string | null;
+  limit?: number;
+  offset?: number;
+}): Promise<{ rows: AdminMerchant[]; total: number }> {
   const supabase = await createClient();
-  const { data, error } = await supabase.rpc(
-    "admin_merchants_directory" as never
-  );
+  const rpc = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{ data: unknown; error: { message: string } | null }>;
+  const { data, error } = await rpc("admin_merchants_directory", {
+    p_search: opts?.search ?? null,
+    p_limit: opts?.limit ?? 3,
+    p_offset: opts?.offset ?? 0,
+  });
   if (error) {
     console.error("admin_merchants_directory:", error.message);
-    return [];
+    return { rows: [], total: 0 };
   }
-  return ((data ?? []) as unknown as Record<string, unknown>[]).map((r) => ({
+  const raw = (data ?? []) as unknown as Record<string, unknown>[];
+  return {
+    rows: raw.map(mapAdminMerchant),
+    total: Number(raw[0]?.total_count ?? 0),
+  };
+}
+
+/**
+ * Liste COMPLÈTE — pour les écrans qui en ont réellement besoin (contrats,
+ * inscriptions, export). Pagine jusqu'au bout au lieu de s'arrêter à la
+ * première page : une troncature silencieuse ferait disparaître des
+ * commerçants d'un écran de gestion, ce qui est pire que lent.
+ */
+export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
+  const PAGE = 100; // plafond de la RPC (mig 0429)
+  const out: AdminMerchant[] = [];
+  let offset = 0;
+  for (;;) {
+    const { rows, total } = await getMerchantsForAdmin({
+      limit: PAGE,
+      offset,
+    });
+    out.push(...rows);
+    offset += rows.length;
+    if (rows.length === 0 || out.length >= total) break;
+  }
+  return out;
+}
+
+function mapAdminMerchant(r: Record<string, unknown>): AdminMerchant {
+  return {
     id: String(r.id),
     name: String(r.name ?? "Commerce"),
     slug: (r.slug as string | null) ?? null,
@@ -117,7 +168,9 @@ export async function getAllMerchantsForAdmin(): Promise<AdminMerchant[]> {
     cashback_online: (r.cashback_online as number | null) ?? null,
     cashback_cash: (r.cashback_cash as number | null) ?? null,
     balance: Number(r.balance_da ?? 0),
-  }));
+    logo_url: (r.logo_url as string | null) ?? null,
+    cover_url: (r.cover_url as string | null) ?? null,
+  };
 }
 
 /** Brouillon d'inscription commerçant non finalisé (wizard /signup, mig 0414). */

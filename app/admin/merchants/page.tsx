@@ -1,5 +1,5 @@
 import {
-  getAllMerchantsForAdmin,
+  getMerchantsForAdmin,
   getMerchantCategoryOptions,
   getPlatformSettings,
 } from "@/lib/data/platform";
@@ -12,7 +12,9 @@ export const dynamic = "force-dynamic";
 // onglets fournis par layout.tsx.)
 export default async function AdminMerchantsPage() {
   const [merchants, settings, categoryOptions] = await Promise.all([
-    getAllMerchantsForAdmin(),
+    // 3 commerçants seulement : la recherche et « Voir plus » chargent la
+    // suite à la demande — inutile de solliciter la base pour tout le reste.
+    getMerchantsForAdmin({ limit: 3 }),
     getPlatformSettings(),
     getMerchantCategoryOptions(),
   ]);
@@ -24,7 +26,8 @@ export default async function AdminMerchantsPage() {
         global.
       </p>
       <AdminMerchantsView
-        initialMerchants={merchants}
+        initialMerchants={merchants.rows}
+        initialTotal={merchants.total}
         settings={settings}
         categoryOptions={categoryOptions}
       />
