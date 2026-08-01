@@ -1765,3 +1765,14 @@
     animation: none;
   }
 }
+
+/* Offre express — livreur hors zone : avertissement franc, à plat. */
+[data-space="driver"] .oc-far {
+  margin-top: 8px;
+  border-radius: 12px;
+  background: rgba(243, 156, 18, 0.12);
+  color: #8b6500;
+  padding: 9px 12px;
+  font-size: 12.5px;
+  font-weight: 700;
+}

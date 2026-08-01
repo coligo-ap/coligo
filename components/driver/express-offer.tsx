@@ -5,7 +5,7 @@ import { useLocale } from "next-intl";
 import { watchPosition, type Coords } from "@/lib/native/geolocation";
 import { DeliveryRouteMap } from "./delivery-route-map";
 import { DriverCourseDrawer } from "./course/driver-course-drawer";
-import { scooterCourseEta } from "@/lib/delivery/scooter";
+import { scooterCourseEta, scooterTravelMin } from "@/lib/delivery/scooter";
 import { cashToCollectDa, isPrepaid } from "@/lib/delivery/cash";
 import { useAlertSound, vibrate } from "@/lib/hooks/use-alert-sound";
 import { isDriverSoundOn } from "@/lib/driver/sound-store";
@@ -126,8 +126,16 @@ export function ExpressOffer({
       : null;
   // ETA de la course COMPLÈTE, calculée façon SCOOTER (source unique).
   const eta = scooterCourseEta(me, pickup, drop);
-  const totalKm = eta?.km ?? null;
-  const totalMin = eta?.min ?? null;
+  // Course SEULE (commerçant → client) : c'est le travail réel, et c'est ce
+  // qui doit sauter aux yeux. L'approche est dite à part.
+  const courseKm = eta?.courseKm ?? null;
+  const approachKm = eta?.approachKm ?? null;
+  const courseMin = courseKm != null ? scooterTravelMin(courseKm) : null;
+  const totalKm = courseKm ?? eta?.km ?? null;
+  const totalMin = courseMin ?? eta?.min ?? null;
+  // Au-delà de ce seuil, le livreur n'est pas dans la zone de la course : on
+  // le DIT au lieu d'afficher un temps de trajet qui n'a aucun sens.
+  const farAway = approachKm != null && approachKm > 25;
 
   const fee = order.delivery_fee_da ?? 0;
   const driverNet = computeDriverNet(
@@ -249,10 +257,30 @@ export function ExpressOffer({
             </svg>
             {totalMin != null
               ? isAr
-                ? `${totalMin} د · ${fmtKm(totalKm)} كم إجمالاً`
-                : `${totalMin} min · ${fmtKm(totalKm)} km au total`
+                ? `${totalMin} د · ${fmtKm(totalKm)} كم للمشوار${
+                    approachKm != null && !farAway
+                      ? ` · ${fmtKm(approachKm)} كم إلى التاجر`
+                      : ""
+                  }`
+                : `${totalMin} min · ${fmtKm(totalKm)} km de course${
+                    approachKm != null && !farAway
+                      ? ` · ${fmtKm(approachKm)} km jusqu'au commerçant`
+                      : ""
+                  }`
               : tr("Calcul de l'itinéraire…", "حساب المسار…")}
           </div>
+
+          {/* Livreur hors de la zone de la course : on le dit franchement.
+              Afficher « 4 334 min » ne l'aide pas — savoir qu'il est à 1 588 km
+              du commerçant, si. */}
+          {farAway && approachKm != null && (
+            <div className="oc-far">
+              {tr(
+                `Vous êtes à ${fmtKm(approachKm)} km du commerçant — cette course est loin de vous.`,
+                `أنت على بعد ${fmtKm(approachKm)} كم من التاجر — هذا الطلب بعيد عنك.`
+              )}
+            </div>
+          )}
 
           <div className="oc-stops">
             <div className="stop">

@@ -6,7 +6,7 @@ import { useLocale } from "next-intl";
 import { ChevronDown, MapPin, Package, Phone, Truck, Zap } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
-import { scooterCourseEta } from "@/lib/delivery/scooter";
+import { scooterCourseEta, scooterTravelMin } from "@/lib/delivery/scooter";
 import {
   computeDriverNet,
   DEFAULT_DRIVER_FEE_CONFIG,
@@ -223,14 +223,17 @@ export function IncomingRequests({
         o.delivery_lat != null && o.delivery_lng != null
           ? { lat: o.delivery_lat, lng: o.delivery_lng }
           : null;
-      // ETA scooter de la course complète (moi → commerçant → client).
+      // On annonce la COURSE (commerçant → client), pas l'approche du livreur :
+      // additionner les deux donnait des « 1 588 km » quand le livreur est loin,
+      // ce qui ne dit rien du travail à faire. Même règle que la fiche d'offre.
       const eta = scooterCourseEta(me, pickup, drop);
+      const km = eta?.courseKm ?? eta?.km ?? null;
       return {
         kind: "express" as const,
         id: o.id,
         order: o,
-        km: eta?.km ?? null,
-        min: eta?.min ?? null,
+        km,
+        min: km != null ? scooterTravelMin(km) : (eta?.min ?? null),
         net: computeDriverNet(o.delivery_fee_da ?? 0, driverFeeConfig),
       };
     });

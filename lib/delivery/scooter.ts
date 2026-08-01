@@ -43,12 +43,22 @@ export function scooterCourseEta(
   me: LatLng | null,
   pickup: LatLng | null,
   drop: LatLng | null
-): { km: number; min: number } | null {
+): {
+  km: number;
+  min: number;
+  approachKm: number | null;
+  courseKm: number | null;
+} | null {
   const legPickup = me && pickup ? haversineKm(me, pickup) : null;
   const legDrop = pickup && drop ? haversineKm(pickup, drop) : null;
   if (legPickup == null && legDrop == null) return null;
   const km = (legPickup ?? 0) + (legDrop ?? 0);
   const min =
     scooterTravelMin(km) + (legPickup != null ? PICKUP_HANDLING_MIN : 0);
-  return { km, min };
+  // On renvoie AUSSI les deux tronçons séparément : additionner l'APPROCHE du
+  // livreur (où il se trouve → le commerçant) et la COURSE (commerçant →
+  // client) donne un total juste arithmétiquement, mais illisible dès que le
+  // livreur est loin — « 4 334 min · 1 588 km » ne dit rien de la course
+  // elle-même. L'écran affiche donc les deux chiffres, pas leur somme.
+  return { km, min, approachKm: legPickup, courseKm: legDrop };
 }
