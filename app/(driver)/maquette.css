@@ -811,31 +811,29 @@
   font-weight: 500;
   margin-top: 1px;
 }
-/* Bouton d'action PRINCIPAL — plat, moderne (Bolt/Apple) : aplat de couleur,
-   PAS d'ombre portée 3D, léger enfoncement au tap. */
+/* Bouton d'action PRINCIPAL — entièrement plat : aplat de couleur, aucune
+   ombre, et surtout AUCUN `transform`/`filter` au tap (l'écran ne doit pas
+   bouger sous le doigt). L'appui se lit à la couleur, comme chez Bolt. */
 [data-space="driver"] .accept {
   width: 100%;
-  height: 54px;
+  height: 50px;
   border: 0;
-  border-radius: 16px;
+  border-radius: 14px;
   background: var(--violet);
   color: #fff;
   cursor: pointer;
   margin-top: 4px;
   font-family: var(--font-sora), "Sora", sans-serif;
   font-weight: 700;
-  font-size: 17px;
+  font-size: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 9px;
-  transition:
-    transform 0.12s ease,
-    filter 0.15s ease;
+  transition: background-color 0.12s ease;
 }
 [data-space="driver"] .accept:active {
-  transform: scale(0.985);
-  filter: brightness(0.96);
+  background: var(--violet-d, #4b1fa6);
 }
 [data-space="driver"] .accept:disabled {
   opacity: 0.6;
