@@ -181,3 +181,45 @@ jonction se voit, c'est que l'élément n'a pas été dessiné en pleine largeur
 > Les photos de personnes ne peuvent pas être produites depuis cet outil.
 > Les prompts ci-dessus sont calibrés pour être collés tels quels dans un
 > générateur, ou remis à un photographe comme brief de casting et de cadrage.
+
+---
+
+## 6. Volet « humain » — prompt prêt à coller (Gemini)
+
+À générer dans Gemini, puis déposer le fichier dans `Downloads` sous le nom
+`capteur-humain-livreur.jpg` — le montage l'intègre en 8ᵉ volet.
+
+```
+Photographie publicitaire premium, verticale 9:16, lumière naturelle de fin
+d'après-midi dans une rue commerçante d'Algérie (Béjaïa / Akbou), arrière-plan
+urbain volontairement flou aux tons chauds.
+
+Au premier plan, deux personnes algériennes, traits maghrébins d'Afrique du
+Nord, expressions naturelles et sincères, aucune pose figée :
+
+— un LIVREUR d'une trentaine d'années, barbe courte soignée, casquette,
+  veste coupe-vent VIOLET PROFOND (#6C2BD9) unie, debout à côté d'un scooter
+  violet avec un TOP-CASE CARRÉ VIOLET à l'arrière ; il tend un SAC DE COURSES
+  EN PAPIER KRAFT avec une bande violette ; sur le top-case et le sac, le seul
+  texte visible est « Coligo » en blanc, typographie ronde et moderne, plus la
+  version arabe « كوليغو » en plus petit dessous ;
+
+— une CLIENTE d'environ 28 ans, cheveux bouclés bruns attachés, veste en jean
+  sur t-shirt blanc, qui reçoit le sac avec un sourire franc, son téléphone
+  dans l'autre main.
+
+Cadrage vertical, les deux sujets dans le tiers INFÉRIEUR de l'image, le tiers
+supérieur laissé libre (ciel / façade floue) pour recevoir du texte.
+
+Rendu photo réaliste 85 mm f/2, profondeur de champ courte, grain fin,
+couleurs chaudes et saturation maîtrisée. Peau et mains réalistes, mains
+entières et correctement formées. Aucun autre logo de marque, aucune plaque
+d'immatriculation lisible, aucun texte inventé à l'écran du téléphone.
+```
+
+**Variante arabe algérien (darija), même image :** remplacer la ligne des
+textes par — sur le top-case et le sac : « كوليغو » en grand, et dessous en
+petit « التوصيل ليك، وين ما كنت » (la livraison chez toi, où que tu sois).
+
+Titre du volet : « Livré. Comme prévu. » · « وصل. كيما وعدناك »
+Sous-titre : « Suivi en direct, du commerçant jusqu'à votre porte. »
