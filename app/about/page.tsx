@@ -1,4 +1,6 @@
 import Link from "next/link";
+import { getTranslations } from "next-intl/server";
+import { StoreBadges } from "@/components/shared/store-badges";
 import {
   ArrowLeft,
   ArrowRight,
@@ -46,6 +48,9 @@ const STRIP = [
 ] as const;
 
 export default async function AboutPage() {
+  // Server Component : `getTranslations` (jamais `useTranslations`, qui est
+  // réservé aux composants client — piège connu du projet).
+  const tDl = await getTranslations("download");
   const flags = await getFeatureFlags();
   const drive = isVisible(flags.drive);
   const pay = isVisible(flags.coligo_pay);
@@ -293,6 +298,19 @@ export default async function AboutPage() {
           </Link>
           .
         </p>
+
+        {/* Installation — badges OFFICIELS des deux boutiques, chacun avec son
+            lien direct. Page publique très consultée depuis un téléphone : le
+            pied de page (réservé à l'ordinateur) ne suffisait pas. */}
+        <section className="border-border bg-surface mt-8 rounded-[20px] border p-6 text-center">
+          <h2 className="text-foreground text-lg font-extrabold">
+            {tDl("title")}
+          </h2>
+          <p className="text-muted mx-auto mt-1.5 max-w-md text-sm">
+            {tDl("subtitle")}
+          </p>
+          <StoreBadges className="mt-5 justify-center" />
+        </section>
       </div>
     </main>
   );

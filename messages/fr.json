@@ -1712,6 +1712,7 @@
     "hint": "Choisissez la boutique de votre appareil.",
     "continueWeb": "Continuer sur le site",
     "availableOn": "Disponible sur iPhone et Android",
-    "footerTitle": "L'application"
+    "footerTitle": "L'application",
+    "subtitleShort": "Plus rapide que le site, avec les notifications de commande."
   }
 }

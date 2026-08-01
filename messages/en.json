@@ -1718,6 +1718,7 @@
     "hint": "Pick your device's store.",
     "continueWeb": "Continue on the website",
     "availableOn": "Available on iPhone and Android",
-    "footerTitle": "The app"
+    "footerTitle": "The app",
+    "subtitleShort": "Faster than the website, with order notifications."
   }
 }

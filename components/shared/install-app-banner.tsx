@@ -1,10 +1,10 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
-import { X, ArrowRight } from "lucide-react";
+import { X } from "lucide-react";
 import { useTranslations } from "next-intl";
 import { isNative } from "@/lib/native/context";
+import { StoreBadges } from "@/components/shared/store-badges";
 import {
   detectPlatformClient,
   type DevicePlatform,
@@ -57,31 +57,29 @@ export function InstallAppBanner() {
 
   return (
     <div className="border-primary-100 bg-primary-50 mt-3 flex items-center gap-3 rounded-[16px] border px-3.5 py-2.5">
-      <Link href="/app" className="flex min-w-0 flex-1 items-center gap-3">
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img
-          src="/icon-192.png"
-          alt=""
-          className="size-10 shrink-0 rounded-[11px] shadow-sm"
-        />
-        <span className="min-w-0 flex-1">
-          <b className="text-foreground block truncate text-[13.5px] font-extrabold">
-            {t("title")}
-          </b>
-          <small className="text-muted block truncate text-[11.5px] font-semibold">
-            {platform === "ios" ? "App Store" : "Google Play"} ·{" "}
-            {t("availableOn")}
-          </small>
-        </span>
-        <span className="bg-primary-600 grid size-8 shrink-0 place-items-center rounded-full text-white">
-          <ArrowRight className="size-4 rtl:-scale-x-100" />
-        </span>
-      </Link>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/icon-192.png"
+        alt=""
+        className="size-11 shrink-0 rounded-[12px] shadow-sm"
+      />
+      <div className="min-w-0 flex-1">
+        <b className="text-foreground block truncate text-[13.5px] font-extrabold">
+          {t("title")}
+        </b>
+        <small className="text-muted block truncate text-[11.5px] font-semibold">
+          {t("subtitleShort")}
+        </small>
+        {/* Le BADGE OFFICIEL de la boutique de l'appareil, cliquable : c'est
+            lui le bouton d'action (App Store sur iPhone, Google Play sur
+            Android), comme le font les grandes applications. */}
+        <StoreBadges only="detected" size="sm" className="mt-2" />
+      </div>
       <button
         type="button"
         onClick={close}
         aria-label={t("continueWeb")}
-        className="text-subtle hover:text-foreground -me-1 grid size-7 shrink-0 place-items-center rounded-full transition-colors"
+        className="text-subtle hover:text-foreground -me-1 grid size-7 shrink-0 place-items-center self-start rounded-full transition-colors"
       >
         <X className="size-3.5" />
       </button>

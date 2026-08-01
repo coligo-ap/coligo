@@ -27,9 +27,17 @@ import { cn } from "@/lib/utils";
 export function StoreBadges({
   /** `compact` : une seule rangée serrée (pied de page). */
   size = "md",
+  /**
+   * `detected` : UN SEUL badge, celui de l'appareil — c'est ce que font les
+   * grandes applications sur mobile (un iPhone n'a rien à faire d'un bouton
+   * Google Play). Sur ordinateur, où aucune boutique n'est « la bonne », les
+   * deux restent affichés.
+   */
+  only = "both",
   className,
 }: {
   size?: "sm" | "md";
+  only?: "both" | "detected";
   className?: string;
 }) {
   const locale = useLocale();
@@ -48,47 +56,56 @@ export function StoreBadges({
         : "/store/google-play-en.png";
 
   const h = size === "sm" ? 38 : 46;
-  // Un badge non pertinent n'est jamais RETIRÉ (le lien reste utile : on peut
-  // vouloir envoyer la fiche à quelqu'un d'autre) — il est juste atténué.
+  // Mode « both » : un badge non pertinent n'est jamais RETIRÉ (le lien reste
+  // utile — on peut vouloir envoyer la fiche à quelqu'un d'autre), il est
+  // seulement atténué. Mode « detected » : il disparaît.
   const dim = (p: DevicePlatform) =>
-    platform && platform !== "desktop" && platform !== p
+    only === "both" && platform && platform !== "desktop" && platform !== p
       ? "opacity-45 hover:opacity-80"
       : "";
+  // Tant que l'appareil n'est pas connu (premier rendu), on montre les deux :
+  // afficher puis remplacer un badge serait un clignotement.
+  const show = (p: DevicePlatform) =>
+    only === "both" || !platform || platform === "desktop" || platform === p;
 
   return (
     <div className={cn("flex flex-wrap items-center gap-2.5", className)}>
-      <a
-        href={APP_STORE_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="App Store"
-        className={cn("transition active:scale-[0.98]", dim("ios"))}
-      >
-        <Image
-          src={appStoreSrc}
-          alt="App Store"
-          width={Math.round(h * 3.01)}
-          height={h}
-          style={{ height: h, width: "auto" }}
-          unoptimized
-        />
-      </a>
-      <a
-        href={PLAY_URL}
-        target="_blank"
-        rel="noopener noreferrer"
-        aria-label="Google Play"
-        className={cn("transition active:scale-[0.98]", dim("android"))}
-      >
-        <Image
-          src={playSrc}
-          alt="Google Play"
-          width={Math.round(h * 3.36)}
-          height={h}
-          style={{ height: h, width: "auto" }}
-          unoptimized
-        />
-      </a>
+      {show("ios") && (
+        <a
+          href={APP_STORE_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="App Store"
+          className={cn("transition active:scale-[0.98]", dim("ios"))}
+        >
+          <Image
+            src={appStoreSrc}
+            alt="App Store"
+            width={Math.round(h * 3.01)}
+            height={h}
+            style={{ height: h, width: "auto" }}
+            unoptimized
+          />
+        </a>
+      )}
+      {show("android") && (
+        <a
+          href={PLAY_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Google Play"
+          className={cn("transition active:scale-[0.98]", dim("android"))}
+        >
+          <Image
+            src={playSrc}
+            alt="Google Play"
+            width={Math.round(h * 3.36)}
+            height={h}
+            style={{ height: h, width: "auto" }}
+            unoptimized
+          />
+        </a>
+      )}
     </div>
   );
 }
