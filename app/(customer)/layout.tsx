@@ -57,8 +57,19 @@ export default async function CustomerGroupLayout({
             remplace window.confirm/prompt (ex. vider le panier). */}
         {/* Compte suspendu par l'équipe Coligo : le client l'apprend ici, pas
             au moment de payer. */}
-        {accountBlock.blocked && (
-          <AccountSuspendedNotice reason={accountBlock.reason} />
+        {/* DEUX sources de suspension, et il faut les DEUX : le blocage de
+            compte (mig 0397) et la mesure ANTI-FRAUDE (`suspend`). Seule la
+            première était regardée — une suspension anti-fraude bloquait bien
+            le paiement et les courses, mais le client n'en était jamais
+            informé et continuait à naviguer comme si de rien n'était, sur le
+            web comme dans les applications. */}
+        {(accountBlock.blocked || fraudGate.suspended) && (
+          <AccountSuspendedNotice
+            reason={
+              accountBlock.reason ??
+              "Votre compte est suspendu par l'équipe Coligo à la suite de plusieurs situations suspectes."
+            }
+          />
         )}
         <ConfirmProvider>{children}</ConfirmProvider>
         {/* Anti-fraude : avertissement OBLIGATOIRE (impossible à fermer) après
