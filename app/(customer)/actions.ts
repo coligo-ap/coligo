@@ -1069,6 +1069,30 @@ export async function recordPlacePick(input: {
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: unknown }>;
+    // APPRENTISSAGE (mig 0432) : le lieu réellement CHOISI entre dans notre
+    // gazetteer. Pas ce que le client tape, pas ce qu'on lui propose — ce
+    // qu'il retient. Demain, « Cité des douaniers » sera trouvée sans Google.
+    // Écriture en service_role : le navigateur ne doit pas pouvoir remplir la
+    // base de faux lieux. Best-effort, jamais bloquant.
+    void (async () => {
+      try {
+        const { createAdminClient } = await import("@/lib/supabase/admin");
+        const admin = createAdminClient();
+        const arpc = admin.rpc.bind(admin) as unknown as (
+          fn: string,
+          args: Record<string, unknown>
+        ) => Promise<unknown>;
+        await arpc("geo_learn_place", {
+          p_name: input.label,
+          p_lat: input.lat,
+          p_lng: input.lng,
+          p_wilaya: null,
+        });
+      } catch {
+        /* apprentissage best-effort */
+      }
+    })();
+
     await rpc("geo_pick_record", {
       p_lat: input.lat,
       p_lng: input.lng,
@@ -1272,8 +1296,39 @@ export async function geocodeSearch(input: {
     : input.preferPlaces
       ? confMerchAll.filter((r) => r.score < 0.75)
       : [];
+  // ── GOOGLE EN TÊTE (moteur `address-search`) ──────────────────────────
+  // Notre gazetteer couvre les localités, pas les cités ni les lotissements :
+  // « Cité des douaniers », « Ighil Ouzoug »… restaient introuvables. Google
+  // les connaît. Ses résultats passent donc DEVANT, et le reste (commerces
+  // Coligo, gazetteer, OSM) continue de remplir la liste derrière.
+  // Indisponible ou trop lent → on n'attend pas, le classement d'avant
+  // s'applique tel quel.
+  const googleHits: GeoHit[] = [];
+  try {
+    const { searchAddresses } = await import("@/lib/geo/address-search");
+    const gh = await searchAddresses(
+      input.q,
+      input.lat != null && input.lng != null
+        ? { lat: input.lat, lng: input.lng }
+        : null
+    );
+    for (const h of gh) {
+      if (h.source !== "google") continue; // le reste est déjà couvert plus bas
+      googleHits.push({
+        display: h.label,
+        secondary: h.sub ?? undefined,
+        lat: h.lat,
+        lng: h.lng,
+        kind: "google",
+      });
+    }
+  } catch {
+    /* moteur indisponible : on garde le classement historique */
+  }
+
   const results: GeoHit[] = [];
   for (const r of [
+    ...googleHits,
     ...confMerch,
     ...confLocal,
     ...remote,
