@@ -136,23 +136,28 @@ export function FraudActorView({
 
   const score = detail?.score ?? null;
 
-  const apply = (action: FraudActionType) => {
-    if (pending) return;
+  const apply = async (action: FraudActionType) => {
+    if (pendingAction) return;
     setError(null);
+
+    // ⚠️ La saisie du motif se fait HORS transition. Ouvrir une boîte de
+    // dialogue DANS `startTransition` maintenait la transition ouverte tant que
+    // l'administrateur n'avait pas répondu : `pending` restait vrai, et le
+    // garde `if (pending) return` en tête de CHAQUE bouton bloquait ensuite
+    // toutes les autres mesures. D'où « rien ne fonctionne sur cette page ».
+    const reason = await promptText({
+      title: `${FRAUD_ACTION_LABEL[action]} — motif`,
+      message:
+        action === "restore"
+          ? "Révoque TOUTES les mesures actives et annule leurs effets."
+          : "Le motif est journalisé et visible dans l'audit.",
+      placeholder: "Motif (obligatoire)",
+    });
+    if (reason === null || reason.trim() === "") return;
+
+    // Seul l'appel serveur entre dans la transition.
+    setPendingAction(action);
     startTransition(async () => {
-      setPendingAction(action);
-      const reason = await promptText({
-        title: `${FRAUD_ACTION_LABEL[action]} — motif`,
-        message:
-          action === "restore"
-            ? "Révoque TOUTES les mesures actives et annule leurs effets."
-            : "Le motif est journalisé et visible dans l'audit.",
-        placeholder: "Motif (obligatoire)",
-      });
-      if (reason === null || reason.trim() === "") {
-        setPendingAction(null);
-        return;
-      }
       const res = await applyFraudAction({
         kind,
         actorId,
@@ -166,10 +171,12 @@ export function FraudActorView({
   };
 
   const revoke = (actionId: string) => {
-    if (pending) return;
+    // Même correctif : on se fie à l'action EN COURS, pas au drapeau global de
+    // transition, qui pouvait rester coincé.
+    if (pendingAction) return;
     setError(null);
+    setPendingAction(actionId);
     startTransition(async () => {
-      setPendingAction(actionId);
       const res = await revokeFraudAction({ actionId });
       setPendingAction(null);
       if (res.error) setError(res.error);
@@ -240,7 +247,7 @@ export function FraudActorView({
             <button
               key={a}
               type="button"
-              disabled={pending}
+              disabled={pendingAction !== null}
               onClick={() => apply(a)}
               className={`inline-flex items-center gap-1 rounded-xl border px-2.5 py-1.5 text-xs font-bold transition disabled:opacity-60 ${
                 a === "suspend"
@@ -285,7 +292,7 @@ export function FraudActorView({
                 </div>
                 <button
                   type="button"
-                  disabled={pending}
+                  disabled={pendingAction !== null}
                   onClick={() => revoke(a.id)}
                   className="border-border inline-flex shrink-0 items-center gap-1 rounded-xl border bg-white px-2.5 py-1.5 text-xs font-bold hover:bg-slate-50 disabled:opacity-60"
                 >
