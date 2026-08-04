@@ -26,21 +26,29 @@ export * from "@/lib/admin/customer-features";
 //     appelant, page ou route API, soit couvert.
 // =============================================================================
 
-/** Annuaire paginé — recherche nom / téléphone / e-mail / handle Pay. */
+/** Annuaire paginé — recherche nom / téléphone / e-mail / handle Pay.
+ *  `limit` (≤ CUSTOMERS_PAGE_SIZE) sert à l'ÉCHANTILLON initial de la page :
+ *  3 lignes suffisent, la recherche charge la suite à la demande. */
 export async function listCustomers({
   q = "",
   status = "all",
   page = 1,
+  limit,
 }: {
   q?: string;
   status?: CustomerStatusFilter;
   page?: number;
+  limit?: number;
 } = {}): Promise<CustomersPage> {
+  const pageSize = Math.min(
+    Math.max(1, Math.floor(limit ?? CUSTOMERS_PAGE_SIZE)),
+    CUSTOMERS_PAGE_SIZE
+  );
   const empty = {
     rows: [],
     total: 0,
     page: 1,
-    pageSize: CUSTOMERS_PAGE_SIZE,
+    pageSize,
   };
   if (!(await adminCan("clients"))) return empty;
 
@@ -55,8 +63,8 @@ export async function listCustomers({
   const { data, error } = await rpc("admin_customers_directory", {
     p_q: q.trim() || null,
     p_status: status,
-    p_limit: CUSTOMERS_PAGE_SIZE,
-    p_offset: (safePage - 1) * CUSTOMERS_PAGE_SIZE,
+    p_limit: pageSize,
+    p_offset: (safePage - 1) * pageSize,
   });
   if (error) {
     console.error("admin_customers_directory:", error.message);
@@ -83,10 +91,11 @@ export async function listCustomers({
       rides_count: Number(r.rides_count ?? 0),
       rating_avg: Number(r.rating_avg ?? 0),
       blocked_features: r.blocked_features ?? [],
+      fraud_suspended: r.fraud_suspended === true,
     })),
     total: Number(raw[0]?.total_count ?? 0),
     page: safePage,
-    pageSize: CUSTOMERS_PAGE_SIZE,
+    pageSize,
   };
 }
 
@@ -147,27 +156,72 @@ export async function getCustomerDetail(
     .maybeSingle();
   if (!row) return null;
 
-  const [{ data: features }, { data: orders }, { data: devices }, locations] =
-    await Promise.all([
-      from("customer_feature_blocks")
-        .select("feature, reason, created_at")
-        .eq("customer_id", customerId)
-        .order("feature", { ascending: true })
-        .limit(20),
-      from("orders")
-        .select(
-          "id, order_number, status, total_da, payment_method, fulfillment_type, delivery_mode, created_at, merchants(name)"
-        )
-        .eq("customer_id", customerId)
-        .order("created_at", { ascending: false })
-        .limit(20),
-      from("user_device_log")
-        .select("ip, platform, city, country, last_seen_at, hits")
-        .eq("user_id", String(row.user_id))
-        .order("last_seen_at", { ascending: false })
-        .limit(10),
-      getCustomerLocations(customerId, 40),
-    ]);
+  // Sanction anti-fraude « suspend » ACTIVE (mig 0374) : la fiche doit montrer
+  // la MÊME vérité que l'app client (customer_fraud_gate) — un compte suspendu
+  // par le module Anti-fraude ne doit jamais s'afficher « Actif » ici.
+  const fraudFrom = admin.from.bind(admin) as unknown as (t: string) => {
+    select: (c: string) => {
+      eq: (
+        c1: string,
+        v1: string
+      ) => {
+        eq: (
+          c2: string,
+          v2: string
+        ) => {
+          eq: (
+            c3: string,
+            v3: string
+          ) => {
+            is: (
+              c4: string,
+              v4: null
+            ) => Promise<{ data: { expires_at: string | null }[] | null }>;
+          };
+        };
+      };
+    };
+  };
+  const fraudSuspendedPromise = fraudFrom("fraud_actions")
+    .select("expires_at")
+    .eq("actor_kind", "customer")
+    .eq("actor_id", customerId)
+    .eq("action", "suspend")
+    .is("revoked_at", null)
+    .then(({ data }) =>
+      (data ?? []).some(
+        (r) => !r.expires_at || new Date(r.expires_at).getTime() > Date.now()
+      )
+    )
+    .catch(() => false);
+
+  const [
+    { data: features },
+    { data: orders },
+    { data: devices },
+    locations,
+    fraudSuspended,
+  ] = await Promise.all([
+    from("customer_feature_blocks")
+      .select("feature, reason, created_at")
+      .eq("customer_id", customerId)
+      .order("feature", { ascending: true })
+      .limit(20),
+    from("orders")
+      .select(
+        "id, order_number, status, total_da, payment_method, fulfillment_type, delivery_mode, created_at, merchants(name)"
+      )
+      .eq("customer_id", customerId)
+      .order("created_at", { ascending: false })
+      .limit(20),
+    from("user_device_log")
+      .select("ip, platform, city, country, last_seen_at, hits")
+      .eq("user_id", String(row.user_id))
+      .order("last_seen_at", { ascending: false })
+      .limit(10),
+    getCustomerLocations(customerId, 40),
+    fraudSuspendedPromise,
+  ]);
 
   const blockedFeatures = (features ?? []).map((f) => String(f.feature));
   const orderRows = (orders ?? []) as Record<string, unknown>[];
@@ -187,6 +241,7 @@ export async function getCustomerDetail(
       is_blocked: row.is_blocked === true,
       blocked_at: (row.blocked_at as string) ?? null,
       blocked_reason: (row.blocked_reason as string) ?? null,
+      fraud_suspended: fraudSuspended,
       blocked_by: (row.blocked_by as string) ?? null,
       admin_note: (row.admin_note as string) ?? null,
       cod_blocked: row.cod_blocked === true,

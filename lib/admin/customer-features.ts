@@ -87,6 +87,9 @@ export type CustomerRow = {
   is_blocked: boolean;
   blocked_at: string | null;
   blocked_reason: string | null;
+  /** Sanction anti-fraude « suspend » ACTIVE (mig 0374/0435) — le client voit
+   *  « Compte suspendu » dans l'app même si is_blocked est resté false. */
+  fraud_suspended: boolean;
   cod_blocked: boolean;
   noshow_count: number;
   rating_avg: number;

@@ -129,6 +129,11 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
                 <Ban className="size-3.5" /> Suspendu
               </span>
             )}
+            {!c.is_blocked && c.fraud_suspended && (
+              <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold">
+                <Ban className="size-3.5" /> Suspendu (anti-fraude)
+              </span>
+            )}
             {c.is_female_verified && (
               <span className="bg-accent-100 text-accent-700 rounded-full px-2.5 py-1 text-[12px] font-bold">
                 Profil vérifié
@@ -178,6 +183,23 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
           Suspendu le {fmt(c.blocked_at)}
           {c.blocked_by ? ` par ${c.blocked_by}` : ""}
           {c.blocked_reason ? ` — « ${c.blocked_reason} »` : ""}
+        </p>
+      )}
+
+      {/* Sanction posée par le MODULE ANTI-FRAUDE (fraud_actions) : elle se
+          lève là-bas, pas avec le bouton « Réactiver » ci-dessus — on pointe
+          l'admin au bon endroit au lieu de le laisser chercher. */}
+      {!c.is_blocked && c.fraud_suspended && (
+        <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[12px] border p-3 text-sm">
+          Compte suspendu par le module Anti-fraude — le client voit « Compte
+          suspendu » dans l&apos;app.{" "}
+          <Link
+            href={`/admin/anti-fraude/comptes/customer/${c.id}`}
+            prefetch
+            className="font-bold underline underline-offset-2"
+          >
+            Gérer la sanction →
+          </Link>
         </p>
       )}
 
