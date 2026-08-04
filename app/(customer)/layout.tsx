@@ -63,14 +63,18 @@ export default async function CustomerGroupLayout({
             le paiement et les courses, mais le client n'en était jamais
             informé et continuait à naviguer comme si de rien n'était, sur le
             web comme dans les applications. */}
-        {(accountBlock.blocked || fraudGate.suspended) && (
+        {accountBlock.blocked || fraudGate.suspended ? (
           <AccountSuspendedNotice
             reason={
               accountBlock.reason ??
               "Votre compte est suspendu par l'équipe Coligo à la suite de plusieurs situations suspectes."
             }
           />
-        )}
+        ) : fraudGate.requireIdv ? (
+          /* Vérification exigée : bloquant aussi, mais avec une SORTIE — le
+             client peut se débloquer lui-même en vérifiant son identité. */
+          <AccountSuspendedNotice variant="idv" reason={null} />
+        ) : null}
         <ConfirmProvider>{children}</ConfirmProvider>
         {/* Anti-fraude : avertissement OBLIGATOIRE (impossible à fermer) après
             plusieurs situations suspectes — docs/ANTI-FRAUDE.md §7. */}

@@ -16,12 +16,15 @@ export type CustomerFraudGate = {
   suspended: boolean;
   /** Compte limité (ex. paiement à la livraison désactivé). */
   limited: boolean;
+  /** Vérification d'identité EXIGÉE (mig 0433). */
+  requireIdv: boolean;
 };
 
 const OPEN_GATE: CustomerFraudGate = {
   requireAck: false,
   suspended: false,
   limited: false,
+  requireIdv: false,
 };
 
 /** Jamais de throw : en cas de pépin, le gate est OUVERT (fail-open UX — la
@@ -38,11 +41,13 @@ export async function getCustomerFraudGate(): Promise<CustomerFraudGate> {
       require_ack?: boolean;
       suspended?: boolean;
       limited?: boolean;
+      require_idv?: boolean;
     };
     return {
       requireAck: !!g.require_ack,
       suspended: !!g.suspended,
       limited: !!g.limited,
+      requireIdv: !!g.require_idv,
     };
   } catch {
     return OPEN_GATE;

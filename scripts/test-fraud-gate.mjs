@@ -67,7 +67,7 @@ await c.query(
 const base = await gate();
 ok(
   "porte ouverte au départ",
-  !base.suspended && !base.require_ack && !base.limited,
+  !base.suspended && !base.require_ack && !base.limited && !base.require_idv,
   JSON.stringify(base)
 );
 
@@ -93,6 +93,15 @@ await withAction("require_ack", async () => {
 await withAction("limit", async () => {
   const g = await gate();
   ok("limit → limitation vue par l'app", g.limited === true, JSON.stringify(g));
+});
+
+await withAction("require_idv", async () => {
+  const g = await gate();
+  ok(
+    "require_idv → vérification exigée vue par l'app",
+    g.require_idv === true,
+    JSON.stringify(g)
+  );
 });
 
 // ── Une mesure RÉVOQUÉE ne doit plus rien bloquer ─────────────────────────
