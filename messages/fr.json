@@ -37,7 +37,10 @@
     "filterDelivery": "Livraison",
     "filterExpress": "Express",
     "filterTopRated": "Mieux notés",
-    "filterOpen": "Ouvert"
+    "filterOpen": "Ouvert",
+    "activeFilters": "{count, plural, one {Filtre appliqué} other {Filtres appliqués}}",
+    "removeFilter": "Retirer le filtre {name}",
+    "clearAllFilters": "Tout effacer"
   },
   "merchant": {
     "promoBanner": "Promotions en cours sur une sélection de produits aujourd'hui.",
