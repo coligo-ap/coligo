@@ -718,6 +718,16 @@ export async function setChauffeurOnline(
 ): Promise<{ ok: boolean }> {
   const ch = await getCurrentChauffeur();
   if (!ch) return { ok: false };
+
+  // MISE HORS LIGNE FORCÉE (anti-fraude) : il ne suffit pas de couper la
+  // présence au moment où l'équipe applique la mesure — sans ce contrôle, le
+  // chauffeur revenait en ligne d'un simple tap sur son interrupteur. Une
+  // sanction qu'on annule en trois secondes n'en est pas une.
+  if (online) {
+    const { isForcedOffline } = await import("@/lib/fraud/forced-offline");
+    if (await isForcedOffline("chauffeur", ch.id)) return { ok: false };
+  }
+
   const admin = createAdminClient();
   const { error } = await admin
     .from("chauffeur_presence")

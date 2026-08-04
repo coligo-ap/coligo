@@ -756,6 +756,14 @@ export async function driverHeartbeat(lat: number, lng: number): Promise<void> {
     // aussi la règle — on évite juste l'aller-retour.)
     const guard = await assertActiveDriver();
     if (!guard.ok) return;
+
+    // MISE HORS LIGNE FORCÉE (anti-fraude) : le livreur reste « en ligne »
+    // tant qu'il envoie son battement. Sans ce contrôle, la mesure ne durait
+    // que jusqu'au battement suivant — quelques secondes. On coupe le
+    // battement : il sort du dispatch et des cibles de push.
+    const { isForcedOffline } = await import("@/lib/fraud/forced-offline");
+    if (await isForcedOffline("driver", guard.gate.id)) return;
+
     const supabase = await createClient();
     const rpc = supabase.rpc.bind(supabase) as unknown as (
       fn: string,
