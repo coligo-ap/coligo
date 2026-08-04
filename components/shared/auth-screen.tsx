@@ -81,7 +81,11 @@ export function AuthScreen({
       <div
         className={cn(
           "flex min-h-screen flex-col",
-          bottomNav && "pb-20 lg:pb-0"
+          // La nav basse client est FIXED et ajoute env(safe-area-inset-bottom)
+          // à sa hauteur : la marge réservée doit inclure ce même inset, sinon
+          // le pied de page (CGU, support…) reste caché derrière la nav sur
+          // les téléphones à barre de gestes. calc(env()+x), jamais max().
+          bottomNav && "pb-[calc(env(safe-area-inset-bottom)+88px)] lg:pb-0"
         )}
       >
         {/* Après une déconnexion, on revenait EN BAS du portail (position de

@@ -85,9 +85,13 @@ export function AuthFooter({
 }) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  // Safe-area BAS (APK edge-to-edge) : le fond blanc se prolonge sous la
+  // barre système/gestes, les liens (Aide, CGU, Support…) restent AU-DESSUS —
+  // sinon ils sont cachés derrière les boutons du téléphone. Toujours
+  // calc(env()+x), jamais max() (règle zones sûres).
   return (
-    <footer className="border-border mt-auto border-t bg-white">
-      <div className="text-muted mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-4 py-3 text-xs lg:px-6">
+    <footer className="border-border mt-auto border-t bg-white pb-[env(safe-area-inset-bottom)]">
+      <div className="text-muted mx-auto flex max-w-[1400px] flex-wrap items-center justify-between gap-2 px-4 pt-3 pb-4 text-xs lg:px-6 lg:pb-3">
         <p>
           © {new Date().getFullYear()} {APP_CONFIG.name}.{" "}
           {tr("Tous droits réservés.", "جميع الحقوق محفوظة.")}
