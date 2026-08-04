@@ -59,20 +59,37 @@ export async function getDriverRegistrations(): Promise<DriverRegistration[]> {
 }
 
 /**
- * Annuaire livreurs pour l'admin (lignes + stats réseau), partagé par la page
- * (initialData) et l'endpoint /api/admin/drivers (cache TanStack Query).
+ * Annuaire livreurs pour l'admin (lignes + stats réseau), PAGINÉ et cherchable
+ * EN BASE — partagé par la page (échantillon initial) et l'endpoint
+ * /api/admin/drivers (recherche + « Voir plus »). On ne rapatrie plus tout
+ * l'annuaire pour le filtrer dans le navigateur : la recherche fait le travail.
  */
-export async function getDriverRowsForAdmin(): Promise<DriverRow[]> {
-  // Self-guard : lecture service_role (bypass RLS) → non-admin ⇒ [] (mémoïsé).
-  if (!(await isSuperAdmin())) return [];
+export async function getDriverRowsForAdmin(opts?: {
+  q?: string | null;
+  limit?: number;
+  offset?: number;
+}): Promise<{ rows: DriverRow[]; total: number }> {
+  // Self-guard : lecture service_role (bypass RLS) → non-admin ⇒ vide (mémoïsé).
+  if (!(await isSuperAdmin())) return { rows: [], total: 0 };
   const admin = createAdminClient();
-  const { data: drivers } = await admin
+  const limit = Math.min(Math.max(1, Math.floor(opts?.limit ?? 3)), 100);
+  const offset = Math.max(0, Math.floor(opts?.offset ?? 0));
+  // Motif nettoyé : virgules/parenthèses casseraient la syntaxe du .or()
+  // PostgREST, % et _ sont des jokers LIKE — un terme libre reste inoffensif.
+  const q = (opts?.q ?? "")
+    .trim()
+    .replace(/[%_,()]/g, " ")
+    .trim();
+  let query = admin
     .from("drivers")
     .select(
-      "id, full_name, phone, is_frozen, is_blocked, is_verified, avatar_url, created_at"
+      "id, full_name, phone, is_frozen, is_blocked, is_verified, avatar_url, created_at",
+      { count: "exact" }
     )
     .order("created_at", { ascending: false })
-    .limit(2000);
+    .range(offset, offset + limit - 1);
+  if (q) query = query.or(`full_name.ilike.%${q}%,phone.ilike.%${q}%`);
+  const { data: drivers, count } = await query;
 
   const driverIds = (drivers ?? []).map((d) => d.id);
   const { data: links } = driverIds.length
@@ -92,7 +109,7 @@ export async function getDriverRowsForAdmin(): Promise<DriverRow[]> {
     stats.set(l.driver_id, cur);
   }
 
-  return (drivers ?? []).map((d) => {
+  const rows = (drivers ?? []).map((d) => {
     const s = stats.get(d.id) ?? { active: 0, pending: 0, blocked: 0 };
     return {
       id: d.id,
@@ -107,4 +124,5 @@ export async function getDriverRowsForAdmin(): Promise<DriverRow[]> {
       blocked: s.blocked,
     };
   });
+  return { rows, total: count ?? rows.length };
 }

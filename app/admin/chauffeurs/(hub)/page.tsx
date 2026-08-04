@@ -2,7 +2,10 @@ import { redirect } from "next/navigation";
 import Link from "next/link";
 import { isSuperAdmin } from "@/lib/auth/admin";
 import { ChauffeurList } from "@/components/admin/chauffeurs/chauffeur-list";
-import { getChauffeurRowsForAdmin } from "@/lib/data/admin-chauffeurs";
+import {
+  countPendingChauffeurs,
+  getChauffeurRowsForAdmin,
+} from "@/lib/data/admin-chauffeurs";
 
 export const dynamic = "force-dynamic";
 
@@ -11,10 +14,13 @@ export const dynamic = "force-dynamic";
 export default async function AdminChauffeursPage() {
   if (!(await isSuperAdmin())) redirect("/admin");
 
-  const rows = await getChauffeurRowsForAdmin();
-  const pendingCount = rows.filter(
-    (c) => !c.is_verified && !c.is_blocked && c.submitted_at
-  ).length;
+  // 3 chauffeurs seulement : la recherche et « Voir plus » chargent la suite à
+  // la demande. Le compteur d'inscriptions a sa propre requête COUNT — on ne
+  // charge plus tout l'annuaire pour le calculer.
+  const [{ rows, total }, pendingCount] = await Promise.all([
+    getChauffeurRowsForAdmin({ limit: 3 }),
+    countPendingChauffeurs(),
+  ]);
 
   return (
     <div className="space-y-4">
@@ -27,7 +33,7 @@ export default async function AdminChauffeursPage() {
           valider — ouvrir l&apos;onglet Inscriptions →
         </Link>
       )}
-      <ChauffeurList initialRows={rows} />
+      <ChauffeurList initialRows={rows} initialTotal={total} />
     </div>
   );
 }

@@ -4,12 +4,12 @@ import { CustomersView } from "@/components/admin/clients/customers-view";
 export const dynamic = "force-dynamic";
 
 /**
- * Annuaire CLIENTS. La première page est rendue au serveur (affichage
- * immédiat) ; la recherche, les filtres et la pagination vivent ensuite côté
- * client sur cache TanStack Query — la frappe reste instantanée et une page
- * déjà vue se réaffiche sans aller-retour.
+ * Annuaire CLIENTS — recherche d'abord. Le serveur ne rend qu'un ÉCHANTILLON
+ * (3 dernières inscriptions + compteur total) : on ne télécharge jamais tout
+ * l'annuaire d'office, la recherche/les filtres chargent la suite à la
+ * demande (pages complètes serveur, cache côté vue).
  */
 export default async function AdminClientsPage() {
-  const initial = await listCustomers({ page: 1 });
+  const initial = await listCustomers({ page: 1, limit: 3 });
   return <CustomersView initial={initial} />;
 }

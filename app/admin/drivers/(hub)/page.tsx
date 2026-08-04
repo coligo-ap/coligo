@@ -14,9 +14,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminDriversPage() {
   if (!(await isSuperAdmin())) redirect("/admin");
 
-  // Annuaire (initialData du cache) + compteur d'inscriptions, en parallèle.
-  const [rows, pendingReg] = await Promise.all([
-    getDriverRowsForAdmin(),
+  // 3 livreurs seulement : la recherche et « Voir plus » chargent la suite à
+  // la demande — inutile de rapatrier tout l'annuaire pour l'afficher.
+  const [{ rows, total }, pendingReg] = await Promise.all([
+    getDriverRowsForAdmin({ limit: 3 }),
     getDriverRegistrations().then((r) => r.length),
   ]);
 
@@ -34,7 +35,7 @@ export default async function AdminDriversPage() {
       {/* Cible de l'alerte « livreurs bloqués en course » (?focus=…) :
           l'annuaire, où se libère la disponibilité d'un livreur. */}
       <div data-alert-focus="ghost_busy_drivers" className="rounded-[16px]">
-        <DriverList initialRows={rows} />
+        <DriverList initialRows={rows} initialTotal={total} />
       </div>
     </div>
   );

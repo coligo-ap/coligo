@@ -21,13 +21,15 @@ import type {
 } from "@/lib/admin/customer-features";
 
 // =============================================================================
-// Annuaire CLIENTS — recherche SERVEUR (nom / téléphone / e-mail / handle Pay),
+// Annuaire CLIENTS — RECHERCHE D'ABORD (nom / téléphone / e-mail / handle Pay),
 // filtres d'état et pagination.
 //
-// La recherche est serveur (la base cliente peut être immense), mais l'écran
-// reste instantané : frappe débattue 250 ms, page précédente CONSERVÉE pendant
-// le chargement, et cache local par clé (requête+filtre+page) → revenir sur une
-// recherche déjà faite ne recharge rien.
+// Au repos, l'écran ne montre qu'un ÉCHANTILLON (les 3 dernières inscriptions,
+// rendu serveur) + le compteur total : on ne télécharge jamais tout l'annuaire
+// d'office. Taper une recherche ou choisir un filtre charge des pages
+// complètes au serveur ; « Afficher toute la liste » ouvre la pagination.
+// L'écran reste instantané : frappe débattue 250 ms, page précédente CONSERVÉE
+// pendant le chargement, cache local par clé (requête+filtre+page).
 // =============================================================================
 
 const FILTERS: { key: CustomerStatusFilter; label: string }[] = [
@@ -46,13 +48,13 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
   const [status, setStatus] = useState<CustomerStatusFilter>("all");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<CustomersPage>(initial);
+  // « Afficher toute la liste » : bascule de l'échantillon vers la pagination.
+  const [expanded, setExpanded] = useState(false);
   const [pending, startTransition] = useTransition();
 
   // Cache module-local : une combinaison déjà chargée se réaffiche sans réseau.
+  // (`initial` n'y entre PAS : c'est un échantillon de 3, pas la page 1.)
   const cache = useRef(new Map<string, CustomersPage>());
-  useEffect(() => {
-    cache.current.set(keyOf("", "all", 1), initial);
-  }, [initial]);
 
   const load = useCallback((q: string, s: CustomerStatusFilter, p: number) => {
     const k = keyOf(q, s, p);
@@ -68,11 +70,19 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
     });
   }, []);
 
+  // Au repos (ni recherche, ni filtre, ni « toute la liste ») : l'échantillon
+  // serveur suffit — AUCUNE requête. La recherche fait le travail.
+  const showingSample = !expanded && !query.trim() && status === "all";
+
   // Frappe débattue — on ne part pas au serveur à chaque caractère.
   useEffect(() => {
+    if (showingSample) {
+      setData(initial);
+      return;
+    }
     const id = setTimeout(() => load(query, status, page), 250);
     return () => clearTimeout(id);
-  }, [query, status, page, load]);
+  }, [query, status, page, showingSample, initial, load]);
 
   const pageCount = Math.max(1, Math.ceil(data.total / data.pageSize));
 
@@ -121,7 +131,9 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
 
       <div className="text-muted mt-3 flex items-center gap-2 text-[13px]">
         <span className="tabular-nums">
-          {data.total} client{data.total > 1 ? "s" : ""}
+          {showingSample
+            ? `${data.rows.length} affiché${data.rows.length > 1 ? "s" : ""} sur ${data.total} client${data.total > 1 ? "s" : ""} — dernières inscriptions`
+            : `${data.total} client${data.total > 1 ? "s" : ""}`}
         </span>
         {pending && <Loader2 className="size-3.5 animate-spin" />}
       </div>
@@ -138,12 +150,24 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
         </p>
       )}
 
-      <Pager
-        page={data.page}
-        pageCount={pageCount}
-        onPage={setPage}
-        className="mt-5"
-      />
+      {showingSample ? (
+        data.total > data.rows.length && (
+          <button
+            type="button"
+            onClick={() => setExpanded(true)}
+            className="border-border text-foreground hover:bg-surface-2 mt-4 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors"
+          >
+            Afficher toute la liste ({data.total})
+          </button>
+        )
+      ) : (
+        <Pager
+          page={data.page}
+          pageCount={pageCount}
+          onPage={setPage}
+          className="mt-5"
+        />
+      )}
     </div>
   );
 }
@@ -180,6 +204,11 @@ function CustomerCard({ c }: { c: CustomerRow }) {
             {c.is_blocked && (
               <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold">
                 <Ban className="size-3" /> Suspendu
+              </span>
+            )}
+            {!c.is_blocked && c.fraud_suspended && (
+              <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold">
+                <Ban className="size-3" /> Suspendu (anti-fraude)
               </span>
             )}
             {restricted && (

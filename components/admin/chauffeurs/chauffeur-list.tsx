@@ -1,12 +1,9 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Loader2 } from "lucide-react";
 import { ChauffeurActions } from "@/components/admin/chauffeur-actions";
-import {
-  Pager,
-  SearchInput,
-  usePaginatedList,
-} from "@/components/admin/shared/list-controls";
-import { useAdminList } from "@/lib/admin/use-admin-list";
+import { SearchInput } from "@/components/admin/shared/list-controls";
 
 export type ChauffeurRow = {
   id: string;
@@ -22,38 +19,67 @@ export type ChauffeurRow = {
   frozen_reason: string | null;
 };
 
+// « Voir plus » ajoute une poignée de lignes à la demande — on ne charge
+// jamais tout l'annuaire (la page n'en rend que 3 au départ, la recherche
+// EN BASE fait le travail, comme l'annuaire commerçants).
+const PAGE = 20;
+
 function vehicleOf(c: ChauffeurRow) {
   return [c.vehicle_make, c.vehicle_model].filter(Boolean).join(" ") || "—";
 }
 
 export function ChauffeurList({
   initialRows,
+  initialTotal,
 }: {
   initialRows: ChauffeurRow[];
+  initialTotal: number;
 }) {
-  // Cache TanStack Query (réaffichage instantané au retour de nav + refetch
-  // silencieux), hydraté par le rendu serveur.
-  const rows = useAdminList<ChauffeurRow>(
-    "admin-chauffeurs",
-    "/api/admin/chauffeurs",
-    initialRows
-  );
-  const {
-    query,
-    setQuery,
-    page,
-    setPage,
-    pageItems,
-    filteredCount,
-    pageCount,
-  } = usePaginatedList<ChauffeurRow>({
-    items: rows,
-    search: (c, q) =>
-      [c.full_name, c.phone, c.vehicle_plate, c.gamme]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    pageSize: 20,
-  });
+  const [rows, setRows] = useState<ChauffeurRow[]>(initialRows);
+  const [total, setTotal] = useState(initialTotal);
+  const [query, setQuery] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async (q: string, offset: number) => {
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/admin/chauffeurs?q=${encodeURIComponent(q)}&limit=${PAGE}&offset=${offset}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as {
+        rows: ChauffeurRow[];
+        total: number;
+      };
+      setTotal(data.total);
+      setRows((prev) => (offset === 0 ? data.rows : [...prev, ...data.rows]));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // Recherche EN BASE, temporisée : on ne part pas à chaque frappe.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const id = setTimeout(() => void load(query, 0), 350);
+    return () => clearTimeout(id);
+  }, [query, load]);
+
+  // Après une action (vérifier/geler/bloquer → router.refresh), le serveur
+  // renvoie des props fraîches : hors recherche, on résynchronise l'échantillon
+  // affiché pour que les statuts reflètent l'état réel.
+  useEffect(() => {
+    if (!query) {
+      setRows(initialRows);
+      setTotal(initialTotal);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRows, initialTotal]);
 
   return (
     <div className="space-y-4">
@@ -62,12 +88,14 @@ export function ChauffeurList({
         onChange={setQuery}
         placeholder="Rechercher : nom, téléphone, plaque, gamme…"
       />
-      <p className="text-muted text-xs tabular-nums">
-        {filteredCount} chauffeur{filteredCount > 1 ? "s" : ""}
-        {query ? ` sur ${rows.length}` : ""}
+      <p className="text-muted flex items-center gap-2 text-xs tabular-nums">
+        {rows.length} affiché{rows.length > 1 ? "s" : ""} sur {total} chauffeur
+        {total > 1 ? "s" : ""}
+        {query ? " (recherche)" : ""}
+        {busy && <Loader2 className="size-3.5 animate-spin" />}
       </p>
 
-      {pageItems.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="bg-surface border-border text-muted rounded-[14px] border p-8 text-center text-sm">
           {query
             ? `Aucun chauffeur ne correspond à « ${query} ».`
@@ -87,7 +115,7 @@ export function ChauffeurList({
               </tr>
             </thead>
             <tbody>
-              {pageItems.map((c) => (
+              {rows.map((c) => (
                 <tr key={c.id} className="border-border border-t">
                   <td className="px-3 py-2 font-medium">
                     <a
@@ -137,7 +165,18 @@ export function ChauffeurList({
         </div>
       )}
 
-      <Pager page={page} pageCount={pageCount} onPage={setPage} />
+      {rows.length < total && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void load(query, rows.length)}
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+        >
+          {busy
+            ? "Chargement…"
+            : `Voir plus (${total - rows.length} restant${total - rows.length > 1 ? "s" : ""})`}
+        </button>
+      )}
     </div>
   );
 }

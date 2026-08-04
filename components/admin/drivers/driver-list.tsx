@@ -1,15 +1,11 @@
 "use client";
 
+import { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Loader2 } from "lucide-react";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
 import { DriverStatusBadge } from "@/components/admin/drivers/driver-status-badge";
-import {
-  Pager,
-  SearchInput,
-  usePaginatedList,
-} from "@/components/admin/shared/list-controls";
-import { useAdminList } from "@/lib/admin/use-admin-list";
+import { SearchInput } from "@/components/admin/shared/list-controls";
 
 export type DriverRow = {
   id: string;
@@ -24,6 +20,11 @@ export type DriverRow = {
   blocked: number;
 };
 
+// « Voir plus » ajoute une poignée de lignes à la demande — on ne charge
+// jamais tout l'annuaire (la page n'en rend que 3 au départ, la recherche
+// EN BASE fait le travail, comme l'annuaire commerçants).
+const PAGE = 20;
+
 function initials(name: string) {
   return name
     .split(/\s+/)
@@ -33,30 +34,55 @@ function initials(name: string) {
     .toUpperCase();
 }
 
-export function DriverList({ initialRows }: { initialRows: DriverRow[] }) {
-  // Cache TanStack Query (réaffichage instantané au retour de nav + refetch
-  // silencieux), hydraté par le rendu serveur.
-  const rows = useAdminList<DriverRow>(
-    "admin-drivers",
-    "/api/admin/drivers",
-    initialRows
-  );
-  const {
-    query,
-    setQuery,
-    page,
-    setPage,
-    pageItems,
-    filteredCount,
-    pageCount,
-  } = usePaginatedList<DriverRow>({
-    items: rows,
-    search: (d, q) =>
-      [d.full_name, d.phone]
-        .filter(Boolean)
-        .some((v) => String(v).toLowerCase().includes(q)),
-    pageSize: 20,
-  });
+export function DriverList({
+  initialRows,
+  initialTotal,
+}: {
+  initialRows: DriverRow[];
+  initialTotal: number;
+}) {
+  const [rows, setRows] = useState<DriverRow[]>(initialRows);
+  const [total, setTotal] = useState(initialTotal);
+  const [query, setQuery] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const load = useCallback(async (q: string, offset: number) => {
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/admin/drivers?q=${encodeURIComponent(q)}&limit=${PAGE}&offset=${offset}`,
+        { cache: "no-store" }
+      );
+      if (!res.ok) return;
+      const data = (await res.json()) as { rows: DriverRow[]; total: number };
+      setTotal(data.total);
+      setRows((prev) => (offset === 0 ? data.rows : [...prev, ...data.rows]));
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+
+  // Recherche EN BASE, temporisée : on ne part pas à chaque frappe.
+  const first = useRef(true);
+  useEffect(() => {
+    if (first.current) {
+      first.current = false;
+      return;
+    }
+    const id = setTimeout(() => void load(query, 0), 350);
+    return () => clearTimeout(id);
+  }, [query, load]);
+
+  // Après une action (gel/dégel → router.refresh), le serveur renvoie des
+  // props fraîches : hors recherche, on résynchronise l'échantillon affiché
+  // pour que les badges reflètent l'état réel.
+  useEffect(() => {
+    if (!query) {
+      setRows(initialRows);
+      setTotal(initialTotal);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialRows, initialTotal]);
 
   return (
     <div className="space-y-4">
@@ -65,12 +91,14 @@ export function DriverList({ initialRows }: { initialRows: DriverRow[] }) {
         onChange={setQuery}
         placeholder="Rechercher un livreur : nom ou téléphone…"
       />
-      <p className="text-muted text-xs tabular-nums">
-        {filteredCount} livreur{filteredCount > 1 ? "s" : ""}
-        {query ? ` sur ${rows.length}` : ""}
+      <p className="text-muted flex items-center gap-2 text-xs tabular-nums">
+        {rows.length} affiché{rows.length > 1 ? "s" : ""} sur {total} livreur
+        {total > 1 ? "s" : ""}
+        {query ? " (recherche)" : ""}
+        {busy && <Loader2 className="size-3.5 animate-spin" />}
       </p>
 
-      {pageItems.length === 0 ? (
+      {rows.length === 0 ? (
         <div className="bg-surface border-border text-muted rounded-[14px] border p-8 text-center text-sm">
           {query
             ? `Aucun livreur ne correspond à « ${query} ».`
@@ -90,7 +118,7 @@ export function DriverList({ initialRows }: { initialRows: DriverRow[] }) {
             </tr>
           </thead>
           <tbody className="divide-border divide-y">
-            {pageItems.map((d) => (
+            {rows.map((d) => (
               <tr
                 key={d.id}
                 className={
@@ -159,7 +187,18 @@ export function DriverList({ initialRows }: { initialRows: DriverRow[] }) {
         </table>
       )}
 
-      <Pager page={page} pageCount={pageCount} onPage={setPage} />
+      {rows.length < total && (
+        <button
+          type="button"
+          disabled={busy}
+          onClick={() => void load(query, rows.length)}
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+        >
+          {busy
+            ? "Chargement…"
+            : `Voir plus (${total - rows.length} restant${total - rows.length > 1 ? "s" : ""})`}
+        </button>
+      )}
     </div>
   );
 }
