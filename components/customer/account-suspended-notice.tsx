@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Ban, ShieldAlert } from "lucide-react";
+import { customerLogout } from "@/app/(customer)/actions";
 
 // =============================================================================
 // COMPTE SUSPENDU / VÉRIFICATION EXIGÉE — fenêtre BLOQUANTE, plus un bandeau.
@@ -77,6 +78,18 @@ export function AccountSuspendedNotice({
             ? "La vérification prend quelques minutes."
             : "Notre équipe vous répond depuis le centre d'aide."}
         </p>
+
+        {/* SORTIE : sans elle, l'écran est une impasse — impossible même de
+            changer de compte sur un téléphone partagé. Bloquer l'usage ne veut
+            pas dire séquestrer la session. */}
+        <form action={customerLogout} className="mt-6">
+          <button
+            type="submit"
+            className="border-border text-muted hover:text-foreground w-full rounded-[14px] border px-4 py-3 text-sm font-semibold transition-colors"
+          >
+            Se déconnecter
+          </button>
+        </form>
       </div>
     </div>
   );

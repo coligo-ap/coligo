@@ -70,6 +70,7 @@ export type FraudActionType =
   | "limit"
   | "force_offline"
   | "require_idv"
+  | "readonly"
   | "suspend"
   | "restore"
   | "note";
@@ -80,6 +81,7 @@ export const FRAUD_ACTION_LABEL: Record<FraudActionType, string> = {
   limit: "Limitation",
   force_offline: "Hors ligne forcé",
   require_idv: "Vérif. d'identité",
+  readonly: "Lecture seule",
   suspend: "Suspension",
   restore: "Rétablissement",
   note: "Note interne",
@@ -93,6 +95,7 @@ export const FRAUD_APPLICABLE_ACTIONS: FraudActionType[] = [
   "limit",
   "force_offline",
   "require_idv",
+  "readonly",
   "suspend",
   "restore",
 ];

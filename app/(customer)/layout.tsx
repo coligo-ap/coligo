@@ -75,6 +75,22 @@ export default async function CustomerGroupLayout({
              client peut se débloquer lui-même en vérifiant son identité. */
           <AccountSuspendedNotice variant="idv" reason={null} />
         ) : null}
+        {/* LECTURE SEULE : volontairement NON bloquant — tout l'intérêt de
+            cette mesure est qu'il garde l'accès à ses commandes et ses reçus.
+            Le refus des actions se fait côté SERVEUR (checkout, Drive,
+            paiement) : masquer un bouton n'a jamais empêché d'appeler l'API. */}
+        {!accountBlock.blocked &&
+          !fraudGate.suspended &&
+          fraudGate.readonly && (
+            <div
+              role="status"
+              className="border-warning-200 bg-warning-50 text-warning-900 mx-4 mt-3 rounded-[16px] border px-4 py-3 text-sm font-semibold lg:mx-6"
+            >
+              Votre compte est en lecture seule : vous pouvez consulter vos
+              commandes, mais aucune nouvelle action n&apos;est possible pour le
+              moment.
+            </div>
+          )}
         <ConfirmProvider>{children}</ConfirmProvider>
         {/* Anti-fraude : avertissement OBLIGATOIRE (impossible à fermer) après
             plusieurs situations suspectes — docs/ANTI-FRAUDE.md §7. */}

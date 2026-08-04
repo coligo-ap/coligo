@@ -506,6 +506,14 @@ export async function requestDriveRide(input: {
       error: "Ton compte est suspendu. Contacte le support Coligo.",
     };
   }
+  if (fraudGate.readonly) {
+    return {
+      ok: false as const,
+      error:
+        "Votre compte est en lecture seule. Vous pouvez consulter vos commandes, mais pas en passer de nouvelle.",
+    };
+  }
+
   if (fraudGate.requireAck) {
     return {
       ok: false,

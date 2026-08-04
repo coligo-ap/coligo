@@ -71,7 +71,11 @@ export async function applyFraudAction(input: {
   });
   if (error) return { error: error.message };
   // Envoi immédiat de la notification (cloche + push) sans attendre un battement.
-  void runFraudTick();
+  // `await` et non `void` : sur une plateforme serverless, la fonction est
+  // GELÉE dès la réponse renvoyée — un envoi « oublié » pouvait ne jamais
+  // partir. L'administrateur attend 200 ms de plus ; le client reçoit
+  // vraiment son avertissement.
+  await runFraudTick();
   refresh();
   revalidatePath(`/admin/anti-fraude/comptes/${input.kind}/${input.actorId}`);
   return { ok: true };

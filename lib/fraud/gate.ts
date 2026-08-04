@@ -18,6 +18,8 @@ export type CustomerFraudGate = {
   limited: boolean;
   /** Vérification d'identité EXIGÉE (mig 0433). */
   requireIdv: boolean;
+  /** Compte en LECTURE SEULE : il consulte, il n'agit plus (mig 0434). */
+  readonly: boolean;
 };
 
 const OPEN_GATE: CustomerFraudGate = {
@@ -25,6 +27,7 @@ const OPEN_GATE: CustomerFraudGate = {
   suspended: false,
   limited: false,
   requireIdv: false,
+  readonly: false,
 };
 
 /** Jamais de throw : en cas de pépin, le gate est OUVERT (fail-open UX — la
@@ -42,12 +45,14 @@ export async function getCustomerFraudGate(): Promise<CustomerFraudGate> {
       suspended?: boolean;
       limited?: boolean;
       require_idv?: boolean;
+      readonly?: boolean;
     };
     return {
       requireAck: !!g.require_ack,
       suspended: !!g.suspended,
       limited: !!g.limited,
       requireIdv: !!g.require_idv,
+      readonly: !!g.readonly,
     };
   } catch {
     return OPEN_GATE;

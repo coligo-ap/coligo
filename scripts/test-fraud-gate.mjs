@@ -67,7 +67,11 @@ await c.query(
 const base = await gate();
 ok(
   "porte ouverte au départ",
-  !base.suspended && !base.require_ack && !base.limited && !base.require_idv,
+  !base.suspended &&
+    !base.require_ack &&
+    !base.limited &&
+    !base.require_idv &&
+    !base.readonly,
   JSON.stringify(base)
 );
 
@@ -100,6 +104,15 @@ await withAction("require_idv", async () => {
   ok(
     "require_idv → vérification exigée vue par l'app",
     g.require_idv === true,
+    JSON.stringify(g)
+  );
+});
+
+await withAction("readonly", async () => {
+  const g = await gate();
+  ok(
+    "readonly → lecture seule vue par l'app",
+    g.readonly === true && g.suspended === false,
     JSON.stringify(g)
   );
 });
