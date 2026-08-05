@@ -7,12 +7,10 @@ import {
   ArrowLeft,
   Ban,
   Check,
-  ChevronDown,
   Loader2,
   MapPin,
   Navigation,
   Package,
-  ShieldAlert,
   ShieldCheck,
   ShieldOff,
   Smartphone,
@@ -21,9 +19,10 @@ import {
 } from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
 import { useConfirm, usePrompt } from "@/components/ui/confirm";
+import { CollapsibleSection } from "@/components/admin/shared/collapsible-section";
+import { FraudSanctionsPanel } from "@/components/admin/shared/fraud-sanctions-panel";
 import {
   reinstateCustomerAction,
-  revokeCustomerFraudSanctionAction,
   setCustomerBlockAction,
   setCustomerFeatureAction,
   setCustomerNoteAction,
@@ -33,10 +32,8 @@ import {
   CUSTOMER_FEATURE_LABEL,
   type CustomerDetail,
   type CustomerFeature,
-  type CustomerFraudSanction,
   type CustomerLocation,
 } from "@/lib/admin/customer-features";
-import { FRAUD_ACTION_LABEL, type FraudActionType } from "@/lib/fraud/model";
 
 // =============================================================================
 // Fiche CLIENT (super-admin) — TOUT se gère ICI, sans redirection : statut
@@ -241,26 +238,15 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
 
       {/* Sanctions anti-fraude — rendue UNIQUEMENT s'il y en a d'actives,
           gérable ICI (« Lever » par ligne), plus de redirection. */}
-      {detail.fraud_sanctions.length > 0 && (
-        <Section
-          Icon={ShieldAlert}
-          title="Sanctions anti-fraude"
-          count={detail.fraud_sanctions.length}
-          hint="Mesures actives posées par le moteur ou l'équipe — chaque levée est journalisée."
-          defaultOpen
-          tone="danger"
-        >
-          <ul className="mt-3 space-y-2">
-            {detail.fraud_sanctions.map((s) => (
-              <SanctionRow key={s.id} customerId={c.id} sanction={s} />
-            ))}
-          </ul>
-        </Section>
-      )}
+      <FraudSanctionsPanel
+        kind="customer"
+        actorId={c.id}
+        sanctions={detail.fraud_sanctions}
+      />
 
       {/* Fonctionnalités par client */}
-      <Section
-        Icon={ShieldOff}
+      <CollapsibleSection
+        icon={<ShieldOff className="size-4" />}
         title="Fonctionnalités de ce client"
         count={blocked.size > 0 ? blocked.size : undefined}
         hint="Couper une fonctionnalité ici ferme l'API pour ce client uniquement — les autres clients ne sont pas touchés."
@@ -279,11 +265,11 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             />
           ))}
         </ul>
-      </Section>
+      </CollapsibleSection>
 
       {/* Positions */}
-      <Section
-        Icon={MapPin}
+      <CollapsibleSection
+        icon={<MapPin className="size-4" />}
         title="Localisations connues"
         count={detail.locations.length}
         hint="Connexions (géo IP), adresses enregistrées, livraisons reçues et départs de course — de la plus récente à la plus ancienne."
@@ -327,11 +313,11 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             ))}
           </ul>
         )}
-      </Section>
+      </CollapsibleSection>
 
       {/* Appareils */}
-      <Section
-        Icon={Smartphone}
+      <CollapsibleSection
+        icon={<Smartphone className="size-4" />}
         title="Appareils & connexions"
         count={detail.devices.length}
       >
@@ -355,11 +341,11 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             ))}
           </ul>
         )}
-      </Section>
+      </CollapsibleSection>
 
       {/* Dernières commandes */}
-      <Section
-        Icon={Package}
+      <CollapsibleSection
+        icon={<Package className="size-4" />}
         title="Dernières commandes"
         count={detail.orders.length}
       >
@@ -392,147 +378,16 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             ))}
           </ul>
         )}
-      </Section>
+      </CollapsibleSection>
 
-      <Section
-        Icon={StickyNote}
+      <CollapsibleSection
+        icon={<StickyNote className="size-4" />}
         title="Note interne"
         defaultOpen={!!c.admin_note}
       >
         <NoteEditor customerId={c.id} note={c.admin_note} />
-      </Section>
+      </CollapsibleSection>
     </div>
-  );
-}
-
-/**
- * Section REPLIABLE de la fiche (accordéon natif <details> : accessible,
- * zéro état React). En-tête = icône + titre + compteur, chevron qui pivote.
- */
-function Section({
-  Icon,
-  title,
-  count,
-  hint,
-  defaultOpen = false,
-  tone,
-  children,
-}: {
-  Icon: React.ComponentType<{ className?: string }>;
-  title: string;
-  count?: number;
-  hint?: string;
-  defaultOpen?: boolean;
-  /** `danger` : liseré rouge (sanctions) pour attirer l'œil. */
-  tone?: "danger";
-  children: React.ReactNode;
-}) {
-  // État PILOTÉ : un router.refresh (après une action) re-rend la fiche — sans
-  // ça, une section dépliée par l'admin se refermerait sur sa valeur par défaut.
-  const [open, setOpen] = useState(defaultOpen);
-  return (
-    <details
-      open={open}
-      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
-      className={cn(
-        "group bg-surface mt-4 rounded-[16px] border p-4",
-        tone === "danger" ? "border-danger-200" : "border-border"
-      )}
-    >
-      <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-bold [&::-webkit-details-marker]:hidden">
-        <Icon
-          className={cn("size-4", tone === "danger" && "text-danger-600")}
-        />
-        {title}
-        {typeof count === "number" && (
-          <span
-            className={cn(
-              "rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums",
-              tone === "danger"
-                ? "bg-danger-100 text-danger-700"
-                : "bg-surface-2 text-muted"
-            )}
-          >
-            {count}
-          </span>
-        )}
-        <ChevronDown className="text-muted ms-auto size-4 shrink-0 transition-transform group-open:rotate-180" />
-      </summary>
-      {hint && <p className="text-muted mt-1 text-[13px]">{hint}</p>}
-      {children}
-    </details>
-  );
-}
-
-/** Une sanction anti-fraude active = une ligne, avec SON bouton « Lever ». */
-function SanctionRow({
-  customerId,
-  sanction,
-}: {
-  customerId: string;
-  sanction: CustomerFraudSanction;
-}) {
-  const router = useRouter();
-  const confirm = useConfirm();
-  const [pending, start] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-  const label =
-    FRAUD_ACTION_LABEL[sanction.action as FraudActionType] ?? sanction.action;
-
-  async function revoke() {
-    setError(null);
-    const ok = await confirm({
-      title: `Lever « ${label} » ?`,
-      message:
-        "La mesure est révoquée immédiatement et ses effets annulés. L'opération est journalisée.",
-      confirmLabel: "Lever la sanction",
-    });
-    if (!ok) return;
-    start(async () => {
-      const res = await revokeCustomerFraudSanctionAction(
-        customerId,
-        sanction.id
-      );
-      if (res.error) setError(res.error);
-      else router.refresh();
-    });
-  }
-
-  return (
-    <li className="border-danger-200 bg-danger-50/50 flex items-center gap-3 rounded-[12px] border p-3">
-      <span className="min-w-0 flex-1">
-        <span className="text-foreground flex flex-wrap items-center gap-1.5 text-sm font-semibold">
-          {label}
-          <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
-            {sanction.source === "auto" ? "Moteur (auto)" : "Équipe"}
-          </span>
-        </span>
-        <span className="text-muted block text-[12px]">
-          {sanction.reason} · {fmt(sanction.created_at)}
-          {sanction.expires_at
-            ? ` · expire le ${fmt(sanction.expires_at)}`
-            : ""}
-        </span>
-        {error && (
-          <span className="text-danger-700 block text-[12px] font-medium">
-            {error}
-          </span>
-        )}
-      </span>
-      <button
-        type="button"
-        onClick={revoke}
-        disabled={pending}
-        className="bg-success-600 hover:bg-success-700 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[13px] font-bold text-white transition-colors disabled:opacity-60"
-      >
-        {pending ? (
-          <Loader2 className="size-3.5 animate-spin" />
-        ) : (
-          <Check className="size-3.5" />
-        )}
-        Lever
-      </button>
-    </li>
   );
 }
 

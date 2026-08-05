@@ -3,7 +3,10 @@ import { notFound, redirect } from "next/navigation";
 import { ArrowLeft, Car, FileCheck, User, Wallet } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminDomain } from "@/lib/auth/admin";
+import { getActiveFraudSanctions } from "@/lib/data/fraud-sanctions";
 import { formatDA } from "@/lib/utils";
+import { CollapsibleSection } from "@/components/admin/shared/collapsible-section";
+import { FraudSanctionsPanel } from "@/components/admin/shared/fraud-sanctions-panel";
 import {
   ChauffeurAccountActions,
   ChauffeurDocReview,
@@ -27,13 +30,15 @@ export default async function AdminChauffeurDetailPage({
   const { id } = await params;
   const admin = createAdminClient();
 
-  const [{ data: ch }, { data: docs }] = await Promise.all([
+  const [{ data: ch }, { data: docs }, fraudSanctions] = await Promise.all([
     admin.from("chauffeurs").select("*").eq("id", id).maybeSingle(),
     admin
       .from("chauffeur_documents")
       .select("*")
       .eq("chauffeur_id", id)
       .order("created_at"),
+    // Sanctions anti-fraude ACTIVES : affichées et LEVABLES sur la fiche.
+    getActiveFraudSanctions("chauffeur", id),
   ]);
   if (!ch) notFound();
 
@@ -146,107 +151,119 @@ export default async function AdminChauffeurDetailPage({
         )}
       </header>
 
+      {/* Sanctions anti-fraude ACTIVES (suspension, hors ligne forcé…) :
+          gérables ICI (« Lever » par ligne), plus de détour par le module.
+          Sans ce panneau, un « hors ligne forcé » était INVISIBLE sur la
+          fiche — le chauffeur semblait actif mais ne recevait rien. */}
+      <FraudSanctionsPanel
+        kind="chauffeur"
+        actorId={id}
+        sanctions={fraudSanctions}
+      />
+
       {/* ── 1. Identité (obligatoire pour l'activation) ── */}
-      <section className="bg-surface border-border rounded-[14px] border p-4">
-        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase">
-          <User className="size-4" /> Identité
-        </h2>
-        {/* Photo du visage (selfie en direct, OBLIGATOIRE) : affichée en
+      <CollapsibleSection
+        icon={<User className="size-4" />}
+        title="Identité"
+        defaultOpen={!ch.is_verified}
+      >
+        <div className="mt-3">
+          {/* Photo du visage (selfie en direct, OBLIGATOIRE) : affichée en
             grand pour comparer avec le permis avant activation. */}
-        <div className="mb-3 flex items-center gap-3">
-          {selfieUrl ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={selfieUrl}
-              alt={`Visage de ${ch.full_name}`}
-              className="border-border size-24 rounded-full border-2 object-cover"
+          <div className="mb-3 flex items-center gap-3">
+            {selfieUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={selfieUrl}
+                alt={`Visage de ${ch.full_name}`}
+                className="border-border size-24 rounded-full border-2 object-cover"
+              />
+            ) : (
+              <div className="bg-surface-2 text-muted grid size-24 place-items-center rounded-full text-center text-[10px] font-bold">
+                Selfie
+                <br />
+                manquant
+              </div>
+            )}
+            <p className="text-muted max-w-[260px] text-xs">
+              Selfie <strong>en direct</strong> (capture caméra obligatoire) — à
+              comparer avec la photo du permis.
+            </p>
+          </div>
+          <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
+            <Item k="Nom complet *" v={ch.full_name} />
+            <Item k="Prénom *" v={ch.first_name ?? "—"} />
+            <Item k="Téléphone * (= mot de passe démo)" v={ch.phone} />
+            <Item k="Date de naissance *" v={ch.birth_date ?? "—"} />
+            <Item k="Ville / wilaya *" v={ch.city ?? ch.wilaya ?? "—"} />
+            <Item k="Adresse (facultatif)" v={ch.home_addr_text ?? "—"} />
+            <Item
+              k="Inscrit le"
+              v={new Date(ch.created_at).toLocaleDateString("fr-FR")}
             />
-          ) : (
-            <div className="bg-surface-2 text-muted grid size-24 place-items-center rounded-full text-center text-[10px] font-bold">
-              Selfie
-              <br />
-              manquant
-            </div>
-          )}
-          <p className="text-muted max-w-[260px] text-xs">
-            Selfie <strong>en direct</strong> (capture caméra obligatoire) — à
-            comparer avec la photo du permis.
-          </p>
+            <Item
+              k="Dossier envoyé le"
+              v={
+                ch.submitted_at
+                  ? new Date(ch.submitted_at).toLocaleDateString("fr-FR")
+                  : "—"
+              }
+            />
+            <Item
+              k="Note · courses"
+              v={`${st?.avg ? `★ ${Math.round(Number(st.avg) * 10) / 10}` : "—"} · ${st?.count ?? 0} courses`}
+            />
+          </dl>
         </div>
-        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-2 lg:grid-cols-3">
-          <Item k="Nom complet *" v={ch.full_name} />
-          <Item k="Prénom *" v={ch.first_name ?? "—"} />
-          <Item k="Téléphone * (= mot de passe démo)" v={ch.phone} />
-          <Item k="Date de naissance *" v={ch.birth_date ?? "—"} />
-          <Item k="Ville / wilaya *" v={ch.city ?? ch.wilaya ?? "—"} />
-          <Item k="Adresse (facultatif)" v={ch.home_addr_text ?? "—"} />
-          <Item
-            k="Inscrit le"
-            v={new Date(ch.created_at).toLocaleDateString("fr-FR")}
-          />
-          <Item
-            k="Dossier envoyé le"
-            v={
-              ch.submitted_at
-                ? new Date(ch.submitted_at).toLocaleDateString("fr-FR")
-                : "—"
-            }
-          />
-          <Item
-            k="Note · courses"
-            v={`${st?.avg ? `★ ${Math.round(Number(st.avg) * 10) / 10}` : "—"} · ${st?.count ?? 0} courses`}
-          />
-        </dl>
-      </section>
+      </CollapsibleSection>
 
       {/* ── 2. Documents — validation PIÈCE PAR PIÈCE ── */}
-      <section className="bg-surface border-border rounded-[14px] border p-4">
-        <h2 className="mb-1 flex items-center gap-1.5 text-sm font-bold uppercase">
-          <FileCheck className="size-4" /> Documents — validation pièce par
-          pièce
-        </h2>
-        <p className="text-muted mb-3 text-xs">
-          <strong>Obligatoires</strong> : permis recto + verso, carte grise,
-          photo de plaque, selfie en direct. <strong>Facultatif</strong> :
-          assurance (« si disponible »). Une pièce refusée renvoie le motif au
-          chauffeur ; une pièce re-soumise repasse automatiquement « à vérifier
-          ».
-        </p>
-        <ChauffeurDocReview
-          chauffeurId={id}
-          docs={(docs ?? []) as AdminChauffeurDoc[]}
-          signedUrls={Object.fromEntries(signedByDocId)}
-        />
-      </section>
+      <CollapsibleSection
+        icon={<FileCheck className="size-4" />}
+        title="Documents — validation pièce par pièce"
+        count={(docs ?? []).length}
+        hint="Obligatoires : permis recto + verso, carte grise, photo de plaque, selfie en direct. Facultatif : assurance. Une pièce refusée renvoie le motif au chauffeur ; une pièce re-soumise repasse automatiquement « à vérifier »."
+        defaultOpen={!ch.is_verified}
+      >
+        <div className="mt-3">
+          <ChauffeurDocReview
+            chauffeurId={id}
+            docs={(docs ?? []) as AdminChauffeurDoc[]}
+            signedUrls={Object.fromEntries(signedByDocId)}
+          />
+        </div>
+      </CollapsibleSection>
 
       {/* ── 3. Véhicule, gamme, CCP (fiche éditable) ── */}
-      <section className="bg-surface border-border rounded-[14px] border p-4">
-        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase">
-          <Car className="size-4" /> Véhicule, gamme & paiement
-        </h2>
-        <ChauffeurInfoForm
-          chauffeurId={id}
-          initial={{
-            vehicle_make: ch.vehicle_make,
-            vehicle_model: ch.vehicle_model,
-            vehicle_color: ch.vehicle_color,
-            vehicle_plate: ch.vehicle_plate,
-            gamme: ch.gamme,
-            home_addr_text: ch.home_addr_text,
-            ccp_number: ch.ccp_number,
-            ccp_key: ch.ccp_key,
-            is_female: ch.is_female,
-            is_female_verified: ch.is_female_verified,
-          }}
-        />
-      </section>
+      <CollapsibleSection
+        icon={<Car className="size-4" />}
+        title="Véhicule, gamme & paiement"
+      >
+        <div className="mt-3">
+          <ChauffeurInfoForm
+            chauffeurId={id}
+            initial={{
+              vehicle_make: ch.vehicle_make,
+              vehicle_model: ch.vehicle_model,
+              vehicle_color: ch.vehicle_color,
+              vehicle_plate: ch.vehicle_plate,
+              gamme: ch.gamme,
+              home_addr_text: ch.home_addr_text,
+              ccp_number: ch.ccp_number,
+              ccp_key: ch.ccp_key,
+              is_female: ch.is_female,
+              is_female_verified: ch.is_female_verified,
+            }}
+          />
+        </div>
+      </CollapsibleSection>
 
       {/* ── 4. Abonnement & finances ── */}
-      <section className="bg-surface border-border rounded-[14px] border p-4">
-        <h2 className="mb-3 flex items-center gap-1.5 text-sm font-bold uppercase">
-          <Wallet className="size-4" /> Abonnement & finances
-        </h2>
-        <dl className="grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
+      <CollapsibleSection
+        icon={<Wallet className="size-4" />}
+        title="Abonnement & finances"
+      >
+        <dl className="mt-3 grid gap-x-6 gap-y-2 text-sm sm:grid-cols-3">
           <Item
             k="Plan"
             v={
@@ -265,26 +282,23 @@ export default async function AdminChauffeurDetailPage({
             }
           />
         </dl>
-      </section>
+      </CollapsibleSection>
 
       {/* ── 5. Activation / gel / blocage ── */}
-      <section className="bg-surface border-border rounded-[14px] border p-4">
-        <h2 className="mb-1 text-sm font-bold uppercase">
-          Activation du compte
-        </h2>
-        <p className="text-muted mb-3 text-xs">
-          L&apos;activation est <strong>bloquée</strong> tant que
-          l&apos;identité n&apos;est pas complète et que TOUTES les pièces
-          obligatoires ne sont pas validées. Une fois activé, le chauffeur peut
-          se connecter et recevoir des courses.
-        </p>
-        <ChauffeurAccountActions
-          chauffeurId={id}
-          isVerified={!!ch.is_verified}
-          isFrozen={!!ch.is_frozen}
-          isBlocked={!!ch.is_blocked}
-        />
-      </section>
+      <CollapsibleSection
+        title="Activation du compte"
+        hint="L'activation est bloquée tant que l'identité n'est pas complète et que TOUTES les pièces obligatoires ne sont pas validées. Une fois activé, le chauffeur peut se connecter et recevoir des courses. « Dégeler » lève aussi la sanction anti-fraude d'origine s'il y en a une."
+        defaultOpen
+      >
+        <div className="mt-3">
+          <ChauffeurAccountActions
+            chauffeurId={id}
+            isVerified={!!ch.is_verified}
+            isFrozen={!!ch.is_frozen}
+            isBlocked={!!ch.is_blocked}
+          />
+        </div>
+      </CollapsibleSection>
     </div>
   );
 }

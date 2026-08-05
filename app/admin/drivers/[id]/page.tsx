@@ -12,7 +12,10 @@ import {
 } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminDomain } from "@/lib/auth/admin";
+import { getActiveFraudSanctions } from "@/lib/data/fraud-sanctions";
 import { formatDA } from "@/lib/utils";
+import { CollapsibleSection } from "@/components/admin/shared/collapsible-section";
+import { FraudSanctionsPanel } from "@/components/admin/shared/fraud-sanctions-panel";
 import { DriverFreezeButton } from "@/components/admin/driver-freeze-button";
 import { DriverBlockButton } from "@/components/admin/drivers/driver-block-button";
 import { DriverForceSignoutButton } from "@/components/admin/drivers/driver-force-signout-button";
@@ -106,25 +109,28 @@ export default async function AdminDriverDetailPage({
       : "kyc";
   const notifyDefault = await getNotifyDriverOnVerify();
 
-  const [{ data: docs }, { data: payouts }, { data: cap }] = await Promise.all([
-    admin
-      .from("driver_documents")
-      .select(
-        "id, doc_type, number, issued_at, expires_at, note, file_url, status, review_note"
-      )
-      .eq("driver_id", id)
-      .order("created_at", { ascending: false }),
-    admin
-      .from("driver_payout_methods")
-      .select("id, method, label, account_number, account_name, is_default")
-      .eq("driver_id", id)
-      .order("is_default", { ascending: false }),
-    admin
-      .from("platform_settings")
-      .select("driver_float_cap_da")
-      .eq("id", true)
-      .maybeSingle(),
-  ]);
+  const [{ data: docs }, { data: payouts }, { data: cap }, fraudSanctions] =
+    await Promise.all([
+      admin
+        .from("driver_documents")
+        .select(
+          "id, doc_type, number, issued_at, expires_at, note, file_url, status, review_note"
+        )
+        .eq("driver_id", id)
+        .order("created_at", { ascending: false }),
+      admin
+        .from("driver_payout_methods")
+        .select("id, method, label, account_number, account_name, is_default")
+        .eq("driver_id", id)
+        .order("is_default", { ascending: false }),
+      admin
+        .from("platform_settings")
+        .select("driver_float_cap_da")
+        .eq("id", true)
+        .maybeSingle(),
+      // Sanctions anti-fraude ACTIVES : affichées et LEVABLES sur la fiche.
+      getActiveFraudSanctions("driver", id),
+    ]);
 
   // --- Performance (tout temps) ---
   const [{ count: deliveredAll }, { count: cancelledAll }] = await Promise.all([
@@ -409,9 +415,21 @@ export default async function AdminDriverDetailPage({
                 {" "}
                 Motif : <em>{driver.freeze_reason}</em>.
               </>
-            ) : null}
+            ) : null}{" "}
+            « Dégeler » lève aussi la sanction anti-fraude d&apos;origine
+            s&apos;il y en a une.
           </p>
         ) : null}
+
+        {/* Sanctions anti-fraude ACTIVES (suspension, hors ligne forcé…) :
+            gérables ICI (« Lever » par ligne), plus de détour par le module.
+            Sans ce panneau, un « hors ligne forcé » était INVISIBLE sur la
+            fiche — le livreur semblait actif mais ne recevait rien. */}
+        <FraudSanctionsPanel
+          kind="driver"
+          actorId={id}
+          sanctions={fraudSanctions}
+        />
       </div>
 
       {/* Performance */}
@@ -444,12 +462,12 @@ export default async function AdminDriverDetailPage({
       </section>
 
       {/* Finances de la période */}
-      <section className="border-border bg-surface rounded-[16px] border p-5">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
-          <h2 className="flex items-center gap-2 text-base font-semibold">
-            <CreditCard className="size-4" />
-            Finances
-          </h2>
+      <CollapsibleSection
+        icon={<CreditCard className="size-4" />}
+        title="Finances"
+        defaultOpen
+      >
+        <div className="mt-3 mb-4 flex flex-wrap items-center justify-between gap-2">
           <div className="bg-surface-2 flex gap-1 rounded-[10px] p-1 text-xs font-semibold">
             {(
               [
@@ -516,113 +534,111 @@ export default async function AdminDriverDetailPage({
               : "depuis le début"}{" "}
           · valeurs figées par commande (snapshots immuables).
         </p>
-      </section>
+      </CollapsibleSection>
 
       {/* Demandes de modification (livreur vérifié) */}
-      <section className="border-border bg-surface rounded-[16px] border p-5">
-        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-          <FileText className="size-4" />
-          Demandes de modification
-          {pendingReqCount > 0 && (
-            <span className="bg-warning-100 text-warning-800 rounded-full px-2 py-0.5 text-xs font-bold">
-              {pendingReqCount} en attente
-            </span>
-          )}
-        </h2>
-        <p className="text-muted mb-3 text-xs">
-          Le livreur étant vérifié, ses infos sont verrouillées : il soumet des
-          demandes. Vérifie, applique le changement via les sections ci-dessous,
-          puis approuve/refuse.
-        </p>
-        <DriverChangeRequests
-          driverId={id}
-          requests={changeRequests}
-          currentVehicle={currentVehicle}
-        />
-      </section>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Profil éditable */}
-        <section className="border-border bg-surface rounded-[16px] border p-5">
-          <h2 className="mb-4 text-base font-semibold">Profil & véhicule</h2>
-          <DriverProfileForm driver={profile} />
-        </section>
-
-        <div className="space-y-6">
-          {/* Documents */}
-          <section className="border-border bg-surface rounded-[16px] border p-5">
-            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-              <FileText className="size-4" />
-              Pièces d&apos;identité
-            </h2>
-            <DriverDocumentsManager driverId={id} documents={documents} />
-          </section>
-
-          {/* Versement */}
-          <section className="border-border bg-surface rounded-[16px] border p-5">
-            <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-              <Banknote className="size-4" />
-              Moyens de versement
-            </h2>
-            <DriverPayoutsManager
-              driverId={id}
-              methods={(payouts ?? []) as DriverPayout[]}
-            />
-          </section>
+      <CollapsibleSection
+        icon={<FileText className="size-4" />}
+        title="Demandes de modification"
+        count={pendingReqCount > 0 ? pendingReqCount : undefined}
+        hint="Le livreur étant vérifié, ses infos sont verrouillées : il soumet des demandes. Vérifie, applique le changement via les sections ci-dessous, puis approuve/refuse."
+        defaultOpen={pendingReqCount > 0}
+      >
+        <div className="mt-3">
+          <DriverChangeRequests
+            driverId={id}
+            requests={changeRequests}
+            currentVehicle={currentVehicle}
+          />
         </div>
-      </div>
+      </CollapsibleSection>
+
+      {/* Profil éditable */}
+      <CollapsibleSection title="Profil & véhicule">
+        <div className="mt-3">
+          <DriverProfileForm driver={profile} />
+        </div>
+      </CollapsibleSection>
+
+      {/* Documents */}
+      <CollapsibleSection
+        icon={<FileText className="size-4" />}
+        title="Pièces d'identité"
+        count={documents.length}
+        defaultOpen={!driver.is_verified}
+      >
+        <div className="mt-3">
+          <DriverDocumentsManager driverId={id} documents={documents} />
+        </div>
+      </CollapsibleSection>
+
+      {/* Versement */}
+      <CollapsibleSection
+        icon={<Banknote className="size-4" />}
+        title="Moyens de versement"
+        count={(payouts ?? []).length}
+      >
+        <div className="mt-3">
+          <DriverPayoutsManager
+            driverId={id}
+            methods={(payouts ?? []) as DriverPayout[]}
+          />
+        </div>
+      </CollapsibleSection>
 
       {/* Commandes actives + réattribution */}
-      <section className="border-border bg-surface rounded-[16px] border p-5">
-        <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-          <Package className="size-4" />
-          Commandes en cours ({active.length})
-        </h2>
-        {active.length === 0 ? (
-          <p className="text-muted text-sm">Aucune commande en cours.</p>
-        ) : (
-          <ul className="space-y-3">
-            {active.map((o) => (
-              <li
-                key={o.id}
-                className="border-border rounded-[12px] border p-3"
-              >
-                <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
-                  <div className="min-w-0">
-                    <p className="font-semibold">
-                      {o.order_number ?? o.id.slice(0, 8)} ·{" "}
-                      {merchName.get(o.merchant_id ?? "") ?? "Commerçant"}
-                    </p>
-                    <p className="text-muted truncate">
-                      {o.delivery_address_text ?? "Adresse client"}
-                    </p>
-                    <p className="text-muted mt-1 text-xs">
-                      <span className="bg-surface-2 rounded-full px-2 py-0.5 font-medium">
-                        {o.status}
-                      </span>{" "}
-                      · {o.payment_method === "cash" ? "Espèces" : "Prépayé"}
-                      {o.delivery_picked_up_at && " · déjà récupérée"}
-                    </p>
+      <CollapsibleSection
+        icon={<Package className="size-4" />}
+        title="Commandes en cours"
+        count={active.length}
+        defaultOpen={active.length > 0}
+      >
+        <div className="mt-3">
+          {active.length === 0 ? (
+            <p className="text-muted text-sm">Aucune commande en cours.</p>
+          ) : (
+            <ul className="space-y-3">
+              {active.map((o) => (
+                <li
+                  key={o.id}
+                  className="border-border rounded-[12px] border p-3"
+                >
+                  <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
+                    <div className="min-w-0">
+                      <p className="font-semibold">
+                        {o.order_number ?? o.id.slice(0, 8)} ·{" "}
+                        {merchName.get(o.merchant_id ?? "") ?? "Commerçant"}
+                      </p>
+                      <p className="text-muted truncate">
+                        {o.delivery_address_text ?? "Adresse client"}
+                      </p>
+                      <p className="text-muted mt-1 text-xs">
+                        <span className="bg-surface-2 rounded-full px-2 py-0.5 font-medium">
+                          {o.status}
+                        </span>{" "}
+                        · {o.payment_method === "cash" ? "Espèces" : "Prépayé"}
+                        {o.delivery_picked_up_at && " · déjà récupérée"}
+                      </p>
+                    </div>
+                    <span className="font-semibold tabular-nums">
+                      {formatDA(o.total_da ?? 0)}
+                    </span>
                   </div>
-                  <span className="font-semibold tabular-nums">
-                    {formatDA(o.total_da ?? 0)}
-                  </span>
-                </div>
-                <OrderReassign
-                  orderId={o.id}
-                  driverId={id}
-                  candidates={candidates}
-                />
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+                  <OrderReassign
+                    orderId={o.id}
+                    driverId={id}
+                    candidates={candidates}
+                  />
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </CollapsibleSection>
 
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        {/* Historique */}
-        <section className="border-border bg-surface rounded-[16px] border p-5">
-          <h2 className="mb-4 text-base font-semibold">Historique récent</h2>
+      {/* Historique */}
+      <CollapsibleSection title="Historique récent" count={hist.length}>
+        <div className="mt-3">
           {hist.length === 0 ? (
             <p className="text-muted text-sm">Aucune course terminée.</p>
           ) : (
@@ -665,14 +681,16 @@ export default async function AdminDriverDetailPage({
               ))}
             </ul>
           )}
-        </section>
+        </div>
+      </CollapsibleSection>
 
-        {/* Facturation / relevés */}
-        <section className="border-border bg-surface rounded-[16px] border p-5">
-          <h2 className="mb-4 flex items-center gap-2 text-base font-semibold">
-            <FileText className="size-4" />
-            Facturation (relevés)
-          </h2>
+      {/* Facturation / relevés */}
+      <CollapsibleSection
+        icon={<FileText className="size-4" />}
+        title="Facturation (relevés)"
+        count={(statements ?? []).length}
+      >
+        <div className="mt-3">
           {(statements ?? []).length === 0 ? (
             <p className="text-muted text-sm">Aucun relevé généré.</p>
           ) : (
@@ -698,8 +716,8 @@ export default async function AdminDriverDetailPage({
               ))}
             </ul>
           )}
-        </section>
-      </div>
+        </div>
+      </CollapsibleSection>
     </div>
   );
 }

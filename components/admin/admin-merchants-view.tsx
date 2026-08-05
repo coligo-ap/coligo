@@ -17,10 +17,14 @@ import {
   Loader2,
   Mail,
   PackagePlus,
+  Percent,
   Phone,
   SlidersHorizontal,
   Snowflake,
+  Tags,
 } from "lucide-react";
+import { CollapsibleSection } from "@/components/admin/shared/collapsible-section";
+import { FraudSanctionsPanel } from "@/components/admin/shared/fraud-sanctions-panel";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { useConfirm } from "@/components/ui/confirm";
@@ -349,105 +353,126 @@ function MerchantRow({
         </div>
       </div>
 
-      <form action={formAction} className="space-y-3">
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          {OVERRIDE_FIELDS.map((f) => (
-            <div key={f.name} className="space-y-1">
-              <label className="text-muted text-[11px] font-medium">
-                {f.label} (%)
-              </label>
-              <Input
-                type="number"
-                name={f.name}
-                defaultValue={rateToPct(merchant[f.name])}
-                placeholder={
-                  settings ? rateToPct(settings[f.settingsKey] as number) : ""
-                }
-                min={0}
-                max={100}
-                step="0.01"
-                disabled={saving}
-                className="h-10"
-              />
-            </div>
-          ))}
-        </div>
-        {state.error && (
-          <p className="text-danger-600 text-xs">{state.error}</p>
-        )}
-        {(() => {
-          // Garde-fou Chargily : on ABSORBE toujours les frais de paiement
-          // (jamais facturés au commerçant). Mais si la commission online passe
-          // SOUS le taux Chargily, chaque commande en ligne fait PERDRE de
-          // l'argent à Coligo (frais absorbés non couverts par la commission).
-          const chargily = settings?.chargily_fee ?? 0;
-          const effOnline =
-            merchant.commission_online ?? settings?.commission_online ?? 0;
-          if (chargily <= 0 || effOnline >= chargily) return null;
-          return (
-            <p className="text-danger-700 bg-danger-50 border-danger-200 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0" />
-              <span>
-                Commission online ({rateToPct(effOnline)} %) sous le seuil
-                Chargily ({rateToPct(chargily)} %) : Coligo{" "}
-                <strong>perd</strong> sur chaque commande en ligne (frais de
-                paiement absorbés non couverts). Remonte la commission ou
-                désactive l&apos;online.
-              </span>
-            </p>
-          );
-        })()}
-        <div className="flex items-center gap-3">
-          <ActionButton
-            type="submit"
-            size="sm"
-            state={fb}
-            labels={{
-              idle: "Enregistrer les taux",
-              success: "Taux mis à jour ✓",
-            }}
-          />
-          <span className="text-subtle text-xs">
-            Vide = hérite du taux global.
-          </span>
-        </div>
-      </form>
+      {/* Sanctions anti-fraude ACTIVES : gérables ICI (« Lever » par ligne),
+          chargées paresseusement (les lignes arrivent par « Voir plus »). Un
+          gel anti-fraude devient visible ET levable depuis l'annuaire. */}
+      <FraudSanctionsPanel kind="merchant" actorId={merchant.id} lazy />
+
+      {/* Sous-sections REPLIABLES : la carte reste compacte, l'admin déplie
+          ce dont il a besoin (demande produit : sections fermantes partout). */}
+      <CollapsibleSection
+        icon={<Percent className="size-4" />}
+        title="Taux & commissions"
+        hint="Vide = hérite du taux global."
+      >
+        <form action={formAction} className="mt-3 space-y-3">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            {OVERRIDE_FIELDS.map((f) => (
+              <div key={f.name} className="space-y-1">
+                <label className="text-muted text-[11px] font-medium">
+                  {f.label} (%)
+                </label>
+                <Input
+                  type="number"
+                  name={f.name}
+                  defaultValue={rateToPct(merchant[f.name])}
+                  placeholder={
+                    settings ? rateToPct(settings[f.settingsKey] as number) : ""
+                  }
+                  min={0}
+                  max={100}
+                  step="0.01"
+                  disabled={saving}
+                  className="h-10"
+                />
+              </div>
+            ))}
+          </div>
+          {state.error && (
+            <p className="text-danger-600 text-xs">{state.error}</p>
+          )}
+          {(() => {
+            // Garde-fou Chargily : on ABSORBE toujours les frais de paiement
+            // (jamais facturés au commerçant). Mais si la commission online passe
+            // SOUS le taux Chargily, chaque commande en ligne fait PERDRE de
+            // l'argent à Coligo (frais absorbés non couverts par la commission).
+            const chargily = settings?.chargily_fee ?? 0;
+            const effOnline =
+              merchant.commission_online ?? settings?.commission_online ?? 0;
+            if (chargily <= 0 || effOnline >= chargily) return null;
+            return (
+              <p className="text-danger-700 bg-danger-50 border-danger-200 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+                <AlertTriangle className="mt-0.5 size-4 shrink-0" />
+                <span>
+                  Commission online ({rateToPct(effOnline)} %) sous le seuil
+                  Chargily ({rateToPct(chargily)} %) : Coligo{" "}
+                  <strong>perd</strong> sur chaque commande en ligne (frais de
+                  paiement absorbés non couverts). Remonte la commission ou
+                  désactive l&apos;online.
+                </span>
+              </p>
+            );
+          })()}
+          <div className="flex items-center gap-3">
+            <ActionButton
+              type="submit"
+              size="sm"
+              state={fb}
+              labels={{
+                idle: "Enregistrer les taux",
+                success: "Taux mis à jour ✓",
+              }}
+            />
+            <span className="text-subtle text-xs">
+              Vide = hérite du taux global.
+            </span>
+          </div>
+        </form>
+      </CollapsibleSection>
 
       {/* Raccordement aux catégories (principale + secondaires, mig 0312). */}
-      <MerchantCategoriesPanel
-        merchantId={merchant.id}
-        primaryCategory={merchant.category}
-        options={categoryOptions}
-      />
+      <CollapsibleSection icon={<Tags className="size-4" />} title="Catégories">
+        <MerchantCategoriesPanel
+          merchantId={merchant.id}
+          primaryCategory={merchant.category}
+          options={categoryOptions}
+        />
+      </CollapsibleSection>
 
       {/* Remplissage automatique du catalogue selon le type de commerce. */}
-      <div className="border-border mt-4 flex flex-wrap items-center gap-3 border-t pt-4">
-        {template ? (
-          <>
-            <button
-              type="button"
-              onClick={onSeedCatalog}
-              disabled={seeding}
-              className="bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
-            >
-              {seeding ? (
-                <Loader2 className="size-4 animate-spin" />
-              ) : (
-                <PackagePlus className="size-4" />
-              )}
-              Remplir le catalogue ({template.label})
-            </button>
+      <CollapsibleSection
+        icon={<PackagePlus className="size-4" />}
+        title="Catalogue"
+      >
+        <div className="mt-3 flex flex-wrap items-center gap-3">
+          {template ? (
+            <>
+              <button
+                type="button"
+                onClick={onSeedCatalog}
+                disabled={seeding}
+                className="bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+              >
+                {seeding ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <PackagePlus className="size-4" />
+                )}
+                Remplir le catalogue ({template.label})
+              </button>
+              <span className="text-subtle text-xs">
+                Idempotent · le commerçant ajuste ensuite prix / photos /
+                détails.
+              </span>
+            </>
+          ) : (
             <span className="text-subtle text-xs">
-              Idempotent · le commerçant ajuste ensuite prix / photos / détails.
+              Aucun modèle de catalogue pour ce type de commerce
+              {merchant.category ? ` (« ${merchant.category} »)` : ""}.
             </span>
-          </>
-        ) : (
-          <span className="text-subtle text-xs">
-            Aucun modèle de catalogue pour ce type de commerce
-            {merchant.category ? ` (« ${merchant.category} »)` : ""}.
-          </span>
-        )}
-      </div>
+          )}
+        </div>
+      </CollapsibleSection>
 
       <ActionNote note={note} className="mt-3" />
     </li>

@@ -5,6 +5,7 @@ import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
+import { revokeActiveSuspendSanctions } from "@/lib/fraud/reinstate";
 import { FEATURE_KEYS } from "@/lib/data/feature-flags";
 import { APP_THEMES, APP_THEME_MODELS } from "@/lib/config/app-themes";
 import { getCatalogTemplate } from "@/lib/config/catalog-templates";
@@ -406,6 +407,18 @@ export async function toggleMerchantFrozen(
 
   if (error) return { error: error.message };
 
+  // DÉGEL = réactivation TOTALE : si le gel venait d'une sanction anti-fraude
+  // « suspend » (effet de bord is_frozen, mig 0374), on la révoque aussi —
+  // sinon elle reste active dans le module et re-gèle au prochain battement.
+  if (!frozen) {
+    const fraudRes = await revokeActiveSuspendSanctions(
+      "merchant",
+      merchantId,
+      "Dégel du compte depuis l'annuaire commerçants"
+    );
+    if (fraudRes.error) return { error: fraudRes.error };
+  }
+
   // Audit
   const {
     data: { user },
@@ -561,6 +574,16 @@ export async function toggleDriverFrozen(
         .in("merchant_driver_id", ids)
         .neq("status", "busy"); // on ne casse pas une course en cours
     }
+  } else {
+    // DÉGEL = réactivation TOTALE : si le gel venait d'une sanction anti-fraude
+    // « suspend » (effet de bord is_frozen, mig 0374), on la révoque aussi —
+    // sinon elle reste active dans le module et le livreur reste marqué.
+    const fraudRes = await revokeActiveSuspendSanctions(
+      "driver",
+      driverId,
+      "Dégel du compte depuis la fiche livreur"
+    );
+    if (fraudRes.error) return { error: fraudRes.error };
   }
 
   const supabase = await createClient();

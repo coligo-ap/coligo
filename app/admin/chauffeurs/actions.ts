@@ -8,6 +8,7 @@ import {
   settleIdvOnDossierApproval,
 } from "@/lib/idv/fallback";
 import { adminCan } from "@/lib/auth/admin";
+import { revokeActiveSuspendSanctions } from "@/lib/fraud/reinstate";
 
 // =============================================================================
 // Gestion des chauffeurs VTC (super-admin).
@@ -43,6 +44,8 @@ type ChauffeurFlags = {
   is_verified?: boolean;
   is_frozen?: boolean;
   is_blocked?: boolean;
+  frozen_reason?: string | null;
+  frozen_at?: string | null;
 };
 
 async function setFlag(
@@ -80,11 +83,27 @@ export async function setChauffeurFrozen(
   chauffeurId: string,
   frozen: boolean
 ): Promise<{ error?: string }> {
-  return setFlag(
+  const res = await setFlag(
     chauffeurId,
-    { is_frozen: frozen },
+    frozen
+      ? { is_frozen: true }
+      : // Dégel : on efface aussi le motif (posé par l'équipe OU l'anti-fraude).
+        { is_frozen: false, frozen_reason: null, frozen_at: null },
     frozen ? "freeze_chauffeur" : "unfreeze_chauffeur"
   );
+  if (res.error) return res;
+  // DÉGEL = réactivation TOTALE : si le gel venait d'une sanction anti-fraude
+  // « suspend » (effet de bord is_frozen, mig 0374), on la révoque aussi —
+  // sinon elle reste active dans le module et le chauffeur reste marqué.
+  if (!frozen) {
+    const fraudRes = await revokeActiveSuspendSanctions(
+      "chauffeur",
+      chauffeurId,
+      "Dégel du compte depuis la fiche chauffeur"
+    );
+    if (fraudRes.error) return { error: fraudRes.error };
+  }
+  return {};
 }
 
 /** Blocage dur (compte suspendu). */

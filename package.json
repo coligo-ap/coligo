@@ -91,6 +91,7 @@
     "test:store:detect": "node --experimental-strip-types scripts/test-store-detect.mjs",
     "test:reviews:moderation": "node --experimental-strip-types scripts/test-review-moderation.mjs",
     "test:customer:reinstate": "node scripts/test-customer-reinstate-e2e.mjs",
+    "test:partner:reinstate": "node scripts/test-partner-reinstate-e2e.mjs",
     "test:fraud:gate": "node scripts/test-fraud-gate.mjs"
   },
   "dependencies": {
