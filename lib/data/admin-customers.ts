@@ -4,6 +4,7 @@ import { adminCan } from "@/lib/auth/admin";
 import {
   CUSTOMERS_PAGE_SIZE,
   type CustomerDetail,
+  type CustomerFraudSanction,
   type CustomerLocation,
   type CustomerRow,
   type CustomersPage,
@@ -156,9 +157,10 @@ export async function getCustomerDetail(
     .maybeSingle();
   if (!row) return null;
 
-  // Sanction anti-fraude « suspend » ACTIVE (mig 0374) : la fiche doit montrer
-  // la MÊME vérité que l'app client (customer_fraud_gate) — un compte suspendu
-  // par le module Anti-fraude ne doit jamais s'afficher « Actif » ici.
+  // Sanctions anti-fraude ACTIVES (mig 0374) : la fiche doit montrer la MÊME
+  // vérité que l'app client (customer_fraud_gate) — un compte suspendu par le
+  // module Anti-fraude ne doit jamais s'afficher « Actif » ici — et permettre
+  // de LEVER chaque sanction sur place (section dédiée, pas de redirection).
   const fraudFrom = admin.from.bind(admin) as unknown as (t: string) => {
     select: (c: string) => {
       eq: (
@@ -169,38 +171,49 @@ export async function getCustomerDetail(
           c2: string,
           v2: string
         ) => {
-          eq: (
+          is: (
             c3: string,
-            v3: string
+            v3: null
           ) => {
-            is: (
+            order: (
               c4: string,
-              v4: null
-            ) => Promise<{ data: { expires_at: string | null }[] | null }>;
+              o: { ascending: boolean }
+            ) => Promise<{
+              data:
+                | {
+                    id: string;
+                    action: string;
+                    source: "auto" | "admin";
+                    reason: string;
+                    created_at: string;
+                    expires_at: string | null;
+                  }[]
+                | null;
+            }>;
           };
         };
       };
     };
   };
-  const fraudSuspendedPromise = fraudFrom("fraud_actions")
-    .select("expires_at")
+  const fraudSanctionsPromise = fraudFrom("fraud_actions")
+    .select("id, action, source, reason, created_at, expires_at")
     .eq("actor_kind", "customer")
     .eq("actor_id", customerId)
-    .eq("action", "suspend")
     .is("revoked_at", null)
+    .order("created_at", { ascending: false })
     .then(({ data }) =>
-      (data ?? []).some(
+      (data ?? []).filter(
         (r) => !r.expires_at || new Date(r.expires_at).getTime() > Date.now()
       )
     )
-    .catch(() => false);
+    .catch((): CustomerFraudSanction[] => []);
 
   const [
     { data: features },
     { data: orders },
     { data: devices },
     locations,
-    fraudSuspended,
+    fraudSanctions,
   ] = await Promise.all([
     from("customer_feature_blocks")
       .select("feature, reason, created_at")
@@ -220,7 +233,7 @@ export async function getCustomerDetail(
       .order("last_seen_at", { ascending: false })
       .limit(10),
     getCustomerLocations(customerId, 40),
-    fraudSuspendedPromise,
+    fraudSanctionsPromise,
   ]);
 
   const blockedFeatures = (features ?? []).map((f) => String(f.feature));
@@ -241,7 +254,7 @@ export async function getCustomerDetail(
       is_blocked: row.is_blocked === true,
       blocked_at: (row.blocked_at as string) ?? null,
       blocked_reason: (row.blocked_reason as string) ?? null,
-      fraud_suspended: fraudSuspended,
+      fraud_suspended: fraudSanctions.some((s) => s.action === "suspend"),
       blocked_by: (row.blocked_by as string) ?? null,
       admin_note: (row.admin_note as string) ?? null,
       cod_blocked: row.cod_blocked === true,
@@ -289,5 +302,6 @@ export async function getCustomerDetail(
       hits: Number(d.hits ?? 0),
     })),
     locations,
+    fraud_sanctions: fraudSanctions,
   };
 }

@@ -146,6 +146,17 @@ export type CustomerDevice = {
   hits: number;
 };
 
+/** Sanction anti-fraude ACTIVE (fraud_actions, mig 0374) — gérée directement
+ *  dans la fiche client (« Lever »), sans redirection vers le module. */
+export type CustomerFraudSanction = {
+  id: string;
+  action: string;
+  source: "auto" | "admin";
+  reason: string;
+  created_at: string;
+  expires_at: string | null;
+};
+
 export type CustomerDetail = {
   customer: CustomerRow & {
     admin_note: string | null;
@@ -157,4 +168,6 @@ export type CustomerDetail = {
   orders: CustomerOrderRow[];
   devices: CustomerDevice[];
   locations: CustomerLocation[];
+  /** Sanctions anti-fraude ACTIVES (non révoquées, non expirées). */
+  fraud_sanctions: CustomerFraudSanction[];
 };

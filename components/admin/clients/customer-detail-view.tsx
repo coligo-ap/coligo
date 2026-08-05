@@ -7,10 +7,12 @@ import {
   ArrowLeft,
   Ban,
   Check,
+  ChevronDown,
   Loader2,
   MapPin,
   Navigation,
   Package,
+  ShieldAlert,
   ShieldCheck,
   ShieldOff,
   Smartphone,
@@ -20,6 +22,8 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { useConfirm, usePrompt } from "@/components/ui/confirm";
 import {
+  reinstateCustomerAction,
+  revokeCustomerFraudSanctionAction,
   setCustomerBlockAction,
   setCustomerFeatureAction,
   setCustomerNoteAction,
@@ -29,11 +33,17 @@ import {
   CUSTOMER_FEATURE_LABEL,
   type CustomerDetail,
   type CustomerFeature,
+  type CustomerFraudSanction,
   type CustomerLocation,
 } from "@/lib/admin/customer-features";
+import { FRAUD_ACTION_LABEL, type FraudActionType } from "@/lib/fraud/model";
 
 // =============================================================================
-// Fiche CLIENT (super-admin) — identité, activité, décisions.
+// Fiche CLIENT (super-admin) — TOUT se gère ICI, sans redirection : statut
+// (suspension manuelle ET anti-fraude unifiées), sanctions anti-fraude levables
+// sur place, fonctionnalités, localisations, appareils, commandes, note.
+// Les sections sont REPLIABLES (accordéons natifs <details>) : l'essentiel
+// (statut + sanctions + fonctionnalités) est ouvert, le reste se déplie.
 //
 // Chaque action a son PROPRE état de chargement (règle CLAUDE.md : jamais un
 // état global qui fige la page), demande confirmation quand elle est lourde, et
@@ -71,18 +81,28 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
 
   const blocked = new Set(detail.features.map((f) => f.feature));
   const last = detail.locations[0] ?? null;
+  // STATUT UNIFIÉ : un compte est suspendu si le blocage MANUEL est posé OU si
+  // une sanction anti-fraude « suspend » est active — c'est ce que voit le
+  // client dans l'app. Le bouton reflète ce total, jamais une seule source.
+  const suspended = c.is_blocked || c.fraud_suspended;
 
   async function toggleBlock() {
     setError(null);
-    if (c.is_blocked) {
+    if (suspended) {
+      const sources = [
+        c.is_blocked && "le blocage manuel",
+        c.fraud_suspended && "la suspension anti-fraude",
+      ]
+        .filter(Boolean)
+        .join(" et ");
       const ok = await confirm({
         title: "Réactiver ce compte ?",
-        message: `${c.full_name} pourra de nouveau commander et réserver une course.`,
+        message: `Lève ${sources}. ${c.full_name} pourra de nouveau commander et réserver une course.`,
         confirmLabel: "Réactiver",
       });
       if (!ok) return;
       startBlock(async () => {
-        const res = await setCustomerBlockAction(c.id, false);
+        const res = await reinstateCustomerAction(c.id);
         if (res.error) setError(res.error);
         else router.refresh();
       });
@@ -124,14 +144,10 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
         <div className="min-w-0">
           <h2 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight">
             {c.full_name || "Sans nom"}
-            {c.is_blocked && (
+            {suspended && (
               <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold">
                 <Ban className="size-3.5" /> Suspendu
-              </span>
-            )}
-            {!c.is_blocked && c.fraud_suspended && (
-              <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold">
-                <Ban className="size-3.5" /> Suspendu (anti-fraude)
+                {!c.is_blocked && c.fraud_suspended ? " (anti-fraude)" : ""}
               </span>
             )}
             {c.is_female_verified && (
@@ -156,19 +172,19 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
           disabled={blockPending}
           className={cn(
             "inline-flex items-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60",
-            c.is_blocked
+            suspended
               ? "bg-success-600 hover:bg-success-700 text-white"
               : "bg-danger-600 hover:bg-danger-700 text-white"
           )}
         >
           {blockPending ? (
             <Loader2 className="size-4 animate-spin" />
-          ) : c.is_blocked ? (
+          ) : suspended ? (
             <ShieldCheck className="size-4" />
           ) : (
             <Ban className="size-4" />
           )}
-          {c.is_blocked ? "Réactiver le compte" : "Suspendre le compte"}
+          {suspended ? "Réactiver le compte" : "Suspendre le compte"}
         </button>
       </header>
 
@@ -186,24 +202,16 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
         </p>
       )}
 
-      {/* Sanction posée par le MODULE ANTI-FRAUDE (fraud_actions) : elle se
-          lève là-bas, pas avec le bouton « Réactiver » ci-dessus — on pointe
-          l'admin au bon endroit au lieu de le laisser chercher. */}
       {!c.is_blocked && c.fraud_suspended && (
         <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[12px] border p-3 text-sm">
-          Compte suspendu par le module Anti-fraude — le client voit « Compte
-          suspendu » dans l&apos;app.{" "}
-          <Link
-            href={`/admin/anti-fraude/comptes/customer/${c.id}`}
-            prefetch
-            className="font-bold underline underline-offset-2"
-          >
-            Gérer la sanction →
-          </Link>
+          Suspendu par le module Anti-fraude — le client voit « Compte suspendu
+          » dans l&apos;app. « Réactiver le compte » lève cette sanction, ou
+          gère-la ligne par ligne dans la section « Sanctions anti-fraude »
+          ci-dessous.
         </p>
       )}
 
-      {/* Activité */}
+      {/* Activité — toujours visible (lecture d'un coup d'œil). */}
       <div className="mt-5 grid gap-3 sm:grid-cols-4">
         <Stat
           label="Commandes"
@@ -231,16 +239,33 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
         />
       </div>
 
+      {/* Sanctions anti-fraude — rendue UNIQUEMENT s'il y en a d'actives,
+          gérable ICI (« Lever » par ligne), plus de redirection. */}
+      {detail.fraud_sanctions.length > 0 && (
+        <Section
+          Icon={ShieldAlert}
+          title="Sanctions anti-fraude"
+          count={detail.fraud_sanctions.length}
+          hint="Mesures actives posées par le moteur ou l'équipe — chaque levée est journalisée."
+          defaultOpen
+          tone="danger"
+        >
+          <ul className="mt-3 space-y-2">
+            {detail.fraud_sanctions.map((s) => (
+              <SanctionRow key={s.id} customerId={c.id} sanction={s} />
+            ))}
+          </ul>
+        </Section>
+      )}
+
       {/* Fonctionnalités par client */}
-      <section className="border-border bg-surface mt-4 rounded-[16px] border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-bold">
-          <ShieldOff className="size-4" />
-          Fonctionnalités de ce client
-        </h3>
-        <p className="text-muted mt-1 text-[13px]">
-          Couper une fonctionnalité ici ferme l&apos;API pour ce client
-          uniquement — les autres clients ne sont pas touchés.
-        </p>
+      <Section
+        Icon={ShieldOff}
+        title="Fonctionnalités de ce client"
+        count={blocked.size > 0 ? blocked.size : undefined}
+        hint="Couper une fonctionnalité ici ferme l'API pour ce client uniquement — les autres clients ne sont pas touchés."
+        defaultOpen
+      >
         <ul className="mt-3 grid gap-2 sm:grid-cols-2">
           {CUSTOMER_FEATURES.map((f) => (
             <FeatureRow
@@ -254,18 +279,15 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             />
           ))}
         </ul>
-      </section>
+      </Section>
 
       {/* Positions */}
-      <section className="border-border bg-surface mt-4 rounded-[16px] border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-bold">
-          <MapPin className="size-4" />
-          Localisations connues
-        </h3>
-        <p className="text-muted mt-1 text-[13px]">
-          Connexions (géo IP), adresses enregistrées, livraisons reçues et
-          départs de course — de la plus récente à la plus ancienne.
-        </p>
+      <Section
+        Icon={MapPin}
+        title="Localisations connues"
+        count={detail.locations.length}
+        hint="Connexions (géo IP), adresses enregistrées, livraisons reçues et départs de course — de la plus récente à la plus ancienne."
+      >
         {detail.locations.length === 0 ? (
           <p className="text-muted mt-3 text-sm">
             Aucune position enregistrée.
@@ -305,14 +327,14 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
       {/* Appareils */}
-      <section className="border-border bg-surface mt-4 rounded-[16px] border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-bold">
-          <Smartphone className="size-4" />
-          Appareils &amp; connexions
-        </h3>
+      <Section
+        Icon={Smartphone}
+        title="Appareils & connexions"
+        count={detail.devices.length}
+      >
         {detail.devices.length === 0 ? (
           <p className="text-muted mt-3 text-sm">Aucune connexion tracée.</p>
         ) : (
@@ -333,14 +355,14 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
       {/* Dernières commandes */}
-      <section className="border-border bg-surface mt-4 rounded-[16px] border p-4">
-        <h3 className="flex items-center gap-2 text-sm font-bold">
-          <Package className="size-4" />
-          Dernières commandes
-        </h3>
+      <Section
+        Icon={Package}
+        title="Dernières commandes"
+        count={detail.orders.length}
+      >
         {detail.orders.length === 0 ? (
           <p className="text-muted mt-3 text-sm">Aucune commande.</p>
         ) : (
@@ -370,10 +392,147 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             ))}
           </ul>
         )}
-      </section>
+      </Section>
 
-      <NotePanel customerId={c.id} note={c.admin_note} />
+      <Section
+        Icon={StickyNote}
+        title="Note interne"
+        defaultOpen={!!c.admin_note}
+      >
+        <NoteEditor customerId={c.id} note={c.admin_note} />
+      </Section>
     </div>
+  );
+}
+
+/**
+ * Section REPLIABLE de la fiche (accordéon natif <details> : accessible,
+ * zéro état React). En-tête = icône + titre + compteur, chevron qui pivote.
+ */
+function Section({
+  Icon,
+  title,
+  count,
+  hint,
+  defaultOpen = false,
+  tone,
+  children,
+}: {
+  Icon: React.ComponentType<{ className?: string }>;
+  title: string;
+  count?: number;
+  hint?: string;
+  defaultOpen?: boolean;
+  /** `danger` : liseré rouge (sanctions) pour attirer l'œil. */
+  tone?: "danger";
+  children: React.ReactNode;
+}) {
+  // État PILOTÉ : un router.refresh (après une action) re-rend la fiche — sans
+  // ça, une section dépliée par l'admin se refermerait sur sa valeur par défaut.
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <details
+      open={open}
+      onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
+      className={cn(
+        "group bg-surface mt-4 rounded-[16px] border p-4",
+        tone === "danger" ? "border-danger-200" : "border-border"
+      )}
+    >
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-sm font-bold [&::-webkit-details-marker]:hidden">
+        <Icon
+          className={cn("size-4", tone === "danger" && "text-danger-600")}
+        />
+        {title}
+        {typeof count === "number" && (
+          <span
+            className={cn(
+              "rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums",
+              tone === "danger"
+                ? "bg-danger-100 text-danger-700"
+                : "bg-surface-2 text-muted"
+            )}
+          >
+            {count}
+          </span>
+        )}
+        <ChevronDown className="text-muted ms-auto size-4 shrink-0 transition-transform group-open:rotate-180" />
+      </summary>
+      {hint && <p className="text-muted mt-1 text-[13px]">{hint}</p>}
+      {children}
+    </details>
+  );
+}
+
+/** Une sanction anti-fraude active = une ligne, avec SON bouton « Lever ». */
+function SanctionRow({
+  customerId,
+  sanction,
+}: {
+  customerId: string;
+  sanction: CustomerFraudSanction;
+}) {
+  const router = useRouter();
+  const confirm = useConfirm();
+  const [pending, start] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+  const label =
+    FRAUD_ACTION_LABEL[sanction.action as FraudActionType] ?? sanction.action;
+
+  async function revoke() {
+    setError(null);
+    const ok = await confirm({
+      title: `Lever « ${label} » ?`,
+      message:
+        "La mesure est révoquée immédiatement et ses effets annulés. L'opération est journalisée.",
+      confirmLabel: "Lever la sanction",
+    });
+    if (!ok) return;
+    start(async () => {
+      const res = await revokeCustomerFraudSanctionAction(
+        customerId,
+        sanction.id
+      );
+      if (res.error) setError(res.error);
+      else router.refresh();
+    });
+  }
+
+  return (
+    <li className="border-danger-200 bg-danger-50/50 flex items-center gap-3 rounded-[12px] border p-3">
+      <span className="min-w-0 flex-1">
+        <span className="text-foreground flex flex-wrap items-center gap-1.5 text-sm font-semibold">
+          {label}
+          <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
+            {sanction.source === "auto" ? "Moteur (auto)" : "Équipe"}
+          </span>
+        </span>
+        <span className="text-muted block text-[12px]">
+          {sanction.reason} · {fmt(sanction.created_at)}
+          {sanction.expires_at
+            ? ` · expire le ${fmt(sanction.expires_at)}`
+            : ""}
+        </span>
+        {error && (
+          <span className="text-danger-700 block text-[12px] font-medium">
+            {error}
+          </span>
+        )}
+      </span>
+      <button
+        type="button"
+        onClick={revoke}
+        disabled={pending}
+        className="bg-success-600 hover:bg-success-700 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[13px] font-bold text-white transition-colors disabled:opacity-60"
+      >
+        {pending ? (
+          <Loader2 className="size-3.5 animate-spin" />
+        ) : (
+          <Check className="size-3.5" />
+        )}
+        Lever
+      </button>
+    </li>
   );
 }
 
@@ -487,7 +646,7 @@ function FeatureRow({
   );
 }
 
-function NotePanel({
+function NoteEditor({
   customerId,
   note,
 }: {
@@ -500,11 +659,7 @@ function NotePanel({
   const [pending, start] = useTransition();
 
   return (
-    <section className="border-border bg-surface mt-4 rounded-[16px] border p-4">
-      <h3 className="flex items-center gap-2 text-sm font-bold">
-        <StickyNote className="size-4" />
-        Note interne
-      </h3>
+    <>
       <textarea
         value={value}
         onChange={(e) => {
@@ -538,6 +693,6 @@ function NotePanel({
         </button>
         {error && <span className="text-danger-700 text-[13px]">{error}</span>}
       </div>
-    </section>
+    </>
   );
 }
