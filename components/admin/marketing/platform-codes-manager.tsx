@@ -32,6 +32,9 @@ export type AdminPlatformCode = {
   ends_at: string | null;
   max_uses: number | null;
   max_uses_per_customer: number | null;
+  /** Nombre de COMPTES différents servis max par APPAREIL physique (mig 0436).
+   *  1 = anti multi-comptes strict ; vide = pas de limite appareil. */
+  max_uses_per_device: number | null;
   uses_count: number;
   online_only: boolean;
   app_only: boolean;
@@ -73,12 +76,34 @@ function emptyForm(): CodeInput {
     ends_at: null,
     max_uses: null,
     max_uses_per_customer: 1,
+    max_uses_per_device: 1,
     online_only: true,
     app_only: false,
     audience: "public",
     is_listed: true,
     active: true,
   };
+}
+
+/** ISO (UTC, stocké en base) → valeur pour <input type="datetime-local">
+ *  dans le FUSEAU DU NAVIGATEUR de l'admin. */
+function isoToLocalInput(iso: string | null): string | null {
+  if (!iso) return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+
+/** Valeur <input datetime-local> (heure LOCALE de l'admin) → ISO UTC.
+ *  PIÈGE corrigé (cas vécu APP20) : la valeur brute « 2026-08-06T00:51 »
+ *  envoyée telle quelle était interprétée en UTC par Postgres → le code
+ *  démarrait 1 h PLUS TARD que l'heure voulue (Alger = UTC+1) et le client
+ *  lisait « code pas actif ». */
+function localInputToIso(value: string | null): string | null {
+  if (!value) return null;
+  const d = new Date(value); // interprétée dans le fuseau du navigateur
+  return Number.isNaN(d.getTime()) ? null : d.toISOString();
 }
 
 export function PlatformCodesManager({
@@ -312,10 +337,12 @@ function toFormState(c: AdminPlatformCode | CodeInput): CodeInput {
     discount_value: c.discount_value,
     max_discount_da: c.max_discount_da ?? null,
     min_subtotal_da: c.min_subtotal_da ?? null,
-    starts_at: ("starts_at" in c ? c.starts_at : null) ?? null,
-    ends_at: ("ends_at" in c ? c.ends_at : null) ?? null,
+    // En ÉDITION, l'ISO stocké se réaffiche en heure locale de l'admin.
+    starts_at: isoToLocalInput(("starts_at" in c ? c.starts_at : null) ?? null),
+    ends_at: isoToLocalInput(("ends_at" in c ? c.ends_at : null) ?? null),
     max_uses: c.max_uses ?? null,
     max_uses_per_customer: c.max_uses_per_customer ?? null,
+    max_uses_per_device: c.max_uses_per_device ?? null,
     online_only: c.online_only,
     app_only: c.app_only,
     audience: c.audience,
@@ -350,9 +377,16 @@ function CodeForm({
   function save() {
     setError(null);
     startTransition(async () => {
+      // Dates : l'admin saisit en HEURE LOCALE → converties en ISO UTC ici
+      // (jamais envoyées brutes, sinon décalage d'1 h — cas vécu APP20).
+      const payload: CodeInput = {
+        ...form,
+        starts_at: localInputToIso(form.starts_at),
+        ends_at: localInputToIso(form.ends_at),
+      };
       const res = codeId
-        ? await updatePlatformCode(codeId, form)
-        : await createPlatformCode(form);
+        ? await updatePlatformCode(codeId, payload)
+        : await createPlatformCode(payload);
       if (res.error) setError(res.error);
       else onSaved();
     });
@@ -500,6 +534,29 @@ function CodeForm({
                 placeholder="∞"
               />
             </div>
+          </div>
+
+          <div>
+            <label className={label}>
+              Comptes servis max / appareil (anti-fraude)
+            </label>
+            <input
+              type="number"
+              className={input}
+              min={1}
+              value={
+                form.max_uses_per_device == null
+                  ? ""
+                  : String(form.max_uses_per_device)
+              }
+              onChange={(e) => set("max_uses_per_device", num(e.target.value))}
+              placeholder="∞ (aucune limite appareil)"
+            />
+            <p className="text-subtle mt-1 text-[11px]">
+              1 = un seul compte peut en profiter par téléphone PHYSIQUE (survit
+              à la désinstallation/réinstallation de l&apos;app) — empêche les
+              multi-comptes sur un même appareil.
+            </p>
           </div>
 
           <div className="grid grid-cols-2 gap-3">

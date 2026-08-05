@@ -331,6 +331,155 @@ async function main() {
     await client.query("ROLLBACK");
   }
 
+  // ===========================================================================
+  // TEST D — MOTIFS PRÉCIS (mig 0436) + PLAFOND PAR APPAREIL configurable.
+  // ===========================================================================
+  console.log(
+    "\nTEST D — motifs not_started/expired + plafond appareil (mig 0436)"
+  );
+  await client.query("BEGIN");
+  try {
+    const custs = await client.query(
+      "select id from customers order by created_at limit 3"
+    );
+    const [cA, cB, cC] = custs.rows.map((r) => r.id);
+
+    const dIns = await client.query(
+      `INSERT INTO public.platform_promotions
+         (code, title_fr, discount_kind, discount_value, online_only,
+          audience, active, app_only, max_uses_per_device)
+       VALUES ('DEVCAP','Appareil','amount',100,false,'public',true,false,1)
+       RETURNING id`
+    );
+    const dPromoId = dIns.rows[0].id;
+    const val6 = (code, cust, isApp, device) =>
+      client.query(
+        "select * from public.validate_platform_promo($1,$2,$3,$4,$5,$6)",
+        [code, cust, 1000, "online", isApp, device]
+      );
+
+    // D1 — pas encore commencé : motif DÉDIÉ + date de début renvoyée
+    // (le bug vécu APP20 : « inactive » fourre-tout → message trompeur).
+    await client.query(
+      "update public.platform_promotions set starts_at = now() + interval '1 day' where id=$1",
+      [dPromoId]
+    );
+    let r = (await val6("DEVCAP", cA, false, null)).rows[0];
+    assert(
+      r.valid === false && r.reason === "not_started" && r.starts_at != null,
+      "D1 code pas commencé → not_started + date de début",
+      JSON.stringify(r)
+    );
+
+    // D2 — expiré : motif dédié.
+    await client.query(
+      "update public.platform_promotions set starts_at = null, ends_at = now() - interval '1 day' where id=$1",
+      [dPromoId]
+    );
+    r = (await val6("DEVCAP", cA, false, null)).rows[0];
+    assert(
+      r.valid === false && r.reason === "expired",
+      "D2 code expiré → expired",
+      JSON.stringify(r)
+    );
+
+    // D3 — désactivé : « inactive » ne sert plus qu'à ça.
+    await client.query(
+      "update public.platform_promotions set ends_at = null, active = false where id=$1",
+      [dPromoId]
+    );
+    r = (await val6("DEVCAP", cA, false, null)).rows[0];
+    assert(
+      r.valid === false && r.reason === "inactive",
+      "D3 code désactivé → inactive",
+      JSON.stringify(r)
+    );
+    await client.query(
+      "update public.platform_promotions set active = true where id=$1",
+      [dPromoId]
+    );
+
+    // D4 — plafond appareil 1 : l'appareil a déjà servi le compte A →
+    // le compte B est refusé sur le MÊME appareil.
+    await client.query(
+      `INSERT INTO public.platform_promo_device_marks
+         (promotion_id, device_id, customer_id) VALUES ($1,'nat:e2e-device',$2)`,
+      [dPromoId, cA]
+    );
+    r = (await val6("DEVCAP", cB, false, "nat:e2e-device")).rows[0];
+    assert(
+      r.valid === false && r.reason === "device_used",
+      "D4 cap appareil 1 : 2e compte refusé sur le même téléphone",
+      JSON.stringify(r)
+    );
+
+    // D5 — le compte A (déjà servi) n'est PAS bloqué par l'appareil : lui
+    // reste régi par max_uses_per_customer.
+    r = (await val6("DEVCAP", cA, false, "nat:e2e-device")).rows[0];
+    assert(
+      r.valid === true,
+      "D5 le compte déjà servi reste régi par per_customer_limit",
+      JSON.stringify(r)
+    );
+
+    // D6 — cap relevé à 2 : le compte B passe désormais.
+    await client.query(
+      "update public.platform_promotions set max_uses_per_device = 2 where id=$1",
+      [dPromoId]
+    );
+    r = (await val6("DEVCAP", cB, false, "nat:e2e-device")).rows[0];
+    assert(
+      r.valid === true,
+      "D6 cap appareil 2 : le 2e compte passe",
+      JSON.stringify(r)
+    );
+
+    // D7 — B marqué aussi : le 3e compte est refusé (2 comptes déjà servis).
+    await client.query(
+      `INSERT INTO public.platform_promo_device_marks
+         (promotion_id, device_id, customer_id) VALUES ($1,'nat:e2e-device',$2)`,
+      [dPromoId, cB]
+    );
+    r = (await val6("DEVCAP", cC, false, "nat:e2e-device")).rows[0];
+    assert(
+      r.valid === false && r.reason === "device_used",
+      "D7 cap appareil 2 : le 3e compte est refusé",
+      JSON.stringify(r)
+    );
+
+    // D8 — cap NULL = pas de limite appareil : le 3e compte passe.
+    await client.query(
+      "update public.platform_promotions set max_uses_per_device = null where id=$1",
+      [dPromoId]
+    );
+    r = (await val6("DEVCAP", cC, false, "nat:e2e-device")).rows[0];
+    assert(
+      r.valid === true,
+      "D8 cap NULL : plus de limite appareil",
+      JSON.stringify(r)
+    );
+
+    // D9 — app_only : refusé hors app, accepté avec le drapeau serveur.
+    await client.query(
+      "update public.platform_promotions set app_only = true where id=$1",
+      [dPromoId]
+    );
+    r = (await val6("DEVCAP", cC, false, null)).rows[0];
+    assert(
+      r.valid === false && r.reason === "app_only",
+      "D9a app_only : refusé hors application",
+      JSON.stringify(r)
+    );
+    r = (await val6("DEVCAP", cC, true, null)).rows[0];
+    assert(
+      r.valid === true,
+      "D9b app_only : accepté dans l'application",
+      JSON.stringify(r)
+    );
+  } finally {
+    await client.query("ROLLBACK");
+  }
+
   console.log(
     failures === 0
       ? "\n✅ Tous les tests passent."

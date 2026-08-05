@@ -212,13 +212,31 @@ function intlRefusalMessage(reason: IntlRefusal): string {
 }
 
 /** Message FR pour un refus de code PLATEFORME, selon la raison renvoyée par
- *  la RPC `validate_platform_promo`. */
-function platformPromoErrorMessage(reason: string): string {
+ *  la RPC `validate_platform_promo` (mig 0436 : motifs précis — un code pas
+ *  encore commencé ne dit plus « n'est plus actif », cas vécu APP20). */
+function platformPromoErrorMessage(
+  reason: string,
+  startsAt?: string | null
+): string {
   switch (reason) {
+    case "not_started": {
+      const when = startsAt
+        ? new Intl.DateTimeFormat("fr-DZ", {
+            dateStyle: "medium",
+            timeStyle: "short",
+            timeZone: "Africa/Algiers",
+          }).format(new Date(startsAt))
+        : null;
+      return when
+        ? `Ce code n'est pas encore actif — il démarre le ${when}.`
+        : "Ce code n'est pas encore actif.";
+    }
+    case "expired":
+      return "Ce code a expiré.";
     case "app_only":
       return "Ce code est réservé à l'application mobile Coligo — télécharge l'app pour en profiter.";
     case "device_used":
-      return "Vous avez déjà bénéficié de cette promotion sur cet appareil.";
+      return "Ce code a déjà été utilisé sur cet appareil.";
     case "online_only":
       return "Ce code n'est valable qu'avec un paiement en ligne (Coligo Pay ou carte).";
     case "min_subtotal":
@@ -791,7 +809,10 @@ export async function createOrder(
         }
         return {
           ok: false,
-          error: platformPromoErrorMessage(reason),
+          error: platformPromoErrorMessage(
+            reason,
+            (vp as { starts_at?: string | null } | null)?.starts_at
+          ),
         };
       }
     }
@@ -1595,10 +1616,10 @@ export async function createOrder(
       .eq("id", deliveryCreditId);
   }
 
-  // MÉMOIRE D'APPAREIL anti-fraude (mig 0381) : ce couple (promo, appareil)
-  // est marqué — un AUTRE compte sur le même appareil ne pourra plus utiliser
-  // ce code (« Vous avez déjà bénéficié de cette promotion »). Best-effort,
-  // idempotent (PK), service_role.
+  // MÉMOIRE D'APPAREIL anti-fraude (mig 0381, affinée 0436) : une ligne par
+  // (promo, appareil, COMPTE) — la validation compte les comptes distincts
+  // servis sur l'appareil et refuse au-delà de max_uses_per_device.
+  // Best-effort, idempotent (PK), service_role.
   if (platformPromo && input.device_id) {
     void (
       writeDb.from("platform_promo_device_marks" as never) as unknown as {
@@ -1614,7 +1635,10 @@ export async function createOrder(
           device_id: input.device_id,
           customer_id: customer.id,
         },
-        { onConflict: "promotion_id,device_id", ignoreDuplicates: true }
+        {
+          onConflict: "promotion_id,device_id,customer_id",
+          ignoreDuplicates: true,
+        }
       )
       .then(({ error: markErr }) => {
         if (markErr) {
@@ -2336,7 +2360,10 @@ export async function previewPromoCode(input: {
       }
       return {
         ok: false,
-        error: platformPromoErrorMessage(vpReason),
+        error: platformPromoErrorMessage(
+          vpReason,
+          (vp as { starts_at?: string | null } | null)?.starts_at
+        ),
       };
     }
     const raw = rows.find((p) => p.id === settled.promoCode!.id);

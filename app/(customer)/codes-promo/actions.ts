@@ -31,7 +31,7 @@ export async function claimPlatformPromo(
       fn: string,
       args: Record<string, unknown>
     ) => PromiseLike<{
-      data: { ok: boolean; reason: string } | null;
+      data: { ok: boolean; reason: string; starts_at?: string | null } | null;
       error: { message: string } | null;
     }>
   )("claim_platform_promo", { p_code: code });
@@ -40,13 +40,28 @@ export async function claimPlatformPromo(
     return { ok: false, error: "Vérification impossible. Réessaie." };
   }
   if (!data?.ok) {
+    // Motifs PRÉCIS (mig 0436) : un code pas encore commencé ne dit plus
+    // « n'est plus actif » (cas vécu APP20 — décalage de date de début).
     const reason = data?.reason ?? "invalid";
+    const startsAt = data?.starts_at
+      ? new Intl.DateTimeFormat("fr-DZ", {
+          dateStyle: "medium",
+          timeStyle: "short",
+          timeZone: "Africa/Algiers",
+        }).format(new Date(data.starts_at))
+      : null;
     const msg =
-      reason === "inactive"
-        ? "Ce code n'est plus actif."
-        : reason === "no_customer"
-          ? "Profil client introuvable."
-          : "Code invalide ou inexistant.";
+      reason === "not_started"
+        ? startsAt
+          ? `Ce code n'est pas encore actif — il démarre le ${startsAt}.`
+          : "Ce code n'est pas encore actif."
+        : reason === "expired"
+          ? "Ce code a expiré."
+          : reason === "inactive"
+            ? "Ce code n'est plus actif."
+            : reason === "no_customer"
+              ? "Profil client introuvable."
+              : "Code invalide ou inexistant.";
     return { ok: false, error: msg };
   }
 
