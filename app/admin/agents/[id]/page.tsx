@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, MapPin, Phone, UserRound } from "lucide-react";
+import { ArrowLeft, FileCheck, MapPin, Phone, UserRound } from "lucide-react";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { requireAdminDomain } from "@/lib/auth/admin";
+import { CollapsibleSection } from "@/components/admin/shared/collapsible-section";
 import { AgentStatusBadge } from "@/components/admin/agents/agent-status-badge";
 import {
   AgentReviewPanel,
@@ -32,6 +33,7 @@ type WalletRow = {
   is_verified: boolean | null;
   submitted_at: string | null;
   created_at: string;
+  rejected_reason: string | null;
 };
 
 type DocRow = {
@@ -64,7 +66,7 @@ export default async function AdminAgentDetailPage({
     }
   )("operator_wallets")
     .select(
-      "id, owner_type, display_name, owner_name, registre_commerce, phone, address, wilaya, commune, hours, lat, lng, status, is_verified, submitted_at, created_at"
+      "id, owner_type, display_name, owner_name, registre_commerce, phone, address, wilaya, commune, hours, lat, lng, status, is_verified, submitted_at, created_at, rejected_reason"
     )
     .eq("id", id)
     .maybeSingle();
@@ -183,13 +185,46 @@ export default async function AdminAgentDetailPage({
         )}
       </div>
 
-      {/* Pièces du dossier */}
-      <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
-        <h2 className="text-foreground mb-3 text-sm font-bold">
-          Pièces du dossier
-        </h2>
-        <AgentDocumentsManager walletId={wallet.id} documents={documents} />
-      </div>
+      {/* Bannière d'état : l'admin voit d'un coup d'œil l'EFFET RÉEL du
+          statut (mêmes règles que operator_can_operate / coligo_recharge_sell
+          / recharge_points_nearby côté SQL), et où le lever. */}
+      {(wallet.status === "suspended" || wallet.status === "disabled") && (
+        <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-[12px] border p-3 text-sm">
+          Point{" "}
+          <strong>
+            {wallet.status === "suspended" ? "suspendu" : "désactivé"}
+          </strong>{" "}
+          — il n&apos;apparaît plus sur la carte Coligo Pay et toute vente de
+          recharge est refusée. L&apos;agent voit « Compte{" "}
+          {wallet.status === "suspended" ? "suspendu" : "désactivé"} » dans son
+          espace. « Réactiver » dans la section Décision ci-dessous.
+        </p>
+      )}
+      {wallet.status === "rejected" && (
+        <p className="border-warning-200 bg-warning-50 text-warning-800 rounded-[12px] border p-3 text-sm">
+          Dossier <strong>refusé</strong>
+          {wallet.rejected_reason ? (
+            <>
+              {" "}
+              — motif communiqué : <em>{wallet.rejected_reason}</em>
+            </>
+          ) : null}
+          . L&apos;agent peut corriger ses pièces puis renvoyer.
+        </p>
+      )}
+
+      {/* Pièces du dossier — repliable : ouvert tant que le point n'est pas
+          actif/vérifié (revue en cours), replié ensuite. */}
+      <CollapsibleSection
+        icon={<FileCheck className="size-4" />}
+        title="Pièces du dossier"
+        count={documents.length}
+        defaultOpen={wallet.status !== "active" || !wallet.is_verified}
+      >
+        <div className="mt-3">
+          <AgentDocumentsManager walletId={wallet.id} documents={documents} />
+        </div>
+      </CollapsibleSection>
 
       {/* Décisions + édition */}
       <AgentReviewPanel agent={info} />

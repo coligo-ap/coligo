@@ -17,6 +17,7 @@ import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CollapsibleSection } from "@/components/admin/shared/collapsible-section";
 import { DecisionNoteDialog } from "@/components/admin/doc-viewer";
 import {
   approveAgent,
@@ -218,11 +219,11 @@ function AgentEditForm({
     setF((p) => ({ ...p, [k]: e.target.value }));
 
   return (
-    <div className="border-border bg-surface rounded-[14px] border p-4 shadow-sm">
-      <h2 className="text-foreground mb-3 text-sm font-bold">
-        Informations du point
-      </h2>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+    <CollapsibleSection
+      icon={<Save className="size-4" />}
+      title="Informations du point"
+    >
+      <div className="mt-3 grid grid-cols-1 gap-3 sm:grid-cols-2">
         <Field label="Nom du point">
           <Input value={f.displayName} onChange={set("displayName")} />
         </Field>
@@ -267,7 +268,7 @@ function AgentEditForm({
           Enregistrer les modifications
         </Button>
       </div>
-    </div>
+    </CollapsibleSection>
   );
 }
 
