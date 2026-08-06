@@ -1568,6 +1568,15 @@ export async function createOrder(
           "La livraison en tournée est momentanément indisponible. Choisis le retrait sur place ou réessaie plus tard.",
       };
     }
+    // Commerçant GELÉ par l'équipe (trigger 0438) : décision admin appliquée
+    // immédiatement — la vitrine a pu être affichée avant le gel.
+    if (orderErr?.message?.includes("merchant_frozen")) {
+      return {
+        ok: false,
+        error:
+          "Ce commerçant est momentanément indisponible — commande impossible pour l'instant.",
+      };
+    }
     // Plafond de dette espèces du commerçant (trigger 0269).
     if (orderErr?.message?.includes("merchant_cash_debt_cap")) {
       return {

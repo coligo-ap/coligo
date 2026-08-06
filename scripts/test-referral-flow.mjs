@@ -98,9 +98,12 @@ async function main() {
       "update feature_flags set status = 'active' where key = 'referral'"
     );
 
+    // Idempotent : le parrain peut DÉJÀ avoir un code en prod (PK customer_id)
+    // — on le remplace le temps du test, la transaction est annulée à la fin.
     const code = randomCode();
     await client.query(
-      "insert into customer_referral_codes (customer_id, code) values ($1, $2)",
+      `insert into customer_referral_codes (customer_id, code) values ($1, $2)
+       on conflict (customer_id) do update set code = excluded.code`,
       [REF.id, code]
     );
 

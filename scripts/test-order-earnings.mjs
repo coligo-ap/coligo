@@ -143,10 +143,13 @@ for (const { name, o } of cases) {
 
 // Invariants métier supplémentaires.
 console.log("→ Invariants");
+// Fixture RÉALISTE : le checkout calcule total = produits + frais − wallets
+// dépensés → total_da est DÉJÀ net du cashback (audit A1 du 04/07/2026 :
+// ne JAMAIS re-soustraire redeemed des espèces en main).
 const cash = computeMerchantEarnings(
   finalize({
     payment_method: "cash",
-    total_da: 1100,
+    total_da: 900,
     net_total_da: 1000,
     service_fee_da: 100,
     cashback_used_da: 200,
@@ -156,7 +159,7 @@ const cash = computeMerchantEarnings(
 );
 ok(
   cash.cashCollected === 900,
-  "Espèces en main = total − redeemed (1100−200=900)"
+  "Espèces en main = total_da (déjà net du wallet dépensé) = 900"
 );
 ok(
   cash.owedToColigo === 200,

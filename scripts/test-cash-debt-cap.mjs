@@ -1,10 +1,12 @@
 // =============================================================================
-// Test e2e (ROLLBACK) — plafond de dette ESPÈCES commerçant (mig 0269).
+// Test e2e (ROLLBACK) — plafond de dette ESPÈCES commerçant (mig 0269 + 0439).
+// Depuis le durcissement RLS, TOUTES les commandes sont créées par le SERVEUR
+// (service_role via createOrder) : le trigger s'applique à TOUS les rôles à la
+// création (mig 0439 — l'ancienne exemption service_role le rendait mort).
 // Prouve l'enforcement bypass-proof : dette > cap →
-//   - commande CASH (retrait) bloquée pour le client (authenticated) ;
+//   - commande CASH (retrait) bloquée sur le CHEMIN RÉEL (serveur) ;
 //   - commande EN LIGNE permise (elle réduit la dette) ;
 //   - commande CASH express COD permise (custodian livreur) ;
-//   - service_role / admin NON bloqué (asymétrie) ;
 //   - cap 0 → politique désactivée (jamais bloqué).
 // Lancer : node scripts/test-cash-debt-cap.mjs
 // =============================================================================
@@ -13,7 +15,6 @@ import { getDbUrl } from "./_supabase.mjs";
 
 const MERCHANT = "6a57ea14-40e3-47c6-9fc8-305d8bbb5bdd";
 const CUST = "60eec155-fb82-4a8b-9223-8ac2dd24d922";
-const CUST_USER = "00000000-0000-4000-8000-000820591480";
 const C_LAT = 36.7558,
   C_LNG = 5.07;
 
@@ -70,13 +71,6 @@ function insOrder(kind) {
   );
 }
 
-const asClient = async () => {
-  await c.query(
-    `SELECT set_config('request.jwt.claims', json_build_object('sub','${CUST_USER}','role','authenticated')::text, true)`
-  );
-  await c.query("SET LOCAL ROLE authenticated");
-};
-
 try {
   // Cap connu pour le test.
   await c.query(
@@ -98,12 +92,10 @@ try {
     (await c.query("SELECT merchant_cash_blocked($1) b", [MERCHANT])).rows[0]
       .b === false
   );
-  await asClient();
   okTrue(
-    "commande cash permise sous le cap",
+    "commande cash permise sous le cap (chemin serveur)",
     (await sp(() => insOrder("cash-pickup"))).ok
   );
-  await c.query("RESET ROLE");
 
   // ── Force la dette AU-DESSUS du cap ──
   await c.query(
@@ -119,11 +111,10 @@ try {
       .b === true
   );
 
-  // ── Client (authenticated) : enforcement ──
-  await asClient();
+  // ── Enforcement sur le CHEMIN RÉEL (créations serveur, mig 0439) ──
   const cashBlocked = await sp(() => insOrder("cash-pickup"));
   okTrue(
-    "commande CASH retrait BLOQUÉE (trigger)",
+    "commande CASH retrait BLOQUÉE (trigger, chemin serveur)",
     !cashBlocked.ok && /merchant_cash_debt_cap/.test(cashBlocked.err || "")
   );
   okTrue(
@@ -134,13 +125,6 @@ try {
     "commande CASH express COD permise (custodian livreur)",
     (await sp(() => insOrder("cash-express"))).ok
   );
-  await c.query("RESET ROLE");
-
-  // ── service_role / admin (definer) : NON bloqué (asymétrie bypass-proof) ──
-  okTrue(
-    "admin/service NON bloqué (même dette)",
-    (await sp(() => insOrder("cash-pickup"))).ok
-  );
 
   // ── Politique désactivée (cap 0) ──
   await c.query("UPDATE platform_settings SET max_debt_da = 0 WHERE id = true");
@@ -149,12 +133,10 @@ try {
     (await c.query("SELECT merchant_cash_blocked($1) b", [MERCHANT])).rows[0]
       .b === false
   );
-  await asClient();
   okTrue(
     "cap 0 → commande cash permise malgré la dette",
     (await sp(() => insOrder("cash-pickup"))).ok
   );
-  await c.query("RESET ROLE");
 } finally {
   await c.query("ROLLBACK");
   await c.end();

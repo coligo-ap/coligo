@@ -93,6 +93,38 @@ try {
     true
   );
 
+  // --- GEL COMMERÇANT = plus de nouvelles commandes (trigger 0438) ---
+  // Décision super-admin appliquée IMMÉDIATEMENT, bypass-proof : l'INSERT est
+  // refusé quel que soit le chemin (checkout, panier partagé, programmé).
+  await c.query("SAVEPOINT frozen_gate");
+  await c.query("UPDATE merchants SET is_frozen=true WHERE id=$1", [M]);
+  let frozenRefused = false;
+  try {
+    await c.query(
+      `INSERT INTO orders (merchant_id,customer_id,customer_name,customer_phone,
+         subtotal_da,discount_da,net_total_da,service_fee_da,delivery_fee_da,total_da,
+         commission_da,pickup_code,pickup_slot_at,payment_method,payment_status,
+         fulfillment_type,status)
+       VALUES ($1,$2,'T','+213770000000',1000,0,1000,50,0,1050,0,'1235',now(),
+         'cash','pending','pickup','pending')`,
+      [M, CUST]
+    );
+  } catch (e) {
+    frozenRefused = /merchant_frozen/.test(e.message);
+  }
+  ok("commerçant GELÉ : nouvelle commande REFUSÉE", frozenRefused, true);
+  await c.query("ROLLBACK TO SAVEPOINT frozen_gate");
+  const thawed = await c.query(
+    `INSERT INTO orders (merchant_id,customer_id,customer_name,customer_phone,
+       subtotal_da,discount_da,net_total_da,service_fee_da,delivery_fee_da,total_da,
+       commission_da,pickup_code,pickup_slot_at,payment_method,payment_status,
+       fulfillment_type,status)
+     VALUES ($1,$2,'T','+213770000000',1000,0,1000,50,0,1050,0,'1236',now(),
+       'cash','pending','pickup','pending') RETURNING id`,
+    [M, CUST]
+  );
+  ok("commerçant dégelé : commande acceptée à nouveau", thawed.rowCount, 1);
+
   console.log(
     `\n${fail === 0 ? "🎉 GARDE COMMERÇANT OK" : "⚠️ ÉCHECS"} — pass=${pass} fail=${fail}`
   );
