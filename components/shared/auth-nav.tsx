@@ -97,7 +97,10 @@ export function AuthFooter({
           {tr("Tous droits réservés.", "جميع الحقوق محفوظة.")}
         </p>
         <nav className="flex flex-wrap items-center gap-3">
-          <Link href="/aide" className="hover:text-foreground">
+          {/* Centre d'aide PUBLIC — « /aide » est la page de l'ESPACE
+              COMMERÇANT (groupe protégé) : un visiteur y était renvoyé vers
+              le login commerçant (bug repéré au balayage du 06/08). */}
+          <Link href="/centre-aide" className="hover:text-foreground">
             {tr("Aide", "المساعدة")}
           </Link>
           <Link href="/cgu" className="hover:text-foreground">
