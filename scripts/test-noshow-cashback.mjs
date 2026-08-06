@@ -1,6 +1,8 @@
 // TEST — cashback sur no-show (mig 0291). Flux RÉEL driver_report_no_show.
-//   • ONLINE prépayé + client absent → le client GARDE son cashback.
-//   • ESPÈCES + client absent       → 0 cashback (règle Yassir, pénalisé).
+//   • ONLINE prépayé + client absent → le no-show est REFUSÉ
+//     (use_leave_at_door : commande déjà payée ⇒ dépôt devant la porte /
+//     support — règle produit, cf. leave-at-door) ; la commande reste INTACTE.
+//   • ESPÈCES + client absent       → annulée + 0 cashback (règle Yassir).
 // Transaction ROLLBACK.
 import pg from "pg";
 import { getDbUrl } from "./_supabase.mjs";
@@ -112,27 +114,28 @@ try {
     console.log(
       `   cashback client : ${cbBefore} → ${cbAfter}  | crédit client=${cbEarned}  charge plateforme=${platCb}`
     );
-    return { ord, cbEarned, platCb, delta: cbAfter - cbBefore };
+    return { rpc: r, ord, cbEarned, platCb, delta: cbAfter - cbBefore };
   }
 
-  // 1) ONLINE prépayé → cashback CONSERVÉ
+  // 1) ONLINE prépayé → le no-show N'EST PAS le bon chemin : la commande est
+  //    déjà payée, le livreur doit la déposer devant la porte (photo) ou
+  //    passer par le support. La RPC refuse et NE TOUCHE À RIEN.
   const on = await noShowScenario("ONLINE prépayé, client absent", {
     method: "online",
   });
-  const expected = Math.round((1000 + 200) * 0.03); // (produits+livraison)×3% = 36
   check(
-    "commande bien en no-show (cancelled + failed)",
-    on.ord.status === "cancelled" && on.ord.delivery_failed_at
+    "prépayé : no-show REFUSÉ (use_leave_at_door)",
+    on.rpc.ok === false && on.rpc.reason === "use_leave_at_door",
+    `ok=${on.rpc.ok} reason=${on.rpc.reason}`
   );
   check(
-    `client gagne son cashback = ${expected}`,
-    on.delta === expected && on.cbEarned === expected,
-    `delta=${on.delta}`
+    "prépayé : commande INTACTE (ni annulée ni échouée)",
+    on.ord.status === "preparing" && !on.ord.delivery_failed_at
   );
   check(
-    "paire symétrique : charge plateforme = −crédit client",
-    on.platCb === -on.cbEarned,
-    `plat=${on.platCb}`
+    "prépayé : aucun mouvement cashback (client ni plateforme)",
+    on.delta === 0 && on.cbEarned === 0 && on.platCb === 0,
+    `delta=${on.delta} plat=${on.platCb}`
   );
 
   // 2) ESPÈCES → AUCUN cashback GAGNÉ (et pénalité existante = récupération de la
