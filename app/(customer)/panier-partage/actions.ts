@@ -662,87 +662,13 @@ export async function getCartForCheckout(cartId: string): Promise<
   };
 }
 
-/**
- * « Faire payer un proche » : (ré)génère le payment_token du panier COMMANDÉ.
- * Le lien /payer/{ptoken} est une capacité DISTINCTE du share_token — on peut
- * l'envoyer à une seule personne sans exposer la room. Idempotent : un token
- * déjà posé est simplement renvoyé (le lien reste stable).
- */
-export async function createGuestPaymentLink(
-  cartId: string
-): Promise<
-  | { ok: true; ptoken: string; shareToken: string }
-  | { ok: false; error: string }
-> {
-  const { supabase, from } = await db();
-
-  const { data: cart } = await from("shared_carts")
-    .select("share_token, payment_token, order_id, status")
-    .eq("id", cartId)
-    .maybeSingle();
-  if (!cart) return { ok: false, error: "Panier introuvable." };
-  if (cart.status !== "ordered" || !cart.order_id) {
-    return { ok: false, error: "Commande d'abord, puis envoie le lien." };
-  }
-
-  // La commande liée doit être online, impayée, au-dessus du minimum Chargily.
-  const { data: order } = await supabase
-    .from("orders")
-    .select("id, payment_method, payment_status, total_da")
-    .eq("id", cart.order_id as string)
-    .maybeSingle();
-  if (!order) return { ok: false, error: "Commande introuvable." };
-  if (order.payment_method !== "online") {
-    return { ok: false, error: "Cette commande est réglée en espèces." };
-  }
-  if (order.payment_status === "paid") {
-    return { ok: false, error: "Cette commande est déjà payée." };
-  }
-  if (order.total_da < CHARGILY_MIN_AMOUNT_DA) {
-    return {
-      ok: false,
-      error: `Le paiement en ligne nécessite un minimum de ${CHARGILY_MIN_AMOUNT_DA} DA.`,
-    };
-  }
-
-  if (cart.payment_token) {
-    return {
-      ok: true,
-      ptoken: cart.payment_token as string,
-      shareToken: cart.share_token as string,
-    };
-  }
-
-  const ptoken = crypto.randomUUID().replace(/-/g, "").slice(0, 16);
-  const { data: updated } = await from("shared_carts")
-    .update({
-      payment_token: ptoken,
-      payment_token_created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq("id", cartId)
-    .eq("status", "ordered")
-    .is("payment_token", null)
-    .select("share_token")
-    .maybeSingle();
-  if (updated) {
-    return { ok: true, ptoken, shareToken: updated.share_token as string };
-  }
-
-  // Course perdue : un autre onglet vient de poser le token → on le relit.
-  const { data: again } = await from("shared_carts")
-    .select("share_token, payment_token")
-    .eq("id", cartId)
-    .maybeSingle();
-  if (again?.payment_token) {
-    return {
-      ok: true,
-      ptoken: again.payment_token as string,
-      shareToken: again.share_token as string,
-    };
-  }
-  return { ok: false, error: "Génération du lien impossible. Réessaye." };
-}
+// « Faire payer un proche » : SUPPRIMÉ (code mort, balayage du 06/08/2026).
+// L'ancienne action `createGuestPaymentLink` écrivait payment_token via la
+// SESSION capitaine — colonne que `protect_shared_cart_fields` (audit
+// 0422-0426) neutralise en silence : elle aurait renvoyé un lien /payer JAMAIS
+// stocké (lien mort) si on l'avait rebranchée. Le seul canal légitime est la
+// RPC DEFINER `shared_cart_room_pay_token` (utilisée par cart-room.tsx), qui
+// mint et renvoie le token canonique, idempotente pour tout le groupe.
 
 /**
  * GARDE ANTI-DOUBLON du checkout partagé : à appeler AVANT createOrder.

@@ -101,11 +101,23 @@ async function findCandidateOrder(client) {
      LIMIT 1`
   );
   if (r.rows.length === 0) {
-    // Fallback : on prend la plus ancienne completed et on l'utilisera en
-    // simulation read-only (on ne va PAS toucher, on échoue le test plutôt).
-    return null;
+    // AUTONOME : plus aucune commande active en prod (elles finissent toutes
+    // completed/cancelled) → on crée NOTRE commande de test (fixtures
+    // standard El Baraka / Yasmine, cash pickup pending) et on la SUPPRIME
+    // dans le rollback final. Fini le « refaire seed ».
+    const ins = await client.query(
+      `INSERT INTO public.orders (merchant_id,customer_id,customer_name,customer_phone,
+         subtotal_da,discount_da,net_total_da,service_fee_da,delivery_fee_da,total_da,
+         commission_da,pickup_code,pickup_slot_at,payment_method,payment_status,
+         fulfillment_type,status)
+       VALUES ('6a57ea14-40e3-47c6-9fc8-305d8bbb5bdd',
+         '60eec155-fb82-4a8b-9223-8ac2dd24d922','T idempotence','+213770000000',
+         1000,0,1000,50,0,1050,0,'9901',now(),'cash','pending','pickup','pending')
+       RETURNING id, status, customer_name, merchant_id`
+    );
+    return { ...ins.rows[0], created: true };
   }
-  return r.rows[0];
+  return { ...r.rows[0], created: false };
 }
 
 /**
@@ -358,11 +370,23 @@ async function main() {
       header("Rollback");
       try {
         await deleteEventsByOpIds(client, created_op_ids);
-        await restoreOrderStatus(client, order.id, initial.order.status);
-        const final = await snapshot(client, order.id);
-        console.log(
-          `Rollback OK : statut restauré à ${final.order.status}, events nettoyés (${final.events.length} restants, attendu ${initial.events.length})`
-        );
+        if (order.created) {
+          // Commande créée PAR le test → suppression complète.
+          await client.query(
+            "DELETE FROM public.order_events WHERE order_id = $1",
+            [order.id]
+          );
+          await client.query("DELETE FROM public.orders WHERE id = $1", [
+            order.id,
+          ]);
+          console.log("Rollback OK : commande de test supprimée.");
+        } else {
+          await restoreOrderStatus(client, order.id, initial.order.status);
+          const final = await snapshot(client, order.id);
+          console.log(
+            `Rollback OK : statut restauré à ${final.order.status}, events nettoyés (${final.events.length} restants, attendu ${initial.events.length})`
+          );
+        }
       } catch (e) {
         console.error("⚠ rollback raté :", e.message);
         process.exitCode = 2;

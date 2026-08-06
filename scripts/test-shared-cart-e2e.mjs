@@ -195,7 +195,23 @@ async function main() {
     .is("order_id", null)
     .select("id")
     .maybeSingle();
-  assert(!!attached, "commande liée (locked → ordered) par la RLS capitaine");
+  assert(!!attached, "transition locked → ordered par la RLS capitaine");
+
+  // GARDE COLONNES (audit 0422-0426, trigger protect_shared_cart_fields) : le
+  // capitaine NE PEUT PAS lier order_id lui-même — la colonne protégée est
+  // NEUTRALISÉE en silence. Seul le SERVEUR (place-room-order, service_role)
+  // pose le lien : c'est ce qu'on rejoue ensuite.
+  const afterGuard = (
+    await db.query("select order_id from shared_carts where id = $1", [cartId])
+  ).rows[0];
+  assert(
+    afterGuard.order_id === null,
+    "garde colonnes : order_id posé par le capitaine NEUTRALISÉ (audit)"
+  );
+  await db.query(
+    "update public.shared_carts set order_id = $1 where id = $2 and status = 'ordered' and order_id is null",
+    [orderId, cartId]
+  );
 
   // Garde ANTI-DOUBLON du checkout : panier ordered + order_id ⇒ bloqué.
   const guard = (
@@ -209,19 +225,39 @@ async function main() {
     JSON.stringify(guard)
   );
 
-  const ptoken = "e2e" + randomUUID().replace(/-/g, "").slice(0, 13);
-  const { data: ptokenSet } = await captain
+  // GARDE COLONNES (audit) : un payment_token posé par la RLS capitaine est
+  // NEUTRALISÉ — seul le canal DEFINER (shared_cart_room_pay_token, celui de
+  // l'UI cart-room) mint le lien. On vérifie la garde, puis on obtient le
+  // token CANONIQUE comme l'app.
+  const tokenTry = "e2e" + randomUUID().replace(/-/g, "").slice(0, 13);
+  await captain
     .from("shared_carts")
     .update({
-      payment_token: ptoken,
+      payment_token: tokenTry,
       payment_token_created_at: new Date().toISOString(),
     })
     .eq("id", cartId)
     .eq("status", "ordered")
-    .is("payment_token", null)
     .select("id")
     .maybeSingle();
-  assert(!!ptokenSet, "payment_token posé par la RLS capitaine");
+  const tokenGuard = (
+    await db.query("select payment_token from shared_carts where id = $1", [
+      cartId,
+    ])
+  ).rows[0];
+  assert(
+    tokenGuard.payment_token === null,
+    "garde colonnes : payment_token du capitaine NEUTRALISÉ (audit)"
+  );
+  const { data: minted } = await guest.rpc("shared_cart_room_pay_token", {
+    p_token: token,
+  });
+  assert(
+    minted?.ok === true && typeof minted.ptoken === "string",
+    "lien de paiement MINTÉ par la RPC definer (flux réel de l'UI)",
+    JSON.stringify(minted)
+  );
+  const ptoken = minted.ptoken;
 
   const { data: payInfo } = await guest.rpc("shared_cart_payment_info", {
     p_payment_token: ptoken,

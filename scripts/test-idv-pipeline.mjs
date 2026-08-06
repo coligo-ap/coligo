@@ -393,12 +393,18 @@ ok(
     missing.verdicts[1].reason === "no_face"
   );
 
+  // Contrat ACTUEL : « center » de référence puis 2 défis tirés parmi 4
+  // (ordre aléatoire, sans doublon) — 12 séquences possibles, anti-rejeu.
+  const POOL = ["turn_left", "turn_right", "closer", "farther"];
   const seq = drawChallenges();
   ok(
-    "défis : centre d'abord + rotation aléatoire + rapprochement",
-    seq[0] === "center" &&
-      ["turn_left", "turn_right"].includes(seq[1]) &&
-      seq[2] === "closer"
+    "défis : centre d'abord + 2 tirés parmi 4 sans doublon",
+    seq.length === 3 &&
+      seq[0] === "center" &&
+      POOL.includes(seq[1]) &&
+      POOL.includes(seq[2]) &&
+      seq[1] !== seq[2],
+    seq.join(" → ")
   );
 
   const exp = Date.now() + 60_000;

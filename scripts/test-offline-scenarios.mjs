@@ -154,6 +154,25 @@ async function snapshot(client, orderId) {
   return { status: o.rows[0]?.status, events: ev.rows };
 }
 
+/** Commandes créées PAR le test (aucune active en prod) — supprimées au
+ *  rollback final. Fixtures standard El Baraka / Yasmine, cash pickup. */
+const createdOrderIds = [];
+async function createTestOrder(client, pickupCode) {
+  const r = await client.query(
+    `INSERT INTO public.orders (merchant_id,customer_id,customer_name,customer_phone,
+       subtotal_da,discount_da,net_total_da,service_fee_da,delivery_fee_da,total_da,
+       commission_da,pickup_code,pickup_slot_at,payment_method,payment_status,
+       fulfillment_type,status)
+     VALUES ('6a57ea14-40e3-47c6-9fc8-305d8bbb5bdd',
+       '60eec155-fb82-4a8b-9223-8ac2dd24d922','T scenarios','+213770000000',
+       1000,0,1000,50,0,1050,0,$1,now(),'cash','pending','pickup','pending')
+     RETURNING id, status, customer_name, pickup_code, merchant_id`,
+    [pickupCode]
+  );
+  createdOrderIds.push(r.rows[0].id);
+  return r.rows[0];
+}
+
 async function findReadyOrder(client) {
   // Si aucune ready, on prend n'importe quelle non-terminale et on remontera l'état.
   let r = await client.query(
@@ -164,7 +183,8 @@ async function findReadyOrder(client) {
      LIMIT 1`
   );
   if (r.rows.length === 0) {
-    throw new Error("Aucune commande active disponible pour les tests");
+    // AUTONOME : on crée notre commande de test (supprimée au rollback).
+    return createTestOrder(client, "9902");
   }
   return r.rows[0];
 }
@@ -182,7 +202,8 @@ async function findPendingOrder(client, excludeId) {
     `SELECT id, pickup_code FROM public.orders WHERE status = 'pending' AND id != $1 ORDER BY created_at DESC LIMIT 1`,
     [excludeId ?? "00000000-0000-0000-0000-000000000000"]
   );
-  return r.rows[0] ?? null;
+  // AUTONOME : à défaut, une commande de test (supprimée au rollback).
+  return r.rows[0] ?? (await createTestOrder(client, "9903"));
 }
 
 async function deleteEventsByOpIds(client, opIds) {
@@ -416,12 +437,41 @@ async function main() {
     header("Rollback");
     try {
       await deleteEventsByOpIds(client, created_op_ids);
+      // Commandes créées PAR le test → suppression COMPLÈTE : leur éventuelle
+      // complétion a généré des écritures financières (wallet/platform/
+      // cashback) — on purge tout sous le GUC de maintenance (append-only),
+      // events et FK compris, en une transaction.
+      if (createdOrderIds.length) {
+        await client.query("BEGIN");
+        await client.query("SET LOCAL app.ledger_maintenance = 'on'");
+        for (const t of [
+          "customer_wallet_entries",
+          "wallet_entries",
+          "platform_ledger",
+          "delivery_ledger",
+          "order_events",
+        ]) {
+          await client.query(
+            `DELETE FROM public.${t} WHERE order_id = ANY($1::uuid[])`,
+            [createdOrderIds]
+          );
+        }
+        await client.query(
+          "DELETE FROM public.orders WHERE id = ANY($1::uuid[])",
+          [createdOrderIds]
+        );
+        await client.query("COMMIT");
+      }
       for (const r of orderRestores) {
+        if (createdOrderIds.includes(r.id)) continue; // déjà supprimée
         await setStatus(client, r.id, r.status);
       }
-      const finalState = order ? await snapshot(client, order.id) : null;
+      const restoredMain =
+        order && !createdOrderIds.includes(order.id)
+          ? (await snapshot(client, order.id)).status
+          : "supprimée (créée par le test)";
       console.log(
-        `Rollback OK. Commande principale restaurée à ${finalState?.status ?? "?"}, ${created_op_ids.length} events test supprimés.`
+        `Rollback OK. Commande principale : ${restoredMain}, ${created_op_ids.length} events test supprimés, ${createdOrderIds.length} commande(s) de test supprimée(s).`
       );
     } catch (e) {
       console.error("⚠ rollback raté :", e.message);
