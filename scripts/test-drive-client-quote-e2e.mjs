@@ -176,13 +176,27 @@ async function main() {
         .rows[0].chauffeur_id,
       ahOffer.chauffeur_id
     );
-    // Déroulé chauffeur (cash : pas de PIN) → fin de course.
-    await as(ahmed.user_id);
-    await c.query("SELECT ride_set_status($1,'arriving')", [ride]);
-    await c.query("SELECT ride_set_status($1,'arrived')", [ride]);
-    await c.query("SELECT ride_set_status($1,'in_progress')", [ride]);
+    // Déroulé chauffeur (cash : pas de PIN) → fin de course. On impersonne le
+    // chauffeur RÉELLEMENT attribué (l'offre acceptée peut venir d'un autre
+    // bot que « Ahmed » via le repli offers[0] — impersonner Ahmed donnait
+    // not_your_ride, bug vécu 07/08). Chaque étape est VÉRIFIÉE.
+    const rideChauffeurUid = (
+      await c.query(
+        `SELECT ch.user_id FROM rides r JOIN chauffeurs ch ON ch.id = r.chauffeur_id WHERE r.id = $1`,
+        [ride]
+      )
+    ).rows[0].user_id;
+    await as(rideChauffeurUid);
+    for (const st of ["arriving", "arrived", "in_progress"]) {
+      const r = (
+        await c.query("SELECT * FROM ride_set_status($1,$2)", [ride, st])
+      ).rows[0];
+      if (!r?.ok) console.log(`   ↳ ${st} refusé :`, JSON.stringify(r));
+      ok(`transition ${st} acceptée`, r?.ok ?? false, true);
+    }
     const done = (await c.query("SELECT * FROM complete_ride($1)", [ride]))
       .rows[0];
+    if (!done?.ok) console.log("   ↳ complete refusé :", JSON.stringify(done));
     ok("validation fin de course (chauffeur)", done.ok, true);
     ok(
       "statut final = completed",
