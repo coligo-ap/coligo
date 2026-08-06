@@ -156,15 +156,17 @@ function Tile({
       <span
         className={cn(
           // Tuile RONDE compacte (56 px, gabarit Uber Eats) : photo pleine en
-          // cover, ou image détourée qui flotte en contain.
-          "grid size-[56px] place-items-center overflow-hidden rounded-full border-[1.5px] text-[24px] leading-none transition-all",
+          // cover, ou image détourée qui flotte en contain. Le filtre APPLIQUÉ
+          // se voit par sa COULEUR seule (anneau violet net + halo) — jamais
+          // de bandeau récapitulatif ailleurs (demande produit 06/08).
+          "grid size-[56px] place-items-center overflow-hidden rounded-full text-[24px] leading-none transition-all",
           active
             ? onHero
-              ? "border-white bg-white/20 shadow-[0_4px_14px_-6px_rgba(0,0,0,.4)]"
-              : "border-primary-500 bg-primary-50 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)]"
+              ? "border-2 border-white bg-white/20 shadow-[0_4px_14px_-6px_rgba(0,0,0,.4)] ring-2 ring-white/40"
+              : "border-primary-600 ring-primary-500/25 bg-primary-50 border-2 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)] ring-2"
             : onHero
-              ? "border-white/25 bg-white/10"
-              : "bg-surface-2 border-transparent"
+              ? "border-[1.5px] border-white/25 bg-white/10"
+              : "bg-surface-2 border-[1.5px] border-transparent"
         )}
       >
         {imageSrc ? (

@@ -26,7 +26,6 @@ import { getAppTheme } from "@/lib/data/app-theme";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { InstallAppBanner } from "@/components/shared/install-app-banner";
 import { CustomerShell } from "@/components/customer/customer-shell";
-import { ActiveFilterBar } from "@/components/customer/active-filter-bar";
 import { CategoryStrip } from "@/components/customer/category-strip";
 import { HomeFilterPills } from "@/components/customer/home-filter-pills";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
@@ -196,15 +195,13 @@ export default async function CustomerHomePage() {
             />
           </div>
 
-          {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés. */}
+          {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés.
+              Le filtre ACTIF se voit par sa COULEUR (pilule pleine, tuile
+              cerclée violet) — jamais de bandeau récapitulatif en plus
+              (demande produit du 06/08). */}
           <div className="pt-3.5 pb-1">
             <HomeFilterPills />
           </div>
-
-          {/* Bande « filtre appliqué » : visible SEULEMENT quand un filtre est
-              actif — le client voit d'un coup d'œil sur quoi la liste est
-              filtrée (catégorie du strip ou pilule) et le retire d'un tap. */}
-          <ActiveFilterBar />
 
           {/* Localisation manuelle — fallback si la géoloc auto échoue. */}
           <LocationBanner />
