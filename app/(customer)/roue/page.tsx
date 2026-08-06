@@ -1,7 +1,6 @@
 import { redirect } from "next/navigation";
-import Link from "next/link";
 import { getTranslations } from "next-intl/server";
-import { ArrowLeft, Dices } from "lucide-react";
+import { Dices } from "lucide-react";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { createClient } from "@/lib/supabase/server";
 import { getAuthUser } from "@/lib/auth/session";
@@ -13,6 +12,7 @@ import {
   type WheelPrize,
   type WheelState,
 } from "@/components/customer/wheel/wheel-view";
+import { WheelBackLink } from "@/components/customer/wheel/wheel-back-link";
 
 export const dynamic = "force-dynamic";
 
@@ -59,13 +59,8 @@ export default async function WheelPage() {
   return (
     <CustomerShell>
       <div className="mx-auto max-w-lg px-4 py-4 pb-24 lg:px-6 lg:py-8">
-        <Link
-          href="/compte"
-          className="text-muted hover:text-foreground mb-3 inline-flex items-center gap-1.5 text-sm"
-        >
-          <ArrowLeft className="size-4 rtl:-scale-x-100" />
-          {t("back")}
-        </Link>
+        {/* Retour = d'où l'on vient (accueil OU compte) — cf. WheelBackLink. */}
+        <WheelBackLink />
 
         <h1 className="text-foreground mb-1 flex items-center gap-2 text-2xl font-extrabold tracking-tight">
           <Dices className="text-primary-600 size-6" />
