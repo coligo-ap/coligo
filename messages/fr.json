@@ -1085,7 +1085,11 @@
     "shareCta": "Partager la story",
     "shareWhatsapp": "Partager sur WhatsApp",
     "shareMsg": "Je viens de commander chez {merchant} sur Coligo ! Inscris-toi avec mon code {code} et reçois {amount} DA offerts : {link}",
-    "shareMsgPlain": "Je viens de commander chez {merchant} sur Coligo ! Découvre : {link}"
+    "shareMsgPlain": "Je viens de commander chez {merchant} sur Coligo ! Découvre : {link}",
+    "shareFriendGets": "Ton ami : +{amount} DA",
+    "shareYouGet": "Toi : +{amount} DA",
+    "shareMinOrder": "dès {amount} DA de commande",
+    "shareSaved": "Story enregistrée — colle-la !"
   },
   "wallet": {
     "cashbackTitle": "Mon Cashback",

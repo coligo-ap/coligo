@@ -28,6 +28,7 @@ import {
   Route,
   ScanBarcode,
   Settings2,
+  Share2,
   ShieldAlert,
   ShieldCheck,
   SlidersHorizontal,
@@ -497,6 +498,12 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Parrainage",
             icon: Gift,
             keywords: ["referral", "invitation", "filleul", "récompense"],
+          },
+          {
+            href: "/admin/marketing/story",
+            label: "Story",
+            icon: Share2,
+            keywords: ["partage", "réseaux", "viral", "instagram", "design"],
           },
           {
             href: "/admin/marketing/roue",

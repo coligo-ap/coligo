@@ -1085,7 +1085,11 @@
     "shareCta": "مشاركة الستوري",
     "shareWhatsapp": "مشاركة عبر واتساب",
     "shareMsg": "طلبت للتو من {merchant} على كوليقو! سجّل برمزي {code} واحصل على {amount} دج هدية: {link}",
-    "shareMsgPlain": "طلبت للتو من {merchant} على كوليقو! اكتشف: {link}"
+    "shareMsgPlain": "طلبت للتو من {merchant} على كوليقو! اكتشف: {link}",
+    "shareFriendGets": "صديقك: +{amount} دج",
+    "shareYouGet": "أنت: +{amount} دج",
+    "shareMinOrder": "ابتداءً من {amount} دج",
+    "shareSaved": "تم حفظ الستوري — الصقها!"
   },
   "wallet": {
     "cashbackTitle": "استردادي النقدي",

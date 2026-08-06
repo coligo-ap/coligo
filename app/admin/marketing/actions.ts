@@ -355,3 +355,62 @@ export async function searchCustomers(query: string): Promise<CustomerHit[]> {
     .limit(15);
   return (data ?? []) as CustomerHit[];
 }
+
+// =============================================================================
+// PARTAGE STORY post-commande (mig 0440) — activation + design de la story,
+// pilotés depuis Marketing > Story. Les conditions (montants parrain/filleul,
+// commande minimum) restent dans Marketing > Parrainage (referral_settings).
+// =============================================================================
+
+const shareStorySchema = z.object({
+  enabled: z.boolean().optional(),
+  design: z.enum(["violet", "rose", "nuit", "ambre"]).optional(),
+});
+
+export async function setShareStorySettings(
+  input: z.infer<typeof shareStorySchema>
+): Promise<MarketingActionState> {
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  const parsed = shareStorySchema.safeParse(input);
+  if (!parsed.success) return { error: "Réglage invalide." };
+  const patch: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+  if (parsed.data.enabled !== undefined) patch.enabled = parsed.data.enabled;
+  if (parsed.data.design !== undefined) patch.design = parsed.data.design;
+
+  const admin = createAdminClient();
+  const { error } = await (
+    admin.from as unknown as (t: string) => {
+      update: (v: Record<string, unknown>) => {
+        eq: (c: string, v: boolean) => Promise<{ error: DbErr }>;
+      };
+    }
+  )("share_story_settings")
+    .update(patch)
+    .eq("id", true);
+  if (error) return { error: error.message };
+
+  // Audit best-effort (jamais bloquant).
+  try {
+    const supabase = await createClient();
+    const {
+      data: { user },
+    } = await supabase.auth.getUser();
+    await (
+      admin.from as unknown as (t: string) => {
+        insert: (v: Record<string, unknown>) => Promise<unknown>;
+      }
+    )("admin_audit_log").insert({
+      admin_email: user?.email ?? null,
+      action: "share_story_settings",
+      target_kind: "settings",
+      note: JSON.stringify(parsed.data),
+    });
+  } catch {
+    /* l'audit ne bloque jamais le réglage */
+  }
+
+  revalidatePath("/admin/marketing/story");
+  return { ok: true };
+}

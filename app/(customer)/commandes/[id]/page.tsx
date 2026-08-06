@@ -19,6 +19,7 @@ import { OrderPlacedCelebration } from "@/components/customer/order-celebration"
 import { OrderCallListener } from "@/components/customer/order-call-listener";
 import { OrderShareCard } from "@/components/customer/referral/order-share-card";
 import { getMyReferralOverview } from "@/lib/referral/overview";
+import { getShareStorySettings } from "@/lib/data/share-story";
 import { OrderPurchaseTracking } from "@/components/analytics/order-purchase-tracking";
 import { CancelOrderButton } from "@/components/customer/cancel-order-button";
 import { ReorderButton } from "@/components/customer/reorder-button";
@@ -621,22 +622,30 @@ export default async function CustomerOrderDetailPage({
           {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
         </div>
 
-        {/* ═══ PARTAGE POST-COMMANDE (mégaphone viral + code parrain) ═══ */}
-        {isCompleted && (
-          <OrderShareCard
-            merchantName={merchant.name}
-            referral={await getMyReferralOverview().then((o) =>
-              o
-                ? {
-                    code: o.code,
-                    reward_referee_da: o.reward_referee_da,
-                    enabled: o.enabled,
-                  }
-                : null
-            )}
-            appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://coligo.app"}
-          />
-        )}
+        {/* ═══ PARTAGE POST-COMMANDE (mégaphone viral + code parrain) ═══
+            Activation + design pilotés par Marketing > Story (mig 0440) ;
+            cadeaux ami/partageur = conditions de Marketing > Parrainage. */}
+        {isCompleted &&
+          (await getShareStorySettings().then(async (share) =>
+            share.enabled ? (
+              <OrderShareCard
+                merchantName={merchant.name}
+                design={share.design}
+                referral={await getMyReferralOverview().then((o) =>
+                  o
+                    ? {
+                        code: o.code,
+                        reward_referrer_da: o.reward_referrer_da,
+                        reward_referee_da: o.reward_referee_da,
+                        min_order_da: o.min_order_da,
+                        enabled: o.enabled,
+                      }
+                    : null
+                )}
+                appUrl={process.env.NEXT_PUBLIC_APP_URL ?? "https://coligo.app"}
+              />
+            ) : null
+          ))}
 
         {/* ═══ PREUVE DE DÉPÔT (No-Show en ligne) ═══
             Le livreur a déposé la commande à l'adresse après votre absence
