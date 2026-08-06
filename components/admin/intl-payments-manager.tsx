@@ -51,8 +51,10 @@ function eur(cents: number): string {
 }
 
 function dt(iso: string): string {
+  // Fuseau FIXE (Alger) : sans lui, serveur (UTC) et navigateur (UTC+1)
+  // rendent des heures différentes ⇒ hydratation #418 (bug vécu).
   const d = new Date(iso);
-  return `${d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })} ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${d.toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit", timeZone: "Africa/Algiers" })} ${d.toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Algiers" })}`;
 }
 
 const STATUS_TONE: Record<string, string> = {

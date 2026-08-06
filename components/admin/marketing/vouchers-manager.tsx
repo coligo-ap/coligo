@@ -95,6 +95,8 @@ export function VouchersManager({ vouchers }: { vouchers: AdminVoucher[] }) {
                     day: "numeric",
                     month: "short",
                     year: "numeric",
+                    // Fuseau FIXE : serveur UTC vs navigateur Alger ⇒ #418.
+                    timeZone: "Africa/Algiers",
                   })}
                 </p>
               </div>

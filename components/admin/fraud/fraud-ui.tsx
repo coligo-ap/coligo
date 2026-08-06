@@ -7,13 +7,17 @@ import {
   type FraudSeverity,
 } from "@/lib/fraud/model";
 
-/** Formatage date/heure MANUEL depuis l'ISO (pas d'Intl → zéro risque
- *  d'hydratation, cf. leçon merchant-ui). */
+/** Formatage date/heure MANUEL depuis l'ISO, en heure d'ALGER (UTC+1 fixe,
+ *  pas de DST) via les getters UTC. ⚠️ getDate()/getHours() dépendent du
+ *  FUSEAU DU RUNTIME : serveur Vercel = UTC, navigateur = Alger → textes
+ *  différents d'une heure ⇒ hydratation #418 (bug vécu sur les pages
+ *  anti-fraude). Toujours un fuseau FIXE dans un composant rendu des deux
+ *  côtés. */
 export function fmtDateTime(iso: string | null | undefined): string {
   if (!iso) return "—";
-  const d = new Date(iso);
+  const d = new Date(new Date(iso).getTime() + 3600_000); // UTC → Alger (+1)
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${p(d.getDate())}/${p(d.getMonth() + 1)} ${p(d.getHours())}:${p(d.getMinutes())}`;
+  return `${p(d.getUTCDate())}/${p(d.getUTCMonth() + 1)} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
 }
 
 export function fmtDay(isoDay: string): string {

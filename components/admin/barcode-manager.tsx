@@ -165,7 +165,10 @@ export function BarcodeManager({
                 </span>
                 <span className="text-muted">
                   {u.n} scan{u.n > 1 ? "s" : ""} ·{" "}
-                  {new Date(u.last_at).toLocaleDateString("fr-DZ")}
+                  {new Date(u.last_at).toLocaleDateString("fr-DZ", {
+                    // Fuseau FIXE : serveur UTC vs navigateur Alger ⇒ #418.
+                    timeZone: "Africa/Algiers",
+                  })}
                 </span>
                 <button
                   type="button"
