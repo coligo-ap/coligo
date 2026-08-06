@@ -17,9 +17,10 @@ const PHONE = "0603044618";
 // Agent QA TEMPORAIRE (créé/supprimé par le script — on ne touche pas aux
 // comptes réels, leurs mots de passe sont inconnus/immuables).
 const QA_AGENT_PHONE = "0699000042";
-// Convention d'auth partenaire (lib/auth/phone-identity) : email SYNTHÉTIQUE
-// = chiffres E.164 @partners.coligo.local — le login téléphone le reconstruit.
-const QA_AGENT_EMAIL = `213${QA_AGENT_PHONE.slice(1)}@partners.coligo.local`;
+// Convention d'auth partenaire (vérifiée sur les comptes réels) : email
+// SYNTHÉTIQUE = téléphone NATIONAL (0X…) @partners.coligo.local — le login
+// téléphone reconstruit exactement cette adresse.
+const QA_AGENT_EMAIL = `${QA_AGENT_PHONE}@partners.coligo.local`;
 const sb = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -161,11 +162,16 @@ async function cleanupQaAgent() {
   if (qaAgentUserId) await sb.auth.admin.deleteUser(qaAgentUserId);
 }
 
+// Filtre optionnel : ONLY="AGENT" ne balaye que les espaces dont le nom matche.
+const selectedSpaces = process.env.ONLY
+  ? SPACES.filter((s) => s.name.includes(process.env.ONLY))
+  : SPACES;
+
 const browser = await chromium.launch();
 let totalBad = 0;
 await setupQaAgent();
 
-for (const space of SPACES) {
+for (const space of selectedSpaces) {
   console.log(`\n═══ ${space.name} ═══`);
   const ctx = await browser.newContext({
     viewport: { width: 390, height: 844 },
