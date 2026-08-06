@@ -156,6 +156,16 @@ try {
     "/admin/drive",
   ].filter(Boolean);
 
+  // Filtre optionnel (diagnostic) : ROUTES="/admin/a,/admin/b" ne balaye que
+  // ces chemins — utile en dev local où React logge le DIFF d'hydratation.
+  const only = (process.env.ROUTES ?? "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean);
+  const selected = only.length
+    ? routes.filter((r) => only.some((o) => r.startsWith(o)))
+    : routes;
+
   // 1. Compte QA super (tous domaines) auto-confirmé.
   const { data: created, error } = await sb.auth.admin.createUser({
     email: EMAIL,
@@ -188,9 +198,10 @@ try {
   page.on("pageerror", (e) =>
     pageErrors.push(`pageerror: ${e.message.slice(0, 140)}`)
   );
+  const errLen = Number(process.env.ERRLEN ?? 140);
   page.on("console", (m) => {
     if (m.type() === "error")
-      pageErrors.push(`console: ${m.text().slice(0, 140)}`);
+      pageErrors.push(`console: ${m.text().slice(0, errLen)}`);
   });
 
   await page.goto(`${BASE}/portail`, {
@@ -200,19 +211,20 @@ try {
   await page.fill('input[type="email"]', EMAIL);
   await page.fill('input[type="password"]', PASSWORD);
   await page.click('button[type="submit"]');
-  await page.waitForTimeout(8000);
+  // En dev, la première compilation de /admin peut prendre > 1 min.
+  await page.waitForURL("**/admin**", { timeout: 150000 }).catch(() => {});
   if (!page.url().includes("/admin")) {
     console.error(`LOGIN ÉCHOUÉ — url=${page.url()}`);
     process.exit(1);
   }
 
-  for (const path of routes) {
+  for (const path of selected) {
     pageErrors = [];
     let status = 0;
     try {
       const resp = await page.goto(`${BASE}${path}`, {
         waitUntil: "domcontentloaded",
-        timeout: 60000,
+        timeout: Number(process.env.PAGE_TIMEOUT ?? 60000),
       });
       status = resp?.status() ?? 0;
       await page.waitForTimeout(2200);
