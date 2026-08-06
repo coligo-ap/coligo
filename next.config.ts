@@ -40,7 +40,17 @@ const nextConfig: NextConfig = {
   // erreur React #310 en prod (bug vécu). Les query params (q, category…)
   // sont transmis automatiquement.
   async redirects() {
-    return [{ source: "/search", destination: "/", permanent: false }];
+    return [
+      { source: "/search", destination: "/", permanent: false },
+      // « Relevé » livreur fusionné dans « Gains » : même piège #310 que
+      // /search (redirect() sous loading.tsx) — alias HTTP réel, la période
+      // (month/from/to) est transmise automatiquement.
+      {
+        source: "/driver/releve",
+        destination: "/driver/gains",
+        permanent: false,
+      },
+    ];
   },
   experimental: {
     serverActions: {

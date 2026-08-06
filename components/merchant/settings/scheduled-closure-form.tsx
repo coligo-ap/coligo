@@ -11,18 +11,20 @@ import { setScheduledClosure } from "@/app/(merchant)/actions";
  * statut du header (Pause / Fermer aujourd'hui). Ici on planifie une fermeture
  * de plusieurs jours, à l'avance.
  *
- * Les `datetime-local` sont interprétés dans le fuseau de l'appareil (Algérie),
- * et envoyés en ISO. Le client ne pourra pas commander pour un créneau tombant
- * dans cette plage (cf. checkout).
+ * Les `datetime-local` sont affichés ET interprétés en HEURE D'ALGER (+01:00
+ * FIXE, pas de DST) — jamais le fuseau du runtime : la valeur initiale est
+ * calculée aussi au SSR (Vercel = UTC) et un décalage d'1 h avec le navigateur
+ * produisait une hydratation #418 sur /settings (bug vécu, balayage 06/08).
+ * Le client ne pourra pas commander pour un créneau tombant dans cette plage.
  */
 function toInput(iso: string | null): string {
   if (!iso) return "";
-  const d = new Date(iso);
+  const d = new Date(new Date(iso).getTime() + 3600_000); // UTC → Alger (+1)
   if (Number.isNaN(d.getTime())) return "";
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(
+    d.getUTCDate()
+  )}T${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())}`;
 }
 
 export function ScheduledClosureForm({
@@ -43,8 +45,9 @@ export function ScheduledClosureForm({
       setNote({ ok: false, text: "Indiquez une date de début ET de fin." });
       return;
     }
-    const startIso = new Date(start).toISOString();
-    const endIso = new Date(end).toISOString();
+    // Saisie = heure d'Alger (+01:00 explicite, symétrique de l'affichage).
+    const startIso = new Date(`${start}:00+01:00`).toISOString();
+    const endIso = new Date(`${end}:00+01:00`).toISOString();
     startTransition(async () => {
       const r = await setScheduledClosure(startIso, endIso);
       if (!r.ok) {
