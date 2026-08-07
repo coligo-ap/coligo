@@ -50,6 +50,10 @@ const STORY_COLORS: Record<StoryDesign, [string, string, string]> = {
   rose: ["#FF2D7A", "#C2338F", "#6C2BD9"],
   nuit: ["#191036", "#2A1458", "#4B1FA6"],
   ambre: ["#F59E0B", "#F97316", "#FF2D7A"],
+  emeraude: ["#34D399", "#0D9488", "#064E3B"],
+  ocean: ["#38BDF8", "#2563EB", "#1E3A8A"],
+  corail: ["#FB7185", "#F43F5E", "#881337"],
+  or: ["#FCD34D", "#D97706", "#78350F"],
 };
 
 /** Dégradés Tailwind de la CARTE, assortis au design de la story. */
@@ -58,7 +62,38 @@ const CARD_GRADIENT: Record<StoryDesign, string> = {
   rose: "from-accent-500 via-fuchsia-600 to-primary-700",
   nuit: "from-[#191036] via-[#2A1458] to-primary-800",
   ambre: "from-amber-500 via-orange-500 to-accent-500",
+  emeraude: "from-emerald-400 via-teal-600 to-emerald-900",
+  ocean: "from-sky-400 via-blue-600 to-blue-900",
+  corail: "from-rose-400 via-rose-600 to-rose-950",
+  or: "from-amber-300 via-amber-600 to-amber-900",
 };
+
+/**
+ * Photo de fond choisie par l'admin, chargée en CORS anonyme — obligatoire :
+ * sans crossOrigin, le canvas serait « taint » et toBlob() échouerait.
+ */
+function loadPhoto(url: string): Promise<HTMLImageElement | null> {
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => resolve(img);
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+/** drawImage en mode COVER (remplit W×H en rognant, sans déformer). */
+function drawCover(
+  ctx: CanvasRenderingContext2D,
+  img: HTMLImageElement,
+  W: number,
+  H: number
+) {
+  const scale = Math.max(W / img.width, H / img.height);
+  const w = img.width * scale;
+  const h = img.height * scale;
+  ctx.drawImage(img, (W - w) / 2, (H - h) / 2, w, h);
+}
 
 /** Logo de marque officiel (simple-icons) — reconnaissable au premier regard. */
 function BrandIcon({ path, className }: { path: string; className?: string }) {
@@ -105,7 +140,8 @@ async function drawStory(
   code: string | null,
   rewardDa: number,
   link: string,
-  design: StoryDesign
+  design: StoryDesign,
+  imageUrl?: string | null
 ): Promise<Blob | null> {
   try {
     const W = 1080;
@@ -116,14 +152,33 @@ async function drawStory(
     const ctx = c.getContext("2d");
     if (!ctx) return null;
 
-    // Fond dégradé du DESIGN choisi + anneaux décoratifs.
+    // Fond : photo admin éventuelle (COVER) sous un VOILE dégradé du design —
+    // la photo habille, le voile garantit la lisibilité des textes. Sans photo
+    // (ou photo indisponible) : dégradé plein, comportement historique.
     const [c1, c2, c3] = STORY_COLORS[design] ?? STORY_COLORS.violet;
     const g = ctx.createLinearGradient(0, 0, W, H);
     g.addColorStop(0, c1);
     g.addColorStop(0.5, c2);
     g.addColorStop(1, c3);
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
+    const photo = imageUrl ? await loadPhoto(imageUrl) : null;
+    if (photo) {
+      drawCover(ctx, photo, W, H);
+      ctx.globalAlpha = 0.78;
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+      ctx.globalAlpha = 1;
+      // Assombrit haut et bas (zones de texte) pour un contraste impeccable.
+      const scrim = ctx.createLinearGradient(0, 0, 0, H);
+      scrim.addColorStop(0, "rgba(0,0,0,0.28)");
+      scrim.addColorStop(0.3, "rgba(0,0,0,0)");
+      scrim.addColorStop(0.75, "rgba(0,0,0,0)");
+      scrim.addColorStop(1, "rgba(0,0,0,0.3)");
+      ctx.fillStyle = scrim;
+      ctx.fillRect(0, 0, W, H);
+    } else {
+      ctx.fillStyle = g;
+      ctx.fillRect(0, 0, W, H);
+    }
     ctx.strokeStyle = "rgba(255,255,255,0.14)";
     ctx.lineWidth = 3;
     for (const [x, y, r] of [
@@ -307,12 +362,15 @@ export function OrderShareCard({
   referral,
   appUrl,
   design = "violet",
+  imageUrl = null,
 }: {
   merchantName: string;
   referral: ReferralLite;
   appUrl: string;
   /** Design de la story, choisi par le super-admin (Marketing > Story). */
   design?: StoryDesign;
+  /** Photo optionnelle (admin) dessinée en fond de story sous le dégradé. */
+  imageUrl?: string | null;
 }) {
   const t = useTranslations("referral");
   const [busy, setBusy] = useState<string | null>(null);
@@ -335,7 +393,8 @@ export function OrderShareCard({
       })
     : t("shareMsgPlain", { merchant: merchantName, link });
 
-  const story = () => drawStory(merchantName, code, rewardFriend, link, design);
+  const story = () =>
+    drawStory(merchantName, code, rewardFriend, link, design, imageUrl);
 
   const copyMessage = async () => {
     try {

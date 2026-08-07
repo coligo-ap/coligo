@@ -5,6 +5,7 @@ import { z } from "zod";
 import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { validateUploadedFile, MB } from "@/lib/security/file-validation";
 
 // =============================================================================
 // /admin/marketing — codes promo PLATEFORME (mig 0292) + bons d'achat (mig 0293).
@@ -364,7 +365,22 @@ export async function searchCustomers(query: string): Promise<CustomerHit[]> {
 
 const shareStorySchema = z.object({
   enabled: z.boolean().optional(),
-  design: z.enum(["violet", "rose", "nuit", "ambre"]).optional(),
+  design: z
+    .enum([
+      "violet",
+      "rose",
+      "nuit",
+      "ambre",
+      "emeraude",
+      "ocean",
+      "corail",
+      "or",
+    ])
+    .optional(),
+  // Photo de fond (mig 0441) : null = retirer. SEULES les URLs publiques de
+  // NOTRE storage sont acceptées (uploadées via uploadStoryImage) — jamais une
+  // URL externe arbitraire (elle serait dessinée dans le canvas client).
+  imageUrl: z.string().max(500).nullable().optional(),
 });
 
 export async function setShareStorySettings(
@@ -378,6 +394,16 @@ export async function setShareStorySettings(
   };
   if (parsed.data.enabled !== undefined) patch.enabled = parsed.data.enabled;
   if (parsed.data.design !== undefined) patch.design = parsed.data.design;
+  if (parsed.data.imageUrl !== undefined) {
+    const storagePrefix = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/`;
+    if (
+      parsed.data.imageUrl !== null &&
+      !parsed.data.imageUrl.startsWith(storagePrefix)
+    ) {
+      return { error: "Photo invalide — utilise le bouton d'upload." };
+    }
+    patch.image_url = parsed.data.imageUrl;
+  }
 
   const admin = createAdminClient();
   const { error } = await (
@@ -413,4 +439,35 @@ export async function setShareStorySettings(
 
   revalidatePath("/admin/marketing/story");
   return { ok: true };
+}
+
+/**
+ * Upload de la PHOTO de story (mig 0441) vers le bucket public `promo-banners`
+ * (même pipeline sécurisé que les bannières : validation par SIGNATURE BINAIRE,
+ * jamais le type déclaré). Renvoie l'URL publique à enregistrer via
+ * setShareStorySettings({ imageUrl }).
+ */
+export async function uploadStoryImage(
+  formData: FormData
+): Promise<{ url?: string; error?: string }> {
+  if (!(await adminCan("marketing"))) return { error: "Accès refusé." };
+  const v = await validateUploadedFile(formData.get("file"), {
+    kind: "image",
+    maxBytes: 5 * MB,
+  });
+  if (!v.ok) return { error: v.error };
+
+  try {
+    const admin = createAdminClient();
+    const path = `story-${Date.now()}-${globalThis.crypto.randomUUID().slice(0, 8)}.${v.ext}`;
+    const { error } = await admin.storage
+      .from("promo-banners")
+      .upload(path, v.bytes, { contentType: v.mime, upsert: false });
+    if (error) return { error: `Upload échoué : ${error.message}` };
+    const { data } = admin.storage.from("promo-banners").getPublicUrl(path);
+    return { url: data.publicUrl };
+  } catch (e) {
+    console.error("[uploadStoryImage] failed:", e);
+    return { error: "Upload impossible pour le moment." };
+  }
 }

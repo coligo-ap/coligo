@@ -1,18 +1,30 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Check, ExternalLink, Loader2, Power } from "lucide-react";
+import {
+  Check,
+  ExternalLink,
+  ImagePlus,
+  Loader2,
+  Power,
+  Trash2,
+} from "lucide-react";
 import { cn, formatDA } from "@/lib/utils";
-import { setShareStorySettings } from "@/app/admin/marketing/actions";
+import {
+  setShareStorySettings,
+  uploadStoryImage,
+} from "@/app/admin/marketing/actions";
 import type { ShareStorySettings, StoryDesign } from "@/lib/data/share-story";
 
 // =============================================================================
 // ShareStoryManager — Marketing > Story : le PARTAGE STORY post-commande.
-// L'équipe active/désactive la carte sur les commandes livrées et choisit le
-// DESIGN de la story générée (aperçu = les vrais dégradés du canvas).
-// Les CONDITIONS (cadeaux parrain/filleul, minimum) se règlent dans Parrainage.
+// L'équipe active/désactive la carte sur les commandes livrées, choisit le
+// DESIGN de la story générée (8 palettes, aperçu = les vrais dégradés du
+// canvas) et peut ajouter une PHOTO qui accompagne le texte (dessinée en fond
+// sous le voile dégradé — l'aperçu montre le rendu réel). Les CONDITIONS
+// (cadeaux parrain/filleul, minimum) se règlent dans Parrainage.
 // =============================================================================
 
 const DESIGNS: { key: StoryDesign; label: string; gradient: string }[] = [
@@ -36,7 +48,38 @@ const DESIGNS: { key: StoryDesign; label: string; gradient: string }[] = [
     label: "Ambre festif",
     gradient: "linear-gradient(135deg,#F59E0B,#F97316,#FF2D7A)",
   },
+  {
+    key: "emeraude",
+    label: "Émeraude",
+    gradient: "linear-gradient(135deg,#34D399,#0D9488,#064E3B)",
+  },
+  {
+    key: "ocean",
+    label: "Océan",
+    gradient: "linear-gradient(135deg,#38BDF8,#2563EB,#1E3A8A)",
+  },
+  {
+    key: "corail",
+    label: "Corail",
+    gradient: "linear-gradient(135deg,#FB7185,#F43F5E,#881337)",
+  },
+  {
+    key: "or",
+    label: "Or premium",
+    gradient: "linear-gradient(135deg,#FCD34D,#D97706,#78350F)",
+  },
 ];
+
+/** Voile du design par-dessus la photo (rendu identique au canvas : α 0.78). */
+function overlayGradient(gradient: string): string {
+  // linear-gradient(135deg,#AAA,#BBB,#CCC) → même dégradé en rgba α 0.78.
+  const withAlpha = gradient.replace(
+    /#([0-9A-Fa-f]{6})/g,
+    (_, hex: string) =>
+      `rgba(${parseInt(hex.slice(0, 2), 16)},${parseInt(hex.slice(2, 4), 16)},${parseInt(hex.slice(4, 6), 16)},0.78)`
+  );
+  return withAlpha;
+}
 
 export function ShareStoryManager({
   initial,
@@ -51,10 +94,17 @@ export function ShareStoryManager({
   } | null;
 }) {
   const router = useRouter();
+  const fileRef = useRef<HTMLInputElement>(null);
   const [settings, setSettings] = useState(initial);
   const [error, setError] = useState<string | null>(null);
   const [togglePending, startToggle] = useTransition();
   const [designPending, startDesign] = useTransition();
+  const [photoPending, startPhoto] = useTransition();
+  const [removePending, startRemove] = useTransition();
+
+  const activeGradient =
+    DESIGNS.find((d) => d.key === settings.design)?.gradient ??
+    DESIGNS[0].gradient;
 
   function toggle() {
     setError(null);
@@ -82,6 +132,38 @@ export function ShareStoryManager({
     });
   }
 
+  function onPhotoPicked(file: File | null) {
+    if (!file) return;
+    setError(null);
+    startPhoto(async () => {
+      const fd = new FormData();
+      fd.append("file", file);
+      const up = await uploadStoryImage(fd);
+      if (up.error || !up.url) {
+        setError(up.error ?? "Upload impossible.");
+        return;
+      }
+      const res = await setShareStorySettings({ imageUrl: up.url });
+      if (res.error) setError(res.error);
+      else {
+        setSettings((s) => ({ ...s, image_url: up.url ?? null }));
+        router.refresh();
+      }
+    });
+  }
+
+  function removePhoto() {
+    setError(null);
+    startRemove(async () => {
+      const res = await setShareStorySettings({ imageUrl: null });
+      if (res.error) setError(res.error);
+      else {
+        setSettings((s) => ({ ...s, image_url: null }));
+        router.refresh();
+      }
+    });
+  }
+
   return (
     <div className="space-y-4">
       {/* Activation */}
@@ -92,8 +174,8 @@ export function ShareStoryManager({
               Carte de partage post-commande
             </h2>
             <p className="text-muted mt-0.5 text-[13px]">
-              Sur chaque commande livrée : story générée + code parrain du
-              client, partage WhatsApp / Facebook / Instagram / Snapchat.
+              Sur chaque commande livrée : story générée (code parrain + QR),
+              partage WhatsApp / Facebook / Instagram / TikTok / Snapchat.
             </p>
           </div>
           <button
@@ -141,8 +223,12 @@ export function ShareStoryManager({
                 )}
               >
                 <span
-                  className="relative block aspect-9/16 max-h-36 w-full overflow-hidden rounded-[10px]"
-                  style={{ background: d.gradient }}
+                  className="relative block aspect-9/16 max-h-36 w-full overflow-hidden rounded-[10px] bg-cover bg-center"
+                  style={{
+                    backgroundImage: settings.image_url
+                      ? `${overlayGradient(d.gradient)}, url(${settings.image_url})`
+                      : d.gradient,
+                  }}
                 >
                   <span className="absolute inset-x-0 top-3 text-center text-[11px] font-black text-white">
                     coligo
@@ -162,6 +248,71 @@ export function ShareStoryManager({
               </button>
             );
           })}
+        </div>
+      </section>
+
+      {/* Photo de la story */}
+      <section className="border-border bg-surface rounded-[16px] border p-4">
+        <h2 className="text-sm font-bold">Photo de la story</h2>
+        <p className="text-muted mt-0.5 text-[13px]">
+          Optionnelle — dessinée en fond de la story, sous le voile du design
+          choisi (les textes restent lisibles). Choisis une photo qui va avec le
+          message : plat, livraison, ambiance…
+        </p>
+        <div className="mt-3 flex flex-wrap items-start gap-4">
+          <span
+            className="border-border block h-40 w-[90px] shrink-0 overflow-hidden rounded-[10px] border bg-cover bg-center"
+            style={{
+              backgroundImage: settings.image_url
+                ? `${overlayGradient(activeGradient)}, url(${settings.image_url})`
+                : activeGradient,
+            }}
+            aria-label="Aperçu du fond de story"
+          />
+          <div className="min-w-48 flex-1 space-y-2">
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                onPhotoPicked(e.target.files?.[0] ?? null);
+                e.target.value = "";
+              }}
+            />
+            <button
+              type="button"
+              onClick={() => fileRef.current?.click()}
+              disabled={photoPending}
+              className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-60"
+            >
+              {photoPending ? (
+                <Loader2 className="size-4 animate-spin" />
+              ) : (
+                <ImagePlus className="size-4" />
+              )}
+              {settings.image_url ? "Changer la photo" : "Ajouter une photo"}
+            </button>
+            {settings.image_url && (
+              <button
+                type="button"
+                onClick={removePhoto}
+                disabled={removePending}
+                className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 ms-2 inline-flex items-center gap-2 rounded-[12px] border px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60"
+              >
+                {removePending ? (
+                  <Loader2 className="size-4 animate-spin" />
+                ) : (
+                  <Trash2 className="size-4" />
+                )}
+                Retirer
+              </button>
+            )}
+            <p className="text-muted text-[12px]">
+              JPG/PNG/WebP, 5 Mo max. Idéal : portrait 1080×1920 (l&apos;image
+              est recadrée pour couvrir).
+            </p>
+          </div>
         </div>
       </section>
 

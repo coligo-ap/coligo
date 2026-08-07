@@ -631,6 +631,7 @@ export default async function CustomerOrderDetailPage({
               <OrderShareCard
                 merchantName={merchant.name}
                 design={share.design}
+                imageUrl={share.image_url}
                 referral={await getMyReferralOverview().then((o) =>
                   o
                     ? {
