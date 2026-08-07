@@ -957,6 +957,41 @@ export function DRequests({
         </Link>
       )}
 
+      {/* Sous-page Inter-wilayas : accès au COVOITURAGE (publier un départ
+          programmé et vendre ses places — mig 0443). */}
+      {interScope && tab === "demandes" && (
+        <Link
+          href="/chauffeur/covoiturage"
+          className="mx-[18px] mt-2.5 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
+          style={{
+            borderColor: "rgba(22,179,100,.30)",
+            background: "rgba(22,179,100,.06)",
+          }}
+        >
+          <span
+            className="grid size-7 shrink-0 place-items-center rounded-[9px]"
+            style={{ background: "rgba(22,179,100,.12)" }}
+          >
+            <Zap className="size-3.5" style={{ color: GO }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[11.5px]" style={{ color: GO }}>
+              {tr("Covoiturage — publie ton départ", "مشاركة — انشر رحلتك")}
+            </b>
+            <span className="text-[10px] text-[var(--d-muted)]">
+              {tr(
+                "Vends tes places et pars plein, sans attendre une demande",
+                "بِع مقاعدك وانطلق ممتلئًا دون انتظار طلب"
+              )}
+            </span>
+          </span>
+          <ChevronRight
+            className="size-4 shrink-0 rtl:rotate-180"
+            style={{ color: GO }}
+          />
+        </Link>
+      )}
+
       {/* Filtre « je rentre chez moi » actif */}
       {dirActive && tab === "demandes" && (
         <div

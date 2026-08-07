@@ -11,9 +11,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
+  Armchair,
   ArrowUpDown,
   Building2,
   Car,
+  ChevronRight,
   Clock,
   X,
   ContactRound,
@@ -70,6 +72,7 @@ export function DriveHomeScreen({
   setTripMode,
   inter,
   interFlag = null,
+  carpoolOn = false,
   depOpen,
   contactsOpen,
   sosContacts,
@@ -106,6 +109,9 @@ export function DriveHomeScreen({
     message_fr: string | null;
     message_ar: string | null;
   } | null;
+  /** Covoiturage par places disponible (flag drive_carpool actif) → carte CTA
+   *  sur l'onglet inter. */
+  carpoolOn?: boolean;
   depOpen: boolean;
   contactsOpen: boolean;
   sosContacts: SosContact[];
@@ -327,6 +333,44 @@ export function DriveHomeScreen({
                     <p className="-mt-1 mb-2.5 px-1 text-[11.5px] font-semibold text-[var(--d-muted)]">
                       {t("mode.interHint")}
                     </p>
+                  )}
+                  {/* COVOITURAGE PAR PLACES (0443) : l'alternative moins chère
+                      sur l'onglet inter — réserver UNE place sur un départ
+                      programmé au lieu du véhicule entier. */}
+                  {tripMode === "inter" && carpoolOn && (
+                    <Link
+                      href="/drive/covoiturage"
+                      className="mb-2.5 flex items-center gap-2.5 rounded-[14px] border px-3 py-2.5"
+                      style={{
+                        borderColor: "rgba(108,43,217,.28)",
+                        background: "rgba(108,43,217,.05)",
+                      }}
+                    >
+                      <span
+                        className="grid size-8 shrink-0 place-items-center rounded-[10px]"
+                        style={{ background: "rgba(108,43,217,.12)" }}
+                      >
+                        <Armchair
+                          className="size-4"
+                          style={{ color: VIOLET }}
+                        />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <b
+                          className="block text-[12px] font-extrabold"
+                          style={{ color: VIOLET }}
+                        >
+                          {t("carpool.cta")}
+                        </b>
+                        <span className="block text-[10.5px] font-medium text-[var(--d-muted)]">
+                          {t("carpool.ctaHint")}
+                        </span>
+                      </span>
+                      <ChevronRight
+                        className="size-4 shrink-0 rtl:rotate-180"
+                        style={{ color: VIOLET }}
+                      />
+                    </Link>
                   )}
                   <div className="mb-2.5 flex items-center gap-2">
                     <div className="min-w-0 flex-1">

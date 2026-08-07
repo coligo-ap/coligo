@@ -95,9 +95,12 @@ export type InterFlagLite = {
 export function DriveView({
   userId,
   interFlag = null,
+  carpoolOn = false,
 }: {
   userId: string;
   interFlag?: InterFlagLite | null;
+  /** Covoiturage par places disponible (flag drive_carpool actif). */
+  carpoolOn?: boolean;
 }) {
   const t = useTranslations("drive");
   // Contexte Drive (solde, récents, dernière course, options) CACHÉ via TanStack
@@ -1223,6 +1226,7 @@ export function DriveView({
       setTripMode={setTripMode}
       inter={inter}
       interFlag={interFlag}
+      carpoolOn={carpoolOn}
       depOpen={depOpen}
       contactsOpen={contactsOpen}
       sosContacts={sosContacts}

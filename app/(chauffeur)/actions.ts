@@ -1115,6 +1115,203 @@ export async function getInterTick(
   return { nearby, activeRide, flag };
 }
 
+// ---------------------------------------------------------------------------
+// COVOITURAGE PAR PLACES (mig 0443) — le chauffeur publie un départ programmé
+// inter-wilayas ; les clients réservent leurs places. RPC session (auth.uid()).
+// ---------------------------------------------------------------------------
+export type CarpoolTrip = {
+  id: string;
+  status: "published" | "started" | "completed" | "cancelled";
+  from_wilaya: string;
+  to_wilaya: string;
+  from_text: string | null;
+  to_text: string | null;
+  distance_km: number;
+  departure_at: string;
+  seats_total: number;
+  price_per_seat_da: number;
+  female_only: boolean;
+  seats_booked: number;
+  revenue_da: number;
+  created_at: string;
+};
+
+export type CarpoolTripBooking = {
+  id: string;
+  status: string;
+  seats: number;
+  amount_da: number;
+  payment_method: string;
+  customer_name: string;
+  created_at: string;
+};
+
+export async function carpoolPublish(input: {
+  fromWilaya: string;
+  toWilaya: string;
+  fromText: string;
+  toText: string;
+  departureAtIso: string;
+  seats: number;
+  priceDa: number;
+  femaleOnly: boolean;
+}): Promise<{ ok: boolean; error?: string }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("carpool_publish_trip", {
+    p_from_wilaya: input.fromWilaya,
+    p_to_wilaya: input.toWilaya,
+    p_from_text: input.fromText,
+    p_to_text: input.toText,
+    p_departure_at: input.departureAtIso,
+    p_seats: Math.floor(input.seats),
+    p_price_da: Math.floor(input.priceDa),
+    p_female_only: !!input.femaleOnly,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = data as { ok?: boolean; reason?: string } | null;
+  return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+}
+
+export async function getMyCarpoolTrips(): Promise<CarpoolTrip[]> {
+  try {
+    const rpc = await rpcClient();
+    const { data } = await rpc("carpool_my_trips", {});
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+      id: r.id as string,
+      status: r.status as CarpoolTrip["status"],
+      from_wilaya: r.from_wilaya as string,
+      to_wilaya: r.to_wilaya as string,
+      from_text: (r.from_text as string) ?? null,
+      to_text: (r.to_text as string) ?? null,
+      distance_km: Number(r.distance_km ?? 0),
+      departure_at: r.departure_at as string,
+      seats_total: Number(r.seats_total ?? 0),
+      price_per_seat_da: Number(r.price_per_seat_da ?? 0),
+      female_only: Boolean(r.female_only),
+      seats_booked: Number(r.seats_booked ?? 0),
+      revenue_da: Number(r.revenue_da ?? 0),
+      created_at: r.created_at as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function getCarpoolTripBookings(
+  tripId: string
+): Promise<CarpoolTripBooking[]> {
+  try {
+    const rpc = await rpcClient();
+    const { data } = await rpc("carpool_trip_bookings", { p_trip_id: tripId });
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+      id: r.id as string,
+      status: r.status as string,
+      seats: Number(r.seats ?? 0),
+      amount_da: Number(r.amount_da ?? 0),
+      payment_method: (r.payment_method as string) ?? "cash",
+      customer_name: (r.customer_name as string) ?? "Client",
+      created_at: r.created_at as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+export async function carpoolBoard(
+  tripId: string,
+  pin: string
+): Promise<{ ok: boolean; error?: string; seats?: number }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("carpool_board_passenger", {
+    p_trip_id: tripId,
+    p_pin: pin,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = data as { ok?: boolean; reason?: string; seats?: number } | null;
+  return row?.ok
+    ? { ok: true, seats: row.seats }
+    : { ok: false, error: row?.reason };
+}
+
+export async function carpoolStart(
+  tripId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("carpool_start_trip", {
+    p_trip_id: tripId,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = data as { ok?: boolean; reason?: string } | null;
+  return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+}
+
+export async function carpoolComplete(
+  tripId: string
+): Promise<{ ok: boolean; error?: string }> {
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("carpool_complete_trip", {
+    p_trip_id: tripId,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = data as { ok?: boolean; reason?: string } | null;
+  return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+}
+
+export async function carpoolCancelTrip(
+  tripId: string,
+  routeLabel: string
+): Promise<{ ok: boolean; error?: string }> {
+  // Passagers à prévenir capturés AVANT l'annulation (le RPC les passe en
+  // 'cancelled' — après coup on ne saurait plus qui rembourser/notifier).
+  let userIds: string[] = [];
+  try {
+    const admin = createAdminClient();
+    // Tables carpool_* (0443) hors types générés (Docker requis) → cast du
+    // `from` BINDÉ (pattern du repo).
+    const afrom = admin.from.bind(admin) as unknown as (t: string) => {
+      select: (s: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          in: (
+            c: string,
+            v: string[]
+          ) => Promise<{
+            data: { customer_id: string }[] | null;
+          }>;
+        };
+      };
+    };
+    const { data: bks } = await afrom("carpool_bookings")
+      .select("customer_id")
+      .eq("trip_id", tripId)
+      .in("status", ["booked", "boarded"]);
+    const custIds = [...new Set((bks ?? []).map((b) => b.customer_id))];
+    if (custIds.length) {
+      const { data: cus } = await admin
+        .from("customers")
+        .select("user_id")
+        .in("id", custIds);
+      userIds = (cus ?? [])
+        .map((c) => c.user_id as string | null)
+        .filter((u): u is string => !!u);
+    }
+  } catch {
+    /* notification best-effort */
+  }
+  const rpc = await rpcClient();
+  const { data, error } = await rpc("carpool_cancel_trip", {
+    p_trip_id: tripId,
+  });
+  if (error) return { ok: false, error: error.message };
+  const row = data as { ok?: boolean; reason?: string } | null;
+  if (!row?.ok) return { ok: false, error: row?.reason };
+  const { notifyCarpoolTripCancelled } = await import("@/lib/fcm/triggers");
+  void notifyCarpoolTripCancelled({ userIds, routeLabel });
+  return { ok: true };
+}
+
 export async function offerRide(
   rideId: string,
   price: number

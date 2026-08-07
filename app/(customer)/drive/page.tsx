@@ -10,10 +10,11 @@ export default async function DrivePage() {
   // PERF : la session (mémoïsée, partagée avec CustomerShell) et la disponibilité
   // Drive sont INDÉPENDANTES → on les résout EN PARALLÈLE (chemin critique =
   // max(auth, flag) au lieu de la somme). Même principe que le gate super-admin.
-  const [user, flag, interFlag] = await Promise.all([
+  const [user, flag, interFlag, carpoolFlag] = await Promise.all([
     getAuthUser(),
     getFeatureFlag("drive"),
     getFeatureFlag("drive_interwilaya"),
+    getFeatureFlag("drive_carpool"),
   ]);
   if (!user) redirect("/se-connecter?next=/drive");
 
@@ -36,6 +37,9 @@ export default async function DrivePage() {
         message_fr: interFlag.message_fr,
         message_ar: interFlag.message_ar,
       }}
+      carpoolOn={
+        interFlag.status === "active" && carpoolFlag.status === "active"
+      }
     />
   );
 }

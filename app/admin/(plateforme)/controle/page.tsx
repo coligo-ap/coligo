@@ -31,6 +31,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Les longs trajets entre wilayas (≥ 35 km, wilayas différentes). Masqué = onglet client retiré + sous-page chauffeur coupée ; bientôt/maintenance = grisé + demandes inter refusées (trigger DB). Les trajets en ville ne sont pas touchés.",
   },
   {
+    key: "drive_carpool",
+    label: "Drive — covoiturage par places",
+    hint: "Départs inter-wilayas programmés par les chauffeurs, réservés à la place (PIN d'embarquement, Coligo Pay séquestré ou espèces). Coupé = plus de publication ni de réservation (trigger DB) ; les départs déjà réservés restent gérables. Coupé aussi automatiquement si Drive ou Inter-wilayas l'est.",
+  },
+  {
     key: "online_payment",
     label: "Paiement en ligne (carte)",
     hint: "Le paiement par carte (Chargily) au checkout. Bloqué = seuls les autres modes restent.",

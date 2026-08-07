@@ -1645,6 +1645,49 @@
       "soon": "Soon",
       "suspended": "Paused",
       "interBlocked": "Intercity trips are temporarily paused. City trips remain available."
+    },
+    "carpool": {
+      "title": "Carpooling",
+      "subtitle": "Book your seat on a scheduled departure — pay less.",
+      "offers": "Departures",
+      "mine": "My seats",
+      "allWilayas": "All destinations",
+      "empty": "No departures published for these filters. Check back soon!",
+      "emptyMine": "No bookings yet.",
+      "perSeat": "DA / seat",
+      "seatsLeft": "{count} seat(s) left",
+      "book": "Book",
+      "booked": "Booked",
+      "femaleOnly": "Women only",
+      "seats": "Seats",
+      "payment": "Payment",
+      "cpay": "Coligo Pay",
+      "cash": "Cash on board",
+      "total": "Total",
+      "confirm": "Confirm booking",
+      "pinTitle": "Boarding code",
+      "pinHint": "Give this code to the driver when boarding — it's your ticket.",
+      "ok": "Got it",
+      "cancel": "Cancel booking",
+      "cancelSure": "Confirm cancellation?",
+      "refundNote": "Free cancellation with full refund until the departure leaves.",
+      "tripCancelled": "Departure cancelled — you are fully refunded.",
+      "status": {
+        "booked": "Booked",
+        "boarded": "On board",
+        "completed": "Completed",
+        "cancelled": "Cancelled",
+        "no_show": "No-show"
+      },
+      "errors": {
+        "insufficient_balance": "Insufficient Coligo Pay balance — choose Cash or top up.",
+        "not_enough_seats": "Not enough seats left on this departure.",
+        "trip_unavailable": "This departure is no longer available.",
+        "own_trip": "You are the driver of this departure.",
+        "generic": "Booking failed — please try again."
+      },
+      "cta": "Carpool by the seat",
+      "ctaHint": "Book one seat on a scheduled departure — cheaper than a private ride."
     }
   },
   "push": {

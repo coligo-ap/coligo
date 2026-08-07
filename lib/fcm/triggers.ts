@@ -1199,6 +1199,84 @@ export async function notifyChauffeursNewRide(input: {
 }
 
 /**
+ * COVOITURAGE (0443) — un client vient de réserver des places sur un départ :
+ * on prévient le CHAUFFEUR (route → son écran Covoiturage). Best-effort.
+ */
+export async function notifyCarpoolBooked(input: {
+  tripId: string;
+  seats: number;
+  routeLabel: string;
+}): Promise<void> {
+  try {
+    const admin = createAdminClient();
+    // Table carpool_trips (0443) hors types générés → cast du `from` BINDÉ.
+    const afrom = admin.from.bind(admin) as unknown as (t: string) => {
+      select: (s: string) => {
+        eq: (
+          c: string,
+          v: string
+        ) => {
+          maybeSingle: () => Promise<{
+            data: { chauffeur_id: string | null } | null;
+          }>;
+        };
+      };
+    };
+    const { data: trip } = await afrom("carpool_trips")
+      .select("chauffeur_id")
+      .eq("id", input.tripId)
+      .maybeSingle();
+    if (!trip?.chauffeur_id) return;
+    const { data: ch } = await admin
+      .from("chauffeurs")
+      .select("user_id")
+      .eq("id", trip.chauffeur_id)
+      .maybeSingle();
+    if (!ch?.user_id) return;
+    const tokens = await tokensFor(ch.user_id, "chauffeur");
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Nouvelle réservation 🎟️",
+        body: `${input.seats} place${input.seats > 1 ? "s" : ""} réservée${input.seats > 1 ? "s" : ""} · ${input.routeLabel}`,
+      },
+      { route: "/chauffeur/covoiturage", kind: "carpool_booked" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCarpoolBooked failed:", err);
+  }
+}
+
+/**
+ * COVOITURAGE — départ annulé par le chauffeur : chaque passager remboursé
+ * est prévenu (route → ses réservations). Best-effort.
+ */
+export async function notifyCarpoolTripCancelled(input: {
+  userIds: string[];
+  routeLabel: string;
+}): Promise<void> {
+  try {
+    if (input.userIds.length === 0) return;
+    const tokenLists = await Promise.all(
+      [...new Set(input.userIds)].map((uid) => tokensFor(uid, "customer"))
+    );
+    const tokens = [...new Set(tokenLists.flat())];
+    if (tokens.length === 0) return;
+    await sendFcm(
+      tokens,
+      {
+        title: "Départ annulé",
+        body: `${input.routeLabel} — votre réservation est intégralement remboursée sur Coligo Pay.`,
+      },
+      { route: "/drive/covoiturage", kind: "carpool_trip_cancelled" }
+    );
+  } catch (err) {
+    console.warn("[fcm] notifyCarpoolTripCancelled failed:", err);
+  }
+}
+
+/**
  * VTC — la demande N'EST PLUS À PRENDRE (client a choisi un chauffeur, course
  * annulée pendant la recherche…) : broadcast `ride_gone` aux chauffeurs qui la
  * voyaient, pour qu'elle DISPARAISSE de leur écran IMMÉDIATEMENT au lieu

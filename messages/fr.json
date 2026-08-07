@@ -1639,6 +1639,49 @@
       "soon": "Bientôt",
       "suspended": "Suspendu",
       "interBlocked": "Les trajets inter-wilayas sont temporairement suspendus. Les trajets en ville restent disponibles."
+    },
+    "carpool": {
+      "title": "Covoiturage",
+      "subtitle": "Réservez votre place sur un départ programmé — payez moins cher.",
+      "offers": "Départs",
+      "mine": "Mes places",
+      "allWilayas": "Toutes les destinations",
+      "empty": "Aucun départ publié pour ces critères. Revenez bientôt !",
+      "emptyMine": "Aucune réservation pour l'instant.",
+      "perSeat": "DA / place",
+      "seatsLeft": "{count} place(s) libre(s)",
+      "book": "Réserver",
+      "booked": "Réservé",
+      "femaleOnly": "100 % femmes",
+      "seats": "Places",
+      "payment": "Paiement",
+      "cpay": "Coligo Pay",
+      "cash": "Espèces à bord",
+      "total": "Total",
+      "confirm": "Confirmer la réservation",
+      "pinTitle": "Code d'embarquement",
+      "pinHint": "Donnez ce code au chauffeur en montant — c'est votre billet.",
+      "ok": "Compris",
+      "cancel": "Annuler la réservation",
+      "cancelSure": "Confirmer l'annulation ?",
+      "refundNote": "Annulation gratuite et remboursée tant que le départ n'est pas parti.",
+      "tripCancelled": "Départ annulé — vous êtes intégralement remboursé.",
+      "status": {
+        "booked": "Réservée",
+        "boarded": "À bord",
+        "completed": "Terminée",
+        "cancelled": "Annulée",
+        "no_show": "Absent au départ"
+      },
+      "errors": {
+        "insufficient_balance": "Solde Coligo Pay insuffisant — choisissez Espèces ou rechargez.",
+        "not_enough_seats": "Plus assez de places sur ce départ.",
+        "trip_unavailable": "Ce départ n'est plus disponible.",
+        "own_trip": "Vous êtes le chauffeur de ce départ.",
+        "generic": "Réservation impossible — réessayez."
+      },
+      "cta": "Covoiturage par places",
+      "ctaHint": "Réservez une place sur un départ programmé — moins cher que la course privée."
     }
   },
   "push": {
