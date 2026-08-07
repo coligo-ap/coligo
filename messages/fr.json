@@ -1089,7 +1089,12 @@
     "shareFriendGets": "Ton ami : +{amount} DA",
     "shareYouGet": "Toi : +{amount} DA",
     "shareMinOrder": "dès {amount} DA de commande",
-    "shareSaved": "Story enregistrée — colle-la !"
+    "shareSaved": "Story enregistrée — colle-la !",
+    "shareOpening": "Ouverture de {app}…",
+    "shareSavedCopied": "Story téléchargée + message copié — publie-la sur {app}",
+    "shareCopiedOpen": "Message copié — colle-le dans {app}",
+    "shareReadyPlain": "Publie ta story sur {app} avec ton code",
+    "shareTargetStory": "ta story"
   },
   "wallet": {
     "cashbackTitle": "Mon Cashback",

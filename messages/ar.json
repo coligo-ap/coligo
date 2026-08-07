@@ -1089,7 +1089,12 @@
     "shareFriendGets": "صديقك: +{amount} دج",
     "shareYouGet": "أنت: +{amount} دج",
     "shareMinOrder": "ابتداءً من {amount} دج",
-    "shareSaved": "تم حفظ الستوري — الصقها!"
+    "shareSaved": "تم حفظ الستوري — الصقها!",
+    "shareOpening": "جارٍ فتح {app}…",
+    "shareSavedCopied": "تم تنزيل القصة ونسخ الرسالة — انشرها على {app}",
+    "shareCopiedOpen": "تم نسخ الرسالة — ألصقها في {app}",
+    "shareReadyPlain": "انشر قصتك على {app} مع رمزك",
+    "shareTargetStory": "قصتك"
   },
   "wallet": {
     "cashbackTitle": "استردادي النقدي",
