@@ -228,6 +228,62 @@ try {
   });
   ok("annuler le départ (chauffeur)", ct.data?.ok === true, `${ct.ms}ms`);
 
+  // ── 6bis. SEGMENTS (0445) : arrêt Bouira, montée en route ──────────────
+  const pub3 = await rpc(chS, "carpool_publish_trip", {
+    p_from_wilaya: "06",
+    p_to_wilaya: "16",
+    p_from_text: "Béjaïa — gare (QA seg)",
+    p_to_text: "Alger — Tafourah",
+    p_departure_at: new Date(Date.now() + 5 * 3600e3).toISOString(),
+    p_seats: 3,
+    p_price_da: 1000,
+    p_female_only: false,
+    p_stops: [{ wilaya: "10" }],
+  });
+  ok(
+    "publier avec arrêt Bouira (06→10→16)",
+    pub3.data?.ok === true,
+    `${pub3.ms}ms`
+  );
+  if (pub3.data?.trip_id) tripIds.push(pub3.data.trip_id);
+  const segSearch = await rpc(cuS, "carpool_search_trips", {
+    p_from_wilaya: "10",
+    p_to_wilaya: "16",
+    p_date: null,
+  });
+  const segHit = (segSearch.data ?? []).find(
+    (x) => x.id === pub3.data?.trip_id
+  );
+  ok(
+    "recherche Bouira→Alger : segment matché, prix tronçon < complet",
+    segHit?.from_seq === 1 &&
+      segHit?.to_seq === 2 &&
+      segHit?.seg_price_da < 1000 &&
+      (segHit?.route_wilayas ?? []).join(",") === "06,10,16",
+    `${segSearch.ms}ms`
+  );
+  const segBk = await rpc(cuS, "carpool_book_seats", {
+    p_trip_id: pub3.data?.trip_id,
+    p_seats: 1,
+    p_payment: "cash",
+    p_operation_id: `qa-seg-${Date.now()}`,
+    p_from_seq: 1,
+    p_to_seq: 2,
+  });
+  ok(
+    "réserver le tronçon Bouira→Alger au prix du tronçon",
+    segBk.data?.ok === true && segBk.data?.amount_da === segHit?.seg_price_da,
+    `${segBk.ms}ms`
+  );
+  const myTrips2 = await rpc(chS, "carpool_trip_bookings", {
+    p_trip_id: pub3.data?.trip_id,
+  });
+  const segRow = (myTrips2.data ?? [])[0];
+  ok(
+    "chauffeur voit le segment du passager (10 → 16)",
+    segRow?.seg_from_wilaya === "10" && segRow?.seg_to_wilaya === "16"
+  );
+
   // ── 7. Sécurité : ANON n'a accès à RIEN ────────────────────────────────
   const anonSearch = await rpc(anon, "carpool_search_trips", {
     p_from_wilaya: null,

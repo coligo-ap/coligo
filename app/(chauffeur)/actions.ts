@@ -1134,6 +1134,9 @@ export type CarpoolTrip = {
   seats_booked: number;
   revenue_da: number;
   created_at: string;
+  /** Itinéraire complet ordonné (0445) : wilayas + libellés des arrêts. */
+  route_wilayas: string[];
+  route_texts: string[];
 };
 
 export type CarpoolTripBooking = {
@@ -1144,6 +1147,11 @@ export type CarpoolTripBooking = {
   payment_method: string;
   customer_name: string;
   created_at: string;
+  /** Segment du passager (montée → descente). */
+  seg_from_wilaya: string | null;
+  seg_to_wilaya: string | null;
+  seg_from_text: string | null;
+  seg_to_text: string | null;
 };
 
 export async function carpoolPublish(input: {
@@ -1151,6 +1159,17 @@ export async function carpoolPublish(input: {
   toWilaya: string;
   fromText: string;
   toText: string;
+  fromLat?: number | null;
+  fromLng?: number | null;
+  toLat?: number | null;
+  toLng?: number | null;
+  /** Arrêts INTERMÉDIAIRES ordonnés (suggérés par le tracé, validés au tap). */
+  stops?: {
+    wilaya: string;
+    text?: string | null;
+    lat?: number;
+    lng?: number;
+  }[];
   departureAtIso: string;
   seats: number;
   priceDa: number;
@@ -1166,6 +1185,16 @@ export async function carpoolPublish(input: {
     p_seats: Math.floor(input.seats),
     p_price_da: Math.floor(input.priceDa),
     p_female_only: !!input.femaleOnly,
+    p_from_lat: input.fromLat ?? null,
+    p_from_lng: input.fromLng ?? null,
+    p_to_lat: input.toLat ?? null,
+    p_to_lng: input.toLng ?? null,
+    p_stops: (input.stops ?? []).map((s) => ({
+      wilaya: s.wilaya,
+      text: s.text ?? null,
+      lat: s.lat,
+      lng: s.lng,
+    })),
   });
   if (error) return { ok: false, error: error.message };
   const row = data as { ok?: boolean; reason?: string } | null;
@@ -1191,6 +1220,8 @@ export async function getMyCarpoolTrips(): Promise<CarpoolTrip[]> {
       seats_booked: Number(r.seats_booked ?? 0),
       revenue_da: Number(r.revenue_da ?? 0),
       created_at: r.created_at as string,
+      route_wilayas: (r.route_wilayas as string[]) ?? [],
+      route_texts: (r.route_texts as string[]) ?? [],
     }));
   } catch {
     return [];
@@ -1211,6 +1242,10 @@ export async function getCarpoolTripBookings(
       payment_method: (r.payment_method as string) ?? "cash",
       customer_name: (r.customer_name as string) ?? "Client",
       created_at: r.created_at as string,
+      seg_from_wilaya: (r.seg_from_wilaya as string) ?? null,
+      seg_to_wilaya: (r.seg_to_wilaya as string) ?? null,
+      seg_from_text: (r.seg_from_text as string) ?? null,
+      seg_to_text: (r.seg_to_text as string) ?? null,
     }));
   } catch {
     return [];

@@ -35,6 +35,19 @@ export type CarpoolOffer = {
   chauffeur_rating: number | null;
   gamme: string | null;
   my_booking_id: string | null;
+  /** SEGMENT correspondant à la recherche (0445) : montée → descente. */
+  from_seq: number;
+  to_seq: number;
+  seg_from_wilaya: string;
+  seg_to_wilaya: string;
+  seg_from_text: string | null;
+  seg_to_text: string | null;
+  seg_km: number;
+  seg_price_da: number;
+  seg_departure_at: string;
+  /** Itinéraire complet ordonné — affichage « via Bouira ». */
+  route_wilayas: string[];
+  route_texts: string[];
 };
 
 export type CarpoolBooking = {
@@ -54,6 +67,12 @@ export type CarpoolBooking = {
   departure_at: string;
   price_per_seat_da: number;
   chauffeur_name: string;
+  /** Segment réservé (0445) + heure de montée à MON arrêt. */
+  seg_from_wilaya: string | null;
+  seg_to_wilaya: string | null;
+  seg_from_text: string | null;
+  seg_to_text: string | null;
+  seg_departure_at: string | null;
 };
 
 export type CarpoolFlagLite = {
@@ -120,6 +139,19 @@ export async function getCarpoolHome(filters?: {
         r.chauffeur_rating == null ? null : Number(r.chauffeur_rating),
       gamme: (r.gamme as string) ?? null,
       my_booking_id: (r.my_booking_id as string) ?? null,
+      from_seq: Number(r.from_seq ?? 0),
+      to_seq: Number(r.to_seq ?? 1),
+      seg_from_wilaya:
+        (r.seg_from_wilaya as string) ?? (r.from_wilaya as string),
+      seg_to_wilaya: (r.seg_to_wilaya as string) ?? (r.to_wilaya as string),
+      seg_from_text: (r.seg_from_text as string) ?? null,
+      seg_to_text: (r.seg_to_text as string) ?? null,
+      seg_km: Number(r.seg_km ?? r.distance_km ?? 0),
+      seg_price_da: Number(r.seg_price_da ?? r.price_per_seat_da ?? 0),
+      seg_departure_at:
+        (r.seg_departure_at as string) ?? (r.departure_at as string),
+      route_wilayas: (r.route_wilayas as string[]) ?? [],
+      route_texts: (r.route_texts as string[]) ?? [],
     })
   );
   const bookings = (
@@ -141,6 +173,11 @@ export async function getCarpoolHome(filters?: {
     departure_at: r.departure_at as string,
     price_per_seat_da: Number(r.price_per_seat_da ?? 0),
     chauffeur_name: (r.chauffeur_name as string) ?? "Chauffeur",
+    seg_from_wilaya: (r.seg_from_wilaya as string) ?? null,
+    seg_to_wilaya: (r.seg_to_wilaya as string) ?? null,
+    seg_from_text: (r.seg_from_text as string) ?? null,
+    seg_to_text: (r.seg_to_text as string) ?? null,
+    seg_departure_at: (r.seg_departure_at as string) ?? null,
   }));
   return { flag, trips, bookings };
 }
@@ -152,6 +189,9 @@ export async function bookCarpoolSeats(input: {
   payment: "coligo_pay" | "cash";
   operationId: string;
   routeLabel: string;
+  /** Segment réservé (0445) — absent = trajet complet. */
+  fromSeq?: number;
+  toSeq?: number;
 }): Promise<{ ok: boolean; pin?: string; error?: string }> {
   const rpc = await rpcClient();
   const { data, error } = await rpc("carpool_book_seats", {
@@ -159,6 +199,8 @@ export async function bookCarpoolSeats(input: {
     p_seats: Math.floor(input.seats),
     p_payment: input.payment,
     p_operation_id: input.operationId,
+    p_from_seq: input.fromSeq ?? null,
+    p_to_seq: input.toSeq ?? null,
   });
   if (error) return { ok: false, error: error.message };
   const row = data as {

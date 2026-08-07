@@ -262,6 +262,121 @@ try {
     cb.ok === true && (await bal(custs[2].id)) === b2Before
   );
 
+  // ── 5bis. SEGMENTS (0445) : Béjaïa → Bouira → Alger, places par tronçon ─
+  await as(ch.user_id);
+  const pubS = (
+    await rpc(
+      `select carpool_publish_trip('06','16','Béjaïa gare','Alger Tafourah',
+         now() + interval '6 hours', 2, 1000, false, null, null, null, null,
+         '[{"wilaya":"10","text":"Bouira péage"}]'::jsonb) j`
+    )
+  ).j;
+  ok("publier avec arrêt Bouira (06→10→16)", pubS.ok === true);
+  const stops = (
+    await c.query(
+      `select seq, wilaya, km_from_origin from carpool_trip_stops
+        where trip_id=$1 order by seq`,
+      [pubS.trip_id]
+    )
+  ).rows;
+  ok(
+    "3 arrêts ordonnés, km cumulés croissants",
+    stops.length === 3 &&
+      stops[1].wilaya === "10" &&
+      Number(stops[2].km_from_origin) > Number(stops[1].km_from_origin) &&
+      Number(stops[1].km_from_origin) > 0
+  );
+
+  await as(custs[0].user_id);
+  const segSearch = (
+    await c.query(
+      `select from_seq, to_seq, seg_price_da, seats_left, route_wilayas
+         from carpool_search_trips('10','16') where id=$1`,
+      [pubS.trip_id]
+    )
+  ).rows[0];
+  ok(
+    "recherche Bouira→Alger matche le segment 1→2, prix < complet",
+    segSearch?.from_seq === 1 &&
+      segSearch?.to_seq === 2 &&
+      segSearch.seg_price_da < 1000 &&
+      segSearch.seg_price_da >= 100 &&
+      segSearch.seats_left === 2 &&
+      segSearch.route_wilayas.join(",") === "06,10,16"
+  );
+
+  const sb1 = (
+    await rpc(`select carpool_book_seats($1, 2, 'cash', 'op-seg-1', 0, 1) j`, [
+      pubS.trip_id,
+    ])
+  ).j;
+  ok("2 places Béjaïa→Bouira (voiture de 2)", sb1.ok === true);
+  await as(custs[1].user_id);
+  const sb2 = (
+    await rpc(`select carpool_book_seats($1, 2, 'cash', 'op-seg-2', 1, 2) j`, [
+      pubS.trip_id,
+    ])
+  ).j;
+  ok(
+    "2 places Bouira→Alger dans la MÊME voiture (tronçons disjoints)",
+    sb2.ok === true
+  );
+  await as(custs[2].user_id);
+  const sb3 = (
+    await rpc(`select carpool_book_seats($1, 1, 'cash', 'op-seg-3', 0, 2) j`, [
+      pubS.trip_id,
+    ])
+  ).j;
+  ok(
+    "trajet complet REFUSÉ (chevauche les 2 tronçons pleins)",
+    sb3.ok === false && sb3.reason === "not_enough_seats"
+  );
+  const amounts = (
+    await c.query(
+      `select from_seq, amount_da/seats as per_seat from carpool_bookings
+        where trip_id=$1 and status='booked' order by from_seq`,
+      [pubS.trip_id]
+    )
+  ).rows;
+  ok(
+    "prix par segment proportionnels (100 ≤ tronçon < complet)",
+    amounts.length === 2 &&
+      amounts.every(
+        (a) => Number(a.per_seat) < 1000 && Number(a.per_seat) >= 100
+      )
+  );
+
+  // Démarrage : l'absent de l'ORIGINE est no-show, le passager de l'arrêt
+  // intermédiaire est PRÉSERVÉ (il monte à Bouira).
+  await as(ch.user_id);
+  await rpc(`select carpool_start_trip($1) j`, [pubS.trip_id]);
+  const after = (
+    await c.query(
+      `select from_seq, status from carpool_bookings where trip_id=$1
+        and client_operation_id in ('op-seg-1','op-seg-2') order by from_seq`,
+      [pubS.trip_id]
+    )
+  ).rows;
+  ok(
+    "démarrage : no-show à l'origine seul, l'arrêt suivant reste réservé",
+    after.find((x) => x.from_seq === 0)?.status === "no_show" &&
+      after.find((x) => x.from_seq === 1)?.status === "booked"
+  );
+  const bd = (
+    await rpc(`select carpool_board_passenger($1, $2) j`, [
+      pubS.trip_id,
+      sb2.pin,
+    ])
+  ).j;
+  const cmp = (await rpc(`select carpool_complete_trip($1) j`, [pubS.trip_id]))
+    .j;
+  ok(
+    "clôture : encaisse exactement le segment embarqué",
+    bd.ok === true &&
+      cmp.ok === true &&
+      cmp.cash_da === Number(amounts.find((a) => a.from_seq === 1).per_seat) * 2
+  );
+
   // ── 6. Kill-switch drive_carpool ───────────────────────────────────────
   await c.query(
     `update feature_flags set status='maintenance' where key='drive_carpool'`

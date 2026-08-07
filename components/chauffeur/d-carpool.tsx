@@ -1,10 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import {
   Armchair,
+  ArrowUpDown,
   Banknote,
   Check,
   ChevronDown,
@@ -17,13 +18,15 @@ import {
   X,
 } from "lucide-react";
 import { WILAYAS } from "@/lib/config/wilayas";
-import { WILAYA_CENTROIDS } from "@/lib/config/wilaya-centroids";
 import {
   VIOLET,
   GO,
   ROSE,
   RED,
 } from "@/components/customer/drive/drive-modals";
+import { PlaceField, type PlacePick } from "@/components/shared/place-field";
+import { useRoadPath } from "@/lib/drive/use-road-path";
+import { suggestCorridorStops } from "@/lib/drive/route-corridor";
 import { onVisibleResumeSafe } from "@/lib/net/probe";
 import {
   carpoolBoard,
@@ -37,31 +40,45 @@ import {
   type CarpoolTripBooking,
 } from "@/app/(chauffeur)/actions";
 
-/** Distance approximative entre 2 chefs-lieux (hint du formulaire). */
-function wilayaKm(a: string, b: string): number | null {
-  const ca = WILAYA_CENTROIDS[a];
-  const cb = WILAYA_CENTROIDS[b];
-  if (!ca || !cb) return null;
+/** Haversine (km) — même géométrie que le serveur (km cumulés des arrêts). */
+function kmBetween(
+  aLat: number,
+  aLng: number,
+  bLat: number,
+  bLng: number
+): number {
   const R = 6371;
-  const dLat = ((cb.lat - ca.lat) * Math.PI) / 180;
-  const dLng = ((cb.lng - ca.lng) * Math.PI) / 180;
+  const dLat = ((bLat - aLat) * Math.PI) / 180;
+  const dLng = ((bLng - aLng) * Math.PI) / 180;
   const s =
     Math.sin(dLat / 2) ** 2 +
-    Math.cos((ca.lat * Math.PI) / 180) *
-      Math.cos((cb.lat * Math.PI) / 180) *
+    Math.cos((aLat * Math.PI) / 180) *
+      Math.cos((bLat * Math.PI) / 180) *
       Math.sin(dLng / 2) ** 2;
-  return Math.round(2 * R * Math.asin(Math.sqrt(s)));
+  return 2 * R * Math.asin(Math.sqrt(s));
+}
+
+/** Prix d'un segment — MIROIR de carpool_segment_price (pas de 50, min 100). */
+function segPrice(total: number, segKm: number, totKm: number): number {
+  if (segKm >= totKm) return total;
+  return Math.max(
+    100,
+    Math.min(total, Math.round((total * segKm) / Math.max(totKm, 1) / 50) * 50)
+  );
 }
 
 /**
- * Écran COVOITURAGE chauffeur : publier un départ inter-wilayas par PLACES,
- * suivre ses réservations, embarquer par PIN, démarrer/terminer/annuler.
- * FR/AR en dur (comme le reste de l'espace chauffeur).
+ * Écran COVOITURAGE chauffeur v2 — publication façon BlaBlaCar : départ et
+ * arrivée au niveau COMMUNE (saisie libre + suggestions gazetteer), arrêts
+ * intermédiaires SUGGÉRÉS automatiquement par le tracé routier (« Sur votre
+ * route : Bouira »), prix par segment calculés tout seuls. Le chauffeur
+ * remplit 4 champs, l'app fait le reste.
  */
 export function DCarpool() {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
-  const wname = (code: string) => {
+  const wname = (code: string | null) => {
+    if (!code) return "—";
     const w = WILAYAS.find((x) => x.code === code);
     return w ? (isAr ? w.name_ar : w.name) : code;
   };
@@ -123,8 +140,12 @@ export function DCarpool() {
         "خيار « امرأة خلف المقود » للسائقات الموثّقات فقط.",
       ],
       bad_route: [
-        "Choisissez deux wilayas différentes.",
-        "اختر ولايتين مختلفتين.",
+        "Choisissez un départ et une arrivée dans deux wilayas différentes.",
+        "اختر انطلاقًا ووصولًا في ولايتين مختلفتين.",
+      ],
+      bad_stops: [
+        "Arrêts invalides — réessayez avec les arrêts suggérés.",
+        "محطات غير صالحة — أعد المحاولة بالمحطات المقترحة.",
       ],
       not_interwilaya: [
         "Trajet trop court pour un inter-wilayas.",
@@ -135,8 +156,8 @@ export function DCarpool() {
         "وقت الانطلاق غير صالح (بعد 30 دقيقة على الأقل).",
       ],
       bad_input: [
-        "Vérifiez les places et le prix (min 50 DA).",
-        "تحقق من المقاعد والسعر (50 دج على الأقل).",
+        "Vérifiez les places et le prix (min 100 DA).",
+        "تحقق من المقاعد والسعر (100 دج على الأقل).",
       ],
       too_many_trips: [
         "Maximum 3 départs actifs à la fois.",
@@ -175,23 +196,85 @@ export function DCarpool() {
     await loadBookings(tripId);
   };
 
-  /* ── Feuille de publication ─────────────────────────────────────────── */
+  /* ── Feuille de publication (BlaBlaCar en mode Coligo) ────────────────── */
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [fromW, setFromW] = useState("16");
-  const [toW, setToW] = useState("06");
-  const [fromText, setFromText] = useState("");
-  const [toText, setToText] = useState("");
+  const [fromPick, setFromPick] = useState<PlacePick | null>(null);
+  const [toPick, setToPick] = useState<PlacePick | null>(null);
   const [depAt, setDepAt] = useState("");
   const [seats, setSeats] = useState(4);
   const [price, setPrice] = useState(1000);
   const [femaleOnly, setFemaleOnly] = useState(false);
   const [pubPending, setPubPending] = useState(false);
   const [pubError, setPubError] = useState("");
-  const km = wilayaKm(fromW, toW);
+
+  // ARRÊTS SUGGÉRÉS automatiquement : wilayas proches du tracé ROUTIER réel
+  // (OSRM, repli segment droit). Le chauffeur active d'un tap.
+  const fromPt = fromPick ? { lat: fromPick.lat, lng: fromPick.lng } : null;
+  const toPt = toPick ? { lat: toPick.lat, lng: toPick.lng } : null;
+  const roadPath = useRoadPath(sheetOpen ? fromPt : null, toPt, {
+    retryMs: 5000,
+  });
+  const corridor = useMemo(
+    () =>
+      fromPick && toPick && fromPick.wilaya !== toPick.wilaya
+        ? suggestCorridorStops(roadPath, fromPick, toPick)
+        : [],
+    [roadPath, fromPick, toPick]
+  );
+  const [stopsOn, setStopsOn] = useState<Set<string>>(new Set());
+  useEffect(() => {
+    setStopsOn(new Set());
+  }, [fromPick?.wilaya, toPick?.wilaya]);
+  const activeStops = corridor.filter((c) => stopsOn.has(c.code));
+
+  // Chaîne de points → km cumulés → aperçu du prix de chaque segment.
+  const chain = useMemo(() => {
+    if (!fromPick || !toPick) return [];
+    const pts = [
+      {
+        w: fromPick.wilaya,
+        lat: fromPick.lat,
+        lng: fromPick.lng,
+        label: fromPick.label,
+      },
+      ...activeStops.map((s) => ({
+        w: s.code,
+        lat: s.lat,
+        lng: s.lng,
+        label: wname(s.code),
+      })),
+      {
+        w: toPick.wilaya,
+        lat: toPick.lat,
+        lng: toPick.lng,
+        label: toPick.label,
+      },
+    ];
+    let km = 0;
+    return pts.map((p, i) => {
+      if (i > 0) km += kmBetween(pts[i - 1].lat, pts[i - 1].lng, p.lat, p.lng);
+      return { ...p, km: Math.round(km) };
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromPick, toPick, activeStops, isAr]);
+  const totalKm = chain.length ? chain[chain.length - 1].km : 0;
 
   const publish = async () => {
     if (pubPending) return;
     setPubError("");
+    if (!fromPick || !toPick) {
+      setPubError(
+        tr(
+          "Choisissez le départ et l'arrivée dans les suggestions.",
+          "اختر الانطلاق والوصول من الاقتراحات."
+        )
+      );
+      return;
+    }
+    if (fromPick.wilaya === toPick.wilaya) {
+      setPubError(errorLabel("bad_route"));
+      return;
+    }
     if (!depAt) {
       setPubError(
         tr(
@@ -203,10 +286,19 @@ export function DCarpool() {
     }
     setPubPending(true);
     const res = await carpoolPublish({
-      fromWilaya: fromW,
-      toWilaya: toW,
-      fromText,
-      toText,
+      fromWilaya: fromPick.wilaya,
+      toWilaya: toPick.wilaya,
+      fromText: fromPick.label,
+      toText: toPick.label,
+      fromLat: fromPick.lat,
+      fromLng: fromPick.lng,
+      toLat: toPick.lat,
+      toLng: toPick.lng,
+      stops: activeStops.map((s) => ({
+        wilaya: s.code,
+        lat: s.lat,
+        lng: s.lng,
+      })),
       departureAtIso: new Date(depAt).toISOString(),
       seats,
       priceDa: price,
@@ -218,9 +310,10 @@ export function DCarpool() {
       return;
     }
     setSheetOpen(false);
-    setFromText("");
-    setToText("");
+    setFromPick(null);
+    setToPick(null);
     setDepAt("");
+    setStopsOn(new Set());
     setLoading(true);
     await load();
   };
@@ -257,6 +350,10 @@ export function DCarpool() {
             ? tr("Absent", "غائب")
             : tr("Annulée", "ملغاة");
 
+  /** Libellé d'un arrêt de l'itinéraire (texte commune sinon nom wilaya). */
+  const stopLabel = (t: CarpoolTrip, i: number) =>
+    t.route_texts[i] || wname(t.route_wilayas[i] ?? null);
+
   return (
     <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
       <div className="flex items-center gap-2">
@@ -273,8 +370,8 @@ export function DCarpool() {
       </div>
       <p className="mt-0.5 text-[11.5px] font-medium text-[var(--d-muted)]">
         {tr(
-          "Publie un départ inter-wilayas et vends tes places.",
-          "انشر رحلة بين الولايات وبِع مقاعدك."
+          "Publie ton départ, ajoute des arrêts sur ta route, vends tes places.",
+          "انشر رحلتك، أضف محطات على طريقك، وبِع مقاعدك."
         )}
       </p>
 
@@ -306,8 +403,8 @@ export function DCarpool() {
           </p>
           <p className="mt-1 text-[12px] text-[var(--d-muted)]">
             {tr(
-              "Exemple : Alger → Béjaïa, 4 places à 1 200 DA. Les clients réservent, tu pars plein.",
-              "مثال: الجزائر ← بجاية، 4 مقاعد بـ 1200 دج. الزبائن يحجزون وتنطلق ممتلئًا."
+              "Exemple : Béjaïa → Alger avec arrêt à Bouira — tu prends aussi les passagers Bouira → Alger, et tu pars plein.",
+              "مثال: بجاية ← الجزائر مع توقف في البويرة — تأخذ أيضًا ركاب البويرة ← الجزائر وتنطلق ممتلئًا."
             )}
           </p>
         </div>
@@ -319,6 +416,7 @@ export function DCarpool() {
         const bks = bookings[t.id] ?? [];
         const busy = pending[t.id];
         const arm = confirmArm[t.id];
+        const nStops = Math.max(0, t.route_wilayas.length - 2);
         const routeLabel = `${wname(t.from_wilaya)} → ${wname(t.to_wilaya)}`;
         return (
           <div
@@ -341,6 +439,15 @@ export function DCarpool() {
                   {isAr
                     ? `${wname(t.from_wilaya)} ← ${wname(t.to_wilaya)}`
                     : routeLabel}
+                  {nStops > 0 && (
+                    <span
+                      className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
+                      style={{ background: "rgba(22,179,100,.12)", color: GO }}
+                    >
+                      +{nStops} {tr("arrêt", "توقف")}
+                      {!isAr && nStops > 1 ? "s" : ""}
+                    </span>
+                  )}
                   <span
                     className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
                     style={{ background: chip.bg, color: chip.color }}
@@ -379,13 +486,47 @@ export function DCarpool() {
 
             {open && (
               <div className="border-t border-[var(--d-line)] px-3.5 py-3">
-                {(t.from_text || t.to_text) && (
-                  <p className="mb-2 text-[11px] font-medium text-[var(--d-muted)]">
-                    {t.from_text ?? wname(t.from_wilaya)} →{" "}
-                    {t.to_text ?? wname(t.to_wilaya)}
-                  </p>
-                )}
-                {/* Réservations */}
+                {/* Itinéraire complet — rail vertical avec chaque arrêt. */}
+                <div className="mb-2.5 flex gap-2.5">
+                  <div className="flex w-3 shrink-0 flex-col items-center pt-1 pb-1">
+                    {t.route_wilayas.map((_, i) => (
+                      <span key={i} className="contents">
+                        {i > 0 && (
+                          <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
+                        )}
+                        <span
+                          className="size-[8px] shrink-0 rounded-full"
+                          style={{
+                            background:
+                              i === 0
+                                ? VIOLET
+                                : i === t.route_wilayas.length - 1
+                                  ? "var(--d-ink)"
+                                  : GO,
+                          }}
+                        />
+                      </span>
+                    ))}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    {t.route_wilayas.map((w, i) => (
+                      <p
+                        key={`${w}-${i}`}
+                        className="truncate py-0.5 text-[11.5px] font-semibold"
+                        style={{
+                          color:
+                            i === 0 || i === t.route_wilayas.length - 1
+                              ? "var(--d-ink)"
+                              : "var(--d-muted)",
+                        }}
+                      >
+                        {stopLabel(t, i)}
+                      </p>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Réservations (avec le SEGMENT de chaque passager) */}
                 {bks.length === 0 ? (
                   <p className="py-2 text-center text-[12px] text-[var(--d-muted)]">
                     {tr("Aucune réservation pour l'instant.", "لا حجوزات بعد.")}
@@ -404,11 +545,18 @@ export function DCarpool() {
                       >
                         {b.customer_name[0]?.toUpperCase()}
                       </span>
-                      <span className="min-w-0 flex-1 font-semibold">
-                        {b.customer_name}
-                        <span className="ms-1 text-[10px] font-medium text-[var(--d-muted)]">
-                          · {b.seats} {tr("place(s)", "مقعد")} ·{" "}
-                          {bkStatus(b.status)}
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate font-semibold">
+                          {b.customer_name}
+                          <span className="ms-1 text-[10px] font-medium text-[var(--d-muted)]">
+                            · {b.seats} {tr("pl.", "مق.")} ·{" "}
+                            {bkStatus(b.status)}
+                          </span>
+                        </span>
+                        <span className="block truncate text-[10px] font-medium text-[var(--d-muted)]">
+                          {(b.seg_from_text ?? wname(b.seg_from_wilaya)) +
+                            " → " +
+                            (b.seg_to_text ?? wname(b.seg_to_wilaya))}
                         </span>
                       </span>
                       <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold">
@@ -570,7 +718,7 @@ export function DCarpool() {
       {/* ── Feuille : publier un départ ── */}
       {sheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
-          <div className="w-full max-w-md rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="drive-sora text-[16px] font-extrabold">
                 {tr("Publier un départ", "نشر رحلة")}
@@ -585,60 +733,144 @@ export function DCarpool() {
               </button>
             </div>
 
-            <div className="flex gap-2">
-              {(
-                [
-                  [tr("Départ", "الانطلاق"), fromW, setFromW],
-                  [tr("Arrivée", "الوصول"), toW, setToW],
-                ] as const
-              ).map(([label, val, set]) => (
-                <label key={label} className="min-w-0 flex-1">
-                  <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                    {label}
-                  </span>
-                  <select
-                    value={val}
-                    onChange={(e) => set(e.target.value)}
-                    className="h-11 w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-2.5 text-[13px] font-bold outline-none"
-                  >
-                    {WILAYAS.map((w) => (
-                      <option key={w.code} value={w.code}>
-                        {w.code} — {isAr ? w.name_ar : w.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ))}
+            {/* Départ / Arrivée — COMMUNE en saisie libre + suggestions. */}
+            <div className="rounded-[16px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <div className="border-b border-[var(--d-line)]">
+                    <PlaceField
+                      value={fromPick}
+                      onChange={setFromPick}
+                      placeholder={tr(
+                        "Départ — commune, ville, lieu…",
+                        "الانطلاق — بلدية، مدينة، مكان…"
+                      )}
+                      marker="origin"
+                    />
+                  </div>
+                  <PlaceField
+                    value={toPick}
+                    onChange={setToPick}
+                    placeholder={tr(
+                      "Arrivée — commune, ville, lieu…",
+                      "الوصول — بلدية، مدينة، مكان…"
+                    )}
+                    bias={
+                      fromPick ? { lat: fromPick.lat, lng: fromPick.lng } : null
+                    }
+                    marker="dest"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const f = fromPick;
+                    setFromPick(toPick);
+                    setToPick(f);
+                  }}
+                  aria-label={tr("Inverser", "عكس")}
+                  className="grid size-9 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm"
+                  style={{ color: VIOLET }}
+                >
+                  <ArrowUpDown className="size-4" />
+                </button>
+              </div>
             </div>
-            {km != null && (
-              <p className="mt-1 text-[11px] font-semibold text-[var(--d-muted)]">
-                ≈ {km} km
-                {fromW === toW
-                  ? ` · ${tr("choisissez deux wilayas différentes", "اختر ولايتين مختلفتين")}`
-                  : ""}
-              </p>
+
+            {/* Arrêts SUGGÉRÉS par le tracé — l'app détecte, le chauffeur tape. */}
+            {corridor.length > 0 && (
+              <div className="mt-3">
+                <p className="mb-1.5 text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                  {tr(
+                    "Sur votre route — prendre / déposer à",
+                    "على طريقك — صعود / نزول في"
+                  )}
+                </p>
+                <div className="flex flex-wrap gap-1.5">
+                  {corridor.map((s) => {
+                    const on = stopsOn.has(s.code);
+                    return (
+                      <button
+                        key={s.code}
+                        type="button"
+                        onClick={() =>
+                          setStopsOn((prev) => {
+                            const next = new Set(prev);
+                            if (next.has(s.code)) next.delete(s.code);
+                            else next.add(s.code);
+                            return next;
+                          })
+                        }
+                        className="drive-sora flex h-8 items-center gap-1 rounded-[14px] border px-3 text-[11px] font-bold"
+                        style={
+                          on
+                            ? {
+                                background: "rgba(22,179,100,.12)",
+                                color: GO,
+                                borderColor: "rgba(22,179,100,.30)",
+                              }
+                            : {
+                                borderColor: "var(--d-line)",
+                                color: "var(--d-muted)",
+                              }
+                        }
+                      >
+                        {on ? (
+                          <Check className="size-3" />
+                        ) : (
+                          <Plus className="size-3" />
+                        )}
+                        {wname(s.code)}
+                        <span className="text-[9px] font-semibold opacity-70">
+                          {s.offKm <= 5
+                            ? tr("sur la route", "على الطريق")
+                            : `${s.offKm} km`}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             )}
 
-            <input
-              value={fromText}
-              onChange={(e) => setFromText(e.target.value)}
-              placeholder={tr(
-                "Point de rendez-vous au départ (ex. Gare routière)",
-                "نقطة الالتقاء عند الانطلاق (مثلًا محطة الحافلات)"
-              )}
-              className="mt-2 h-11 w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-[13px] font-semibold outline-none"
-            />
-            <input
-              value={toText}
-              onChange={(e) => setToText(e.target.value)}
-              placeholder={tr(
-                "Point d'arrivée (ex. Centre-ville)",
-                "نقطة الوصول (مثلًا وسط المدينة)"
-              )}
-              className="mt-2 h-11 w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-[13px] font-semibold outline-none"
-            />
+            {/* Aperçu de l'itinéraire + prix PAR SEGMENT (auto). */}
+            {chain.length >= 2 && (
+              <div className="mt-3 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5">
+                <p className="text-[11px] font-bold">
+                  {chain.map((p) => p.label.split(",")[0]).join(" → ")}{" "}
+                  <span className="font-semibold text-[var(--d-muted)]">
+                    · ≈ {totalKm} km
+                  </span>
+                </p>
+                {chain.length > 2 && (
+                  <div className="mt-1 space-y-0.5">
+                    {chain.slice(0, -1).map((p, i) => {
+                      const next = chain[i + 1];
+                      const sp = segPrice(price, next.km - p.km, totalKm);
+                      return (
+                        <p
+                          key={`${p.w}-${i}`}
+                          className="text-[10.5px] font-semibold text-[var(--d-muted)]"
+                        >
+                          {p.label.split(",")[0]} → {next.label.split(",")[0]} ·{" "}
+                          <b className="text-[var(--d-ink)]">
+                            ≈ {sp} {tr("DA/place", "دج/مقعد")}
+                          </b>
+                        </p>
+                      );
+                    })}
+                    <p className="text-[9.5px] font-medium text-[var(--d-muted)]">
+                      {tr(
+                        "Prix des tronçons calculés automatiquement (au prorata des km).",
+                        "أسعار المقاطع تُحسب تلقائيًا (بحسب الكيلومترات)."
+                      )}
+                    </p>
+                  </div>
+                )}
+              </div>
+            )}
 
-            <label className="mt-2 block">
+            <label className="mt-3 block">
               <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
                 {tr("Date et heure de départ", "تاريخ ووقت الانطلاق")}
               </span>
@@ -678,7 +910,10 @@ export function DCarpool() {
               </div>
               <label className="flex-1">
                 <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                  {tr("Prix / place (DA)", "السعر/مقعد (دج)")}
+                  {tr(
+                    "Prix / place — trajet complet",
+                    "السعر/مقعد — كامل الرحلة"
+                  )}
                 </span>
                 <input
                   inputMode="numeric"

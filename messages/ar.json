@@ -1687,7 +1687,10 @@
       "search": "بحث",
       "results": "{count} رحلة متاحة",
       "sortEarliest": "الأبكر انطلاقًا",
-      "sortCheapest": "الأرخص سعرًا"
+      "sortCheapest": "الأرخص سعرًا",
+      "fromPlaceholder": "الانطلاق — بلدية، مدينة، مكان…",
+      "toPlaceholder": "الوجهة — بلدية، مدينة، مكان…",
+      "via": "رحلة السائق الكاملة · عبر {stops}"
     }
   },
   "push": {
