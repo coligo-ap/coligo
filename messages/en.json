@@ -1641,7 +1641,10 @@
       "city": "City",
       "inter": "Intercity",
       "interHint": "Long trips between wilayas — you set the price, the driver accepts.",
-      "whereToInter": "Which wilaya?"
+      "whereToInter": "Which wilaya?",
+      "soon": "Soon",
+      "suspended": "Paused",
+      "interBlocked": "Intercity trips are temporarily paused. City trips remain available."
     }
   },
   "push": {

@@ -19,6 +19,7 @@ import { formatDA } from "@/lib/utils";
 import type { OrderStatus } from "@/lib/types";
 import { labelFor } from "@/lib/chat/messages";
 import { isPushEligible } from "@/lib/chauffeur/dispatch-filter";
+import { interWilayaInfo } from "@/lib/drive/interwilaya";
 import {
   broadcastToChauffeurs,
   broadcastToCouriers,
@@ -968,6 +969,7 @@ export async function notifyChauffeursNewRide(input: {
       pickup_lng: number | null;
       dest_lat: number | null;
       dest_lng: number | null;
+      distance_km: number | null;
       proposed_price_da: number | null;
       boost_amount_da: number | null;
       gamme: string | null;
@@ -988,7 +990,7 @@ export async function notifyChauffeursNewRide(input: {
     };
     const { data: ride } = await ridesTable
       .select(
-        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, dest_lat, dest_lng, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at, dispatch_radius_km"
+        "status, chauffeur_id, customer_id, pickup_lat, pickup_lng, dest_lat, dest_lng, distance_km, proposed_price_da, boost_amount_da, gamme, female_only, payment_method, online_paid_at, dispatch_radius_km"
       )
       .eq("id", input.rideId)
       .maybeSingle();
@@ -1008,13 +1010,32 @@ export async function notifyChauffeursNewRide(input: {
       fn: string,
       args: Record<string, unknown>
     ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    // INTER-WILAYAS (0442) : détection LOCALE partagée (même règle que les
+    // écrans). Si le kill-switch dédié est coupé, on ne diffuse RIEN (le
+    // trigger DB empêche déjà la création — ceinture pour les courses créées
+    // juste avant la coupure).
+    const inter = interWilayaInfo(
+      { lat: ride.pickup_lat, lng: ride.pickup_lng },
+      ride.dest_lat != null && ride.dest_lng != null
+        ? { lat: ride.dest_lat, lng: ride.dest_lng }
+        : null,
+      Number(ride.distance_km ?? 0)
+    );
+    if (inter) {
+      const { data: iwBlocked } = await rpc("feature_blocked", {
+        p_key: "drive_interwilaya",
+      });
+      if (iwBlocked === true) return;
+    }
     // Réglages plateforme : rayon de réception PAR DÉFAUT (super-admin, 10 km au
     // lancement) + tolérance angulaire « je rentre chez moi ». Le défaut sert à
     // la fois de pré-filtre de diffusion ET de rayon de repli pour les chauffeurs
-    // qui n'ont pas personnalisé « Ma zone ».
+    // qui n'ont pas personnalisé « Ma zone ». + rayon d'approche inter-wilayas.
     const { data: settings } = await admin
       .from("platform_settings")
-      .select("drive_default_radius_km, drive_home_dir_tolerance_deg")
+      .select(
+        "drive_default_radius_km, drive_home_dir_tolerance_deg, drive_interwilaya_radius_km"
+      )
       .eq("id", true)
       .maybeSingle();
     const defaultRadius = Math.min(
@@ -1036,10 +1057,32 @@ export async function notifyChauffeursNewRide(input: {
     // QUE le VIVIER interrogé. La garde finale reste la zone de travail de
     // CHAQUE chauffeur (isPushEligible ci-dessous, repli = defaultRadius) → on
     // ne pousse JAMAIS à un chauffeur hors de la zone qu'il a acceptée.
-    const dispatchRadius = Math.min(
-      25,
-      Math.max(5, Number(ride.dispatch_radius_km ?? defaultRadius))
+    // EXCEPTION inter-wilayas : un long trajet payant justifie une approche
+    // plus longue → vivier élargi (drive_interwilaya_radius_km, défaut 60 km)
+    // et pas de plafond de zone de travail (la sous-page dédiée l'affiche de
+    // toute façon dans ce même rayon élargi — cohérence push ⇄ liste).
+    const interRadius = Math.min(
+      150,
+      Math.max(
+        20,
+        Number(
+          (settings as { drive_interwilaya_radius_km?: number } | null)
+            ?.drive_interwilaya_radius_km ?? 60
+        )
+      )
     );
+    const dispatchRadius = inter
+      ? Math.max(
+          interRadius,
+          Math.min(
+            25,
+            Math.max(5, Number(ride.dispatch_radius_km ?? defaultRadius))
+          )
+        )
+      : Math.min(
+          25,
+          Math.max(5, Number(ride.dispatch_radius_km ?? defaultRadius))
+        );
 
     // Matching dur gamme + femme au volant (repli géré côté SQL) ; la RPC trie
     // déjà la diffusion : Premium > favoris du client > distance.
@@ -1096,7 +1139,10 @@ export async function notifyChauffeursNewRide(input: {
       if (!ch) return true; // pas d'info → comportement historique
       return isPushEligible(rideGeo, {
         distKm: Number(r.dist_km),
-        radiusKm: ch.work_zone_radius_km ?? defaultRadius,
+        // Inter-wilayas : pas de plafond de zone de travail (la sous-page
+        // dédiée montre ces demandes dans le rayon élargi) — « je rentre chez
+        // moi » reste respecté.
+        radiusKm: inter ? null : (ch.work_zone_radius_km ?? defaultRadius),
         homeDirActive: !!ch.home_dir_active,
         homeLat: ch.home_lat,
         homeLng: ch.home_lng,
@@ -1125,18 +1171,24 @@ export async function notifyChauffeursNewRide(input: {
     await sendFcm(
       tokens,
       {
-        title:
-          (ride.boost_amount_da ?? 0) > 0
+        title: inter
+          ? "Course Inter-wilayas 🛣️"
+          : (ride.boost_amount_da ?? 0) > 0
             ? "⚡ Course boostée 🚗"
             : "Nouvelle course 🚗",
-        body: `Un client propose ${formatDA(total)}. Fais ton offre !`,
+        body: inter
+          ? `${inter.label} — un client propose ${formatDA(total)}. Fais ton offre !`
+          : `Un client propose ${formatDA(total)}. Fais ton offre !`,
       },
       // Clic sur la notif → la LISTE des demandes (où la course apparaît),
-      // pas l'accueil (qui semblait « vide »). On porte le `rideId` (+ query
-      // `?ride=`) pour que l'écran SURLIGNE la course concernée et la mette en
-      // avant — le chauffeur identifie immédiatement la demande notifiée.
+      // pas l'accueil (qui semblait « vide »). Inter-wilayas → la SOUS-PAGE
+      // dédiée (rayon élargi : la course y est forcément visible). On porte le
+      // `rideId` (+ query `?ride=`) pour que l'écran SURLIGNE la course
+      // concernée — le chauffeur identifie immédiatement la demande notifiée.
       {
-        route: `/chauffeur/demandes?ride=${input.rideId}`,
+        route: inter
+          ? `/chauffeur/interwilayas?ride=${input.rideId}`
+          : `/chauffeur/demandes?ride=${input.rideId}`,
         kind: "chauffeur_new_ride",
         rideId: input.rideId,
       }

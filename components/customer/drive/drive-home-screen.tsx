@@ -69,6 +69,7 @@ export function DriveHomeScreen({
   tripMode,
   setTripMode,
   inter,
+  interFlag = null,
   depOpen,
   contactsOpen,
   sosContacts,
@@ -98,6 +99,13 @@ export function DriveHomeScreen({
   setTripMode: Dispatch<SetStateAction<TripMode>>;
   /** Trajet courant détecté inter-wilayas (badge « Alger → Béjaïa »). */
   inter: InterWilaya | null;
+  /** Kill-switch inter-wilayas (super-admin) : hidden = onglet retiré ;
+   *  coming_soon/maintenance = onglet grisé + demande inter bloquée. */
+  interFlag?: {
+    status: "active" | "hidden" | "coming_soon" | "maintenance";
+    message_fr: string | null;
+    message_ar: string | null;
+  } | null;
   depOpen: boolean;
   contactsOpen: boolean;
   sosContacts: SosContact[];
@@ -149,6 +157,20 @@ export function DriveHomeScreen({
     setHidden([]);
   };
 
+  // ── Disponibilité inter-wilayas (kill-switch super-admin, 0442) ─────────
+  // hidden = onglet RETIRÉ ; coming_soon/maintenance = onglet grisé (« Bientôt »
+  // / « Suspendu ») ; et si un trajet inter est DÉTECTÉ malgré tout (détection
+  // automatique quel que soit l'onglet), la demande est bloquée avec un
+  // message clair — l'enforcement réel restant le trigger DB.
+  const interHidden = interFlag?.status === "hidden";
+  const canInter = !interFlag || interFlag.status === "active";
+  const interBlockMsg =
+    interFlag && interFlag.status !== "active" && inter
+      ? ((isAr
+          ? interFlag.message_ar || interFlag.message_fr
+          : interFlag.message_fr) ?? t("mode.interBlocked"))
+      : null;
+
   // Swipe horizontal sur la feuille trajet → bascule Ville ⇄ Inter-wilayas
   // (les onglets restent tapables ; le swipe est un bonus de confort).
   const touchStart = useRef<{ x: number; y: number } | null>(null);
@@ -166,7 +188,7 @@ export function DriveHomeScreen({
     if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
     // Direction logique : balayer vers le 2e onglet = inter (miroir en RTL).
     const toInter = isAr ? dx > 0 : dx < 0;
-    setTripMode(toInter ? "inter" : "ville");
+    setTripMode(toInter && canInter ? "inter" : "ville");
   };
 
   return (
@@ -251,34 +273,56 @@ export function DriveHomeScreen({
                   {/* Onglets Ville ⇄ Inter-wilayas (tap ou swipe) — façon
                       InDrive/Yassir : les longs trajets entre wilayas ont leur
                       espace, sans changer le flux (mêmes écrans, même offre). */}
-                  <div className="mb-3 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
-                    {(
-                      [
-                        ["ville", Building2, t("mode.city")],
-                        ["inter", Route, t("mode.inter")],
-                      ] as const
-                    ).map(([m, Icon, label]) => (
-                      <button
-                        key={m}
-                        type="button"
-                        onClick={() => setTripMode(m)}
-                        aria-pressed={tripMode === m}
-                        className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] p-2 text-[12.5px] font-bold transition-colors"
-                        style={
-                          tripMode === m
-                            ? {
-                                background: "var(--d-surface)",
-                                color: VIOLET,
-                                boxShadow: "0 4px 12px -6px rgba(0,0,0,.25)",
-                              }
-                            : { color: "var(--d-muted)" }
-                        }
-                      >
-                        <Icon className="size-3.5" />
-                        {label}
-                      </button>
-                    ))}
-                  </div>
+                  {/* Onglet inter RETIRÉ si masqué par l'équipe Coligo ; grisé
+                      (« Bientôt » / « Suspendu ») si coupé temporairement. */}
+                  {!interHidden && (
+                    <div className="mb-3 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
+                      {(
+                        [
+                          ["ville", Building2, t("mode.city")],
+                          ["inter", Route, t("mode.inter")],
+                        ] as const
+                      ).map(([m, Icon, label]) => {
+                        const locked = m === "inter" && !canInter;
+                        return (
+                          <button
+                            key={m}
+                            type="button"
+                            onClick={() => {
+                              if (locked) return;
+                              setTripMode(m);
+                            }}
+                            aria-pressed={tripMode === m}
+                            aria-disabled={locked || undefined}
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] p-2 text-[12.5px] font-bold transition-colors"
+                            style={
+                              tripMode === m
+                                ? {
+                                    background: "var(--d-surface)",
+                                    color: VIOLET,
+                                    boxShadow:
+                                      "0 4px 12px -6px rgba(0,0,0,.25)",
+                                  }
+                                : {
+                                    color: "var(--d-muted)",
+                                    ...(locked ? { opacity: 0.55 } : null),
+                                  }
+                            }
+                          >
+                            <Icon className="size-3.5" />
+                            {label}
+                            {locked && (
+                              <span className="rounded-full bg-[var(--d-surface)] px-1.5 py-0.5 text-[9px] font-extrabold text-[var(--d-muted)]">
+                                {interFlag?.status === "coming_soon"
+                                  ? t("mode.soon")
+                                  : t("mode.suspended")}
+                              </span>
+                            )}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                   {tripMode === "inter" && (
                     <p className="-mt-1 mb-2.5 px-1 text-[11.5px] font-semibold text-[var(--d-muted)]">
                       {t("mode.interHint")}
@@ -399,9 +443,24 @@ export function DriveHomeScreen({
                       className="mt-1 mb-1"
                     />
                   )}
+                  {/* Trajet inter DÉTECTÉ mais service suspendu : on le dit
+                      AVANT le choix du prix, et « Continuer » est bloqué. */}
+                  {pickup && dest && !zoneBlock && interBlockMsg && (
+                    <p
+                      className="mt-1 mb-1 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
+                      style={{
+                        background: "rgba(108,43,217,.08)",
+                        color: VIOLET,
+                      }}
+                    >
+                      {interBlockMsg}
+                    </p>
+                  )}
                   <PrimaryBtn
                     onClick={() => setScreen("price")}
-                    disabled={!pickup || !dest || !!zoneBlock}
+                    disabled={
+                      !pickup || !dest || !!zoneBlock || !!interBlockMsg
+                    }
                     className="!mt-1"
                   >
                     {t("home.continue")}

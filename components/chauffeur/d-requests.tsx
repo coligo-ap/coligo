@@ -1,15 +1,18 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import {
   ChevronLeft,
+  ChevronRight,
   Check,
   Home,
   Loader2,
   Maximize2,
   Power,
+  Route,
   Rows3,
   Send,
   X,
@@ -42,8 +45,10 @@ import {
   getChauffeurGate,
   getChauffeurPlanRate,
   getDemandesTick,
+  getInterTick,
   offerRide,
   setChauffeurOnline,
+  type InterwilayaFlagInfo,
   type NearbyRide,
 } from "@/app/(chauffeur)/actions";
 import { useHomeDirOn } from "@/lib/chauffeur/home-dir-store";
@@ -58,9 +63,12 @@ const AMBER = "#F59E0B";
 // onglets) n'attend jamais. Survit aux navigations (niveau module), vidé à la
 // fermeture de l'onglet.
 let lastNearbyCache: NearbyRide[] = [];
+// Cache jumeau de la sous-page INTER-WILAYAS (rayon élargi, liste distincte).
+let lastInterCache: NearbyRide[] = [];
 // Vidange au changement de compte (anti-fuite sur appareil partagé).
 registerChauffeurCacheReset(() => {
   lastNearbyCache = [];
+  lastInterCache = [];
 });
 
 const fmtkm = (v: number) =>
@@ -141,10 +149,19 @@ function MiniMap({ seed }: { seed: number }) {
  * mini-carte ; ajusteur ± ; Proposer / Accepter / Refuser. La 1re acceptation
  * client redirige vers /course.
  */
-export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
+export function DRequests({
+  priceStep = 20,
+  scope = "all",
+}: {
+  priceStep?: number;
+  /** "all" = page Demandes classique · "inter" = sous-page Inter-wilayas
+   *  (demandes longue distance, rayon d'approche élargi côté serveur). */
+  scope?: "all" | "inter";
+}) {
   const router = useRouter();
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
+  const interScope = scope === "inter";
   // Course à SURLIGNER : portée par le clic sur la notification push
   // (route `/chauffeur/demandes?ride=<id>`). On bascule sur le bon onglet, on
   // centre la carte et on la cercle en violet → le chauffeur identifie tout de
@@ -161,10 +178,21 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
   const visible = usePageVisible();
   const [goingOnline, setGoingOnline] = useState(false);
   // Initialisé depuis le cache module → affichage instantané au retour (SWR).
-  const [reqs, setReqs] = useState<NearbyRide[]>(lastNearbyCache);
-  const [loading, setLoading] = useState(lastNearbyCache.length === 0);
+  const [reqs, setReqs] = useState<NearbyRide[]>(
+    interScope ? lastInterCache : lastNearbyCache
+  );
+  const [loading, setLoading] = useState(
+    (interScope ? lastInterCache : lastNearbyCache).length === 0
+  );
   const [tab, setTab] = useState<"demandes" | "proposed">("demandes");
   const [sort, setSort] = useState<"near" | "pay">("near");
+  // Lentille d'affichage Ville / Inter-wilayas (page Demandes uniquement) :
+  // le chauffeur REÇOIT tout, il choisit juste ce qu'il regarde.
+  const [tripFilter, setTripFilter] = useState<"all" | "ville" | "inter">(
+    "all"
+  );
+  // Kill-switch super-admin de l'inter-wilayas (sous-page dédiée).
+  const [iwFlag, setIwFlag] = useState<InterwilayaFlagInfo | null>(null);
   // Mode compact : PERSISTÉ en localStorage → le chauffeur le règle une fois et
   // le retrouve à chaque ouverture (chargé après montage pour éviter tout
   // décalage d'hydratation).
@@ -283,22 +311,39 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           live.heading
         );
       // UN SEUL POST (consolidé) au lieu de 2 Server Actions sérialisées.
-      const { nearby: list, activeRide: active } = await getDemandesTick(
-        c.latitude,
-        c.longitude,
-        radiusRef.current
-      );
-      if (active) {
-        router.replace("/chauffeur/course");
-        return;
+      if (interScope) {
+        // Sous-page Inter-wilayas : rayon élargi côté serveur + état du flag.
+        const {
+          nearby: list,
+          activeRide: active,
+          flag,
+        } = await getInterTick(c.latitude, c.longitude);
+        setIwFlag(flag);
+        if (active) {
+          router.replace("/chauffeur/course");
+          return;
+        }
+        lastInterCache = list;
+        setReqs(list);
+        setLoading(false);
+      } else {
+        const { nearby: list, activeRide: active } = await getDemandesTick(
+          c.latitude,
+          c.longitude,
+          radiusRef.current
+        );
+        if (active) {
+          router.replace("/chauffeur/course");
+          return;
+        }
+        lastNearbyCache = list; // alimente le cache SWR
+        setReqs(list);
+        setLoading(false);
       }
-      lastNearbyCache = list; // alimente le cache SWR
-      setReqs(list);
-      setLoading(false);
     } finally {
       pollBusy.current = false;
     }
-  }, [router]);
+  }, [router, interScope]);
   // GATÉ sur l'état en ligne : hors ligne, AUCUN poll (pas d'écoute). Filet à
   // 12 s — le temps réel (canal ci-dessous) assure l'instantané des nouvelles
   // demandes ; inutile de marteler la base toutes les 5 s.
@@ -382,6 +427,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
               lastNearbyCache = lastNearbyCache.filter(
                 (x) => x.id !== p.rideId
               );
+              lastInterCache = lastInterCache.filter((x) => x.id !== p.rideId);
               setReqs((list) => list.filter((x) => x.id !== p.rideId));
             })
             .subscribe()
@@ -449,7 +495,9 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     return (
       <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
         <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
-          {tr("Demandes de courses", "طلبات المشاوير")}
+          {interScope
+            ? tr("Trajets Inter-wilayas", "مشاوير بين الولايات")
+            : tr("Demandes de courses", "طلبات المشاوير")}
         </h1>
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <span
@@ -484,6 +532,46 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     );
   }
 
+  // Sous-page Inter-wilayas SUSPENDUE par l'équipe Coligo : on explique au
+  // lieu de laisser un écran vide « qui ne marche plus ». Le serveur refuse
+  // déjà tout (RPC + trigger) — ici c'est la pédagogie.
+  if (interScope && iwFlag && iwFlag.status !== "active") {
+    const msg =
+      (isAr ? iwFlag.message_ar || iwFlag.message_fr : iwFlag.message_fr) ??
+      tr(
+        "L'équipe Coligo a suspendu temporairement les trajets inter-wilayas. Les courses en ville restent disponibles.",
+        "علّق فريق كوليغو مؤقتًا المشاوير بين الولايات. مشاوير المدينة تبقى متاحة."
+      );
+    return (
+      <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
+        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+          {tr("Trajets Inter-wilayas", "مشاوير بين الولايات")}
+        </h1>
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <span
+            className="grid size-16 place-items-center rounded-full"
+            style={{ background: "rgba(108,43,217,.10)" }}
+          >
+            <Route className="size-8" style={{ color: VIOLET }} />
+          </span>
+          <div className="max-w-xs">
+            <h2 className="drive-sora text-[18px] font-extrabold">
+              {tr("Service suspendu", "الخدمة موقوفة مؤقتًا")}
+            </h2>
+            <p className="mt-1 text-[13px] text-[var(--d-muted)]">{msg}</p>
+          </div>
+          <Link
+            href="/chauffeur/demandes"
+            className="drive-sora flex h-[46px] w-full max-w-xs items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-[var(--d-line)] text-[13.5px] font-bold"
+          >
+            <ChevronLeft className="size-4 rtl:rotate-180" />
+            {tr("Retour aux demandes en ville", "العودة إلى طلبات المدينة")}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   const total = (q: NearbyRide) => q.proposed_price_da + q.boost_amount_da;
   const advised = (q: NearbyRide) =>
     q.suggested_price_da > 0 ? q.suggested_price_da : total(q);
@@ -506,8 +594,25 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     tolerance: homeDir.tolerance,
   };
   const dirActive = homeFilter.on && homeFilter.homeLat != null;
+  // Lentille Ville / Inter-wilayas — MÊME détection locale que le badge des
+  // cartes (lib/drive/interwilaya) : pur affichage, jamais tarifaire.
+  const isInterRide = (q: NearbyRide) =>
+    interWilayaInfo(
+      q.pickup_lat != null && q.pickup_lng != null
+        ? { lat: q.pickup_lat, lng: q.pickup_lng }
+        : null,
+      q.dest_lat != null && q.dest_lng != null
+        ? { lat: q.dest_lat, lng: q.dest_lng }
+        : null,
+      q.distance_km
+    ) != null;
   const demandes = reqs.filter(
-    (q) => !isProposed(q) && passesHomeDir(q, homeFilter)
+    (q) =>
+      !isProposed(q) &&
+      passesHomeDir(q, homeFilter) &&
+      (interScope ||
+        tripFilter === "all" ||
+        (tripFilter === "inter") === isInterRide(q))
   );
   const proposed = reqs.filter((q) => isProposed(q));
   if (sort === "pay") demandes.sort((a, b) => total(b) - total(a));
@@ -678,18 +783,37 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
     <div className="drive-jakarta drive-page pb-safe-nav flex min-h-screen flex-col bg-[var(--d-surface)]">
       {/* En-tête (remonté pour gagner de la place en bas) */}
       <div className="px-[18px] pt-[28px]">
-        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
-          {tr("Demandes de courses", "طلبات المشاوير")}
-        </h1>
+        {interScope ? (
+          <div className="flex items-center gap-2">
+            <Link
+              href="/chauffeur/demandes"
+              aria-label={tr("Retour aux demandes", "العودة إلى الطلبات")}
+              className="grid size-9 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+            >
+              <ChevronLeft className="size-5 rtl:rotate-180" />
+            </Link>
+            <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+              {tr("Trajets Inter-wilayas", "مشاوير بين الولايات")}
+            </h1>
+          </div>
+        ) : (
+          <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+            {tr("Demandes de courses", "طلبات المشاوير")}
+          </h1>
+        )}
         <p className="mt-0.5 text-[11.5px] font-medium text-[var(--d-muted)]">
           <b style={{ color: GO }}>{demandes.length}</b>{" "}
-          {isAr
-            ? "مشوار متاح"
-            : `course${demandes.length > 1 ? "s" : ""} disponible${demandes.length > 1 ? "s" : ""}`}
+          {interScope
+            ? isAr
+              ? "مشوار طويل متاح · نطاق موسّع"
+              : `long${demandes.length > 1 ? "s" : ""} trajet${demandes.length > 1 ? "s" : ""} · rayon élargi`
+            : isAr
+              ? "مشوار متاح"
+              : `course${demandes.length > 1 ? "s" : ""} disponible${demandes.length > 1 ? "s" : ""}`}
         </p>
 
-        {/* Filtres — compacts, sur une seule ligne */}
-        <div className="mt-2 flex items-center gap-1.5">
+        {/* Filtres — compacts, sur une seule ligne (défilable si étroite) */}
+        <div className="mt-2 flex items-center gap-1.5 overflow-x-auto">
           {(
             [
               ["near", tr("Plus proches", "الأقرب")],
@@ -700,7 +824,7 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
               key={k}
               type="button"
               onClick={() => setSort(k)}
-              className="drive-sora flex h-7 items-center rounded-[14px] border px-3 text-[10px] font-bold transition-colors"
+              className="drive-sora flex h-7 shrink-0 items-center rounded-[14px] border px-3 text-[10px] font-bold whitespace-nowrap transition-colors"
               style={
                 sort === k
                   ? {
@@ -714,10 +838,38 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
               {label}
             </button>
           ))}
+          {/* Lentille Ville / Inter-wilayas (page Demandes seulement — la
+              sous-page EST déjà la lentille inter). Re-tap = retour à Tous. */}
+          {!interScope &&
+            (
+              [
+                ["ville", tr("Ville", "المدينة")],
+                ["inter", tr("Inter-wilayas", "بين الولايات")],
+              ] as const
+            ).map(([k, label]) => (
+              <button
+                key={k}
+                type="button"
+                onClick={() => setTripFilter((f) => (f === k ? "all" : k))}
+                className="drive-sora flex h-7 shrink-0 items-center gap-1 rounded-[14px] border px-3 text-[10px] font-bold whitespace-nowrap transition-colors"
+                style={
+                  tripFilter === k
+                    ? {
+                        background: "#F1E9FC",
+                        color: VIOLET,
+                        borderColor: "#F1E9FC",
+                      }
+                    : { borderColor: "var(--d-line)", color: "var(--d-muted)" }
+                }
+              >
+                {k === "inter" && <Route className="size-3" />}
+                {label}
+              </button>
+            ))}
           <button
             type="button"
             onClick={() => setCompact((c) => !c)}
-            className="drive-sora flex h-7 items-center gap-1 rounded-[14px] border px-3 text-[10px] font-bold"
+            className="drive-sora flex h-7 shrink-0 items-center gap-1 rounded-[14px] border px-3 text-[10px] font-bold whitespace-nowrap"
             style={
               compact
                 ? {
@@ -769,6 +921,42 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
         ))}
       </div>
 
+      {/* Accès à la SOUS-PAGE Inter-wilayas : les longs trajets ont leur
+          espace (rayon d'approche élargi) — le chauffeur reçoit tout ici,
+          mais peut aller les consulter à part, façon Bolt. */}
+      {!interScope && tab === "demandes" && (
+        <Link
+          href="/chauffeur/interwilayas"
+          className="mx-[18px] mt-2.5 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
+          style={{
+            borderColor: "rgba(108,43,217,.28)",
+            background: "rgba(108,43,217,.06)",
+          }}
+        >
+          <span
+            className="grid size-7 shrink-0 place-items-center rounded-[9px]"
+            style={{ background: "rgba(108,43,217,.12)" }}
+          >
+            <Route className="size-3.5" style={{ color: VIOLET }} />
+          </span>
+          <span className="min-w-0 flex-1">
+            <b className="block text-[11.5px]" style={{ color: VIOLET }}>
+              {tr("Trajets Inter-wilayas", "مشاوير بين الولايات")}
+            </b>
+            <span className="text-[10px] text-[var(--d-muted)]">
+              {tr(
+                "Longues distances · rayon élargi autour de vous",
+                "مسافات طويلة · نطاق موسّع من حولك"
+              )}
+            </span>
+          </span>
+          <ChevronRight
+            className="size-4 shrink-0 rtl:rotate-180"
+            style={{ color: VIOLET }}
+          />
+        </Link>
+      )}
+
       {/* Filtre « je rentre chez moi » actif */}
       {dirActive && tab === "demandes" && (
         <div
@@ -813,15 +1001,25 @@ export function DRequests({ priceStep = 20 }: { priceStep?: number }) {
           <p className="py-12 text-center text-sm text-[var(--d-muted)]">
             {tab === "proposed"
               ? tr("Aucune proposition en attente.", "لا عروض في الانتظار.")
-              : dirActive
+              : interScope
                 ? tr(
-                    "Aucune course vers votre domicile pour le moment.",
-                    "لا مشاوير نحو منزلك حاليًا."
+                    "Aucun trajet inter-wilayas pour le moment. Les demandes longue distance autour de vous apparaîtront ici.",
+                    "لا مشاوير بين الولايات حاليًا. الطلبات الطويلة من حولك ستظهر هنا."
                   )
-                : tr(
-                    "Aucune demande autour de vous pour le moment.",
-                    "لا طلبات من حولك حاليًا."
-                  )}
+                : tripFilter === "inter"
+                  ? tr(
+                      "Aucune demande inter-wilayas dans votre zone. Consultez la sous-page Inter-wilayas (rayon élargi).",
+                      "لا طلبات بين الولايات في منطقتك. راجع صفحة بين الولايات (نطاق موسّع)."
+                    )
+                  : dirActive
+                    ? tr(
+                        "Aucune course vers votre domicile pour le moment.",
+                        "لا مشاوير نحو منزلك حاليًا."
+                      )
+                    : tr(
+                        "Aucune demande autour de vous pour le moment.",
+                        "لا طلبات من حولك حاليًا."
+                      )}
           </p>
         )}
 

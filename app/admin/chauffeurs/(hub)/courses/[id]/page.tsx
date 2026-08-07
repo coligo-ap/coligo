@@ -148,6 +148,14 @@ export default async function AdminRideDetailPage({
               {meta?.label ?? r.status}
             </Badge>
             {r.gamme && <Badge tone="neutral">{r.gamme}</Badge>}
+            {r.is_interwilaya && (
+              <Badge tone="primary">
+                Inter-wilayas
+                {r.pickup_wilaya && r.dest_wilaya
+                  ? ` ${r.pickup_wilaya} → ${r.dest_wilaya}`
+                  : ""}
+              </Badge>
+            )}
             {r.female_only && <Badge tone="primary">Femmes uniquement</Badge>}
             {(r.admin_refunded_da ?? 0) > 0 && (
               <Badge tone="primary">Remboursée partiellement</Badge>

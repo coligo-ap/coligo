@@ -1007,6 +1007,114 @@ export async function getDemandesTick(
   return { nearby, activeRide };
 }
 
+// ---------------------------------------------------------------------------
+// INTER-WILAYAS (sous-page dédiée : longs trajets, rayon d'approche élargi)
+// ---------------------------------------------------------------------------
+/** État du service inter-wilayas pour l'écran chauffeur (kill-switch admin). */
+export type InterwilayaFlagInfo = {
+  status: "active" | "hidden" | "coming_soon" | "maintenance";
+  message_fr: string | null;
+  message_ar: string | null;
+};
+
+/**
+ * Demandes INTER-WILAYAS autour du chauffeur, dans le rayon d'approche ÉLARGI
+ * (platform_settings.drive_interwilaya_radius_km, défaut 60 km — un long trajet
+ * payant justifie une approche plus longue que la zone de travail ville).
+ * Mêmes durcissements que getNearbyRides : service_role + id chauffeur
+ * EXPLICITE (jamais dépendre du token de session, mig 0257), jamais de `.catch`
+ * sur un builder rpc.
+ */
+export async function getInterwilayaRides(
+  lat: number,
+  lng: number,
+  chauffeurId?: string
+): Promise<NearbyRide[]> {
+  try {
+    let chId = chauffeurId;
+    if (!chId) {
+      const ch = await getCurrentChauffeur();
+      if (!ch) return [];
+      chId = ch.id;
+    }
+    type Arpc = (
+      fn: string,
+      args: Record<string, unknown>
+    ) => Promise<{ data: unknown; error: { message: string } | null }>;
+    // Purge opportuniste des recherches périmées (fire-and-forget, cf.
+    // getNearbyRides — le RPC filtre déjà expires_at > now()).
+    const cleanup = createAdminClient();
+    const crpc = cleanup.rpc.bind(cleanup) as unknown as Arpc;
+    void crpc("drive_expire_stale_searches", {}).then(
+      undefined,
+      () => undefined
+    );
+
+    const admin = createAdminClient();
+    const rpc = admin.rpc.bind(admin) as unknown as Arpc;
+    const { data } = await rpc("chauffeur_interwilaya_rides", {
+      p_lat: lat,
+      p_lng: lng,
+      p_chauffeur_id: chId,
+    });
+    return ((data as Record<string, unknown>[] | null) ?? []).map((r) => ({
+      id: r.id as string,
+      pickup_text: (r.pickup_text as string) ?? null,
+      dest_text: (r.dest_text as string) ?? null,
+      pickup_lat: (r.pickup_lat as number) ?? null,
+      pickup_lng: (r.pickup_lng as number) ?? null,
+      dest_lat: (r.dest_lat as number) ?? null,
+      dest_lng: (r.dest_lng as number) ?? null,
+      distance_km: Number(r.distance_km ?? 0),
+      proposed_price_da: (r.proposed_price_da as number) ?? 0,
+      suggested_price_da: (r.suggested_price_da as number) ?? 0,
+      boost_amount_da: (r.boost_amount_da as number) ?? 0,
+      gamme: (r.gamme as string) ?? "classic",
+      female_only: Boolean(r.female_only),
+      payment_method: (r.payment_method as string) ?? "cash",
+      pickup_dist_km: Number(r.pickup_dist_km ?? 0),
+      my_offer_da: (r.my_offer_da as number) ?? null,
+      customer_name: (r.customer_name as string) ?? "Client",
+      customer_rating:
+        r.customer_rating == null ? null : Number(r.customer_rating),
+      customer_since: (r.customer_since as string) ?? null,
+      created_at: r.created_at as string,
+    }));
+  } catch {
+    return [];
+  }
+}
+
+/** TICK consolidé de la sous-page Inter-wilayas : demandes inter (rayon
+ *  élargi) + course active + état du kill-switch, en UN SEUL POST. */
+export async function getInterTick(
+  lat: number,
+  lng: number
+): Promise<{
+  nearby: NearbyRide[];
+  activeRide: ChauffeurActiveRide | null;
+  flag: InterwilayaFlagInfo;
+}> {
+  const { getFeatureFlags } = await import("@/lib/data/feature-flags");
+  const flags = await getFeatureFlags();
+  const f = flags.drive_interwilaya;
+  const flag: InterwilayaFlagInfo = {
+    status: f.status,
+    message_fr: f.message_fr,
+    message_ar: f.message_ar,
+  };
+  // Service coupé → liste vide (la RPC refuse de toute façon), l'écran affiche
+  // l'explication au lieu d'un vide « qui ne marche plus ».
+  if (f.status !== "active") {
+    const activeRide = await getChauffeurActiveRide();
+    return { nearby: [], activeRide, flag };
+  }
+  // EN SÉRIE (cf. getChauffeurTick) : éviter la course de refresh du token.
+  const nearby = await getInterwilayaRides(lat, lng);
+  const activeRide = await getChauffeurActiveRide();
+  return { nearby, activeRide, flag };
+}
+
 export async function offerRide(
   rideId: string,
   price: number

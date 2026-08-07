@@ -26,6 +26,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Le transport de personnes. Masqué/bientôt/maintenance retire l'onglet ou bloque les demandes de course.",
   },
   {
+    key: "drive_interwilaya",
+    label: "Drive — trajets Inter-wilayas",
+    hint: "Les longs trajets entre wilayas (≥ 35 km, wilayas différentes). Masqué = onglet client retiré + sous-page chauffeur coupée ; bientôt/maintenance = grisé + demandes inter refusées (trigger DB). Les trajets en ville ne sont pas touchés.",
+  },
+  {
     key: "online_payment",
     label: "Paiement en ligne (carte)",
     hint: "Le paiement par carte (Chargily) au checkout. Bloqué = seuls les autres modes restent.",

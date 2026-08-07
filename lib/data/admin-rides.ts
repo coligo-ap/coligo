@@ -15,6 +15,8 @@ export type AdminRideSearchFilters = {
   chauffeurQ?: string;
   status?: string; // statut exact ou 'active'
   payment?: "cash" | "coligo_pay" | "card";
+  /** Type de trajet : 'inter' (inter-wilayas) / 'ville' / undefined = tous. */
+  trip?: "inter" | "ville";
   from?: string; // ISO
   to?: string; // ISO (exclusif)
   page?: number;
@@ -31,6 +33,9 @@ export type AdminRideRow = {
   pickup_text: string | null;
   dest_text: string | null;
   gamme: string | null;
+  is_interwilaya: boolean;
+  pickup_wilaya: string | null;
+  dest_wilaya: string | null;
   customer_id: string;
   customer_name: string | null;
   customer_phone: string | null;
@@ -60,6 +65,7 @@ export async function searchAdminRides(
     p_payment: filters.payment || null,
     p_from: filters.from || null,
     p_to: filters.to || null,
+    p_trip: filters.trip || null,
     p_limit: pageSize,
     p_offset: (page - 1) * pageSize,
   });
@@ -114,6 +120,9 @@ export type AdminRideDetail = {
     dest_text: string | null;
     distance_km: number | null;
     gamme: string | null;
+    is_interwilaya: boolean | null;
+    pickup_wilaya: string | null;
+    dest_wilaya: string | null;
     proposed_price_da: number | null;
     agreed_price_da: number | null;
     boost_amount_da: number | null;

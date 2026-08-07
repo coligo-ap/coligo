@@ -10,9 +10,10 @@ export default async function DrivePage() {
   // PERF : la session (mémoïsée, partagée avec CustomerShell) et la disponibilité
   // Drive sont INDÉPENDANTES → on les résout EN PARALLÈLE (chemin critique =
   // max(auth, flag) au lieu de la somme). Même principe que le gate super-admin.
-  const [user, flag] = await Promise.all([
+  const [user, flag, interFlag] = await Promise.all([
     getAuthUser(),
     getFeatureFlag("drive"),
+    getFeatureFlag("drive_interwilaya"),
   ]);
   if (!user) redirect("/se-connecter?next=/drive");
 
@@ -24,5 +25,17 @@ export default async function DrivePage() {
     // page blanche sans issue.
     return <CustomerFeatureBlocked flag={flag} withNav />;
   }
-  return <DriveView userId={user.id} />;
+  return (
+    <DriveView
+      userId={user.id}
+      // Kill-switch dédié inter-wilayas (0442) : onglet retiré (hidden) ou
+      // grisé + demande bloquée (bientôt/maintenance). L'enforcement réel est
+      // dans le trigger DB — ici c'est l'UX.
+      interFlag={{
+        status: interFlag.status,
+        message_fr: interFlag.message_fr,
+        message_ar: interFlag.message_ar,
+      }}
+    />
+  );
 }

@@ -15,6 +15,7 @@ import { withTimeoutOrNull } from "@/lib/async/with-timeout";
 
 export type FeatureKey =
   | "drive"
+  | "drive_interwilaya"
   | "online_payment"
   | "coligo_pay"
   | "cashback"
@@ -46,6 +47,7 @@ export type FeatureFlag = {
 
 export const FEATURE_KEYS: FeatureKey[] = [
   "drive",
+  "drive_interwilaya",
   "online_payment",
   "coligo_pay",
   "cashback",

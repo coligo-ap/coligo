@@ -660,6 +660,10 @@ function driveZoneError(msg: string): string {
   if (msg.includes("account_blocked")) {
     return "Votre compte est suspendu : les courses sont bloquées. Contactez le support Coligo.";
   }
+  // ⚠️ AVANT le test « feature_disabled:drive » (qui matcherait aussi ce code).
+  if (msg.includes("feature_disabled:drive_interwilaya")) {
+    return "Les trajets inter-wilayas sont temporairement suspendus par l'équipe Coligo. Les trajets en ville restent disponibles.";
+  }
   if (msg.includes("feature_disabled:drive")) {
     return "Coligo Drive n'est pas disponible sur votre compte. Contactez le support Coligo.";
   }

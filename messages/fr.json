@@ -1635,7 +1635,10 @@
       "city": "Ville",
       "inter": "Inter-wilayas",
       "interHint": "Longs trajets entre wilayas — tu proposes ton prix, le chauffeur accepte.",
-      "whereToInter": "Vers quelle wilaya ?"
+      "whereToInter": "Vers quelle wilaya ?",
+      "soon": "Bientôt",
+      "suspended": "Suspendu",
+      "interBlocked": "Les trajets inter-wilayas sont temporairement suspendus. Les trajets en ville restent disponibles."
     }
   },
   "push": {

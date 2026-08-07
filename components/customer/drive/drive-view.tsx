@@ -84,7 +84,21 @@ function fallbackQuotes(distanceKm: number): Record<Gamme, DriveQuote> {
   return { classic: make(1), confort: make(1.3), moto: make(0.85) };
 }
 
-export function DriveView({ userId }: { userId: string }) {
+/** Kill-switch inter-wilayas (feature flag `drive_interwilaya`, sérialisé
+ *  depuis la page serveur — jamais de fonction en prop serveur→client). */
+export type InterFlagLite = {
+  status: "active" | "hidden" | "coming_soon" | "maintenance";
+  message_fr: string | null;
+  message_ar: string | null;
+};
+
+export function DriveView({
+  userId,
+  interFlag = null,
+}: {
+  userId: string;
+  interFlag?: InterFlagLite | null;
+}) {
   const t = useTranslations("drive");
   // Contexte Drive (solde, récents, dernière course, options) CACHÉ via TanStack
   // dans le QueryClient persistant du groupe client : au retour sur /drive le
@@ -514,6 +528,13 @@ export function DriveView({ userId }: { userId: string }) {
   // Inter-wilayas : détection AUTOMATIQUE (wilayas différentes + ≥ 35 km),
   // 100 % locale — badge informatif accueil + écran prix (jamais tarifaire).
   const inter = interWilayaInfo(pickup, dest, distanceKm);
+  // Service inter-wilayas coupé par l'équipe Coligo : l'onglet inter n'est
+  // plus sélectionnable → on ramène la feuille sur « Ville ».
+  useEffect(() => {
+    if (interFlag && interFlag.status !== "active" && tripMode === "inter") {
+      setTripMode("ville");
+    }
+  }, [interFlag, tripMode]);
 
   /* ───────── Devis par gamme — UN SEUL prix affiché (le prix FINAL) ───────── */
   useEffect(() => {
@@ -1201,6 +1222,7 @@ export function DriveView({ userId }: { userId: string }) {
       tripMode={tripMode}
       setTripMode={setTripMode}
       inter={inter}
+      interFlag={interFlag}
       depOpen={depOpen}
       contactsOpen={contactsOpen}
       sosContacts={sosContacts}

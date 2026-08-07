@@ -64,6 +64,12 @@ const PAYMENT_OPTIONS = [
   { value: "card", label: "Carte" },
 ];
 
+const TRIP_OPTIONS = [
+  { value: "", label: "Tous trajets" },
+  { value: "ville", label: "Ville" },
+  { value: "inter", label: "Inter-wilayas" },
+];
+
 function algiersToday(offsetDays = 0): string {
   const local = new Date(Date.now() + 3600_000);
   return new Date(
@@ -199,6 +205,18 @@ export function RidesExplorer({
               </option>
             ))}
           </select>
+          <select
+            value={filters.trip ?? ""}
+            onChange={(e) => apply({ trip: e.target.value })}
+            className="border-border bg-surface h-10 rounded-[10px] border px-2.5 text-[13px] font-medium outline-none"
+            aria-label="Type de trajet"
+          >
+            {TRIP_OPTIONS.map((o) => (
+              <option key={o.value} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
           <div className="col-span-2 flex flex-wrap items-center gap-1.5 lg:col-span-4">
             <button
               type="button"
@@ -265,6 +283,14 @@ export function RidesExplorer({
                         {meta?.label ?? r.status}
                       </Badge>
                       {r.gamme && <Badge tone="neutral">{r.gamme}</Badge>}
+                      {r.is_interwilaya && (
+                        <Badge tone="primary">
+                          Inter-wilayas
+                          {r.pickup_wilaya && r.dest_wilaya
+                            ? ` ${r.pickup_wilaya} → ${r.dest_wilaya}`
+                            : ""}
+                        </Badge>
+                      )}
                       {r.admin_refunded_da > 0 && (
                         <Badge tone="primary">Remboursée part.</Badge>
                       )}

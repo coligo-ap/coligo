@@ -15,6 +15,8 @@ export type RidesExplorerFilters = {
   cq?: string;
   st?: string;
   pm?: string;
+  /** Type de trajet : 'inter' / 'ville' / vide = tous. */
+  trip?: string;
   from?: string;
   to?: string;
   page?: number;
@@ -49,6 +51,7 @@ export function buildRideFilters(sp: RidesSearchParams): {
     cq: str(sp, "cq"),
     st: str(sp, "st"),
     pm: str(sp, "pm"),
+    trip: str(sp, "trip"),
     from,
     to,
     page,
@@ -58,6 +61,10 @@ export function buildRideFilters(sp: RidesSearchParams): {
     chauffeurQ: explorer.cq,
     status: explorer.st,
     payment: explorer.pm as AdminRideSearchFilters["payment"],
+    trip:
+      explorer.trip === "inter" || explorer.trip === "ville"
+        ? explorer.trip
+        : undefined,
     from: from ? algiersDayToIso(from) : undefined,
     to: to ? algiersDayToIso(to, true) : undefined,
     page,

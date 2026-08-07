@@ -44,7 +44,14 @@ const TABS: readonly PartnerTab[] = [
     icon: Home,
     exact: true,
   },
-  { href: "/chauffeur/demandes", label: "Drive", labelAr: "درايف", icon: Car },
+  {
+    href: "/chauffeur/demandes",
+    label: "Drive",
+    labelAr: "درايف",
+    icon: Car,
+    // La sous-page Inter-wilayas reste sous l'onglet Drive.
+    match: ["/chauffeur/interwilayas"],
+  },
   {
     href: "/chauffeur/gains",
     label: "Gains",
