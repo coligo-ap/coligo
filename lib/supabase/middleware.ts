@@ -2,6 +2,7 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import type { Database } from "./database.types";
 import { withLongSession } from "./session-config";
+import { stripSessionWipe } from "./cookie-guard";
 import { isValidContactPhone } from "@/lib/dz/phone";
 
 /**
@@ -89,11 +90,14 @@ export async function updateSession(request: NextRequest) {
           return request.cookies.getAll();
         },
         setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) =>
-            request.cookies.set(name, value)
-          );
+          // GARDE ANTI-COURSE (cf. cookie-guard) : un échec de refresh ne doit
+          // JAMAIS effacer les cookies d'auth depuis le middleware — la requête
+          // perdante d'une course écraserait les cookies frais de la gagnante.
+          const toSet = stripSessionWipe(cookiesToSet);
+          if (toSet.length === 0) return;
+          toSet.forEach(({ name, value }) => request.cookies.set(name, value));
           supabaseResponse = NextResponse.next({ request });
-          cookiesToSet.forEach(({ name, value, options }) =>
+          toSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, withLongSession(options))
           );
         },

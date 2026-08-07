@@ -97,6 +97,21 @@ function consumeSignedOutMarker(): boolean {
   }
 }
 
+/**
+ * Les cookies de session Supabase (`sb-…-auth-token`, éventuellement chunkés)
+ * sont-ils encore présents dans le navigateur ? Ils ne sont pas httpOnly
+ * (le client navigateur doit les lire), donc visibles via `document.cookie`.
+ */
+function authCookiesPresent(): boolean {
+  try {
+    return document.cookie
+      .split("; ")
+      .some((c) => c.startsWith("sb-") && c.includes("-auth-token"));
+  } catch {
+    return false;
+  }
+}
+
 export async function clearSessionBackup(): Promise<void> {
   try {
     const p = prefs();
@@ -140,7 +155,17 @@ export async function syncOrRestoreSession(): Promise<boolean> {
       return false;
     }
 
-    // Sinon : cookies perdus au réveil ? La copie tranche (cas légitime).
+    // GARDE ANTI-COURSE (refresh-token ROTATIF, fenêtre de réutilisation 60 s
+    // côté Supabase) : si les cookies d'auth sont ENCORE LÀ mais que
+    // getSession() ne voit rien, c'est un hoquet transitoire (rotation/écriture
+    // de chunk en cours), PAS le cas « WebView revenue sans cookies ». Ne
+    // SURTOUT PAS réinstaller la copie : son refresh-token peut avoir été
+    // remplacé depuis, et le REJOUER au-delà de la fenêtre déclenche la
+    // détection de réutilisation Supabase → révocation de TOUTE la famille de
+    // jetons (déconnexion totale, tous onglets). Le prochain cycle retentera.
+    if (authCookiesPresent()) return false;
+
+    // Cookies réellement perdus au réveil ? La copie tranche (cas légitime).
     const backup = await readBackup();
     if (!backup) return false;
 

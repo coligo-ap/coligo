@@ -11,6 +11,7 @@
 import { redirect } from "next/navigation";
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { loginSchema, firstZodError } from "@/lib/validation/auth";
 
 export type PortalState = { error?: string };
@@ -43,6 +44,7 @@ export async function adminLogin(
   const { data: isAdmin } = await supabase.rpc("is_super_admin");
   if (isAdmin !== true) {
     await supabase.auth.signOut();
+    await markSignedOut(); // purge cookies (la garde anti-course bloque la purge auto)
     return { error: "Accès réservé aux super-administrateurs." };
   }
 

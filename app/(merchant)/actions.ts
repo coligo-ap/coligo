@@ -440,6 +440,7 @@ export async function signup(
       .maybeSingle();
     if (existingShop) {
       await supabase.auth.signOut();
+      await markSignedOut(); // purge cookies (la garde anti-course bloque la purge auto)
       return {
         error: "Un compte existe déjà avec cet email — connectez-vous.",
       };

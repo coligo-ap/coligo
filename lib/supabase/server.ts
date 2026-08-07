@@ -3,6 +3,7 @@ import { createServerClient } from "@supabase/ssr";
 import { cookies } from "next/headers";
 import type { Database } from "./database.types";
 import { withLongSession } from "./session-config";
+import { stripSessionWipe } from "./cookie-guard";
 
 /**
  * Client Supabase SERVEUR — MÉMOÏSÉ PAR REQUÊTE (React `cache()`).
@@ -30,7 +31,13 @@ export const createClient = cache(async function createClient() {
         },
         setAll(cookiesToSet) {
           try {
-            cookiesToSet.forEach(({ name, value, options }) =>
+            // GARDE ANTI-COURSE (cf. cookie-guard) : une Server Action qui perd
+            // la course du refresh-token rotatif (ex. tick de polling parti avec
+            // les anciens cookies pendant que le middleware d'une navigation
+            // venait de les faire tourner) ne doit JAMAIS effacer la session.
+            // La déconnexion volontaire passe par markSignedOut() qui purge
+            // explicitement les cookies sb-*.
+            stripSessionWipe(cookiesToSet).forEach(({ name, value, options }) =>
               cookieStore.set(name, value, withLongSession(options))
             );
           } catch {

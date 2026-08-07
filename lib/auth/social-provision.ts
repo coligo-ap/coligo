@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database } from "@/lib/supabase/database.types";
 import { isValidContactPhone } from "@/lib/dz/phone";
+import { markSignedOut } from "@/lib/auth/mark-signed-out";
 import { attachReferralForNewCustomer } from "@/lib/referral/attach";
 
 /**
@@ -56,6 +57,7 @@ export async function provisionSocialUser(
       .maybeSingle();
     if (existingCustomer) {
       await supabase.auth.signOut();
+      await markSignedOut(); // purge cookies (la garde anti-course bloque la purge auto)
       return "/login?error=customer_account";
     }
     return "/signup/boutique";
