@@ -286,8 +286,20 @@ function openExternal(url: string) {
     window.location.href = url;
     return;
   }
-  const w = window.open(url, "_blank", "noopener,noreferrer");
-  if (!w) window.location.href = url;
+  // PAS de feature "noopener" ici : window.open la respecte en renvoyant NULL
+  // MÊME quand l'onglet s'ouvre (spec) — impossible alors de distinguer un
+  // popup bloqué, et le repli naviguerait la page principale hors de l'app.
+  // On coupe `opener` à la main : même protection, détection fiable.
+  const w = window.open(url, "_blank");
+  if (w) {
+    try {
+      w.opener = null;
+    } catch {
+      /* cross-origin : déjà isolé */
+    }
+    return;
+  }
+  window.location.href = url; // popup réellement bloqué → navigation franche
 }
 
 export function OrderShareCard({
