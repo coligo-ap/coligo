@@ -1687,7 +1687,18 @@
         "generic": "Booking failed — please try again."
       },
       "cta": "Carpool by the seat",
-      "ctaHint": "Book one seat on a scheduled departure — cheaper than a private ride."
+      "ctaHint": "Book one seat on a scheduled departure — cheaper than a private ride.",
+      "from": "From",
+      "to": "To",
+      "swap": "Swap",
+      "today": "Today",
+      "tomorrow": "Tomorrow",
+      "anyDate": "Any date",
+      "passengers": "Passengers",
+      "search": "Search",
+      "results": "{count} ride(s) available",
+      "sortEarliest": "Earliest departure",
+      "sortCheapest": "Lowest price"
     }
   },
   "push": {

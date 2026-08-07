@@ -1681,7 +1681,18 @@
         "generic": "Réservation impossible — réessayez."
       },
       "cta": "Covoiturage par places",
-      "ctaHint": "Réservez une place sur un départ programmé — moins cher que la course privée."
+      "ctaHint": "Réservez une place sur un départ programmé — moins cher que la course privée.",
+      "from": "Départ",
+      "to": "Destination",
+      "swap": "Inverser",
+      "today": "Aujourd'hui",
+      "tomorrow": "Demain",
+      "anyDate": "Toutes dates",
+      "passengers": "Passagers",
+      "search": "Rechercher",
+      "results": "{count} trajet(s) disponible(s)",
+      "sortEarliest": "Départ le plus tôt",
+      "sortCheapest": "Prix le plus bas"
     }
   },
   "push": {

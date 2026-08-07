@@ -175,6 +175,25 @@ try {
     sumFor(bk2.booking_id, "chauffeur_owes_platform");
   ok("SUM=0 réservation espèces (cash = payout + dette)", r2 === 0);
 
+  // Gains (mig 0444) : drive_my_finances intègre le covoiturage.
+  await as(ch.user_id);
+  const fin = (
+    await c.query(
+      `select carpool_month_net_da, carpool_month_trips, month_net_da, today_net_da
+         from drive_my_finances()`
+    )
+  ).rows[0];
+  const payoutSum = led
+    .filter((l) => l.type === "chauffeur_payout")
+    .reduce((s, l) => s + l.amount_da, 0);
+  ok(
+    "gains : net covoiturage intégré (mois + jour + total)",
+    Number(fin.carpool_month_net_da) >= payoutSum &&
+      Number(fin.month_net_da) >= payoutSum &&
+      Number(fin.today_net_da) >= payoutSum
+  );
+  ok("gains : départ covoiturage compté", Number(fin.carpool_month_trips) >= 1);
+
   // ── 4. No-show : réservé payé, pas embarqué → remboursé au démarrage ───
   await as(ch.user_id);
   const pub2 = (

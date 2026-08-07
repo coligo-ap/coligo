@@ -68,6 +68,7 @@ export type CarpoolFlagLite = {
  * départs périmés (fire-and-forget, service_role).
  */
 export async function getCarpoolHome(filters?: {
+  fromWilaya?: string | null;
   toWilaya?: string | null;
   date?: string | null; // YYYY-MM-DD (jour Alger)
 }): Promise<{
@@ -95,7 +96,7 @@ export async function getCarpoolHome(filters?: {
 
   const rpc = await rpcClient();
   const { data: tripsData } = await rpc("carpool_search_trips", {
-    p_from_wilaya: null,
+    p_from_wilaya: filters?.fromWilaya || null,
     p_to_wilaya: filters?.toWilaya || null,
     p_date: filters?.date || null,
   });

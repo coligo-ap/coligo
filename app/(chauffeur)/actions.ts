@@ -1757,6 +1757,10 @@ export type ChauffeurFinances = {
   planPeriodStart: string | null;
   /** Devis d'upgrade Pro → Premium (prorata des jours restants). */
   upgradeQuote: { amountDa: number; daysLeft: number } | null;
+  /** Ventilation COVOITURAGE (mig 0444) — déjà INCLUSE dans les totaux. */
+  carpoolTodayNet: number;
+  carpoolMonthNet: number;
+  carpoolMonthTrips: number;
 };
 
 export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> {
@@ -1812,6 +1816,9 @@ export async function getChauffeurFinances(): Promise<ChauffeurFinances | null> 
     planPeriodEnd: (f.plan_period_end as string) ?? null,
     rating: f.rating == null ? null : Number(f.rating),
     ridesTotal: Number(f.rides_total ?? 0),
+    carpoolTodayNet: Number(f.carpool_today_net_da ?? 0),
+    carpoolMonthNet: Number(f.carpool_month_net_da ?? 0),
+    carpoolMonthTrips: Number(f.carpool_month_trips ?? 0),
     freeRate: Number(s?.vtc_commission_rate ?? 0),
     paidPlansEnabled: s?.drive_paid_plans_enabled ?? false,
     proFee: s?.drive_plan_pro_fee_da ?? 2000,

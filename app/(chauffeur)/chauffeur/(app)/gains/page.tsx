@@ -89,7 +89,27 @@ export default async function ChauffeurGainsPage({
               customTo={params.to ?? null}
             />
           }
-        />
+        >
+          {/* Ventilation COVOITURAGE (0444) — les montants sont DÉJÀ inclus
+              dans le relevé ci-dessus ; cette ligne dit d'où ils viennent. */}
+          {data.carpool.netDa > 0 && (
+            <p className="mt-2.5 rounded-[12px] bg-[var(--d-soft)] px-3.5 py-2.5 text-[12px] font-semibold text-[var(--d-muted)]">
+              {tr("dont covoiturage", "منها مشاركة المشوار")} :{" "}
+              <b className="text-[var(--d-ink)]">
+                {data.carpool.tripsCount}{" "}
+                {isAr
+                  ? "رحلة"
+                  : `départ${data.carpool.tripsCount > 1 ? "s" : ""}`}
+              </b>{" "}
+              · {data.carpool.seatsCount}{" "}
+              {isAr ? "مقعد" : `place${data.carpool.seatsCount > 1 ? "s" : ""}`}{" "}
+              ·{" "}
+              <b className="text-[var(--d-ink)]">
+                +{data.carpool.netDa} {tr("DA net", "دج صافي")}
+              </b>
+            </p>
+          )}
+        </GainsReleveView>
         {/* Page 100 % revenus (règle « zéro doublon ») : le raccourci
             Abonnement et le solde Coligo Pay vivent sur LEURS pages
             (Compte → Abonnement · onglet Coligo Pay). */}
