@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowUpDown,
-  Armchair,
+  UsersRound,
   Banknote,
   Check,
   ChevronLeft,
@@ -262,13 +262,19 @@ export function CarpoolView() {
 
   return (
     <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col overflow-y-auto bg-[var(--d-page,#F5F4F8)]">
-      {/* En-tête */}
-      <div className="bg-[var(--d-surface)] px-[18px] pt-[calc(16px+env(safe-area-inset-top))] pb-3">
+      {/* HÉRO dégradé (langage visuel Drive) + onglets PILULES — la carte de
+          recherche blanche vient chevaucher le bas du bandeau (façon Bolt). */}
+      <div
+        className="rounded-b-[26px] px-[18px] pt-[calc(16px+env(safe-area-inset-top))] pb-8 text-white"
+        style={{
+          backgroundImage: `linear-gradient(130deg, ${VIOLET} 0%, #4B1FA6 62%, #8E2F86 100%)`,
+        }}
+      >
         <div className="flex items-center gap-2">
           <Link
             href="/drive"
             aria-label={t("carpool.title")}
-            className="grid size-9 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+            className="grid size-9 shrink-0 place-items-center rounded-[12px] bg-white/15 text-white"
           >
             <ChevronLeft className="size-5 rtl:rotate-180" />
           </Link>
@@ -276,11 +282,14 @@ export function CarpoolView() {
             <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
               {t("carpool.title")}
             </h1>
+            <p className="truncate text-[10.5px] font-medium text-white/75">
+              {t("carpool.subtitle")}
+            </p>
           </div>
         </div>
 
-        {/* Onglets */}
-        <div className="mt-2 flex border-b border-[var(--d-line)]">
+        {/* Onglets segmentés (pilule blanche = actif) */}
+        <div className="mt-3 flex gap-1 rounded-[14px] bg-white/15 p-1">
           {(
             [
               ["offers", t("carpool.offers"), shownTrips.length],
@@ -291,26 +300,28 @@ export function CarpoolView() {
               key={k}
               type="button"
               onClick={() => setTab(k)}
-              className="drive-sora relative h-[38px] flex-1 text-[12px] font-bold"
-              style={{ color: tab === k ? VIOLET : "var(--d-muted)" }}
+              className="drive-sora flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] text-[12px] font-extrabold transition-colors"
+              style={
+                tab === k
+                  ? {
+                      background: "#fff",
+                      color: VIOLET,
+                      boxShadow: "0 4px 12px -6px rgba(0,0,0,.35)",
+                    }
+                  : { color: "rgba(255,255,255,.85)" }
+              }
             >
               {label}
               <span
-                className="ms-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[9px] px-1.5 text-[9px] font-extrabold"
+                className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[9px] px-1.5 text-[9px] font-extrabold"
                 style={
                   tab === k
                     ? { background: "#F1E9FC", color: VIOLET }
-                    : { background: "var(--d-soft)", color: "var(--d-muted)" }
+                    : { background: "rgba(255,255,255,.18)", color: "#fff" }
                 }
               >
                 {count}
               </span>
-              {tab === k && (
-                <span
-                  className="absolute inset-x-[20%] bottom-0 h-[3px] rounded-[3px]"
-                  style={{ background: VIOLET }}
-                />
-              )}
             </button>
           ))}
         </div>
@@ -328,8 +339,9 @@ export function CarpoolView() {
 
         {tab === "offers" && (
           <>
-            {/* ── Carte de recherche façon BlaBlaCar : communes libres ── */}
-            <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 shadow-[0_14px_34px_-26px_rgba(20,22,40,.55)]">
+            {/* ── Carte de recherche façon BlaBlaCar : communes libres —
+                chevauche le bas du héros dégradé (façon Bolt). ── */}
+            <div className="relative z-10 -mt-9 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_40px_-24px_rgba(20,22,40,.6)]">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="border-b border-[var(--d-line)] pb-1">
@@ -425,7 +437,7 @@ export function CarpoolView() {
                     −
                   </button>
                   <span className="drive-sora flex min-w-[46px] items-center justify-center gap-1 text-[14px] font-extrabold">
-                    <Armchair className="size-4" />
+                    <UsersRound className="size-4" />
                     {pax}
                   </span>
                   <button
@@ -607,8 +619,14 @@ export function CarpoolView() {
                               </span>
                             )}
                           </span>
-                          <span className="flex items-center gap-1 text-[10.5px] font-semibold text-[var(--d-muted)]">
-                            <Armchair className="size-3" />
+                          <span
+                            className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                            style={{
+                              background: "rgba(22,179,100,.12)",
+                              color: GO,
+                            }}
+                          >
+                            <UsersRound className="size-3" />
                             {t("carpool.seatsLeft", { count: trip.seats_left })}
                           </span>
                         </span>
@@ -840,7 +858,7 @@ export function CarpoolView() {
                       −
                     </button>
                     <span className="drive-sora flex-1 text-center text-[17px] font-extrabold">
-                      <Armchair className="me-1 inline size-4 align-[-2px]" />
+                      <UsersRound className="me-1 inline size-4 align-[-2px]" />
                       {seats}
                     </span>
                     <button

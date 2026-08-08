@@ -1644,7 +1644,13 @@
       "whereToInter": "Which wilaya?",
       "soon": "Soon",
       "suspended": "Paused",
-      "interBlocked": "Intercity trips are temporarily paused. City trips remain available."
+      "interBlocked": "Intercity trips are temporarily paused. City trips remain available.",
+      "interTitle": "Long trips between wilayas",
+      "privateCard": "Private ride",
+      "privateCardHint": "The whole car, at your price — leaves now",
+      "seatCard": "Carpool",
+      "seatCardHint": "Just your seat — scheduled departure, cheaper",
+      "popularDest": "Popular"
     },
     "carpool": {
       "title": "Carpooling",

@@ -11,7 +11,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useLocale, useTranslations } from "next-intl";
 import {
-  Armchair,
+  UsersRound,
   ArrowUpDown,
   Building2,
   Car,
@@ -43,10 +43,14 @@ import {
   DepModal,
   PrimaryBtn,
   SosContactsSheet,
+  GO,
   ROSE,
   VIOLET,
   type SosContact,
 } from "./drive-modals";
+import { WILAYA_CENTROIDS } from "@/lib/config/wilaya-centroids";
+import { nearestWilayaCode } from "@/lib/drive/interwilaya";
+import { wilayaName } from "@/components/shared/place-field";
 import { ZoneBlockNotice } from "./drive-ui";
 import { DriveAiBar } from "./drive-ai-bar";
 import { ThemeDecor } from "@/components/shared/theme-decor";
@@ -170,6 +174,10 @@ export function DriveHomeScreen({
   // message clair — l'enforcement réel restant le trigger DB.
   const interHidden = interFlag?.status === "hidden";
   const canInter = !interFlag || interFlag.status === "active";
+  // Wilaya du départ (référentiel local) — exclue des destinations populaires.
+  const pickupWilaya = pickup
+    ? nearestWilayaCode(pickup.lat, pickup.lng)
+    : null;
   const interBlockMsg =
     interFlag && interFlag.status !== "active" && inter
       ? ((isAr
@@ -329,48 +337,78 @@ export function DriveHomeScreen({
                       })}
                     </div>
                   )}
+                  {/* ── HUB INTER-WILAYAS (redesign) : bandeau dédié + choix
+                      clair entre COURSE PRIVÉE (véhicule entier, prix libre)
+                      et COVOITURAGE PAR PLACES (départ programmé, moins
+                      cher). Le formulaire dessous sert la course privée. ── */}
                   {tripMode === "inter" && (
-                    <p className="-mt-1 mb-2.5 px-1 text-[11.5px] font-semibold text-[var(--d-muted)]">
-                      {t("mode.interHint")}
-                    </p>
-                  )}
-                  {/* COVOITURAGE PAR PLACES (0443) : l'alternative moins chère
-                      sur l'onglet inter — réserver UNE place sur un départ
-                      programmé au lieu du véhicule entier. */}
-                  {tripMode === "inter" && carpoolOn && (
-                    <Link
-                      href="/drive/covoiturage"
-                      className="mb-2.5 flex items-center gap-2.5 rounded-[14px] border px-3 py-2.5"
-                      style={{
-                        borderColor: "rgba(108,43,217,.28)",
-                        background: "rgba(108,43,217,.05)",
-                      }}
-                    >
-                      <span
-                        className="grid size-8 shrink-0 place-items-center rounded-[10px]"
-                        style={{ background: "rgba(108,43,217,.12)" }}
+                    <>
+                      <div
+                        className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-[14px] px-3.5 py-2.5 text-white"
+                        style={{
+                          backgroundImage: `linear-gradient(120deg, ${VIOLET} 0%, #4B1FA6 70%, #8E2F86 100%)`,
+                        }}
                       >
-                        <Armchair
-                          className="size-4"
-                          style={{ color: VIOLET }}
-                        />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <b
-                          className="block text-[12px] font-extrabold"
-                          style={{ color: VIOLET }}
-                        >
-                          {t("carpool.cta")}
-                        </b>
-                        <span className="block text-[10.5px] font-medium text-[var(--d-muted)]">
-                          {t("carpool.ctaHint")}
+                        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15">
+                          <Route className="size-4" />
                         </span>
-                      </span>
-                      <ChevronRight
-                        className="size-4 shrink-0 rtl:rotate-180"
-                        style={{ color: VIOLET }}
-                      />
-                    </Link>
+                        <span className="min-w-0 flex-1">
+                          <b className="drive-sora block text-[12.5px] font-extrabold">
+                            {t("mode.interTitle")}
+                          </b>
+                          <span className="block truncate text-[10.5px] font-medium text-white/80">
+                            {t("mode.interHint")}
+                          </span>
+                        </span>
+                      </div>
+                      <div
+                        className={`mb-2.5 grid gap-2 ${carpoolOn ? "grid-cols-2" : "grid-cols-1"}`}
+                      >
+                        <div
+                          className="rounded-[14px] border-[1.5px] px-3 py-2.5"
+                          style={{
+                            borderColor: VIOLET,
+                            background: "rgba(108,43,217,.06)",
+                          }}
+                        >
+                          <span className="flex items-center gap-1.5">
+                            <Car className="size-4" style={{ color: VIOLET }} />
+                            <b
+                              className="text-[12px] font-extrabold"
+                              style={{ color: VIOLET }}
+                            >
+                              {t("mode.privateCard")}
+                            </b>
+                          </span>
+                          <span className="mt-0.5 block text-[10px] leading-snug font-medium text-[var(--d-muted)]">
+                            {t("mode.privateCardHint")}
+                          </span>
+                        </div>
+                        {carpoolOn && (
+                          <Link
+                            href="/drive/covoiturage"
+                            className="rounded-[14px] border-[1.5px] border-[var(--d-line)] px-3 py-2.5 transition-colors active:bg-[var(--d-soft)]"
+                          >
+                            <span className="flex items-center gap-1.5">
+                              <UsersRound
+                                className="size-4"
+                                style={{ color: GO }}
+                              />
+                              <b
+                                className="text-[12px] font-extrabold"
+                                style={{ color: GO }}
+                              >
+                                {t("mode.seatCard")}
+                              </b>
+                              <ChevronRight className="ms-auto size-3.5 shrink-0 text-[var(--d-muted)] rtl:rotate-180" />
+                            </span>
+                            <span className="mt-0.5 block text-[10px] leading-snug font-medium text-[var(--d-muted)]">
+                              {t("mode.seatCardHint")}
+                            </span>
+                          </Link>
+                        )}
+                      </div>
+                    </>
                   )}
                   <div className="mb-2.5 flex items-center gap-2">
                     <div className="min-w-0 flex-1">
@@ -460,6 +498,37 @@ export function DriveHomeScreen({
                       <ArrowUpDown className="size-[18px]" />
                     </button>
                   </div>
+
+                  {/* Destinations POPULAIRES (inter) : la wilaya en un tap —
+                      le client précise ensuite s'il veut, ou continue direct. */}
+                  {tripMode === "inter" && !dest && (
+                    <div className="mb-2 flex items-center gap-1.5 overflow-x-auto">
+                      <span className="shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                        {t("mode.popularDest")}
+                      </span>
+                      {["16", "31", "25", "19", "06", "15", "09", "23"]
+                        .filter((c) => c !== pickupWilaya)
+                        .slice(0, 6)
+                        .map((c) => (
+                          <button
+                            key={c}
+                            type="button"
+                            onClick={() => {
+                              const ct = WILAYA_CENTROIDS[c];
+                              if (ct)
+                                setDest({
+                                  lat: ct.lat,
+                                  lng: ct.lng,
+                                  text: wilayaName(c, isAr),
+                                });
+                            }}
+                            className="drive-sora flex h-7 shrink-0 items-center rounded-full border border-[var(--d-line)] px-2.5 text-[10.5px] font-bold whitespace-nowrap text-[var(--d-muted)] active:bg-[var(--d-soft)]"
+                          >
+                            {wilayaName(c, isAr)}
+                          </button>
+                        ))}
+                    </div>
+                  )}
 
                   {/* Trajet inter-wilayas DÉTECTÉ (auto, quel que soit
                       l'onglet) : badge de confirmation « Alger → Béjaïa ». */}

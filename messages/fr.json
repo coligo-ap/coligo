@@ -1638,7 +1638,13 @@
       "whereToInter": "Vers quelle wilaya ?",
       "soon": "Bientôt",
       "suspended": "Suspendu",
-      "interBlocked": "Les trajets inter-wilayas sont temporairement suspendus. Les trajets en ville restent disponibles."
+      "interBlocked": "Les trajets inter-wilayas sont temporairement suspendus. Les trajets en ville restent disponibles.",
+      "interTitle": "Longs trajets entre wilayas",
+      "privateCard": "Course privée",
+      "privateCardHint": "Tout le véhicule, à ton prix — départ immédiat",
+      "seatCard": "Covoiturage",
+      "seatCardHint": "Ta place seulement — départ programmé, moins cher",
+      "popularDest": "Populaires"
     },
     "carpool": {
       "title": "Covoiturage",

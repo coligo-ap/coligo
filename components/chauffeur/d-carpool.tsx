@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useLocale } from "next-intl";
 import {
-  Armchair,
+  UsersRound,
   ArrowUpDown,
   Banknote,
   Check,
@@ -896,7 +896,7 @@ export function DCarpool() {
                     −
                   </button>
                   <span className="drive-sora flex-1 text-center text-[15px] font-extrabold">
-                    <Armchair className="me-1 inline size-4 align-[-2px]" />
+                    <UsersRound className="me-1 inline size-4 align-[-2px]" />
                     {seats}
                   </span>
                   <button
