@@ -306,7 +306,6 @@ export function CarpoolView() {
                   ? {
                       background: "#fff",
                       color: VIOLET,
-                      boxShadow: "0 4px 12px -6px rgba(0,0,0,.35)",
                     }
                   : { color: "rgba(255,255,255,.85)" }
               }
@@ -341,7 +340,7 @@ export function CarpoolView() {
           <>
             {/* ── Carte de recherche façon BlaBlaCar : communes libres —
                 chevauche le bas du héros dégradé (façon Bolt). ── */}
-            <div className="relative z-10 -mt-9 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_40px_-24px_rgba(20,22,40,.6)]">
+            <div className="relative z-10 -mt-9 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="border-b border-[var(--d-line)] pb-1">
@@ -455,7 +454,6 @@ export function CarpoolView() {
                   className="drive-sora flex h-11 flex-1 items-center justify-center gap-2 rounded-[12px] text-[14px] font-extrabold text-white"
                   style={{
                     background: VIOLET,
-                    boxShadow: `0 10px 22px -10px ${VIOLET}`,
                   }}
                 >
                   <Search className="size-4" /> {t("carpool.search")}
@@ -646,7 +644,6 @@ export function CarpoolView() {
                             className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-4 text-[12.5px] font-extrabold text-white"
                             style={{
                               background: VIOLET,
-                              boxShadow: `0 8px 18px -8px ${VIOLET}`,
                             }}
                           >
                             {t("carpool.book")}
@@ -839,11 +836,45 @@ export function CarpoolView() {
                     <X className="size-4" />
                   </button>
                 </div>
-                <p className="text-[11.5px] text-[var(--d-muted)]">
-                  {fmtDay(bookTrip.seg_departure_at)}{" "}
-                  {fmtTime(bookTrip.seg_departure_at)} ·{" "}
-                  {bookTrip.chauffeur_name}
-                </p>
+                {/* Timeline MONTÉE / DESCENTE — le passager sait exactement
+                    où et quand il monte, et vers quelle heure il arrive. */}
+                <div className="mt-1 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5">
+                  <div className="flex items-center gap-2 text-[11.5px] font-semibold">
+                    <span
+                      className="size-[9px] shrink-0 rounded-full border-[2.5px]"
+                      style={{ borderColor: VIOLET }}
+                    />
+                    <span className="w-14 shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {t("carpool.boardAt")}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {stopLabel(
+                        bookTrip.seg_from_text,
+                        bookTrip.seg_from_wilaya
+                      )}
+                    </span>
+                    <b className="drive-sora shrink-0">
+                      {fmtTime(bookTrip.seg_departure_at)}
+                    </b>
+                  </div>
+                  <div className="mt-1.5 flex items-center gap-2 text-[11.5px] font-semibold">
+                    <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
+                    <span className="w-14 shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {t("carpool.alightAt")}
+                    </span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {stopLabel(bookTrip.seg_to_text, bookTrip.seg_to_wilaya)}
+                    </span>
+                    <b className="drive-sora shrink-0">
+                      ≈{" "}
+                      {arrivalTime(bookTrip.seg_departure_at, bookTrip.seg_km)}
+                    </b>
+                  </div>
+                  <p className="mt-1.5 text-[10px] font-medium text-[var(--d-muted)]">
+                    {fmtDay(bookTrip.seg_departure_at)} ·{" "}
+                    {bookTrip.chauffeur_name} · {durLabel(bookTrip.seg_km)}
+                  </p>
+                </div>
 
                 <div className="mt-3">
                   <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
@@ -926,7 +957,6 @@ export function CarpoolView() {
                   className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-60"
                   style={{
                     background: GO,
-                    boxShadow: `0 12px 24px -10px ${GO}`,
                   }}
                 >
                   {bookPending && <Loader2 className="size-5 animate-spin" />}

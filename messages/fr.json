@@ -1701,7 +1701,9 @@
       "sortCheapest": "Prix le plus bas",
       "fromPlaceholder": "Départ — commune, ville, lieu…",
       "toPlaceholder": "Destination — commune, ville, lieu…",
-      "via": "Trajet complet du chauffeur · via {stops}"
+      "via": "Trajet complet du chauffeur · via {stops}",
+      "boardAt": "Montée",
+      "alightAt": "Descente"
     }
   },
   "push": {

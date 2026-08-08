@@ -2,7 +2,14 @@
 
 import { useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
-import { BarChart3, Car, ChevronLeft, Home, User } from "lucide-react";
+import {
+  BarChart3,
+  Car,
+  ChevronLeft,
+  Home,
+  User,
+  UsersRound,
+} from "lucide-react";
 import { PartnerTabbar, type PartnerTab } from "@/components/shared/partner-ui";
 
 /**
@@ -49,8 +56,14 @@ const TABS: readonly PartnerTab[] = [
     label: "Drive",
     labelAr: "درايف",
     icon: Car,
-    // Les sous-pages Inter-wilayas et Covoiturage restent sous l'onglet Drive.
-    match: ["/chauffeur/interwilayas", "/chauffeur/covoiturage"],
+    // La sous-page Inter-wilayas reste sous l'onglet Drive.
+    match: ["/chauffeur/interwilayas"],
+  },
+  {
+    href: "/chauffeur/covoiturage",
+    label: "Covoit.",
+    labelAr: "مشاركة",
+    icon: UsersRound,
   },
   {
     href: "/chauffeur/gains",

@@ -133,10 +133,12 @@ export function PrimaryBtn({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "drive-sora mt-2 flex h-[54px] w-full items-center justify-center gap-2 rounded-[17px] text-base font-bold text-white disabled:pointer-events-none disabled:opacity-40",
+        // Flat façon Bolt Food : rayon contenu, AUCUNE ombre portée (demande
+        // explicite — pas d'effet 3D sur les boutons Drive).
+        "drive-sora mt-2 flex h-[54px] w-full items-center justify-center gap-2 rounded-[12px] text-base font-bold text-white disabled:pointer-events-none disabled:opacity-40",
         className
       )}
-      style={{ background: color, boxShadow: `0 14px 28px -12px ${color}` }}
+      style={{ background: color }}
     >
       {children}
     </button>

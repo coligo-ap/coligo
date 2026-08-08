@@ -921,74 +921,18 @@ export function DRequests({
         ))}
       </div>
 
-      {/* Accès à la SOUS-PAGE Inter-wilayas : les longs trajets ont leur
-          espace (rayon d'approche élargi) — le chauffeur reçoit tout ici,
-          mais peut aller les consulter à part, façon Bolt. */}
-      {!interScope && tab === "demandes" && (
+      {/* DÉSENCOMBRÉ : plus de grosses bannières — le covoiturage vit dans la
+          nav du bas, et la sous-page Inter-wilayas (rayon élargi) s'ouvre par
+          un lien slim UNIQUEMENT quand la lentille Inter est active. */}
+      {!interScope && tab === "demandes" && tripFilter === "inter" && (
         <Link
           href="/chauffeur/interwilayas"
-          className="mx-[18px] mt-2.5 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
-          style={{
-            borderColor: "rgba(108,43,217,.28)",
-            background: "rgba(108,43,217,.06)",
-          }}
+          className="mx-[18px] mt-2 flex h-9 items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[11.5px] font-bold"
+          style={{ color: VIOLET }}
         >
-          <span
-            className="grid size-7 shrink-0 place-items-center rounded-[9px]"
-            style={{ background: "rgba(108,43,217,.12)" }}
-          >
-            <Route className="size-3.5" style={{ color: VIOLET }} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <b className="block text-[11.5px]" style={{ color: VIOLET }}>
-              {tr("Trajets Inter-wilayas", "مشاوير بين الولايات")}
-            </b>
-            <span className="text-[10px] text-[var(--d-muted)]">
-              {tr(
-                "Longues distances · rayon élargi autour de vous",
-                "مسافات طويلة · نطاق موسّع من حولك"
-              )}
-            </span>
-          </span>
-          <ChevronRight
-            className="size-4 shrink-0 rtl:rotate-180"
-            style={{ color: VIOLET }}
-          />
-        </Link>
-      )}
-
-      {/* Sous-page Inter-wilayas : accès au COVOITURAGE (publier un départ
-          programmé et vendre ses places — mig 0443). */}
-      {interScope && tab === "demandes" && (
-        <Link
-          href="/chauffeur/covoiturage"
-          className="mx-[18px] mt-2.5 flex items-center gap-2.5 rounded-[14px] border px-3.5 py-2.5"
-          style={{
-            borderColor: "rgba(22,179,100,.30)",
-            background: "rgba(22,179,100,.06)",
-          }}
-        >
-          <span
-            className="grid size-7 shrink-0 place-items-center rounded-[9px]"
-            style={{ background: "rgba(22,179,100,.12)" }}
-          >
-            <Zap className="size-3.5" style={{ color: GO }} />
-          </span>
-          <span className="min-w-0 flex-1">
-            <b className="block text-[11.5px]" style={{ color: GO }}>
-              {tr("Covoiturage — publie ton départ", "مشاركة — انشر رحلتك")}
-            </b>
-            <span className="text-[10px] text-[var(--d-muted)]">
-              {tr(
-                "Vends tes places et pars plein, sans attendre une demande",
-                "بِع مقاعدك وانطلق ممتلئًا دون انتظار طلب"
-              )}
-            </span>
-          </span>
-          <ChevronRight
-            className="size-4 shrink-0 rtl:rotate-180"
-            style={{ color: GO }}
-          />
+          <Route className="size-3.5" />
+          {tr("Voir plus loin — rayon élargi", "عرض أبعد — نطاق موسّع")}
+          <ChevronRight className="size-3.5 rtl:rotate-180" />
         </Link>
       )}
 

@@ -1707,7 +1707,9 @@
       "sortCheapest": "Lowest price",
       "fromPlaceholder": "From — town, city, place…",
       "toPlaceholder": "To — town, city, place…",
-      "via": "Driver's full route · via {stops}"
+      "via": "Driver's full route · via {stops}",
+      "boardAt": "Pickup",
+      "alightAt": "Drop-off"
     }
   },
   "push": {

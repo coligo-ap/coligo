@@ -1,7 +1,6 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import Link from "next/link";
 import { useLocale } from "next-intl";
 import {
   UsersRound,
@@ -9,7 +8,6 @@ import {
   Banknote,
   Check,
   ChevronDown,
-  ChevronLeft,
   Loader2,
   Plus,
   Route,
@@ -18,6 +16,7 @@ import {
   X,
 } from "lucide-react";
 import { WILAYAS } from "@/lib/config/wilayas";
+import { WILAYA_CENTROIDS } from "@/lib/config/wilaya-centroids";
 import {
   VIOLET,
   GO,
@@ -356,18 +355,11 @@ export function DCarpool() {
 
   return (
     <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
-      <div className="flex items-center gap-2">
-        <Link
-          href="/chauffeur/interwilayas"
-          aria-label={tr("Retour", "رجوع")}
-          className="grid size-9 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)]"
-        >
-          <ChevronLeft className="size-5 rtl:rotate-180" />
-        </Link>
-        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
-          {tr("Covoiturage", "مشاركة المشوار")}
-        </h1>
-      </div>
+      {/* Page de PREMIER NIVEAU (onglet « Covoit. » de la nav) : pas de
+          bouton retour — la nav du bas fait foi. */}
+      <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+        {tr("Covoiturage", "مشاركة المشوار")}
+      </h1>
       <p className="mt-0.5 text-[11.5px] font-medium text-[var(--d-muted)]">
         {tr(
           "Publie ton départ, ajoute des arrêts sur ta route, vends tes places.",
@@ -379,7 +371,7 @@ export function DCarpool() {
         type="button"
         onClick={() => setSheetOpen(true)}
         className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white"
-        style={{ background: VIOLET, boxShadow: `0 12px 24px -10px ${VIOLET}` }}
+        style={{ background: VIOLET }}
       >
         <Plus className="size-5" /> {tr("Publier un départ", "نشر رحلة")}
       </button>
@@ -708,6 +700,42 @@ export function DCarpool() {
                   >
                     {tr("Recette", "الإيراد")} : {t.revenue_da} {tr("DA", "دج")}
                   </p>
+                )}
+                {/* REPUBLIER : un trajet régulier se relance en 2 taps — la
+                    feuille s'ouvre préremplie (itinéraire, prix, places). */}
+                {(t.status === "completed" || t.status === "cancelled") && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const cf = WILAYA_CENTROIDS[t.from_wilaya];
+                      const ct = WILAYA_CENTROIDS[t.to_wilaya];
+                      if (cf)
+                        setFromPick({
+                          label: t.from_text ?? wname(t.from_wilaya),
+                          secondary: null,
+                          lat: cf.lat,
+                          lng: cf.lng,
+                          wilaya: t.from_wilaya,
+                        });
+                      if (ct)
+                        setToPick({
+                          label: t.to_text ?? wname(t.to_wilaya),
+                          secondary: null,
+                          lat: ct.lat,
+                          lng: ct.lng,
+                          wilaya: t.to_wilaya,
+                        });
+                      setSeats(t.seats_total);
+                      setPrice(t.price_per_seat_da);
+                      setFemaleOnly(t.female_only);
+                      setSheetOpen(true);
+                    }}
+                    className="drive-sora mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[12px] font-bold"
+                    style={{ color: VIOLET }}
+                  >
+                    <Plus className="size-3.5" />
+                    {tr("Republier ce trajet", "إعادة نشر هذه الرحلة")}
+                  </button>
                 )}
               </div>
             )}

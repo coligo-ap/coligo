@@ -15,7 +15,6 @@ import {
   ArrowUpDown,
   Building2,
   Car,
-  ChevronRight,
   Clock,
   X,
   ContactRound,
@@ -43,7 +42,6 @@ import {
   DepModal,
   PrimaryBtn,
   SosContactsSheet,
-  GO,
   ROSE,
   VIOLET,
   type SosContact,
@@ -280,7 +278,7 @@ export function DriveHomeScreen({
               <>
                 {/* Carte formulaire de trajet (départ / arrivée). */}
                 <div
-                  className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_18px_44px_-30px_rgba(20,22,40,.5)]"
+                  className="mt-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
                   onTouchStart={onSheetTouchStart}
                   onTouchEnd={onSheetTouchEnd}
                 >
@@ -290,7 +288,7 @@ export function DriveHomeScreen({
                   {/* Onglet inter RETIRÉ si masqué par l'équipe Coligo ; grisé
                       (« Bientôt » / « Suspendu ») si coupé temporairement. */}
                   {!interHidden && (
-                    <div className="mb-3 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
+                    <div className="mb-3 flex gap-[3px] rounded-[12px] bg-[var(--d-soft)] p-1">
                       {(
                         [
                           ["ville", Building2, t("mode.city")],
@@ -308,14 +306,12 @@ export function DriveHomeScreen({
                             }}
                             aria-pressed={tripMode === m}
                             aria-disabled={locked || undefined}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] p-2 text-[12.5px] font-bold transition-colors"
+                            className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] p-2 text-[12.5px] font-bold transition-colors"
                             style={
                               tripMode === m
                                 ? {
                                     background: "var(--d-surface)",
                                     color: VIOLET,
-                                    boxShadow:
-                                      "0 4px 12px -6px rgba(0,0,0,.25)",
                                   }
                                 : {
                                     color: "var(--d-muted)",
@@ -335,87 +331,50 @@ export function DriveHomeScreen({
                           </button>
                         );
                       })}
+                      {/* ACCÈS DIRECT covoiturage : 3ᵉ onglet à plat — zéro
+                          niveau intermédiaire entre /drive et la réservation
+                          par places (demande explicite : moins d'imbrication). */}
+                      {carpoolOn && (
+                        <Link
+                          href="/drive/covoiturage"
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] p-2 text-[12.5px] font-bold"
+                          style={{ color: "var(--d-muted)" }}
+                        >
+                          <UsersRound className="size-3.5" />
+                          {t("mode.seatCard")}
+                        </Link>
+                      )}
                     </div>
                   )}
-                  {/* ── HUB INTER-WILAYAS (redesign) : bandeau dédié + choix
-                      clair entre COURSE PRIVÉE (véhicule entier, prix libre)
-                      et COVOITURAGE PAR PLACES (départ programmé, moins
-                      cher). Le formulaire dessous sert la course privée. ── */}
+                  {/* Onglet inter = COURSE PRIVÉE longue distance (le
+                      covoiturage a son PROPRE onglet ci-dessus — accès direct,
+                      plus de cartes intermédiaires). Bandeau slim d'explication. */}
                   {tripMode === "inter" && (
-                    <>
-                      <div
-                        className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-[14px] px-3.5 py-2.5 text-white"
-                        style={{
-                          backgroundImage: `linear-gradient(120deg, ${VIOLET} 0%, #4B1FA6 70%, #8E2F86 100%)`,
-                        }}
-                      >
-                        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15">
-                          <Route className="size-4" />
+                    <div
+                      className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-[12px] px-3.5 py-2.5 text-white"
+                      style={{
+                        backgroundImage: `linear-gradient(120deg, ${VIOLET} 0%, #4B1FA6 70%, #8E2F86 100%)`,
+                      }}
+                    >
+                      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15">
+                        <Route className="size-4" />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <b className="drive-sora block text-[12.5px] font-extrabold">
+                          {t("mode.interTitle")}
+                        </b>
+                        <span className="block truncate text-[10.5px] font-medium text-white/80">
+                          {t("mode.privateCardHint")}
                         </span>
-                        <span className="min-w-0 flex-1">
-                          <b className="drive-sora block text-[12.5px] font-extrabold">
-                            {t("mode.interTitle")}
-                          </b>
-                          <span className="block truncate text-[10.5px] font-medium text-white/80">
-                            {t("mode.interHint")}
-                          </span>
-                        </span>
-                      </div>
-                      <div
-                        className={`mb-2.5 grid gap-2 ${carpoolOn ? "grid-cols-2" : "grid-cols-1"}`}
-                      >
-                        <div
-                          className="rounded-[14px] border-[1.5px] px-3 py-2.5"
-                          style={{
-                            borderColor: VIOLET,
-                            background: "rgba(108,43,217,.06)",
-                          }}
-                        >
-                          <span className="flex items-center gap-1.5">
-                            <Car className="size-4" style={{ color: VIOLET }} />
-                            <b
-                              className="text-[12px] font-extrabold"
-                              style={{ color: VIOLET }}
-                            >
-                              {t("mode.privateCard")}
-                            </b>
-                          </span>
-                          <span className="mt-0.5 block text-[10px] leading-snug font-medium text-[var(--d-muted)]">
-                            {t("mode.privateCardHint")}
-                          </span>
-                        </div>
-                        {carpoolOn && (
-                          <Link
-                            href="/drive/covoiturage"
-                            className="rounded-[14px] border-[1.5px] border-[var(--d-line)] px-3 py-2.5 transition-colors active:bg-[var(--d-soft)]"
-                          >
-                            <span className="flex items-center gap-1.5">
-                              <UsersRound
-                                className="size-4"
-                                style={{ color: GO }}
-                              />
-                              <b
-                                className="text-[12px] font-extrabold"
-                                style={{ color: GO }}
-                              >
-                                {t("mode.seatCard")}
-                              </b>
-                              <ChevronRight className="ms-auto size-3.5 shrink-0 text-[var(--d-muted)] rtl:rotate-180" />
-                            </span>
-                            <span className="mt-0.5 block text-[10px] leading-snug font-medium text-[var(--d-muted)]">
-                              {t("mode.seatCardHint")}
-                            </span>
-                          </Link>
-                        )}
-                      </div>
-                    </>
+                      </span>
+                    </div>
                   )}
                   <div className="mb-2.5 flex items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <button
                         type="button"
                         onClick={() => setDepOpen(true)}
-                        className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                        className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                       >
                         <span
                           className="size-3 shrink-0 rounded-full"
@@ -463,7 +422,7 @@ export function DriveHomeScreen({
                           setMapPickFor("dest");
                           setScreen("mappick");
                         }}
-                        className="flex w-full items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                        className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                       >
                         <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
                         <span className="min-w-0 flex-1">
@@ -492,7 +451,7 @@ export function DriveHomeScreen({
                       disabled={!pickup && !dest}
                       aria-label={t("swap")}
                       title={t("swap")}
-                      className="grid size-10 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm disabled:opacity-40"
+                      className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] disabled:opacity-40"
                       style={{ color: VIOLET }}
                     >
                       <ArrowUpDown className="size-[18px]" />
