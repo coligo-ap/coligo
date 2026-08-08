@@ -240,7 +240,15 @@ export async function updateSession(request: NextRequest) {
       path.startsWith("/auth") ||
       path.startsWith("/offline") ||
       path === "/portail" ||
-      path.startsWith("/portail/");
+      path.startsWith("/portail/") ||
+      // Vitrine du design system : outil INTERNE réservé à l'équipe, mais qui
+      // vit hors de /admin pour s'afficher en pleine page (elle simule le
+      // thème sombre et le sens arabe — le chrome admin fausserait l'aperçu).
+      // Sans cette exemption, le confinement la renvoyait sur /admin. La page
+      // garde sa propre garde `requireSuperAdmin()` : exempter du CONFINEMENT
+      // n'ouvre rien, un non-admin y est toujours refusé.
+      path === "/design-system" ||
+      path.startsWith("/design-system/");
     if (
       !adminExempt &&
       (await isAdminCached(request, supabaseResponse, supabase, user.id))
