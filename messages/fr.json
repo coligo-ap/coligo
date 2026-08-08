@@ -1684,7 +1684,9 @@
         "not_enough_seats": "Plus assez de places sur ce départ.",
         "trip_unavailable": "Ce départ n'est plus disponible.",
         "own_trip": "Vous êtes le chauffeur de ce départ.",
-        "generic": "Réservation impossible — réessayez."
+        "generic": "Réservation impossible — réessayez.",
+        "too_many_bookings": "Maximum 3 réservations actives à la fois.",
+        "cash_blocked": "Paiement en espèces indisponible (absences répétées) — réservez avec Coligo Pay."
       },
       "cta": "Covoiturage par places",
       "ctaHint": "Réservez une place sur un départ programmé — moins cher que la course privée.",
@@ -1703,7 +1705,8 @@
       "toPlaceholder": "Destination — commune, ville, lieu…",
       "via": "Trajet complet du chauffeur · via {stops}",
       "boardAt": "Montée",
-      "alightAt": "Descente"
+      "alightAt": "Descente",
+      "call": "Appeler {name}"
     }
   },
   "push": {

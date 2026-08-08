@@ -48,8 +48,35 @@ try {
     )
   ).rows;
   if (custs.length < 3) throw new Error("pas assez de clients auth-liés");
+  // État préexistant NEUTRALISÉ dans la transaction (rollback le restaure) :
+  // des départs réels publiés via l'UI fausseraient plafond/chevauchement/R2.
+  await c.query(
+    `update carpool_trips set status = 'completed', completed_at = now()
+      where chauffeur_id = $1 and status in ('published','started')`,
+    [ch.id]
+  );
+  await c.query(
+    `update carpool_trips set cancelled_at = now() - interval '40 days'
+      where chauffeur_id = $1 and status = 'cancelled'
+        and cancelled_at > now() - interval '30 days'`,
+    [ch.id]
+  );
+  await c.query(
+    `update carpool_bookings set status = 'cancelled', late_cancel = false
+      where customer_id in ($1, $2, $3) and status in ('booked','boarded')`,
+    [custs[0].id, custs[1].id, custs[2].id]
+  );
+  await c.query(
+    `update carpool_bookings b set created_at = now() - interval '40 days'
+      from carpool_trips t
+      where b.trip_id = t.id and b.customer_id in ($1, $2, $3)
+        and (b.status = 'no_show' or b.late_cancel)
+        and b.created_at > now() - interval '30 days'
+        and t.chauffeur_id <> $4`,
+    [custs[0].id, custs[1].id, custs[2].id, ch.id]
+  );
   // Solde Coligo Pay de test pour les clients 0 et 2 (rollback de toute façon).
-  for (const cu of [custs[0], custs[2]]) {
+  for (const cu of [custs[0], custs[1], custs[2]]) {
     await c.query(
       `insert into customer_wallet_entries (customer_id, order_id, type, source, amount_da, note)
        values ($1, null, 'topup_credit', 'topup', 10000, 'seed test covoiturage')`,
@@ -198,7 +225,7 @@ try {
   await as(ch.user_id);
   const pub2 = (
     await rpc(
-      `select carpool_publish_trip('16','19','Alger','Sétif', now() + interval '4 hours', 3, 900) j`
+      `select carpool_publish_trip('16','19','Alger','Sétif', now() + interval '9 hours', 3, 900) j`
     )
   ).j;
   await as(custs[2].user_id);
@@ -225,7 +252,7 @@ try {
   await as(ch.user_id);
   const pub3 = (
     await rpc(
-      `select carpool_publish_trip('16','31','Alger','Oran', now() + interval '5 hours', 2, 2000) j`
+      `select carpool_publish_trip('16','31','Alger','Oran', now() + interval '14 hours', 2, 2000) j`
     )
   ).j;
   await as(custs[2].user_id);
@@ -245,7 +272,7 @@ try {
 
   const pub4 = (
     await rpc(
-      `select carpool_publish_trip('16','25','Alger','Constantine', now() + interval '6 hours', 2, 1800) j`
+      `select carpool_publish_trip('16','25','Alger','Constantine', now() + interval '19 hours', 2, 1800) j`
     )
   ).j;
   await as(custs[2].user_id);
@@ -267,7 +294,7 @@ try {
   const pubS = (
     await rpc(
       `select carpool_publish_trip('06','16','Béjaïa gare','Alger Tafourah',
-         now() + interval '6 hours', 2, 1000, false, null, null, null, null,
+         now() + interval '26 hours 30 minutes', 2, 1000, false, null, null, null, null,
          '[{"wilaya":"10","text":"Bouira péage"}]'::jsonb) j`
     )
   ).j;
@@ -375,6 +402,163 @@ try {
     bd.ok === true &&
       cmp.ok === true &&
       cmp.cash_da === Number(amounts.find((a) => a.from_seq === 1).per_seat) * 2
+  );
+
+  // ── 5ter. ANTI-FRAUDE (0446) ───────────────────────────────────────────
+  await as(ch.user_id);
+  // R1 : chevauchement — même chauffeur, départ à +6h05 alors que le départ
+  // segments (+6h, ~230 km ≈ 3h20 + 1h de marge) couvre la fenêtre → refusé.
+  const ov = (
+    await rpc(
+      `select carpool_publish_trip('06','19','x','y', now() + interval '19 hours 5 minutes', 2, 800) j`
+    )
+  ).j;
+  ok(
+    "R1 chevauchement de départs refusé",
+    ov.ok === false && ov.reason === "overlapping_trip"
+  );
+  // R7 : prix abusif (Béjaïa→Alger ~230 km → plafond ~4600 DA).
+  const expensive = (
+    await rpc(
+      `select carpool_publish_trip('06','16','x','y', now() + interval '40 hours', 2, 9000) j`
+    )
+  ).j;
+  ok(
+    "R7 prix/place abusif refusé (plafond ~20 DA/km)",
+    expensive.ok === false && expensive.reason === "price_too_high"
+  );
+  // R6 : verrou PIN — 5 échecs sur le départ segments (déjà completed ? non :
+  // on republie un départ propre pour le test).
+  const pinTrip = (
+    await rpc(
+      `select carpool_publish_trip('06','31','x','y', now() + interval '44 hours', 2, 2000) j`
+    )
+  ).j;
+  await as(custs[2].user_id);
+  const pinBk = (
+    await rpc(`select carpool_book_seats($1, 1, 'cash', 'op-pin-1') j`, [
+      pinTrip.trip_id,
+    ])
+  ).j;
+  await as(ch.user_id);
+  let lastReason = "";
+  for (let i = 0; i < 5; i++) {
+    const bad = pinBk.pin === "0000" ? "1111" : "0000";
+    lastReason = (
+      await rpc(`select carpool_board_passenger($1, $2) j`, [
+        pinTrip.trip_id,
+        bad,
+      ])
+    ).j.reason;
+  }
+  const locked = (
+    await rpc(`select carpool_board_passenger($1, $2) j`, [
+      pinTrip.trip_id,
+      pinBk.pin,
+    ])
+  ).j;
+  ok(
+    "R6 verrou PIN après 5 échecs (même le BON PIN attend 10 min)",
+    lastReason === "bad_pin" && locked.reason === "pin_locked"
+  );
+  // R8 : téléphones — passager voit le chauffeur, chauffeur voit le passager,
+  // UNIQUEMENT sur les réservations vivantes.
+  await as(custs[2].user_id);
+  const myPhones = (
+    await c.query(
+      `select chauffeur_phone, status from carpool_my_bookings() where id = $1`,
+      [pinBk.booking_id]
+    )
+  ).rows[0];
+  await as(ch.user_id);
+  const drvPhones = (
+    await c.query(
+      `select customer_phone from carpool_trip_bookings($1) where id = $2`,
+      [pinTrip.trip_id, pinBk.booking_id]
+    )
+  ).rows[0];
+  const doneNoPhone = (
+    await c.query(
+      `select customer_phone from carpool_trip_bookings($1) limit 1`,
+      [trip]
+    )
+  ).rows[0];
+  ok(
+    "R8 téléphones échangés (vivant) et masqués (clôturé)",
+    !!myPhones?.chauffeur_phone &&
+      !!drvPhones?.customer_phone &&
+      doneNoPhone?.customer_phone == null
+  );
+  // Libère le plafond de 3 départs actifs (pub2 encore « started », pub4
+  // encore publié) avant de publier le départ du test tardif.
+  await rpc(`select carpool_complete_trip($1) j`, [pub2.trip_id]);
+  await rpc(`select carpool_cancel_trip($1) j`, [pub4.trip_id]);
+
+  // R4 : annulation tardive (< 2 h avant montée) → strike late_cancel.
+  const lateTrip = (
+    await rpc(
+      `select carpool_publish_trip('06','15','x','y', now() + interval '50 minutes', 2, 1500) j`
+    )
+  ).j;
+  await as(custs[1].user_id);
+  const lateBk = (
+    await rpc(`select carpool_book_seats($1, 1, 'cash', 'op-late-1') j`, [
+      lateTrip.trip_id,
+    ])
+  ).j;
+  const lateCancel = (
+    await rpc(`select carpool_cancel_booking($1) j`, [lateBk.booking_id])
+  ).j;
+  ok(
+    "R4 annulation tardive marquée strike (remboursée quand même)",
+    lateCancel.ok === true && lateCancel.late === true
+  );
+  // R3 : 3 strikes → espèces refusées, Coligo Pay accepté.
+  await c.query(
+    `insert into carpool_bookings (trip_id, customer_id, seats, amount_da, payment_method, pin, status, from_seq, to_seq)
+     select $1, $2, 1, 500, 'cash', '9999', 'no_show', 0, 1 from generate_series(1, 2)`,
+    [lateTrip.trip_id, custs[1].id]
+  );
+  const cashBlocked = (
+    await rpc(`select carpool_book_seats($1, 1, 'cash', 'op-blocked-1') j`, [
+      pinTrip.trip_id,
+    ])
+  ).j;
+  const onlineOk = (
+    await rpc(
+      `select carpool_book_seats($1, 1, 'coligo_pay', 'op-online-ok') j`,
+      [pinTrip.trip_id]
+    )
+  ).j;
+  ok(
+    "R3 récidiviste : espèces REFUSÉES, paiement en ligne accepté",
+    cashBlocked.reason === "cash_blocked" && onlineOk.ok === true
+  );
+  // R2 : 3 annulations avec passagers → publication bloquée. On force les
+  // compteurs (service_role) puis on republie.
+  await as(ch.user_id);
+  await rpc(`select carpool_cancel_trip($1) j`, [lateTrip.trip_id]);
+  await c.query(
+    `update carpool_trips set status='cancelled', cancelled_at = now()
+      where id in ($1, $2)`,
+    [pubS.trip_id, trip]
+  );
+  const pubBlocked = (
+    await rpc(
+      `select carpool_publish_trip('06','23','x','y', now() + interval '60 hours', 2, 2000) j`
+    )
+  ).j;
+  ok(
+    "R2 3 annulations avec passagers / 30 j → publication bloquée",
+    pubBlocked.ok === false && pubBlocked.reason === "too_many_cancellations"
+  );
+
+  // R2 neutralisée pour tester le TRIGGER kill-switch (la RPC bloquerait avant).
+  await c.query(
+    `update carpool_trips set cancelled_at = now() - interval '40 days'
+      where chauffeur_id = (select id from chauffeurs where user_id = $1)
+        and status = 'cancelled'`,
+    [ch.user_id]
   );
 
   // ── 6. Kill-switch drive_carpool ───────────────────────────────────────

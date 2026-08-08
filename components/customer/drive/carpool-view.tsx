@@ -9,6 +9,7 @@ import {
   Check,
   ChevronLeft,
   Loader2,
+  Phone,
   Search,
   Ticket,
   UsersRound,
@@ -204,6 +205,8 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
       "not_enough_seats",
       "trip_unavailable",
       "own_trip",
+      "too_many_bookings",
+      "cash_blocked",
     ];
     if (code && code.includes("feature_disabled"))
       return t("mode.interBlocked");
@@ -720,6 +723,19 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                       </span>
                     </span>
                   </div>
+                )}
+                {/* Appel direct du chauffeur — même geste que le Drive ville
+                    (R8 : numéro présent UNIQUEMENT tant que la réservation et
+                    le départ sont vivants). */}
+                {active && b.chauffeur_phone && (
+                  <a
+                    href={`tel:${b.chauffeur_phone}`}
+                    className="drive-sora mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] text-[12px] font-extrabold"
+                    style={{ borderColor: VIOLET, color: VIOLET }}
+                  >
+                    <Phone className="size-3.5" />
+                    {t("carpool.call", { name: b.chauffeur_name })}
+                  </a>
                 )}
                 {cancellable && (
                   <button

@@ -9,6 +9,7 @@ import {
   ArrowUpDown,
   ClipboardList,
   Loader2,
+  Phone,
   Plus,
   Route,
   Search,
@@ -25,6 +26,11 @@ import {
   RED,
 } from "@/components/customer/drive/drive-modals";
 import { PlaceField, type PlacePick } from "@/components/shared/place-field";
+import {
+  ColigoCalendar,
+  TimeSelect,
+  dayLabel,
+} from "@/components/shared/coligo-calendar";
 import { useRoadPath } from "@/lib/drive/use-road-path";
 import { suggestCorridorStops } from "@/lib/drive/route-corridor";
 import { onVisibleResumeSafe } from "@/lib/net/probe";
@@ -223,6 +229,22 @@ export function DCarpool() {
         "لم تعد هذه الرحلة قابلة للتعديل.",
       ],
       not_started: ["Démarrez d'abord le départ.", "ابدأ الرحلة أولًا."],
+      overlapping_trip: [
+        "Ce créneau chevauche un autre de vos départs.",
+        "هذا التوقيت يتداخل مع رحلة أخرى لك.",
+      ],
+      too_many_cancellations: [
+        "Publication bloquée 30 jours : trop de départs annulés avec des passagers.",
+        "النشر محظور 30 يومًا: إلغاءات كثيرة لرحلات بها ركاب.",
+      ],
+      price_too_high: [
+        "Prix par place trop élevé pour cette distance.",
+        "سعر المقعد مرتفع جدًا لهذه المسافة.",
+      ],
+      pin_locked: [
+        "Trop d'essais — PIN verrouillé 10 minutes.",
+        "محاولات كثيرة — PIN مقفل 10 دقائق.",
+      ],
     };
     const m = map[code];
     return m ? tr(m[0], m[1]) : code;
@@ -250,7 +272,18 @@ export function DCarpool() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [fromPick, setFromPick] = useState<PlacePick | null>(null);
   const [toPick, setToPick] = useState<PlacePick | null>(null);
-  const [depAt, setDepAt] = useState("");
+  // Date et heure SÉPARÉES (calendrier Coligo + sélecteur HH:MM) — plus de
+  // datetime-local illisible.
+  const [depDate, setDepDate] = useState<string | null>(null);
+  const [depH, setDepH] = useState("08");
+  const [depM, setDepM] = useState("00");
+  const [calOpen, setCalOpen] = useState(true);
+  // RETOUR programmé (itinéraire inversé, publié en même temps).
+  const [retOn, setRetOn] = useState(false);
+  const [retDate, setRetDate] = useState<string | null>(null);
+  const [retH, setRetH] = useState("18");
+  const [retM, setRetM] = useState("00");
+  const [retCalOpen, setRetCalOpen] = useState(true);
   const [seats, setSeats] = useState(4);
   const [price, setPrice] = useState(1000);
   const [femaleOnly, setFemaleOnly] = useState(false);
@@ -325,14 +358,36 @@ export function DCarpool() {
       setPubError(errorLabel("bad_route"));
       return;
     }
-    if (!depAt) {
+    if (!depDate) {
       setPubError(
         tr(
-          "Choisissez la date et l'heure de départ.",
-          "اختر تاريخ ووقت الانطلاق."
+          "Choisissez la date de départ dans le calendrier.",
+          "اختر تاريخ الانطلاق من التقويم."
         )
       );
       return;
+    }
+    const depIso = new Date(`${depDate}T${depH}:${depM}:00`).toISOString();
+    let retIso: string | null = null;
+    if (retOn) {
+      if (!retDate) {
+        setPubError(
+          tr("Choisissez la date du retour.", "اختر تاريخ رحلة العودة.")
+        );
+        return;
+      }
+      retIso = new Date(`${retDate}T${retH}:${retM}:00`).toISOString();
+      // Le retour doit laisser le temps de faire l'aller (durée + 1 h).
+      const minGapMs = (Math.round((totalKm / 70) * 60) + 60) * 60000;
+      if (new Date(retIso).getTime() < new Date(depIso).getTime() + minGapMs) {
+        setPubError(
+          tr(
+            "Le retour est trop tôt — laissez le temps de faire l'aller.",
+            "رحلة العودة مبكرة جدًا — اترك وقتًا لإكمال الذهاب."
+          )
+        );
+        return;
+      }
     }
     setPubPending(true);
     const res = await carpoolPublish({
@@ -349,7 +404,8 @@ export function DCarpool() {
         lat: s.lat,
         lng: s.lng,
       })),
-      departureAtIso: new Date(depAt).toISOString(),
+      departureAtIso: depIso,
+      returnDepartureAtIso: retIso,
       seats,
       priceDa: price,
       femaleOnly,
@@ -359,10 +415,25 @@ export function DCarpool() {
       setPubError(errorLabel(res.error));
       return;
     }
+    if (res.returnError) {
+      // Aller publié, retour refusé : on le dit clairement, la feuille reste
+      // ouverte pour corriger l'heure du retour.
+      setPubError(
+        tr(
+          "Aller publié ✓ — retour refusé : ",
+          "نُشر الذهاب ✓ — رُفضت العودة: "
+        ) + errorLabel(res.returnError)
+      );
+      setLoading(true);
+      await load();
+      return;
+    }
     setSheetOpen(false);
     setFromPick(null);
     setToPick(null);
-    setDepAt("");
+    setDepDate(null);
+    setRetOn(false);
+    setRetDate(null);
     setStopsOn(new Set());
     setLoading(true);
     await load();
@@ -761,6 +832,18 @@ export function DCarpool() {
                               (b.seg_to_text ?? wname(b.seg_to_wilaya))}
                           </span>
                         </span>
+                        {/* Appel direct du passager (R8 : numéro présent
+                            UNIQUEMENT sur une réservation vivante). */}
+                        {b.customer_phone && (
+                          <a
+                            href={`tel:${b.customer_phone}`}
+                            aria-label={tr("Appeler", "اتصال")}
+                            className="grid size-8 shrink-0 place-items-center rounded-[10px] border border-[var(--d-line)]"
+                            style={{ color: GO }}
+                          >
+                            <Phone className="size-3.5" />
+                          </a>
+                        )}
                         <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold">
                           {b.payment_method === "cash" ? (
                             <Banknote
@@ -1086,17 +1169,127 @@ export function DCarpool() {
               </div>
             )}
 
-            <label className="mt-3 block">
+            {/* DATE (calendrier Coligo) et HEURE séparées — compréhension
+                immédiate, plus de datetime-local illisible. */}
+            <div className="mt-3">
               <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                {tr("Date et heure de départ", "تاريخ ووقت الانطلاق")}
+                {tr("Date de départ", "تاريخ الانطلاق")}
               </span>
-              <input
-                type="datetime-local"
-                value={depAt}
-                onChange={(e) => setDepAt(e.target.value)}
-                className="h-11 w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-[13px] font-bold outline-none"
+              <button
+                type="button"
+                onClick={() => setCalOpen((v) => !v)}
+                className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[12px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                style={{
+                  borderColor: depDate ? VIOLET : "var(--d-line)",
+                  color: depDate ? VIOLET : "var(--d-muted)",
+                }}
+              >
+                {depDate
+                  ? dayLabel(depDate, isAr)
+                  : tr("Choisir un jour…", "اختر يومًا…")}
+                <ChevronDown
+                  className={`size-4 transition-transform ${calOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {calOpen && (
+                <ColigoCalendar
+                  value={depDate}
+                  onChange={(d) => {
+                    setDepDate(d);
+                    setCalOpen(false);
+                  }}
+                />
+              )}
+            </div>
+            <div className="mt-2">
+              <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                {tr("Heure de départ", "وقت الانطلاق")}
+              </span>
+              <TimeSelect
+                hour={depH}
+                minute={depM}
+                onChange={(h, m) => {
+                  setDepH(h);
+                  setDepM(m);
+                }}
               />
-            </label>
+            </div>
+
+            {/* RETOUR : publie aussi le trajet inverse (arrêts compris). */}
+            <button
+              type="button"
+              onClick={() => {
+                setRetOn((v) => !v);
+                if (!retDate && depDate) setRetDate(depDate);
+              }}
+              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[12px] border-[1.5px] px-3 py-2.5 text-start"
+              style={{
+                borderColor: retOn ? GO : "var(--d-line)",
+                background: retOn ? "rgba(22,179,100,.06)" : "transparent",
+              }}
+            >
+              <span
+                className="grid size-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]"
+                style={{
+                  borderColor: retOn ? GO : "var(--d-line)",
+                  background: retOn ? GO : "transparent",
+                }}
+              >
+                {retOn && <Check className="size-3.5 text-white" />}
+              </span>
+              <span className="text-[12px] font-bold">
+                {tr("Programmer aussi le retour", "برمجة رحلة العودة أيضًا")}
+                <span className="block text-[10px] font-medium text-[var(--d-muted)]">
+                  {tr(
+                    "Le trajet inverse (arrêts compris) est publié en même temps.",
+                    "يُنشر المسار العكسي (مع المحطات) في الوقت نفسه."
+                  )}
+                </span>
+              </span>
+            </button>
+            {retOn && (
+              <div className="mt-2 rounded-[12px] border border-[var(--d-line)] p-2.5">
+                <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                  {tr("Date du retour", "تاريخ العودة")}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setRetCalOpen((v) => !v)}
+                  className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[12px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                  style={{
+                    borderColor: retDate ? GO : "var(--d-line)",
+                    color: retDate ? GO : "var(--d-muted)",
+                  }}
+                >
+                  {retDate
+                    ? dayLabel(retDate, isAr)
+                    : tr("Choisir un jour…", "اختر يومًا…")}
+                  <ChevronDown
+                    className={`size-4 transition-transform ${retCalOpen ? "rotate-180" : ""}`}
+                  />
+                </button>
+                {retCalOpen && (
+                  <ColigoCalendar
+                    value={retDate}
+                    onChange={(d) => {
+                      setRetDate(d);
+                      setRetCalOpen(false);
+                    }}
+                  />
+                )}
+                <span className="mt-2 mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                  {tr("Heure du retour", "وقت العودة")}
+                </span>
+                <TimeSelect
+                  hour={retH}
+                  minute={retM}
+                  onChange={(h, m) => {
+                    setRetH(h);
+                    setRetM(m);
+                  }}
+                />
+              </div>
+            )}
 
             <div className="mt-2 flex gap-2">
               <div className="flex-1">

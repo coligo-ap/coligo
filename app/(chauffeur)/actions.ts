@@ -1152,6 +1152,8 @@ export type CarpoolTripBooking = {
   seg_to_wilaya: string | null;
   seg_from_text: string | null;
   seg_to_text: string | null;
+  /** Téléphone du passager — UNIQUEMENT réservation vivante (R8, 0446). */
+  customer_phone: string | null;
 };
 
 export async function carpoolPublish(input: {
@@ -1171,34 +1173,51 @@ export async function carpoolPublish(input: {
     lng?: number;
   }[];
   departureAtIso: string;
+  /** RETOUR programmé en même temps : même itinéraire INVERSÉ (arrêts
+   *  compris) publié comme un 2ᵉ départ. */
+  returnDepartureAtIso?: string | null;
   seats: number;
   priceDa: number;
   femaleOnly: boolean;
-}): Promise<{ ok: boolean; error?: string }> {
+}): Promise<{ ok: boolean; error?: string; returnError?: string }> {
   const rpc = await rpcClient();
-  const { data, error } = await rpc("carpool_publish_trip", {
-    p_from_wilaya: input.fromWilaya,
-    p_to_wilaya: input.toWilaya,
-    p_from_text: input.fromText,
-    p_to_text: input.toText,
-    p_departure_at: input.departureAtIso,
-    p_seats: Math.floor(input.seats),
-    p_price_da: Math.floor(input.priceDa),
-    p_female_only: !!input.femaleOnly,
-    p_from_lat: input.fromLat ?? null,
-    p_from_lng: input.fromLng ?? null,
-    p_to_lat: input.toLat ?? null,
-    p_to_lng: input.toLng ?? null,
-    p_stops: (input.stops ?? []).map((s) => ({
-      wilaya: s.wilaya,
-      text: s.text ?? null,
-      lat: s.lat,
-      lng: s.lng,
-    })),
-  });
-  if (error) return { ok: false, error: error.message };
-  const row = data as { ok?: boolean; reason?: string } | null;
-  return row?.ok ? { ok: true } : { ok: false, error: row?.reason };
+  const stops = (input.stops ?? []).map((s) => ({
+    wilaya: s.wilaya,
+    text: s.text ?? null,
+    lat: s.lat,
+    lng: s.lng,
+  }));
+  const publishOne = async (
+    departureAtIso: string,
+    reversed: boolean
+  ): Promise<string | null> => {
+    const { data, error } = await rpc("carpool_publish_trip", {
+      p_from_wilaya: reversed ? input.toWilaya : input.fromWilaya,
+      p_to_wilaya: reversed ? input.fromWilaya : input.toWilaya,
+      p_from_text: reversed ? input.toText : input.fromText,
+      p_to_text: reversed ? input.fromText : input.toText,
+      p_departure_at: departureAtIso,
+      p_seats: Math.floor(input.seats),
+      p_price_da: Math.floor(input.priceDa),
+      p_female_only: !!input.femaleOnly,
+      p_from_lat: (reversed ? input.toLat : input.fromLat) ?? null,
+      p_from_lng: (reversed ? input.toLng : input.fromLng) ?? null,
+      p_to_lat: (reversed ? input.fromLat : input.toLat) ?? null,
+      p_to_lng: (reversed ? input.fromLng : input.toLng) ?? null,
+      p_stops: reversed ? [...stops].reverse() : stops,
+    });
+    if (error) return error.message;
+    const row = data as { ok?: boolean; reason?: string } | null;
+    return row?.ok ? null : (row?.reason ?? "error");
+  };
+
+  const err = await publishOne(input.departureAtIso, false);
+  if (err) return { ok: false, error: err };
+  if (input.returnDepartureAtIso) {
+    const retErr = await publishOne(input.returnDepartureAtIso, true);
+    if (retErr) return { ok: true, returnError: retErr };
+  }
+  return { ok: true };
 }
 
 export async function getMyCarpoolTrips(): Promise<CarpoolTrip[]> {
@@ -1246,6 +1265,7 @@ export async function getCarpoolTripBookings(
       seg_to_wilaya: (r.seg_to_wilaya as string) ?? null,
       seg_from_text: (r.seg_from_text as string) ?? null,
       seg_to_text: (r.seg_to_text as string) ?? null,
+      customer_phone: (r.customer_phone as string) ?? null,
     }));
   } catch {
     return [];

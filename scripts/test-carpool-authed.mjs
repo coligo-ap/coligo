@@ -283,6 +283,14 @@ try {
     "chauffeur voit le segment du passager (10 → 16)",
     segRow?.seg_from_wilaya === "10" && segRow?.seg_to_wilaya === "16"
   );
+  // R8 (0446) : coordonnées échangées sur la réservation VIVANTE.
+  ok(
+    "téléphones : chauffeur voit le passager, passager voit le chauffeur",
+    !!segRow?.customer_phone &&
+      !!((await rpc(cuS, "carpool_my_bookings", {})).data ?? []).find(
+        (b) => b.id === segBk.data?.booking_id
+      )?.chauffeur_phone
+  );
 
   // ── 7. Sécurité : ANON n'a accès à RIEN ────────────────────────────────
   const anonSearch = await rpc(anon, "carpool_search_trips", {

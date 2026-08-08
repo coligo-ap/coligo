@@ -73,6 +73,8 @@ export type CarpoolBooking = {
   seg_from_text: string | null;
   seg_to_text: string | null;
   seg_departure_at: string | null;
+  /** Téléphone du chauffeur — UNIQUEMENT réservation vivante (R8, 0446). */
+  chauffeur_phone: string | null;
 };
 
 export type CarpoolFlagLite = {
@@ -178,6 +180,7 @@ export async function getCarpoolHome(filters?: {
     seg_from_text: (r.seg_from_text as string) ?? null,
     seg_to_text: (r.seg_to_text as string) ?? null,
     seg_departure_at: (r.seg_departure_at as string) ?? null,
+    chauffeur_phone: (r.chauffeur_phone as string) ?? null,
   }));
   return { flag, trips, bookings };
 }

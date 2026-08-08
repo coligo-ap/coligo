@@ -1690,7 +1690,9 @@
         "not_enough_seats": "Not enough seats left on this departure.",
         "trip_unavailable": "This departure is no longer available.",
         "own_trip": "You are the driver of this departure.",
-        "generic": "Booking failed — please try again."
+        "generic": "Booking failed — please try again.",
+        "too_many_bookings": "Maximum 3 active bookings at a time.",
+        "cash_blocked": "Cash payment unavailable (repeated no-shows) — book with Coligo Pay."
       },
       "cta": "Carpool by the seat",
       "ctaHint": "Book one seat on a scheduled departure — cheaper than a private ride.",
@@ -1709,7 +1711,8 @@
       "toPlaceholder": "To — town, city, place…",
       "via": "Driver's full route · via {stops}",
       "boardAt": "Pickup",
-      "alightAt": "Drop-off"
+      "alightAt": "Drop-off",
+      "call": "Call {name}"
     }
   },
   "push": {
