@@ -668,7 +668,7 @@ export function GuestPayView({
               type="button"
               onClick={() => void pay()}
               disabled={paying}
-              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg mt-4 inline-flex w-full items-center justify-center gap-2 px-4 py-4 text-base font-extrabold text-white shadow-[0_10px_24px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg mt-4 inline-flex w-full items-center justify-center gap-2 px-4 py-4 text-base font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
             >
               {paying ? (
                 <Loader2 className="size-5 animate-spin" />
@@ -716,9 +716,5 @@ function Screen({ children }: { children: React.ReactNode }) {
 }
 
 function Card({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="bg-surface rounded-sheet-xl p-5 shadow-[0_18px_44px_-20px_rgba(40,35,90,.35)]">
-      {children}
-    </div>
-  );
+  return <div className="bg-surface rounded-sheet-xl p-5">{children}</div>;
 }

@@ -151,7 +151,7 @@ export function MerchantPayouts({ payouts }: { payouts: MerchantPayout[] }) {
               className={cn(
                 "rounded-sm px-3 py-1.5 transition-colors",
                 tab === t
-                  ? "bg-surface text-foreground shadow-sm"
+                  ? "bg-surface text-foreground"
                   : "text-muted hover:text-foreground"
               )}
             >

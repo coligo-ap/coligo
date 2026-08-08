@@ -156,7 +156,7 @@ export function AdminAlertCenterView({
               key={a.code}
               href={alertFocusHref(a)}
               className={cn(
-                "bg-surface group rounded-lg border-l-4 p-4 shadow-sm transition-shadow hover:shadow-md",
+                "bg-surface group rounded-lg border-l-4 p-4 transition-shadow",
                 a.severity === "critical"
                   ? "border-danger-400"
                   : a.severity === "warning"

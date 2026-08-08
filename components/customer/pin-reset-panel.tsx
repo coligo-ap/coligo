@@ -95,7 +95,7 @@ export function PinResetPanel({
     "border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-card border py-3 text-center font-black tabular-nums outline-none";
 
   return (
-    <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+    <div className="bg-surface rounded-panel-lg shadow-overlay w-full max-w-[320px] p-6 text-center">
       <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
         {step === "send" ? (
           <Mail className="size-7" />

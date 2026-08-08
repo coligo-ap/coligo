@@ -391,7 +391,7 @@ export function OrderCard({
   return (
     <div
       className={cn(
-        "border-border bg-surface rounded-card-lg overflow-hidden border shadow-sm",
+        "border-border bg-surface rounded-card-lg overflow-hidden border",
         warn && "border-danger-300 ring-danger-100 ring-2",
         alert && "animate-order-alert border-danger-400"
       )}

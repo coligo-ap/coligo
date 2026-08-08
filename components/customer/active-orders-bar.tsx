@@ -246,7 +246,7 @@ function ActiveRideCard({
     <Link
       href="/drive"
       className={cn(
-        "border-border bg-surface rounded-card-lg pointer-events-auto relative flex items-center gap-3 border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
+        "border-border bg-surface rounded-card-lg pointer-events-auto relative flex items-center gap-3 border p-2.5 pe-8 transition-transform active:scale-[0.98]",
         multi ? "w-[86%] shrink-0 snap-start" : "flex w-full"
       )}
     >
@@ -365,7 +365,7 @@ function ActiveOrderCard({
     <Link
       href={`/commandes/${order.id}`}
       className={cn(
-        "border-border bg-surface rounded-card-lg pointer-events-auto relative flex items-center gap-3 border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
+        "border-border bg-surface rounded-card-lg pointer-events-auto relative flex items-center gap-3 border p-2.5 pe-8 transition-transform active:scale-[0.98]",
         multi ? "w-[86%] shrink-0 snap-start" : "flex w-full"
       )}
     >

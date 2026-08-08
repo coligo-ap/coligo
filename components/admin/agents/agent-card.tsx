@@ -11,7 +11,7 @@ export function AgentCard({ a }: { a: AgentRow }) {
     <li>
       <Link
         href={`/admin/agents/${a.id}`}
-        className="border-border bg-surface hover:bg-surface-2 rounded-card-lg flex items-center gap-3 border p-3 shadow-sm"
+        className="border-border bg-surface hover:bg-surface-2 rounded-card-lg flex items-center gap-3 border p-3"
       >
         <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
           <Store className="size-5" />

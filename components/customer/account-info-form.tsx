@@ -60,7 +60,7 @@ export function AccountInfoForm({
   return (
     <>
       <div className="px-4 pt-2 pb-28">
-        <div className="divide-border divide-y rounded-xl bg-white px-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border shadow-float divide-y rounded-xl bg-white px-4">
           {/* Nom et prénom */}
           <Field label={t("fullName")} icon={<UserIcon className="size-4" />}>
             <input
@@ -150,7 +150,7 @@ export function AccountInfoForm({
                 else setSaveMsg({ ok: true, text: res.success ?? t("saved") });
               })
             }
-            className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
+            className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white transition disabled:opacity-40"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />

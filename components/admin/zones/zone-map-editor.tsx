@@ -302,7 +302,7 @@ export function ZoneMapEditor({
           ) : null}
         </div>
         {results.length > 0 && (
-          <ul className="bg-surface border-border mt-1.5 max-h-52 overflow-auto rounded-md border py-1 shadow-xl">
+          <ul className="bg-surface border-border mt-1.5 max-h-52 overflow-auto rounded-md border py-1">
             {results.map((r, i) => (
               <li key={i}>
                 <button

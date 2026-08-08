@@ -83,7 +83,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         onClose();
       }}
     >
-      <div className="bg-surface w-full max-w-md rounded-t-xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl sm:pb-5">
+      <div className="bg-surface shadow-overlay w-full max-w-md rounded-t-xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-xl sm:pb-5">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-foreground text-lg font-bold">

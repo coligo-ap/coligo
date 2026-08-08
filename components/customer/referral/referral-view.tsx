@@ -43,7 +43,7 @@ export function ReferralView({
   // Programme coupé / « bientôt » (flag ou réglage admin) → état compact.
   if (!overview.enabled) {
     return (
-      <div className="rounded-xl bg-white p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <div className="shadow-float rounded-xl bg-white p-6 text-center">
         <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
           <Hourglass className="size-6" />
         </span>
@@ -121,7 +121,7 @@ export function ReferralView({
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary-700 rounded-card-lg inline-flex items-center justify-center gap-2 bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition-transform active:scale-[.98]"
+            className="text-primary-700 rounded-card-lg inline-flex items-center justify-center gap-2 bg-white px-4 py-3 text-sm font-extrabold transition-transform active:scale-[.98]"
           >
             <MessageCircle className="size-4.5" />
             {t("inviteWhatsapp")}
@@ -163,7 +163,7 @@ export function ReferralView({
       </section>
 
       {/* COMMENT ÇA MARCHE */}
-      <section className="rounded-lg bg-white p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <section className="shadow-float rounded-lg bg-white p-4">
         <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
           {t("howTitle")}
         </p>
@@ -182,7 +182,7 @@ export function ReferralView({
       </section>
 
       {/* FILLEULS */}
-      <section className="rounded-lg bg-white p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <section className="shadow-float rounded-lg bg-white p-4">
         <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
           {t("listTitle")}
         </p>
@@ -210,7 +210,7 @@ export function ReferralView({
 
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-lg bg-white p-3 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+    <div className="shadow-float rounded-lg bg-white p-3 text-center">
       <p className="text-foreground text-lg font-black tracking-tight tabular-nums">
         {value}
       </p>

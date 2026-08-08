@@ -22,7 +22,7 @@ export default async function PaiementRetourPage({
   const ok = topup !== "failed";
   return (
     <main className="grid min-h-screen place-items-center bg-[#f4f5f9] p-6">
-      <div className="rounded-sheet-xl w-full max-w-sm bg-white px-6 py-10 text-center shadow-sm">
+      <div className="rounded-sheet-xl w-full max-w-sm bg-white px-6 py-10 text-center">
         {ok ? (
           <CheckCircle2 className="mx-auto size-12 text-[#16b364]" />
         ) : (

@@ -1,5 +1,71 @@
 import { clsx, type ClassValue } from "clsx";
-import { twMerge } from "tailwind-merge";
+import { extendTailwindMerge } from "tailwind-merge";
+
+/**
+ * `tailwind-merge` ne connaît QUE l'échelle par défaut de Tailwind. Nos clés de
+ * thème (cf. app/design-tokens.css) lui sont inconnues, et son validateur de
+ * couleur de texte accepte n'importe quel suffixe : sans cette configuration,
+ * il rangeait `text-caption` parmi les COULEURS, et toute couleur posée ensuite
+ * l'écrasait comme un doublon.
+ *
+ *     cn("text-caption text-muted")  →  "text-muted"   ← la taille disparaît
+ *
+ * L'élément retombait alors sur la taille héritée (16 px) : des textes de 11 à
+ * 13 px rendus bien trop gros. On déclare donc explicitement à quel groupe
+ * appartient chaque famille de tokens.
+ *
+ * ⚠️ Toute nouvelle valeur de `--text-*`, `--radius-*` ou `--shadow-*` ajoutée
+ * dans design-tokens.css doit être reportée ici, sinon le même bug revient.
+ */
+const twMerge = extendTailwindMerge({
+  extend: {
+    classGroups: {
+      "font-size": [
+        {
+          text: [
+            "nano",
+            "nano-lg",
+            "micro",
+            "micro-lg",
+            "caption",
+            "caption-lg",
+            "label",
+            "label-lg",
+            "body-sm",
+            "body",
+            "body-lg",
+            "body-xl",
+            "title-sm",
+            "title",
+            "title-lg",
+            "heading-sm",
+            "heading",
+            "heading-lg",
+            "display-sm",
+            "display",
+          ],
+        },
+      ],
+      rounded: [
+        {
+          rounded: [
+            "chip",
+            "control",
+            "control-lg",
+            "card",
+            "card-lg",
+            "card-xl",
+            "sheet-lg",
+            "sheet-xl",
+            "panel",
+            "panel-lg",
+          ],
+        },
+      ],
+      shadow: [{ shadow: ["float", "pop", "overlay", "sheet"] }],
+    },
+  },
+});
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));

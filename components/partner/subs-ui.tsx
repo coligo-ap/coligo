@@ -57,7 +57,7 @@ export function SubsTabs({
               onClick={() => setActive(t.id)}
               className={`rounded-control-lg text-label-lg flex-1 items-center justify-center py-2 font-bold transition-colors ${
                 active === t.id
-                  ? "bg-[var(--d-surface)] text-[var(--d-ink)] shadow-sm"
+                  ? "bg-[var(--d-surface)] text-[var(--d-ink)]"
                   : "text-[var(--d-muted)]"
               }`}
               style={{ fontFamily: SORA }}

@@ -166,7 +166,7 @@ function LateOrderCard({
   }
 
   return (
-    <div className="border-danger-200 bg-surface rounded-lg border-l-4 p-4 shadow-sm">
+    <div className="border-danger-200 bg-surface rounded-lg border-l-4 p-4">
       {/* En-tête : réf + retard + total */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-foreground font-mono text-lg font-extrabold">

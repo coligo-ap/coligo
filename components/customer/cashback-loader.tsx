@@ -51,7 +51,7 @@ export function CashbackLoader({ userId }: { userId: string }) {
           <p className="text-xs font-extrabold tracking-wider uppercase opacity-85">
             {t("cashbackTitle")} · {t("availableBalance")}
           </p>
-          <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums drop-shadow-sm lg:text-5xl">
+          <p className="drop- mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums lg:text-5xl">
             <WalletBalanceValue kind="cashback" userId={userId} initial={0} />
           </p>
           <p className="text-label-lg mt-2.5 max-w-md leading-relaxed font-semibold opacity-90">
@@ -67,7 +67,7 @@ export function CashbackLoader({ userId }: { userId: string }) {
       {/* Card info : Coligo Pay (différent du cashback) → page dédiée. */}
       <Link
         href="/coligo-pay"
-        className="rounded-sheet-lg mt-4 flex items-center gap-3 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)] transition-transform active:scale-[.99]"
+        className="rounded-sheet-lg mt-4 flex items-center gap-3 bg-white p-4 transition-transform active:scale-[.99]"
       >
         <div className="bg-primary-50 text-primary-600 rounded-card flex size-[46px] shrink-0 items-center justify-center">
           <Wallet className="size-5" />

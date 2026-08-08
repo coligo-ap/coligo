@@ -89,7 +89,7 @@ export function FavoriteHeart({
         }
       }}
       className={cn(
-        "grid cursor-pointer place-items-center rounded-full shadow-md backdrop-blur transition-transform active:scale-90",
+        "grid cursor-pointer place-items-center rounded-full backdrop-blur transition-transform active:scale-90",
         variant === "hero"
           ? "size-10 bg-black/30 text-white hover:bg-black/40"
           : "size-9 bg-white/95",

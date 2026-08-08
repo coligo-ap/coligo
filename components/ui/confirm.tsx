@@ -123,7 +123,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
             onClick={cancel}
           >
             <div
-              className="bg-surface border-border w-full max-w-sm rounded-2xl border p-5 shadow-xl"
+              className="bg-surface border-border shadow-overlay w-full max-w-sm rounded-2xl border p-5"
               onClick={(e) => e.stopPropagation()}
             >
               <h2 className="text-foreground text-base font-bold">

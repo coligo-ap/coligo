@@ -68,7 +68,7 @@ export function DriversTabs({
             className={cn(
               "rounded-control flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
               tab === t
-                ? "bg-surface text-foreground shadow-sm"
+                ? "bg-surface text-foreground"
                 : "text-muted hover:text-foreground"
             )}
           >

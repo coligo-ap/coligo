@@ -32,7 +32,7 @@ export function ChauffeurDarkPill({ className }: { className?: string }) {
       aria-label={dark ? "Mode clair" : "Mode sombre"}
       aria-pressed={dark === true}
       className={
-        "grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg " +
+        "grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] " +
         (className ?? "")
       }
       style={{ color: VIOLET }}

@@ -633,7 +633,7 @@ export function MapPositionPicker({
             ) : null}
           </div>
           {searchOpen && searchResults.length > 0 && (
-            <ul className="bg-surface border-border rounded-card-lg mt-1.5 max-h-44 overflow-auto border py-1 shadow-xl">
+            <ul className="bg-surface border-border rounded-card-lg mt-1.5 max-h-44 overflow-auto border py-1">
               {searchResults.map((r, i) => (
                 <li key={i} className="flex items-center">
                   <button
@@ -698,7 +698,7 @@ export function MapPositionPicker({
             favOpen &&
             searchQ.trim() === "" &&
             (favorites.length > 0 || recentPlaces.length > 0) && (
-              <ul className="bg-surface border-border rounded-card-lg mt-1.5 max-h-44 overflow-auto border py-1 shadow-xl">
+              <ul className="bg-surface border-border rounded-card-lg mt-1.5 max-h-44 overflow-auto border py-1">
                 <li className="flex items-center justify-between px-3 pt-1.5 pb-1">
                   <span className="text-subtle text-micro font-extrabold tracking-wide uppercase">
                     Tes lieux
@@ -890,7 +890,7 @@ export function MapPositionPicker({
             type="button"
             onClick={confirmFullscreen}
             disabled={confirming}
-            className="bg-foreground rounded-card-lg inline-flex h-[52px] w-full items-center justify-center gap-2 text-base font-bold text-white shadow-xl disabled:opacity-90"
+            className="bg-foreground rounded-card-lg inline-flex h-[52px] w-full items-center justify-center gap-2 text-base font-bold text-white disabled:opacity-90"
           >
             {confirming ? (
               <>

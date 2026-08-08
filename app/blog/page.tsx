@@ -47,7 +47,7 @@ export default async function BlogPage() {
         {featured && (
           <Link
             href={`/blog/${featured.slug}`}
-            className="group border-border bg-surface mt-6 block overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md"
+            className="group border-border bg-surface mt-6 block overflow-hidden rounded-xl border transition-shadow"
           >
             <Cover
               coverKey={featured.coverKey}
@@ -83,7 +83,7 @@ export default async function BlogPage() {
             <Link
               key={a.slug}
               href={`/blog/${a.slug}`}
-              className="group border-border bg-surface rounded-sheet-lg block overflow-hidden border shadow-sm transition-shadow hover:shadow-md"
+              className="group border-border bg-surface rounded-sheet-lg block overflow-hidden border transition-shadow"
             >
               <Cover
                 coverKey={a.coverKey}

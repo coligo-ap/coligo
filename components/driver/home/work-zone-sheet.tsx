@@ -60,7 +60,7 @@ export function WorkZoneSheet({
         onClick={onClose}
       >
         <div
-          className="rounded-t-sheet-xl sm:rounded-sheet-xl w-full max-w-md overflow-hidden bg-[var(--surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--ink)] shadow-2xl sm:pb-0"
+          className="rounded-t-sheet-xl sm:rounded-sheet-xl shadow-overlay w-full max-w-md overflow-hidden bg-[var(--surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--ink)] sm:pb-0"
           onClick={(e) => e.stopPropagation()}
         >
           {/* En-tête */}

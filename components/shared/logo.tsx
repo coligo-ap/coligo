@@ -37,7 +37,7 @@ export function Logo({
     return (
       <div
         className={cn(
-          "bg-primary-600 flex items-center justify-center rounded-xl shadow-sm",
+          "bg-primary-600 flex items-center justify-center rounded-xl",
           s.box,
           className
         )}

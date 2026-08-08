@@ -94,7 +94,7 @@ export function Toaster() {
             key={t.id}
             role="status"
             className={cn(
-              "rounded-card-lg pointer-events-auto flex w-full max-w-sm items-start gap-3 border bg-white px-4 py-3 shadow-lg",
+              "rounded-card-lg shadow-pop pointer-events-auto flex w-full max-w-sm items-start gap-3 border bg-white px-4 py-3",
               tone.ring
             )}
           >

@@ -37,7 +37,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
     );
   }
   return (
-    <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-xl border shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+    <ul className="border-border bg-surface divide-border shadow-float divide-y overflow-hidden rounded-xl border">
       {entries.map((entry) => {
         const credit = entry.amount_da > 0;
         const meta = describe(entry.type, t);

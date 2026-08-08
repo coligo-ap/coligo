@@ -334,7 +334,7 @@ function SearchStep({
             e.preventDefault();
             onSearch();
           }}
-          className="border-primary-400 focus-within:ring-primary-100 rounded-card-xl flex items-center gap-2.5 border bg-white px-3.5 py-3.5 shadow-[0_4px_14px_-8px_rgba(91,91,230,.45)] focus-within:ring-2"
+          className="border-primary-400 focus-within:ring-primary-100 rounded-card-xl flex items-center gap-2.5 border bg-white px-3.5 py-3.5 focus-within:ring-2"
         >
           <Search className="text-primary-600 size-[18px] shrink-0" />
           <input
@@ -376,7 +376,7 @@ function SearchStep({
             {t("sendNoRecents")}
           </p>
         ) : (
-          <div className="divide-border rounded-sheet-lg divide-y overflow-hidden bg-white shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+          <div className="divide-border rounded-sheet-lg divide-y overflow-hidden bg-white">
             {recents.map((r) => (
               <button
                 key={r.handle}
@@ -393,7 +393,7 @@ function SearchStep({
                     {r.handle}
                   </span>
                 </span>
-                <span className="bg-primary-600 grid size-9 shrink-0 place-items-center rounded-full text-white shadow-[0_4px_10px_-3px_rgba(91,91,230,.45)]">
+                <span className="bg-primary-600 grid size-9 shrink-0 place-items-center rounded-full text-white">
                   <Send className="size-4" />
                 </span>
               </button>
@@ -500,7 +500,7 @@ function AmountStep({
         type="button"
         disabled={amountNum <= 0 || over}
         onClick={onContinue}
-        className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-6 inline-flex h-[52px] w-full max-w-[320px] items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] disabled:opacity-40"
+        className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-6 inline-flex h-[52px] w-full max-w-[320px] items-center justify-center gap-2 font-extrabold text-white disabled:opacity-40"
       >
         {t("sendContinue")}
         <ArrowRight className="size-4 rtl:-scale-x-100" />
@@ -564,7 +564,7 @@ function ConfirmStep({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-panel bg-white p-6 text-center shadow-[0_14px_34px_-16px_rgba(40,35,90,.26)]">
+      <div className="rounded-panel bg-white p-6 text-center">
         <div className="mb-4 flex items-center justify-center gap-4">
           <div className="flex flex-col items-center gap-1.5">
             <Avatar name={senderName} size={54} />
@@ -591,7 +591,7 @@ function ConfirmStep({
         )}
       </div>
 
-      <div className="divide-border rounded-sheet-lg divide-y bg-white px-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+      <div className="divide-border rounded-sheet-lg divide-y bg-white px-4">
         <Row
           k={t("sendRecipient")}
           v={`${recipient.name} · ${recipient.handle}`}
@@ -628,7 +628,7 @@ function ConfirmStep({
       ) : !hasPin ? (
         <InlineCreatePin t={t} onCreated={onPinCreated} />
       ) : (
-        <div className="bg-surface rounded-lg p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+        <div className="bg-surface rounded-lg p-4">
           <p className="text-muted text-body-sm mb-2 text-center font-bold">
             {t("sendEnterPin")}
           </p>
@@ -651,7 +651,7 @@ function ConfirmStep({
             type="button"
             disabled={busy || pin.length !== 4 || locked}
             onClick={onSend}
-            className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] disabled:opacity-40"
+            className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-40"
           >
             {busy ? (
               <Loader2 className="size-5 animate-spin" />
@@ -727,7 +727,7 @@ function InlineCreatePin({
   }
 
   return (
-    <div className="bg-surface rounded-lg p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+    <div className="bg-surface rounded-lg p-4">
       <p className="text-foreground flex items-center gap-2 text-sm font-extrabold">
         <Lock className="text-primary-600 size-4" />
         {t("qrCreatePinTitle")}

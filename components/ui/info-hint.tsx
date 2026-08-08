@@ -149,7 +149,7 @@ export function InfoHint({
               // Invisible tant que non positionnée (évite un flash en 0,0).
               visibility: pos ? "visible" : "hidden",
             }}
-            className="border-border text-foreground rounded-control text-caption w-60 max-w-[calc(100vw-16px)] border bg-white p-2.5 text-start leading-snug font-normal whitespace-normal shadow-xl"
+            className="border-border text-foreground rounded-control text-caption shadow-overlay w-60 max-w-[calc(100vw-16px)] border bg-white p-2.5 text-start leading-snug font-normal whitespace-normal"
           >
             {title && (
               <span className="text-foreground mb-0.5 block text-xs font-bold">

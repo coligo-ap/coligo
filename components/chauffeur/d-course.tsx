@@ -836,7 +836,7 @@ export function DCourse() {
         )}
 
         {/* Fiche client : identité + prix + adresse cliquable (→ itinéraire). */}
-        <div className="rounded-sheet-xl mb-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+        <div className="rounded-sheet-xl mb-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
           <div className="flex items-center gap-3">
             <span
               className="drive-sora grid size-[52px] shrink-0 place-items-center rounded-full text-xl font-extrabold text-white"

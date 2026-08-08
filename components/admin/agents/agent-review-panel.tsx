@@ -62,7 +62,7 @@ export function AgentReviewPanel({ agent }: { agent: AgentInfo }) {
   return (
     <div className="space-y-4">
       {/* ===== Décisions ===== */}
-      <div className="border-border bg-surface rounded-card-lg border p-4 shadow-sm">
+      <div className="border-border bg-surface rounded-card-lg border p-4">
         <h2 className="text-foreground mb-3 text-sm font-bold">Décision</h2>
         <div className="flex flex-wrap gap-2">
           {notActive && (

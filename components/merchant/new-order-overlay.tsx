@@ -329,7 +329,7 @@ export function NewOrderOverlay({
       // la carte se borne au conteneur (max-h-full), plus jamais dessous.
       className="bg-primary-700/95 fixed inset-0 z-[95] flex items-center justify-center px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur-sm sm:px-4"
     >
-      <div className="flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
+      <div className="shadow-overlay flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* ─── En-tête (fixe) ─── */}
         <div className="bg-primary-700 relative shrink-0 px-5 py-4 text-white">
           {queued > 0 && (
@@ -551,7 +551,7 @@ function AutoAcceptControls({
         type="button"
         onClick={onAcceptNow}
         disabled={acting}
-        className="bg-success-600 hover:bg-success-700 rounded-card-lg relative inline-flex h-14 w-full items-center justify-center overflow-hidden px-5 text-base font-bold text-white shadow-sm disabled:opacity-70"
+        className="bg-success-600 hover:bg-success-700 rounded-card-lg relative inline-flex h-14 w-full items-center justify-center overflow-hidden px-5 text-base font-bold text-white disabled:opacity-70"
       >
         <span
           aria-hidden
@@ -610,7 +610,7 @@ function ManualControls({
         type="button"
         onClick={onAccept}
         disabled={acting}
-        className="bg-success-600 hover:bg-success-700 rounded-card-lg inline-flex h-14 w-full items-center justify-center gap-2 px-5 text-base font-bold text-white shadow-sm disabled:opacity-60"
+        className="bg-success-600 hover:bg-success-700 rounded-card-lg inline-flex h-14 w-full items-center justify-center gap-2 px-5 text-base font-bold text-white disabled:opacity-60"
       >
         {acting ? (
           <Loader2 className="size-5 animate-spin" />

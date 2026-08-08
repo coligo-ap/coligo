@@ -457,7 +457,7 @@ export function EnrouteScreen({
         )}
 
         {ch && (
-          <div className="rounded-sheet-xl mb-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+          <div className="rounded-sheet-xl mb-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
             <div className="flex items-center gap-3">
               <ChAvatar
                 name={ch.name}

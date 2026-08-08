@@ -953,7 +953,7 @@ export function CheckoutView({
         {/* Bloc boutique — logo dégradé sombre + eyebrow violet. */}
         <Block delay={0.02}>
           <div className="flex items-center gap-3 p-4">
-            <span className="rounded-card grid size-[46px] shrink-0 place-items-center bg-gradient-to-br from-[#26262e] to-[#0b0b0f] text-white shadow-[0_6px_14px_-4px_rgba(0,0,0,0.4)]">
+            <span className="rounded-card grid size-[46px] shrink-0 place-items-center bg-gradient-to-br from-[#26262e] to-[#0b0b0f] text-white">
               <Store className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
@@ -1056,7 +1056,7 @@ export function CheckoutView({
                         className={cn(
                           "flex w-[60px] shrink-0 snap-start flex-col items-center rounded-md border py-1.5 transition active:scale-[0.96]",
                           active
-                            ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-6px_rgba(108,43,217,0.55)]"
+                            ? "border-primary-600 bg-primary-600 text-white"
                             : "border-border bg-surface hover:border-primary-300"
                         )}
                       >
@@ -1094,7 +1094,7 @@ export function CheckoutView({
                         className={cn(
                           "text-body-sm shrink-0 snap-center rounded-full border px-3.5 py-2 font-bold tabular-nums transition active:scale-[0.95]",
                           active
-                            ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-6px_rgba(108,43,217,0.55)]"
+                            ? "border-primary-600 bg-primary-600 text-white"
                             : "border-border bg-surface hover:border-primary-300"
                         )}
                       >
@@ -1291,7 +1291,7 @@ export function CheckoutView({
                 onClick={() => setPayment("online")}
                 className="bg-primary-50 rounded-card mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2.5 px-3.5 py-3 text-start transition active:scale-[0.99]"
               >
-                <span className="text-primary-600 rounded-chip grid size-8 shrink-0 place-items-center bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]">
+                <span className="text-primary-600 rounded-chip grid size-8 shrink-0 place-items-center bg-white">
                   <Gift className="size-4" />
                 </span>
                 <span className="text-primary-800 text-label-lg flex-1 leading-snug font-bold">
@@ -1464,7 +1464,7 @@ export function CheckoutView({
             </SectionTitle>
             {serviceFeeDa > 0 && serviceFeeFreeInDa != null && (
               <div className="bg-primary-50 text-primary-700 rounded-card text-label-lg relative mb-3.5 flex items-center gap-2.5 overflow-hidden px-3.5 py-3 font-bold">
-                <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-sm bg-white shadow-[0_2px_6px_-1px_rgba(91,91,230,0.4)]">
+                <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-sm bg-white">
                   <Zap className="size-3.5" />
                 </span>
                 <span>
@@ -1666,7 +1666,7 @@ export function CheckoutView({
             className={cn(
               "rounded-control relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden text-base font-extrabold transition-all",
               canSubmit
-                ? "from-primary-400 to-primary-700 co-shine bg-gradient-to-br text-white shadow-[0_10px_26px_-8px_rgba(91,91,230,0.55)] active:scale-[0.98]"
+                ? "from-primary-400 to-primary-700 co-shine bg-gradient-to-br text-white active:scale-[0.98]"
                 : "bg-foreground/90 cursor-not-allowed text-white opacity-50"
             )}
           >

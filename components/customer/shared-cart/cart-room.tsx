@@ -719,7 +719,7 @@ export function CartRoom({
                       /* clipboard indisponible */
                     }
                   }}
-                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm"
+                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap"
                 >
                   {copied ? (
                     <Check className="text-success-600 size-3.5" />
@@ -736,7 +736,7 @@ export function CartRoom({
                     )
                   }
                   disabled={actionBusy === "invites"}
-                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm disabled:opacity-60"
+                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap disabled:opacity-60"
                 >
                   {actionBusy === "invites" ? (
                     <Loader2 className="size-3.5 animate-spin" />
@@ -753,7 +753,7 @@ export function CartRoom({
                   type="button"
                   onClick={() => void run("lock", () => lockCart(cart.id))}
                   disabled={actionBusy === "lock"}
-                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm disabled:opacity-60"
+                  className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap disabled:opacity-60"
                 >
                   {actionBusy === "lock" ? (
                     <Loader2 className="size-3.5 animate-spin" />
@@ -769,7 +769,7 @@ export function CartRoom({
                 type="button"
                 onClick={() => void run("unlock", () => unlockCart(cart.id))}
                 disabled={actionBusy === "unlock"}
-                className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap shadow-sm disabled:opacity-60"
+                className="bg-surface text-foreground inline-flex shrink-0 items-center gap-1.5 rounded-full px-3 py-2 text-xs font-extrabold whitespace-nowrap disabled:opacity-60"
               >
                 {actionBusy === "unlock" ? (
                   <Loader2 className="size-3.5 animate-spin" />
@@ -818,7 +818,7 @@ export function CartRoom({
 
         {/* ── ARTICLES PAR PARTICIPANT ── */}
         {itemsByMember.length === 0 ? (
-          <div className="bg-surface rounded-xl p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+          <div className="bg-surface shadow-float rounded-xl p-6 text-center">
             <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
               <ShoppingBag className="size-6" />
             </span>
@@ -831,7 +831,7 @@ export function CartRoom({
           itemsByMember.map(({ member, items: mItems }) => (
             <section
               key={member.id}
-              className="bg-surface rounded-sheet-lg overflow-hidden shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
+              className="bg-surface rounded-sheet-lg shadow-float overflow-hidden"
             >
               {/* En-tête OUVRANT/FERMANT : compte + sous-total toujours lisibles. */}
               <button
@@ -977,7 +977,7 @@ export function CartRoom({
                               quantity: it.quantity - stepFor(it),
                             }).then(() => fetchView())
                           }
-                          className="bg-surface grid size-7 place-items-center rounded-full shadow-sm active:scale-95"
+                          className="bg-surface grid size-7 place-items-center rounded-full active:scale-95"
                         >
                           <Minus className="size-3.5" />
                         </button>
@@ -997,7 +997,7 @@ export function CartRoom({
                               quantity: it.quantity + stepFor(it),
                             }).then(() => fetchView())
                           }
-                          className="bg-surface grid size-7 place-items-center rounded-full shadow-sm active:scale-95"
+                          className="bg-surface grid size-7 place-items-center rounded-full active:scale-95"
                         >
                           <Plus className="size-3.5" />
                         </button>
@@ -1130,7 +1130,7 @@ export function CartRoom({
                     type="button"
                     onClick={() => void payFromOpen()}
                     disabled={actionBusy === "paybtn" || actionBusy === "order"}
-                    className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-3 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
+                    className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-3 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       {actionBusy === "paybtn" || actionBusy === "order" ? (
@@ -1149,7 +1149,7 @@ export function CartRoom({
                 type="button"
                 onClick={() => void payNow()}
                 disabled={actionBusy === "roompay"}
-                className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
+                className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
               >
                 <span className="inline-flex items-center gap-1.5">
                   {actionBusy === "roompay" ? (
@@ -1238,7 +1238,7 @@ export function CartRoom({
           onClick={() => setJoinOpen(false)}
         >
           <div
-            className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:pb-6"
+            className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />

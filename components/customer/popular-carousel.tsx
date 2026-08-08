@@ -254,7 +254,7 @@ export function PopCard({
             </span>
           )}
           {quantityOffer && (
-            <span className="bg-accent-600 text-nano-lg inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-extrabold text-white shadow-sm">
+            <span className="bg-accent-600 text-nano-lg inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-extrabold text-white">
               <Gift className="size-3" />
               {t("offered")}
             </span>

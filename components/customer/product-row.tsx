@@ -259,7 +259,7 @@ export function ProductRow({
             onClick={quickAdd}
             aria-label={t("addToCart")}
             className={cn(
-              "flex size-9 items-center justify-center rounded-full border shadow-sm transition-transform active:scale-90",
+              "flex size-9 items-center justify-center rounded-full border transition-transform active:scale-90",
               added
                 ? "border-success-600 bg-success-600 scale-110 text-white"
                 : "border-border text-accent-600 hover:border-accent-300 bg-white"
@@ -269,7 +269,7 @@ export function ProductRow({
           </button>
         ) : (
           <div
-            className="bg-primary-50 inline-flex items-center gap-1 rounded-full p-0.5 shadow-sm"
+            className="bg-primary-50 inline-flex items-center gap-1 rounded-full p-0.5"
             onClick={(e) => e.stopPropagation()}
           >
             <button

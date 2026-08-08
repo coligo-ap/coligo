@@ -85,7 +85,7 @@ export function DossierSection({ walletId }: { walletId: string }) {
   );
 
   return (
-    <div className="border-border bg-surface rounded-lg border p-4 shadow-sm">
+    <div className="border-border bg-surface rounded-lg border p-4">
       <h2 className="text-foreground mb-1 text-sm font-bold">Mon dossier</h2>
       {loading ? (
         <div className="text-muted flex items-center gap-2 py-3 text-sm">

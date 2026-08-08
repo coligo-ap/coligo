@@ -629,7 +629,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             <button
               type="button"
               onClick={() => router.push("/chauffeur/gains")}
-              className="flex items-center gap-1.5 rounded-lg border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+              className="flex items-center gap-1.5 rounded-lg border py-1.5 pr-2 pl-3.5 text-white"
               style={{ background: "#6C2BD9", borderColor: "#4B1FA6" }}
             >
               <span className="flex flex-col items-start leading-none">
@@ -649,7 +649,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <div className="flex items-start justify-end gap-2">
           <NotificationBell
             source={{ table: "user_notifications", audience: "chauffeur" }}
-            className="grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]"
             iconClassName="size-5"
           />
           <button
@@ -657,7 +657,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             onClick={() => void recenter()}
             disabled={locating}
             aria-label="Centrer sur ma position"
-            className="grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]"
           >
             {locating ? (
               <Loader2
@@ -695,7 +695,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <button
             type="button"
             onClick={() => router.push("/chauffeur/demandes")}
-            className="drive-attn text-body flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold text-white shadow-lg"
+            className="drive-attn text-body flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold text-white"
             style={{ background: VIOLET }}
           >
             {isAr
@@ -712,7 +712,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           aria-label={tr("Disponibilité", "التوفر")}
           onClick={() => toggleOnline()}
           disabled={!online && netOffline}
-          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             borderColor: online ? "rgba(22,179,100,.35)" : "var(--d-line)",
             background: online ? "rgba(22,179,100,.07)" : "var(--d-surface)",

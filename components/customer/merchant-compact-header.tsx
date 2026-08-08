@@ -404,10 +404,10 @@ export function MerchantCompactHeader({
               alt=""
               loading="eager"
               decoding="async"
-              className="size-[72px] rounded-2xl bg-white object-cover shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-4 ring-white lg:size-[80px]"
+              className="size-[72px] rounded-2xl bg-white object-cover ring-4 ring-white lg:size-[80px]"
             />
           ) : (
-            <div className="bg-primary-100 text-primary-700 flex size-[72px] items-center justify-center rounded-2xl text-2xl font-black shadow-[0_12px_30px_-10px_rgba(40,35,90,.5)] ring-4 ring-white lg:size-[80px]">
+            <div className="bg-primary-100 text-primary-700 flex size-[72px] items-center justify-center rounded-2xl text-2xl font-black ring-4 ring-white lg:size-[80px]">
               {name.charAt(0)}
             </div>
           )}
@@ -583,7 +583,7 @@ function MoreInfoSheet({
         }}
       >
         <div
-          className="bg-surface partner-sheet-in rounded-t-panel sm:rounded-panel flex max-h-[85vh] w-full max-w-md flex-col pb-[env(safe-area-inset-bottom)] shadow-xl"
+          className="bg-surface partner-sheet-in rounded-t-panel sm:rounded-panel flex max-h-[85vh] w-full max-w-md flex-col pb-[env(safe-area-inset-bottom)]"
           role="dialog"
           aria-modal="true"
         >

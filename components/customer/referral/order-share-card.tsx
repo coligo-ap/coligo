@@ -554,7 +554,7 @@ export function OrderShareCard({
           type="button"
           onClick={() => void shareVia("main", t("shareTargetStory"))}
           disabled={busy === "main"}
-          className="text-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition-transform active:scale-[.98] disabled:opacity-80"
+          className="text-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-3 text-sm font-extrabold transition-transform active:scale-[.98] disabled:opacity-80"
         >
           {busy === "main" ? (
             <Loader2 className="size-4 animate-spin" />

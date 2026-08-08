@@ -101,7 +101,7 @@ export function MerchantClosedNotice({
           onClick={() => setShowModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-xl bg-white p-5"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-start justify-between gap-3">

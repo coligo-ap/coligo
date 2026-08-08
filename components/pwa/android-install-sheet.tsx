@@ -21,7 +21,7 @@ export function AndroidInstallSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:pb-0"
+        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg shadow-overlay w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] sm:pb-0"
       >
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
           <button
@@ -94,7 +94,7 @@ export function AndroidIcon({ className }: { className?: string }) {
 /** Mockup de la barre du navigateur Android avec le menu ⋮ mis en évidence. */
 function BrowserMenuMockup({ label }: { label: string }) {
   return (
-    <div className="border-border w-full max-w-xs rounded-lg border bg-white p-3 shadow-sm">
+    <div className="border-border w-full max-w-xs rounded-lg border bg-white p-3">
       <div className="flex items-center gap-2">
         <div className="bg-surface-2 flex flex-1 items-center gap-2 rounded-full px-3 py-2 text-xs">
           <span className="bg-success-500 inline-block size-1.5 rounded-full" />

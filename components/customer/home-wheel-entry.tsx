@@ -73,7 +73,7 @@ export function HomeWheelEntry() {
     <Link
       href="/roue"
       prefetch
-      className="hw-anim rounded-sheet-lg relative block overflow-hidden px-4 py-3 text-white shadow-[0_16px_36px_-18px_rgba(108,43,217,.55)]"
+      className="hw-anim rounded-sheet-lg relative block overflow-hidden px-4 py-3 text-white"
       style={{
         backgroundImage:
           "linear-gradient(120deg,#6C2BD9 0%,#8A4DFF 55%,#FF2D7A 130%)",

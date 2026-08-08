@@ -422,7 +422,7 @@ export function WalletQrView({
       {/* ── MONTANT (transfert P2P) ───────────────────────────────────────── */}
       {step === "amount" && pending?.kind === "transfer" && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface rounded-panel-lg shadow-overlay w-full max-w-[320px] p-6 text-center">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
               <Send className="size-7" />
             </div>
@@ -489,7 +489,7 @@ export function WalletQrView({
       )}
       {step === "confirm" && pending && !showReset && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface rounded-panel-lg shadow-overlay w-full max-w-[320px] p-6 text-center">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
               {pending.kind === "pay" ? (
                 <ShieldCheck className="size-7" />
@@ -562,7 +562,7 @@ export function WalletQrView({
       {/* ── REÇU ──────────────────────────────────────────────────────────── */}
       {step === "success" && receipt && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-7 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface rounded-panel-lg shadow-overlay w-full max-w-[320px] p-7 text-center">
             <div className="bg-success-100 text-success-700 mx-auto grid size-16 place-items-center rounded-full">
               <Check className="size-9" />
             </div>
@@ -602,7 +602,7 @@ export function WalletQrView({
       {/* ── RECEVOIR : mon QR personnel (actif) ───────────────────────────── */}
       {tab === "recv" && step === "scan" && (
         <div className="flex flex-1 flex-col items-center px-6 pt-6">
-          <div className="rounded-panel-lg w-[236px] bg-white p-5 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="rounded-panel-lg shadow-overlay w-[236px] bg-white p-5 text-center">
             {myHandle ? (
               <div className="mx-auto w-fit">
                 <OrderQr value={`coligo:user:${myHandle}`} size={180} />
@@ -718,7 +718,7 @@ function CreatePinPanel({
   }
 
   return (
-    <div className="bg-surface rounded-panel-lg mt-4 w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+    <div className="bg-surface rounded-panel-lg shadow-overlay mt-4 w-full max-w-[320px] p-6 text-center">
       <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
         <Lock className="size-7" />
       </div>

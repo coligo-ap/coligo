@@ -334,7 +334,7 @@ export function SavedAddressesModal({
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
+        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl">
           <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
             <h2 className="font-display text-foreground text-lg font-bold">
               {t("savedAddressesChoice")}

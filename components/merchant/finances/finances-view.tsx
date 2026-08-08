@@ -173,7 +173,7 @@ function EssentialMoney({
     <div className="space-y-3">
       <section
         className={cn(
-          "rounded-sheet-xl relative overflow-hidden p-5 text-white shadow-lg shadow-black/10",
+          "rounded-sheet-xl relative overflow-hidden p-5 text-white shadow-black/10",
           negative ? "cg-warning-gradient" : "cg-brand-gradient"
         )}
       >
@@ -221,7 +221,7 @@ function EssentialMoney({
               <button
                 type="button"
                 onClick={() => setPayoutOpen(true)}
-                className="text-primary-700 rounded-card-lg inline-flex h-11 flex-1 items-center justify-center gap-2 bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
+                className="text-primary-700 rounded-card-lg inline-flex h-11 flex-1 items-center justify-center gap-2 bg-white text-sm font-bold transition-transform active:scale-[0.98]"
               >
                 <Banknote className="size-4" /> Demander mon versement
               </button>
@@ -233,7 +233,7 @@ function EssentialMoney({
                 "rounded-card-lg inline-flex h-11 items-center justify-center gap-2 text-sm font-bold transition-transform active:scale-[0.98]",
                 canWithdraw
                   ? "bg-white/15 px-4 text-white backdrop-blur-sm"
-                  : "text-primary-700 flex-1 bg-white shadow-sm"
+                  : "text-primary-700 flex-1 bg-white"
               )}
             >
               <Wallet className="size-4" /> Recharger
@@ -674,7 +674,7 @@ function TabButton({
       onClick={onClick}
       className={cn(
         "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold transition-colors",
-        active ? "bg-surface text-foreground shadow-sm" : "text-muted"
+        active ? "bg-surface text-foreground" : "text-muted"
       )}
     >
       {label}

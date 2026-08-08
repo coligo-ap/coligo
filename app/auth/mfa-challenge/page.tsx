@@ -55,7 +55,7 @@ export default async function MfaChallengePage({
 
   return (
     <div className="bg-surface-2 flex min-h-screen items-center justify-center p-4">
-      <div className="border-border w-full max-w-sm rounded-lg border bg-white p-6 shadow-sm">
+      <div className="border-border w-full max-w-sm rounded-lg border bg-white p-6">
         <h1 className="text-xl font-bold tracking-tight">
           Vérification en 2 étapes
         </h1>

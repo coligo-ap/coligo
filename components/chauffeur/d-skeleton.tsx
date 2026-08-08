@@ -76,10 +76,10 @@ export function HomeSkeleton() {
           <div className="h-[44px] w-[86px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-lg" />
         </div>
         <div className="flex justify-center">
-          <div className="h-[44px] w-[118px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-lg" />
+          <div className="h-[44px] w-[118px] animate-pulse rounded-lg bg-[var(--d-surface)]" />
         </div>
         <div className="flex justify-end">
-          <div className="size-[44px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-lg" />
+          <div className="size-[44px] animate-pulse rounded-lg bg-[var(--d-surface)]" />
         </div>
       </div>
       {/* Feuille RÉDUITE : poignée + toggle « En ligne » */}

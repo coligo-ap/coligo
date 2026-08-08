@@ -11,7 +11,7 @@ export const metadata = {
 export default function OfflinePage() {
   return (
     <main className="bg-surface-2 flex min-h-screen flex-col items-center px-6 py-10">
-      <div className="border-border rounded-card-lg w-full max-w-sm border bg-white p-6 text-center shadow-sm">
+      <div className="border-border rounded-card-lg w-full max-w-sm border bg-white p-6 text-center">
         <div className="mb-6 flex justify-center">
           <Logo variant="amber" size="lg" />
         </div>

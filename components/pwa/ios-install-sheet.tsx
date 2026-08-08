@@ -38,7 +38,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:pb-0"
+        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg shadow-overlay w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] sm:pb-0"
       >
         {/* Header chaleureux */}
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
@@ -116,7 +116,7 @@ function OpenInSafariSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:pb-0"
+        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg shadow-overlay w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] sm:pb-0"
       >
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
           <button
@@ -226,7 +226,7 @@ function ShareIcon({ className }: { className?: string }) {
  */
 function SafariBottomBarMockup({ label }: { label: string }) {
   return (
-    <div className="border-border w-full max-w-xs rounded-lg border bg-white p-3 shadow-sm">
+    <div className="border-border w-full max-w-xs rounded-lg border bg-white p-3">
       {/* Barre URL Safari */}
       <div className="bg-surface-2 mb-3 flex items-center gap-2 rounded-full px-3 py-2 text-xs">
         <span className="bg-success-500 inline-block size-1.5 rounded-full" />

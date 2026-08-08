@@ -61,7 +61,7 @@ export function PlatformPromosView({
       <section>
         <form
           onSubmit={submit}
-          className="border-border bg-surface flex items-center gap-2 rounded-lg border p-2 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
+          className="border-border bg-surface shadow-float flex items-center gap-2 rounded-lg border p-2"
         >
           <Ticket className="text-subtle ms-1.5 size-5 shrink-0" />
           <input
@@ -209,7 +209,7 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
           from-primary-* + dark: (basé système) qui restait clair en sombre. */}
       <div className="border-primary-300 bg-primary-50 relative overflow-hidden rounded-lg border border-dashed px-3.5 py-3">
         <div className="flex items-center gap-3">
-          <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-md text-white shadow-sm">
+          <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-md text-white">
             <Ticket className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -263,7 +263,7 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="bg-surface flex w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
+            <div className="bg-surface flex w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl">
               <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
                 <h3 className="text-foreground text-lg font-bold">
                   {t("conditionsTitle")}
@@ -329,7 +329,7 @@ function VoucherCard({ voucher }: { voucher: CustomerVoucher }) {
   return (
     <Link
       href="/coligo-pay"
-      className="border-border bg-surface hover:border-primary-300 flex items-center gap-3 rounded-lg border px-3.5 py-3 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)] transition-colors"
+      className="border-border bg-surface hover:border-primary-300 shadow-float flex items-center gap-3 rounded-lg border px-3.5 py-3 transition-colors"
     >
       <span className="bg-success-50 text-success-700 grid size-11 shrink-0 place-items-center rounded-md">
         <Gift className="size-5" />

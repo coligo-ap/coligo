@@ -333,7 +333,7 @@ export function DriverHomeMaquette({
           <button
             type="button"
             onClick={() => router.push("/driver/gains")}
-            className="flex items-center gap-1.5 rounded-lg border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+            className="flex items-center gap-1.5 rounded-lg border py-1.5 pr-2 pl-3.5 text-white"
             style={{ background: "#6C2BD9", borderColor: "#4B1FA6" }}
           >
             <span className="flex flex-col items-start leading-none">
@@ -356,14 +356,14 @@ export function DriverHomeMaquette({
         <div className="flex items-start justify-end gap-2">
           <NotificationBell
             source={{ table: "driver_notifications" }}
-            className="grid size-[44px] place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)]"
             iconClassName="size-5"
           />
           <button
             type="button"
             onClick={recenter}
             aria-label={tr("Centrer sur ma position", "التمركز على موقعي")}
-            className="grid size-[44px] place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)]"
           >
             <LocateFixed
               className="size-5"
@@ -385,7 +385,7 @@ export function DriverHomeMaquette({
             aria-label={tr("Disponibilité", "التوفر")}
             onClick={toggle}
             disabled={!online && netOffline}
-            className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             style={{
               borderColor: online ? "rgba(22,179,100,.35)" : "var(--line)",
               background: online ? "rgba(22,179,100,.07)" : "var(--surface)",

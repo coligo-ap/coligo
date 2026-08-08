@@ -304,7 +304,7 @@ export function CustomerHeader({
           }}
         >
           <div
-            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-xl"
+            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:max-h-[90vh] sm:rounded-xl"
             style={{
               paddingBottom: "calc(0px + env(safe-area-inset-bottom))",
             }}

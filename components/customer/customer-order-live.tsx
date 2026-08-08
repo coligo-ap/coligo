@@ -178,7 +178,7 @@ export function CustomerOrderLive({
       onClick={() => setPopup(null)}
     >
       <div
-        className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl"
+        className="w-full max-w-sm rounded-xl bg-white p-6 text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <div

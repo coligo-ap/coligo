@@ -384,7 +384,7 @@ export function CallOverlay({
             type="button"
             onClick={end}
             aria-label={tr("Raccrocher", "إنهاء المكالمة")}
-            className="grid size-16 place-items-center rounded-full bg-red-600 shadow-lg transition active:scale-95"
+            className="grid size-16 place-items-center rounded-full bg-red-600 transition active:scale-95"
           >
             <PhoneOff className="size-7" />
           </button>

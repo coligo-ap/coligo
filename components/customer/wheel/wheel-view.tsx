@@ -295,7 +295,7 @@ export function WheelView({
 
   if (!state || !state.enabled) {
     return (
-      <div className="bg-surface rounded-xl p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <div className="bg-surface shadow-float rounded-xl p-6 text-center">
         <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
           <Hourglass className="size-6" />
         </span>
@@ -341,7 +341,7 @@ export function WheelView({
           {/* Anneau lumineux : dégradé conique + ampoules clignotantes. */}
           <div
             className={cn(
-              "relative aspect-square w-full rounded-full p-[13px] shadow-[0_22px_50px_-18px_rgba(76,27,155,.6)]",
+              "relative aspect-square w-full rounded-full p-[13px]",
               spinning && "wh-fast"
             )}
             style={{
@@ -386,7 +386,7 @@ export function WheelView({
 
       {/* ── CTA ── */}
       {spentToday && !spinning ? (
-        <div className="bg-surface rounded-lg p-4 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="bg-surface shadow-float rounded-lg p-4 text-center">
           <p className="text-foreground text-sm font-extrabold">
             {t("comeBack")}
           </p>
@@ -398,7 +398,7 @@ export function WheelView({
           onClick={() => void spin()}
           disabled={spinning}
           className={cn(
-            "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-lg text-base font-extrabold text-white shadow-[0_14px_30px_-10px_rgba(255,45,122,0.55)] transition active:scale-[0.98] disabled:opacity-70",
+            "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-lg text-base font-extrabold text-white transition active:scale-[0.98] disabled:opacity-70",
             !spinning && "wh-cta"
           )}
           style={{
@@ -424,7 +424,7 @@ export function WheelView({
       )}
 
       {/* ── SÉRIE ── */}
-      <div className="bg-surface rounded-lg p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <div className="bg-surface shadow-float rounded-lg p-4">
         <div className="flex items-center justify-between">
           <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             {t("streakTitle")}
@@ -461,7 +461,7 @@ export function WheelView({
           onClick={() => setShowResult(false)}
         >
           <div
-            className="wh-pop bg-surface rounded-panel-lg relative w-full max-w-[380px] overflow-hidden p-6 text-center shadow-2xl"
+            className="wh-pop bg-surface rounded-panel-lg relative w-full max-w-[380px] overflow-hidden p-6 text-center"
             onClick={(e) => e.stopPropagation()}
           >
             {result.kind === "voucher" || result.kind === "free_delivery" ? (

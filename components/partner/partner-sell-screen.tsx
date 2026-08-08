@@ -159,7 +159,7 @@ function SellCredit({
   };
 
   return (
-    <div className="border-border bg-surface rounded-lg border p-4 shadow-sm">
+    <div className="border-border bg-surface rounded-lg border p-4">
       <h2 className="text-foreground flex items-center gap-2 text-sm font-bold">
         <span className="bg-primary-600 flex size-7 items-center justify-center rounded-full text-white">
           <Send className="size-4" />

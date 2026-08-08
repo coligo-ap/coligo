@@ -286,7 +286,7 @@ export function CheckoutDeliverySection({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="border-border bg-surface co-rise flex w-full items-center gap-3 rounded-xl border p-3.5 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]"
+              className="border-border bg-surface co-rise flex w-full items-center gap-3 rounded-xl border p-3.5 text-start"
             >
               <span className="bg-primary-50 rounded-card relative grid size-[50px] shrink-0 place-items-center overflow-hidden">
                 <MapPin
@@ -315,7 +315,7 @@ export function CheckoutDeliverySection({
             </button>
           ) : (
             /* ── 3 choix de position (au lieu d'afficher la carte directement). ── */
-            <div className="bg-surface co-rise space-y-2.5 overflow-hidden rounded-xl p-3 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+            <div className="bg-surface co-rise space-y-2.5 overflow-hidden rounded-xl p-3">
               <p className="text-muted text-caption px-1 pt-0.5 font-extrabold tracking-wider uppercase">
                 {t("whereToDeliver")}
               </p>
@@ -384,7 +384,7 @@ export function CheckoutDeliverySection({
 
           {/* Mode + créneau + destinataire — révélés une fois la position prête. */}
           {ready && (
-            <div className="border-border bg-surface space-y-4 rounded-xl border p-4 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+            <div className="border-border bg-surface space-y-4 rounded-xl border p-4">
               {(delivery.express_enabled || delivery.tours_enabled) && (
                 <div className="space-y-2">
                   <p className="text-muted text-caption font-extrabold tracking-wider uppercase">

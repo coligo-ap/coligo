@@ -125,7 +125,7 @@ function CreateForm() {
   }
 
   return (
-    <div className="border-border bg-surface space-y-4 rounded-lg border p-4 shadow-sm">
+    <div className="border-border bg-surface space-y-4 rounded-lg border p-4">
       <h2 className="flex items-center gap-2 text-sm font-bold">
         <UserCog className="size-4" /> Nouvel administrateur (staff)
       </h2>
@@ -288,7 +288,7 @@ function AdminCard({
   return (
     <div
       className={cn(
-        "border-border bg-surface rounded-lg border p-4 shadow-sm",
+        "border-border bg-surface rounded-lg border p-4",
         !admin.is_active && "opacity-60"
       )}
     >

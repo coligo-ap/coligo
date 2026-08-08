@@ -403,7 +403,7 @@ function CodeForm({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-surface flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl sm:pb-0">
+      <div className="bg-surface flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl sm:pb-0">
         <header className="border-border flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-foreground text-lg font-bold">
             {codeId ? "Modifier le code" : "Nouveau code"}

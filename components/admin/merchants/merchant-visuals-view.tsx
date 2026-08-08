@@ -454,7 +454,7 @@ export function MerchantVisualsView({
                     className={cn(
                       "rounded-full px-3 py-1 transition-colors",
                       bankFilter === key
-                        ? "text-foreground bg-white shadow-sm"
+                        ? "text-foreground bg-white"
                         : "text-muted hover:text-foreground"
                     )}
                   >

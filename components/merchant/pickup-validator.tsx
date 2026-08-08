@@ -268,7 +268,7 @@ function ReadyPromptModal({
       onClick={onDismiss}
     >
       <div
-        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-6 text-center shadow-xl"
+        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-6 text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-warning-50 mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
@@ -339,7 +339,7 @@ function ErrorModal({
       onClick={onDismiss}
     >
       <div
-        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-6 text-center shadow-xl"
+        className="bg-surface border-border w-full max-w-sm rounded-2xl border p-6 text-center"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="bg-danger-50 mx-auto mb-4 flex size-14 items-center justify-center rounded-full">
@@ -373,7 +373,7 @@ function TabButton({
       className={cn(
         "rounded-chip flex h-10 items-center justify-center gap-2 text-sm font-medium transition-colors",
         active
-          ? "text-primary-700 bg-white shadow-sm"
+          ? "text-primary-700 bg-white"
           : "text-muted hover:text-foreground"
       )}
     >

@@ -582,7 +582,7 @@ export function PartnerEmptyState({
     <div className="rounded-sheet-lg border border-[var(--d-line)] bg-[var(--d-soft)] px-4 py-8 text-center">
       {icon != null && (
         <span
-          className="mx-auto mb-2.5 grid size-11 place-items-center rounded-full bg-[var(--d-surface)] shadow-sm"
+          className="mx-auto mb-2.5 grid size-11 place-items-center rounded-full bg-[var(--d-surface)]"
           style={{ color: BRAND_VIOLET }}
         >
           {icon}

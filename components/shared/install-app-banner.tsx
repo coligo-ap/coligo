@@ -58,11 +58,7 @@ export function InstallAppBanner() {
   return (
     <div className="border-primary-100 bg-primary-50 mt-3 flex items-center gap-3 rounded-lg border px-3.5 py-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src="/icon-192.png"
-        alt=""
-        className="size-11 shrink-0 rounded-md shadow-sm"
-      />
+      <img src="/icon-192.png" alt="" className="size-11 shrink-0 rounded-md" />
       <div className="min-w-0 flex-1">
         <b className="text-foreground text-body block truncate font-extrabold">
           {t("title")}

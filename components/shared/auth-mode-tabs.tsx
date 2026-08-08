@@ -48,7 +48,7 @@ export function AuthModeTabs({
   // sortir du cadre, et la cible tactile reste à 44 px.
   const base =
     "flex min-h-[44px] min-w-0 flex-1 items-center justify-center rounded-control px-2 py-1 text-center text-xs font-semibold transition";
-  const active = "bg-white text-foreground shadow-sm";
+  const active = "bg-white text-foreground";
   const idle = "text-muted hover:text-foreground";
 
   return (

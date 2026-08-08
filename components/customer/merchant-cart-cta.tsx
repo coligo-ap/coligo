@@ -152,7 +152,7 @@ export function MerchantCartCta({
           href="/cart"
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
-            "bg-primary-600 hover:bg-primary-700 rounded-control relative block overflow-hidden text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
+            "bg-primary-600 hover:bg-primary-700 rounded-control relative block overflow-hidden text-white transition-transform",
             hasTab && "rounded-b-none",
             pulse && "scale-[1.02]"
           )}
@@ -251,7 +251,7 @@ function CtaTab({
   return (
     <div
       className={cn(
-        "cg-promo-rise bg-foreground/95 text-surface relative flex items-center gap-2.5 overflow-hidden rounded-b-lg px-3.5 py-1.5 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md",
+        "cg-promo-rise bg-foreground/95 text-surface relative flex items-center gap-2.5 overflow-hidden rounded-b-lg px-3.5 py-1.5 backdrop-blur-md",
         className
       )}
     >

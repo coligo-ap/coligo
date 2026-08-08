@@ -126,7 +126,7 @@ function AdminSearchPalette({ onClose }: { onClose: () => void }) {
         onClick={onClose}
       >
         <div
-          className="border-border bg-surface w-full max-w-lg overflow-hidden rounded-lg border shadow-xl"
+          className="border-border bg-surface w-full max-w-lg overflow-hidden rounded-lg border"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-border flex items-center gap-2 border-b px-3">

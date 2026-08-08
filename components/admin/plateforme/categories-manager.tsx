@@ -193,7 +193,7 @@ export function CategoriesManager({
                 className={cn(
                   "rounded-control px-3 py-1.5 text-xs font-bold transition-colors",
                   segment === s.id
-                    ? "bg-surface text-foreground shadow-sm"
+                    ? "bg-surface text-foreground"
                     : "text-muted hover:text-foreground"
                 )}
               >

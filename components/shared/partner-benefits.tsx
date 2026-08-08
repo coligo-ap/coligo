@@ -370,7 +370,7 @@ export function PartnerBenefits({ variant }: { variant: AuthVariant }) {
               <div
                 key={b.t[0]}
                 className={cn(
-                  "border-border rounded-sheet-lg flex items-center gap-3 border bg-white p-3.5 shadow-[0_10px_24px_-18px_rgba(40,35,90,.35)]",
+                  "border-border rounded-sheet-lg flex items-center gap-3 border bg-white p-3.5",
                   reveal
                 )}
                 style={{ transitionDelay: `${160 + i * 80}ms` }}
@@ -416,7 +416,7 @@ export function PartnerBenefits({ variant }: { variant: AuthVariant }) {
                   onClick={() =>
                     window.scrollTo({ top: 0, behavior: "smooth" })
                   }
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-neutral-900 shadow-lg transition-transform active:scale-[.97]"
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-neutral-900 transition-transform active:scale-[.97]"
                 >
                   {isAr ? "أكمل تسجيلي في الأعلى" : "Je finis mon inscription"}
                   <ArrowUp className="size-4" />
@@ -424,7 +424,7 @@ export function PartnerBenefits({ variant }: { variant: AuthVariant }) {
               ) : (
                 <Link
                   href={c.signupHref}
-                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-neutral-900 shadow-lg transition-transform active:scale-[.97]"
+                  className="inline-flex min-h-[44px] items-center gap-2 rounded-full bg-white px-5 text-sm font-bold text-neutral-900 transition-transform active:scale-[.97]"
                 >
                   {isAr ? "أنشئ حسابي مجانًا" : "Je crée mon compte gratuit"}
                   <ArrowRight className="size-4 rtl:rotate-180" />

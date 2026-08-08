@@ -350,7 +350,7 @@ export function DeliveryRouteMap({
             )}
             {leg2Km != null && (
               <span
-                className="text-caption-lg inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 font-bold text-white shadow-sm backdrop-blur"
+                className="text-caption-lg inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 font-bold text-white backdrop-blur"
                 style={{ background: `${GREEN}ee` }}
               >
                 <span className="size-2 rounded-full bg-white/90" />

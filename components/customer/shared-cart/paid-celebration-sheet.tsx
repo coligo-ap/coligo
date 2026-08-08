@@ -57,7 +57,7 @@ export function PaidCelebrationSheet({
 @media (prefers-reduced-motion:reduce){.sc-conf,.sc-boom{animation:none}}
 `}</style>
       <div
-        className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg relative max-h-[calc(100dvh-1rem)] w-full max-w-[420px] [animation:scPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] overflow-y-auto px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:pb-6"
+        className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg shadow-overlay relative max-h-[calc(100dvh-1rem)] w-full max-w-[420px] [animation:scPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] overflow-y-auto px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] sm:max-h-[calc(100dvh-2rem)] sm:pb-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Pluie de confettis (même langage que la victoire de la Roue). */}

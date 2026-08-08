@@ -22,7 +22,7 @@ export function DriverBadgePill({
   return (
     <span
       className={
-        "inline-flex items-center gap-1 rounded-full font-extrabold shadow-sm " +
+        "inline-flex items-center gap-1 rounded-full font-extrabold " +
         (md ? "text-caption px-2.5 py-1" : "text-nano-lg px-2 py-[3px]")
       }
       style={{ background: badge.gradient, color: badge.text }}

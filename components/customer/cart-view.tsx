@@ -478,7 +478,7 @@ export function CartView({
           return (
             <div
               key={item.line_key}
-              className="border-border bg-surface flex items-center gap-3 rounded-lg border p-3 shadow-sm"
+              className="border-border bg-surface flex items-center gap-3 rounded-lg border p-3"
             >
               <div className="bg-surface-2 relative size-[58px] shrink-0 overflow-hidden rounded-sm">
                 {item.image_url ? (
@@ -775,7 +775,7 @@ export function CartView({
           </p>
           <Link
             href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-[52px] w-full items-center justify-center gap-2 text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-[52px] w-full items-center justify-center gap-2 text-base font-extrabold text-white"
           >
             {t("checkout")}
             <ArrowRight className="size-5 rtl:-scale-x-100" />
@@ -816,7 +816,7 @@ export function CartView({
           onClick={() => !inviteBusy && setInviteConfig(null)}
         >
           <div
-            className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:pb-6"
+            className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">

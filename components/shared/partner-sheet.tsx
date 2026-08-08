@@ -166,7 +166,7 @@ export function PartnerSheetButton({
             <div
               ref={panelRef}
               tabIndex={-1}
-              className="partner-sheet-in bg-surface flex w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:rounded-xl"
+              className="partner-sheet-in bg-surface shadow-overlay flex w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] outline-none sm:rounded-xl"
             >
               {/* Poignée (mobile) */}
               <div className="flex justify-center pt-3 sm:hidden" aria-hidden>
@@ -210,7 +210,7 @@ export function PartnerSheetButton({
                       >
                         <span
                           className={cn(
-                            "rounded-card-lg flex size-12 shrink-0 items-center justify-center bg-gradient-to-br text-white shadow-sm",
+                            "rounded-card-lg flex size-12 shrink-0 items-center justify-center bg-gradient-to-br text-white",
                             role.gradient
                           )}
                         >

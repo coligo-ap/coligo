@@ -146,7 +146,7 @@ export function MerchantReviewsDialog({
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="bg-surface flex max-h-[90vh] w-full max-w-lg flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
+            <div className="bg-surface shadow-overlay flex max-h-[90vh] w-full max-w-lg flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl">
               <header className="border-border bg-surface flex items-start justify-between gap-3 rounded-t-xl border-b px-5 py-4 sm:rounded-t-xl">
                 <div>
                   <h2 className="font-display text-foreground text-lg font-bold">

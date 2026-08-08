@@ -44,7 +44,7 @@ export function WalletActions({
           panneau retombe alors sur 2 colonnes (Payer + Recharger). */}
       <div
         className={
-          "border-border rounded-sheet-xl mt-4 grid gap-1 border bg-white p-2 shadow-[0_10px_28px_-18px_rgba(40,35,90,.28)] " +
+          "border-border rounded-sheet-xl mt-4 grid gap-1 border bg-white p-2 " +
           (p2pEnabled ? "grid-cols-4" : "grid-cols-2")
         }
       >
@@ -116,7 +116,7 @@ function Action({
       <span
         className={
           primary
-            ? "bg-primary-600 rounded-card-lg grid size-[46px] place-items-center text-white shadow-[0_6px_14px_-4px_rgba(91,91,230,.45)]"
+            ? "bg-primary-600 rounded-card-lg grid size-[46px] place-items-center text-white"
             : "bg-primary-50 text-primary-600 rounded-card-lg grid size-[46px] place-items-center"
         }
       >

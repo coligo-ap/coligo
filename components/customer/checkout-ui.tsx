@@ -96,7 +96,7 @@ export function PayCard({
       className={cn(
         "rounded-sheet-lg relative flex flex-col items-start gap-1.5 border-2 p-2.5 pt-3 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
         selected
-          ? "border-primary-600 bg-primary-50 shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
+          ? "border-primary-600 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300",
         className
       )}
@@ -117,7 +117,7 @@ export function PayCard({
         className={cn(
           "rounded-control grid size-[32px] shrink-0 place-items-center",
           selected
-            ? "text-primary-600 bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]"
+            ? "text-primary-600 bg-white"
             : "bg-surface-2 text-foreground"
         )}
       >
@@ -128,7 +128,7 @@ export function PayCard({
         <span className="text-foreground text-label flex flex-wrap items-center gap-1 leading-tight font-extrabold">
           {title}
           {bolt && (
-            <span className="grid size-[15px] shrink-0 place-items-center rounded-[5px] bg-gradient-to-br from-[#ffb02e] to-[#c77a18] text-white shadow-[0_2px_5px_rgba(199,122,24,0.4)]">
+            <span className="grid size-[15px] shrink-0 place-items-center rounded-[5px] bg-gradient-to-br from-[#ffb02e] to-[#c77a18] text-white">
               <Zap className="size-[9px]" fill="currentColor" />
             </span>
           )}

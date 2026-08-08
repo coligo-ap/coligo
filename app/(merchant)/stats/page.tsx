@@ -305,7 +305,7 @@ function PeriodTab({
       className={cn(
         "rounded-chip px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
         isActive
-          ? "text-primary-700 bg-white shadow-sm"
+          ? "text-primary-700 bg-white"
           : "text-muted hover:text-foreground"
       )}
     >
@@ -328,7 +328,7 @@ function Kpi({
   tone?: "danger";
 }) {
   return (
-    <div className="border-border bg-surface rounded-lg border p-4 shadow-sm lg:p-5">
+    <div className="border-border bg-surface rounded-lg border p-4 lg:p-5">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-muted text-xs font-medium">{label}</span>
         <Icon

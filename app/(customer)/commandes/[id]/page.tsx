@@ -503,12 +503,12 @@ export default async function CustomerOrderDetailPage({
                 ? { Livreur: driverContact.first_name }
                 : {}),
             }}
-            className="border-border bg-surface text-foreground hover:bg-surface-2 text-label-lg inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold shadow-sm transition-colors"
+            className="border-border bg-surface text-foreground hover:bg-surface-2 text-label-lg inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold transition-colors"
           />
         </div>
 
         {/* ═══ BLOC PRINCIPAL UNIQUE : statut + suivi horizontal + montant ═══ */}
-        <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
+        <div className="border-border bg-surface rounded-xl border p-4">
           {/* ligne 1 : statut (pastille) + libellé + sous-texte + n° */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
@@ -759,7 +759,7 @@ export default async function CustomerOrderDetailPage({
         )}
 
         {/* ═══ DÉTAIL DE LA COMMANDE ═══ */}
-        <div className="border-border bg-surface rounded-sheet-lg mt-3 border p-4 shadow-sm">
+        <div className="border-border bg-surface rounded-sheet-lg mt-3 border p-4">
           <h3 className="text-body-sm mb-2.5 flex items-center justify-between font-extrabold">
             <span>{t("detailTitle")}</span>
             <span className="text-muted text-caption font-semibold">
@@ -837,7 +837,7 @@ export default async function CustomerOrderDetailPage({
         </div>
 
         {/* ═══ BOUTIQUE ═══ */}
-        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-lg border px-4 py-3 shadow-sm">
+        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-lg border px-4 py-3">
           {merchant.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img

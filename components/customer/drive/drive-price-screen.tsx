@@ -271,7 +271,7 @@ export function DrivePriceScreen({
             <button
               type="button"
               onClick={toggleMap}
-              className="drive-jakarta text-body-sm rounded-full px-5 py-2.5 font-extrabold text-white shadow-lg"
+              className="drive-jakarta text-body-sm rounded-full px-5 py-2.5 font-extrabold text-white"
               style={{ background: VIOLET }}
             >
               {t("map.collapse")}

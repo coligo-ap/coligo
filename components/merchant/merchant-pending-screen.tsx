@@ -23,7 +23,7 @@ export async function MerchantPendingScreen({
 
   return (
     <div className="bg-surface-2 flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="border-border bg-surface w-full max-w-md rounded-xl border p-7 text-center shadow-sm">
+      <div className="border-border bg-surface w-full max-w-md rounded-xl border p-7 text-center">
         <div className="mb-5 flex justify-center">
           <Logo size="md" />
         </div>

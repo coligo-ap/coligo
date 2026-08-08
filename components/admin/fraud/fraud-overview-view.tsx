@@ -37,7 +37,7 @@ function Kpi({
 }) {
   const body = (
     <div
-      className={`border-border rounded-2xl border bg-white p-3 transition-shadow hover:shadow-sm ${
+      className={`border-border rounded-2xl border bg-white p-3 transition-shadow ${
         accent && value > 0 ? "border-red-200 bg-red-50/50" : ""
       }`}
     >

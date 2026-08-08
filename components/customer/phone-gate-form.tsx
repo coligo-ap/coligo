@@ -58,7 +58,7 @@ export function PhoneGateForm({
               <Logo variant="amber" size="lg" />
             </div>
 
-            <div className="border-border rounded-lg border bg-white p-6 shadow-sm">
+            <div className="border-border rounded-lg border bg-white p-6">
               <h2 className="text-foreground mb-1 text-2xl font-bold">
                 Dernière étape
               </h2>
@@ -121,7 +121,7 @@ export function PhoneGateForm({
                   type="button"
                   disabled={!valid || pending}
                   onClick={submit}
-                  className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-1 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
+                  className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-1 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white transition disabled:opacity-40"
                 >
                   {pending ? (
                     <Loader2 className="size-4 animate-spin" />

@@ -459,7 +459,7 @@ export function ShopLocationPicker({
             type="button"
             onClick={confirmPosition}
             disabled={disabled || !coords}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white disabled:opacity-50"
           >
             {geoLoading ? (
               <Loader2 className="size-4 animate-spin" />

@@ -97,7 +97,7 @@ export function ApkDownloadButton({
     <a
       href={href}
       download={fileName}
-      className="cg-brand-gradient focus-visible:ring-primary-300 group rounded-card-lg shadow-primary-600/25 flex w-full items-center justify-center gap-3 px-6 py-4 text-base font-semibold text-white shadow-lg transition-all hover:shadow-xl focus:outline-none focus-visible:ring-2"
+      className="cg-brand-gradient focus-visible:ring-primary-300 group rounded-card-lg flex w-full items-center justify-center gap-3 px-6 py-4 text-base font-semibold text-white transition-all focus:outline-none focus-visible:ring-2"
     >
       <Icon className="size-5 shrink-0 transition-transform group-hover:translate-y-0.5" />
       {label}

@@ -162,8 +162,8 @@ function Tile({
           "grid size-[56px] place-items-center overflow-hidden rounded-full text-[24px] leading-none transition-all",
           active
             ? onHero
-              ? "border-2 border-white bg-white/20 shadow-[0_4px_14px_-6px_rgba(0,0,0,.4)] ring-2 ring-white/40"
-              : "border-primary-600 ring-primary-500/25 bg-primary-50 border-2 shadow-[0_4px_14px_-6px_rgba(108,43,217,.45)] ring-2"
+              ? "border-2 border-white bg-white/20 ring-2 ring-white/40"
+              : "border-primary-600 ring-primary-500/25 bg-primary-50 border-2 ring-2"
             : onHero
               ? "border-[1.5px] border-white/25 bg-white/10"
               : "bg-surface-2 border-[1.5px] border-transparent"

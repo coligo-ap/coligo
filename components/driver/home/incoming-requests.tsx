@@ -283,7 +283,7 @@ export function IncomingRequests({
             return (
               <div
                 key={card.id}
-                className="rounded-sheet-lg overflow-hidden border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
+                className="rounded-sheet-lg overflow-hidden border"
                 style={{
                   borderColor: "var(--line)",
                   background: "var(--surface)",
@@ -351,7 +351,7 @@ export function IncomingRequests({
           return (
             <div
               key={card.id}
-              className="rounded-sheet-lg overflow-hidden border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
+              className="rounded-sheet-lg overflow-hidden border"
               style={{
                 borderColor: "var(--line)",
                 background: "var(--surface)",

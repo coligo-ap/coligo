@@ -245,7 +245,7 @@ function MerchantGroup({
   return (
     <section
       className={cn(
-        "bg-surface co-rise mt-3 overflow-hidden rounded-md border shadow-[0_1px_3px_rgba(20,20,50,0.05)]",
+        "bg-surface co-rise mt-3 overflow-hidden rounded-md border",
         closed ? "border-border opacity-60" : "border-border"
       )}
     >
@@ -255,7 +255,7 @@ function MerchantGroup({
         className="border-border flex items-center gap-3 border-b px-4 py-3.5"
       >
         <span
-          className="bg-surface-2 size-[46px] shrink-0 rounded-full border-[2.5px] border-white bg-cover bg-center shadow-[0_3px_8px_-3px_rgba(0,0,0,0.25)] ring-1 ring-[var(--color-border)]"
+          className="bg-surface-2 size-[46px] shrink-0 rounded-full border-[2.5px] border-white bg-cover bg-center ring-1 ring-[var(--color-border)]"
           style={{
             backgroundImage: m.logo_url
               ? `url('${cldUrl(m.logo_url, { width: 120, height: 120, crop: "fill" }) ?? m.logo_url}')`

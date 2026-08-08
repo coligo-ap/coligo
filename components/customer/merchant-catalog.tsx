@@ -558,7 +558,7 @@ export function MerchantCatalog({
                 <button
                   type="button"
                   onClick={() => setOpenCat(null)}
-                  className="border-border bg-surface text-foreground hover:border-primary-300 text-body-sm inline-flex items-center gap-1.5 rounded-full border py-2 ps-2.5 pe-3.5 font-bold shadow-sm"
+                  className="border-border bg-surface text-foreground hover:border-primary-300 text-body-sm inline-flex items-center gap-1.5 rounded-full border py-2 ps-2.5 pe-3.5 font-bold"
                 >
                   <ChevronLeft className="size-4 rtl:rotate-180" />
                   {t("allCategories")}
@@ -570,7 +570,7 @@ export function MerchantCatalog({
                   <img
                     src={g.category.image_url}
                     alt=""
-                    className="rounded-control size-8 shrink-0 object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
+                    className="rounded-control size-8 shrink-0 object-cover"
                   />
                 )}
                 <span className="truncate">
@@ -627,7 +627,7 @@ export function MerchantCatalog({
                     alt=""
                     loading="lazy"
                     decoding="async"
-                    className="rounded-control size-8 shrink-0 object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
+                    className="rounded-control size-8 shrink-0 object-cover"
                   />
                 )}
                 <span className="truncate">

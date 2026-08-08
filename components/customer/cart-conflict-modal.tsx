@@ -67,7 +67,7 @@ export function CartConflictModal({ current, others, onResolved }: Props) {
       aria-modal
       aria-labelledby="cart-conflict-title"
     >
-      <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
+      <div className="bg-surface shadow-overlay flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl">
         <header className="border-border flex items-start justify-between gap-3 border-b px-5 py-4">
           <div>
             <h2

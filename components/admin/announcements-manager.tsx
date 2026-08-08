@@ -178,7 +178,7 @@ export function AnnouncementsManager({
             className={cn(
               "rounded-control px-3 py-1.5 text-sm font-bold transition-colors",
               tab === key
-                ? "bg-surface text-foreground shadow-sm"
+                ? "bg-surface text-foreground"
                 : "text-muted hover:text-foreground"
             )}
           >
@@ -736,7 +736,7 @@ function ComposerPanel({
                 className={cn(
                   "rounded-full px-2.5 py-1 transition-colors",
                   previewLocale === l
-                    ? "bg-surface text-foreground shadow-sm"
+                    ? "bg-surface text-foreground"
                     : "text-muted"
                 )}
               >

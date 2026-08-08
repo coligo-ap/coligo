@@ -42,7 +42,7 @@ export function LocationBanner() {
   return (
     <>
       <div className="border-primary-100 bg-primary-50 mb-4 flex items-center gap-3 rounded-lg border p-3.5">
-        <span className="bg-primary-600 rounded-card grid size-11 shrink-0 place-items-center text-white shadow-sm">
+        <span className="bg-primary-600 rounded-card grid size-11 shrink-0 place-items-center text-white">
           <Navigation className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -90,7 +90,7 @@ export function LocationBanner() {
           }}
         >
           <div
-            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-xl"
+            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:max-h-[90vh] sm:rounded-xl"
             style={{
               paddingBottom: "calc(0px + env(safe-area-inset-bottom))",
             }}

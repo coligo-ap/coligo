@@ -349,8 +349,8 @@ function BigCard({
     <div
       className={
         highlight
-          ? "border-primary-200 from-primary-600 to-primary-700 rounded-lg border bg-gradient-to-br p-5 text-white shadow-sm"
-          : "border-border bg-surface rounded-lg border p-5 shadow-sm"
+          ? "border-primary-200 from-primary-600 to-primary-700 rounded-lg border bg-gradient-to-br p-5 text-white"
+          : "border-border bg-surface rounded-lg border p-5"
       }
     >
       <div
@@ -391,7 +391,7 @@ function Card({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="border-border bg-surface rounded-lg border p-5 shadow-sm">
+    <div className="border-border bg-surface rounded-lg border p-5">
       <div className="text-muted mb-2 flex items-center justify-between">
         <span className="text-xs font-medium">{label}</span>
         <Icon className="text-primary-500 size-4" />

@@ -99,7 +99,7 @@ function MiniProduct({
 }) {
   const promo = promoPrice(p.price_da, offer);
   return (
-    <div className="flex w-[62px] shrink-0 flex-col overflow-hidden rounded-[7px] border border-black/10 bg-white shadow-[0_6px_12px_-7px_rgba(0,0,0,.4)]">
+    <div className="flex w-[62px] shrink-0 flex-col overflow-hidden rounded-[7px] border border-black/10 bg-white">
       <div className="grid h-9 place-items-center overflow-hidden bg-neutral-100">
         {p.image_url && (
           // eslint-disable-next-line @next/next/no-img-element
@@ -192,7 +192,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
       // au gabarit ci-dessous, mais elle GRANDIT si le texte a besoin de place
       // — typiquement quand l'utilisateur a agrandi la police de son téléphone.
       // Avant, le titre était coupé en deux (bug vécu sur Galaxy S10E).
-      className="@container relative flex w-full overflow-hidden rounded-lg shadow-md"
+      className="@container relative flex w-full overflow-hidden rounded-lg"
       style={{ background: grad, containerType: "inline-size" }}
     >
       {/* Gabarit de proportion : `padding-top` en % se calcule sur la LARGEUR
@@ -253,7 +253,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
             loading="lazy"
             decoding="async"
             className={cn(
-              "max-h-[86%] w-auto max-w-full object-contain drop-shadow-[0_12px_16px_rgba(20,10,50,.42)]",
+              "drop- max-h-[86%] w-auto max-w-full object-contain",
               model.ride ? "promo-ride" : "promo-bob"
             )}
           />

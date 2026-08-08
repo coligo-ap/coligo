@@ -261,7 +261,7 @@ function ProductCard({
   return (
     <div
       className={cn(
-        "border-border bg-surface group relative flex flex-col overflow-hidden rounded-lg border shadow-sm transition-shadow hover:shadow-md",
+        "border-border bg-surface group relative flex flex-col overflow-hidden rounded-lg border transition-shadow",
         selected && "ring-primary-500 ring-2"
       )}
     >

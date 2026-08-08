@@ -174,7 +174,7 @@ export function OrderChat({
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="border-border bg-surface rounded-sheet-lg overflow-hidden border shadow-sm"
+      className="border-border bg-surface rounded-sheet-lg overflow-hidden border"
     >
       {/* En-tête */}
       <div className="border-border flex items-center justify-between gap-2 border-b px-3.5 py-2.5">

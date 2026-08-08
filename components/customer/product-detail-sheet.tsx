@@ -203,7 +203,7 @@ export function ProductDetailSheet({
       role="dialog"
       aria-modal
     >
-      <div className="rounded-t-panel sm:rounded-panel flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] shadow-xl">
+      <div className="rounded-t-panel sm:rounded-panel shadow-overlay flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)]">
         {/* Image TRÈS grande sur fond blanc pur, sans filet (capture Bolt) ;
             X = cercle GRIS clair en haut à droite. */}
         <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-white">

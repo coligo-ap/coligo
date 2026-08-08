@@ -200,7 +200,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
   }
 
   return (
-    <li className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4 shadow-sm">
+    <li className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4">
       <div className="flex items-start gap-3">
         <span className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-md">
           <Icon className="size-5" />

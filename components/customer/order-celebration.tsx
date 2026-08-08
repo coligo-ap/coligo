@@ -109,7 +109,7 @@ export function OrderPlacedCelebration({
     >
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div
-        className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg relative w-full max-w-[420px] overflow-hidden px-5 pt-4 pb-[calc(1.75rem+env(safe-area-inset-bottom))] text-center shadow-2xl sm:pb-6"
+        className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg relative w-full max-w-[420px] overflow-hidden px-5 pt-4 pb-[calc(1.75rem+env(safe-area-inset-bottom))] text-center sm:pb-6"
         onClick={(e) => e.stopPropagation()}
       >
         <ConfettiRain />

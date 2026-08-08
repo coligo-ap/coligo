@@ -71,7 +71,7 @@ export default async function TelechargerPage({
           l'en-tête n'aurait pas identifié). Sans effet sur un vrai ordinateur. */}
       {!sp.stay && <StoreAutoRedirect />}
 
-      <div className="bg-surface rounded-panel w-full max-w-md p-7 text-center shadow-[0_20px_50px_-24px_rgba(40,35,90,.35)]">
+      <div className="bg-surface rounded-panel w-full max-w-md p-7 text-center">
         <div className="flex justify-center">
           <Logo size="lg" />
         </div>

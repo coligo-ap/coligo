@@ -69,7 +69,7 @@ export function AnnouncementPopup({
       dir={ar ? "rtl" : "ltr"}
       onClick={(e) => e.stopPropagation()}
       className={cn(
-        "bg-surface w-full max-w-[420px] overflow-hidden shadow-2xl",
+        "bg-surface shadow-overlay w-full max-w-[420px] overflow-hidden",
         preview
           ? "rounded-sheet-xl"
           : "animate-fade-in rounded-t-panel-lg sm:rounded-panel-lg"
@@ -124,7 +124,7 @@ export function AnnouncementPopup({
                     "rounded-card inline-flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-extrabold transition active:scale-[0.98]",
                     ghost
                       ? "text-muted hover:text-foreground"
-                      : "bg-primary-600 hover:bg-primary-700 text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)]"
+                      : "bg-primary-600 hover:bg-primary-700 text-white"
                   )}
                 >
                   {!ghost && (

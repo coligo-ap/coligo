@@ -149,7 +149,7 @@ export default async function CustomerAccountPage({
               {verified && (
                 // Vérifié = concept de réussite → vert (pastille blanche + coche
                 // verte pour rester lisible sur le héro violet).
-                <span className="text-micro-lg mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 font-extrabold text-[#00854f] shadow-sm">
+                <span className="text-micro-lg mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 font-extrabold text-[#00854f]">
                   <BadgeCheck className="size-3" />
                   {t("verifiedAccount")}
                 </span>
@@ -168,7 +168,7 @@ export default async function CustomerAccountPage({
               (cashbackActive ? (
                 <Link
                   href="/cashback"
-                  className="rounded-sheet-lg bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+                  className="rounded-sheet-lg shadow-pop bg-white p-3.5 transition-transform active:scale-[.97]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
@@ -190,7 +190,7 @@ export default async function CustomerAccountPage({
                   </p>
                 </Link>
               ) : (
-                <div className="rounded-sheet-lg bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
+                <div className="rounded-sheet-lg shadow-pop bg-white p-3.5 opacity-60">
                   <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
                     <Gift className="size-[18px]" />
                   </span>
@@ -206,7 +206,7 @@ export default async function CustomerAccountPage({
               (payActive ? (
                 <Link
                   href="/coligo-pay"
-                  className="rounded-sheet-lg bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+                  className="rounded-sheet-lg shadow-pop bg-white p-3.5 transition-transform active:scale-[.97]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
@@ -228,7 +228,7 @@ export default async function CustomerAccountPage({
                   </p>
                 </Link>
               ) : (
-                <div className="rounded-sheet-lg bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
+                <div className="rounded-sheet-lg shadow-pop bg-white p-3.5 opacity-60">
                   <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
                     <Wallet className="size-[18px]" />
                   </span>
@@ -258,7 +258,7 @@ export default async function CustomerAccountPage({
         <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionAccount")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border shadow-float mx-4 divide-y overflow-hidden rounded-xl bg-white">
           <MenuRow
             href="/compte/infos"
             tone="info"
@@ -279,7 +279,7 @@ export default async function CustomerAccountPage({
         <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionActivity")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border shadow-float mx-4 divide-y overflow-hidden rounded-xl bg-white">
           <MenuRow
             href="/commandes"
             tone="orders"
@@ -330,7 +330,7 @@ export default async function CustomerAccountPage({
         <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionPreferences")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border shadow-float mx-4 divide-y overflow-hidden rounded-xl bg-white">
           <CustomerLanguageRow title={t("language")} />
         </div>
 
@@ -338,7 +338,7 @@ export default async function CustomerAccountPage({
         <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionHelp")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border shadow-float mx-4 divide-y overflow-hidden rounded-xl bg-white">
           <CustomerSupportRow
             title={t("helpSupport")}
             subtitle={t("helpSupportDesc")}

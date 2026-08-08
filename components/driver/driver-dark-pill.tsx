@@ -18,7 +18,7 @@ export function DriverDarkPill({ className }: { className?: string }) {
       aria-label={dark ? "Mode clair" : "Mode sombre"}
       aria-pressed={dark}
       className={
-        "border-border bg-surface text-muted hover:text-foreground grid size-9 shrink-0 place-items-center rounded-full border shadow-sm " +
+        "border-border bg-surface text-muted hover:text-foreground grid size-9 shrink-0 place-items-center rounded-full border " +
         (className ?? "")
       }
     >

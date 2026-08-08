@@ -56,7 +56,7 @@ export function HomeThemeHero({
           <Icon className="size-5 drop-shadow-sm" />
         </div>
         <div className="min-w-0">
-          <p className="text-title-lg leading-tight font-bold drop-shadow-sm">
+          <p className="text-title-lg drop- leading-tight font-bold">
             {t.home[lang]}
           </p>
           <p className="mt-0.5 text-xs leading-snug text-white/85">

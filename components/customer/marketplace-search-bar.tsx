@@ -103,7 +103,7 @@ export function MarketplaceSearchBar({
                 ? // Socle CLAIR fixe (hex littéraux, immunisés contre le remap
                   // des tokens en dark) : pilule blanche lisible sur le dégradé
                   // dans LES DEUX modes.
-                  "bg-[#ffffff] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)] focus-within:ring-white/50"
+                  "shadow-sheet bg-[#ffffff] focus-within:ring-white/50"
                 : "bg-surface-2 focus-within:ring-primary-400/40"
             )}
           >

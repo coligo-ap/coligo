@@ -124,7 +124,7 @@ export function DriveHistorySkeleton() {
         </div>
       </div>
       <div className="relative z-10 -mt-10 px-5">
-        <div className="h-[54px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]" />
+        <div className="shadow-sheet h-[54px] animate-pulse rounded-lg bg-[var(--d-surface)]" />
         <div className="mt-3 space-y-2.5">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
@@ -181,7 +181,7 @@ export function DriveHistoryView({
           >
             <ChevronLeft className="size-5 rtl:-scale-x-100" />
           </button>
-          <h1 className="drive-sora text-display-sm font-extrabold tracking-[-0.5px] drop-shadow-sm">
+          <h1 className="drive-sora text-display-sm drop- font-extrabold tracking-[-0.5px]">
             {t("title")}
           </h1>
         </div>
@@ -189,7 +189,7 @@ export function DriveHistoryView({
 
       {/* Onglets en pilule FLOTTANTE sur le dégradé + contenu dessous. */}
       <div className="relative z-10 -mt-10 px-5">
-        <div className="mb-3 flex gap-1.5 rounded-lg bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
+        <div className="shadow-sheet mb-3 flex gap-1.5 rounded-lg bg-[var(--d-surface)] p-1.5">
           {(
             [
               ["c", t("tabRides"), Car],

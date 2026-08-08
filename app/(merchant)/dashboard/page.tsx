@@ -134,7 +134,7 @@ export default async function DashboardPage() {
           pas le `@property` des dégradés Tailwind v4 → sans ça la carte
           apparaissait transparente en mobile. */}
       <section
-        className="bg-primary-600 rounded-sheet-lg mb-5 flex flex-wrap items-center justify-between gap-4 p-4 text-white shadow-sm lg:p-5"
+        className="bg-primary-600 rounded-sheet-lg mb-5 flex flex-wrap items-center justify-between gap-4 p-4 text-white lg:p-5"
         style={{
           backgroundImage:
             "linear-gradient(to bottom right, var(--color-primary-600), var(--color-primary-700))",

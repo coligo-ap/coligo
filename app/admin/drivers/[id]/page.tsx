@@ -481,9 +481,7 @@ export default async function AdminDriverDetailPage({
                 href={`/admin/drivers/${id}?period=${v}`}
                 className={
                   "rounded-sm px-3 py-1.5 " +
-                  (period === v
-                    ? "bg-surface text-foreground shadow-sm"
-                    : "text-muted")
+                  (period === v ? "bg-surface text-foreground" : "text-muted")
                 }
               >
                 {l}

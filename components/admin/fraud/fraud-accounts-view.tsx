@@ -68,7 +68,7 @@ export function FraudAccountsView({ initial }: { initial: FraudScoreRow[] }) {
             <li key={`${s.actor_kind}-${s.actor_id}`}>
               <Link
                 href={fraudActorHref(s.actor_kind, s.actor_id)}
-                className="border-border flex items-center gap-3 rounded-2xl border bg-white p-3 transition-shadow hover:shadow-sm"
+                className="border-border flex items-center gap-3 rounded-2xl border bg-white p-3 transition-shadow"
               >
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">

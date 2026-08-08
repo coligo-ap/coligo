@@ -40,7 +40,7 @@ export function HubTabs({
     <div
       className={
         hero
-          ? "rounded-card-lg flex gap-[3px] bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]"
+          ? "rounded-card-lg shadow-sheet flex gap-[3px] bg-[var(--d-surface)] p-1.5"
           : "rounded-card-lg mb-4 flex gap-[3px] bg-[var(--d-soft)] p-1"
       }
     >

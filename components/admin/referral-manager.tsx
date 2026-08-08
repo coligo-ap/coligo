@@ -137,7 +137,7 @@ export function ReferralManager({
             className={cn(
               "rounded-control flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm font-bold transition-colors",
               tab === t.key
-                ? "bg-surface text-foreground shadow-sm"
+                ? "bg-surface text-foreground"
                 : "text-muted hover:text-foreground"
             )}
           >

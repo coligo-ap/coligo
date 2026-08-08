@@ -472,7 +472,7 @@ function OfferDetailSheet({
             sans ça, l'enfant flex garde sa hauteur de contenu, ne défile pas,
             et le geste part dans la page. */}
         <div
-          className="bg-surface partner-sheet-in rounded-t-panel sm:rounded-panel flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] shadow-xl"
+          className="bg-surface partner-sheet-in rounded-t-panel sm:rounded-panel flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden pb-[env(safe-area-inset-bottom)]"
           role="dialog"
           aria-modal="true"
         >
@@ -488,7 +488,7 @@ function OfferDetailSheet({
             <div className="flex min-w-0 items-start gap-3">
               <span
                 className={cn(
-                  "rounded-card grid size-11 shrink-0 place-items-center bg-gradient-to-br text-white shadow-sm",
+                  "rounded-card grid size-11 shrink-0 place-items-center bg-gradient-to-br text-white",
                   meta.pill
                 )}
               >
@@ -550,7 +550,7 @@ function OfferDetailSheet({
                 </span>
                 <span
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full shadow-sm transition-colors",
+                    "grid size-9 shrink-0 place-items-center rounded-full transition-colors",
                     copied
                       ? "bg-success-600 text-white"
                       : "bg-[#fff] text-[var(--color-accent-600)]"
@@ -703,7 +703,7 @@ function SheetProductRow({
         disabled={isOut}
         aria-label={t("addToCart")}
         className={cn(
-          "flex size-9 shrink-0 items-center justify-center rounded-full border shadow-sm transition-transform active:scale-90",
+          "flex size-9 shrink-0 items-center justify-center rounded-full border transition-transform active:scale-90",
           isOut
             ? "border-border bg-surface-3 text-subtle cursor-not-allowed"
             : added

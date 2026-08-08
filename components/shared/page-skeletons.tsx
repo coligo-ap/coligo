@@ -47,7 +47,7 @@ export function AuthPageSkeleton() {
             <div className="mb-8 flex justify-center lg:hidden">
               <Bar className="h-10 w-32" />
             </div>
-            <div className="border-border rounded-card-lg border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+            <div className="border-border rounded-card-lg border bg-white p-6 lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
               <Bar className="mb-2 h-8 w-56" />
               <Bar className="mb-6 h-4 w-64" />
               <div className="space-y-3">
@@ -73,7 +73,7 @@ export function AuthPageSkeleton() {
 export function CenteredCardSkeleton() {
   return (
     <div className="bg-surface-2 flex min-h-screen items-center justify-center p-4">
-      <div className="border-border w-full max-w-md rounded-lg border bg-white p-6 shadow-sm">
+      <div className="border-border w-full max-w-md rounded-lg border bg-white p-6">
         <Bar className="mb-2 h-7 w-52" />
         <Bar className="mb-6 h-4 w-full max-w-[18rem]" />
         <div className="space-y-3">

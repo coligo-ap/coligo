@@ -79,13 +79,13 @@ export async function CustomerFeatureBlocked({
       >
         {/* Tuile icône au dégradé du thème « occasion » (vars sur <html>). */}
         <div
-          className="rounded-panel-lg grid size-20 place-items-center text-white shadow-[0_18px_40px_-18px_rgba(76,27,155,.55)]"
+          className="rounded-panel-lg grid size-20 place-items-center text-white"
           style={{
             backgroundImage:
               "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g3,#4C1B9B) 100%)",
           }}
         >
-          <Icon className="size-9 drop-shadow-sm" />
+          <Icon className="drop- size-9" />
         </div>
 
         <h1 className="text-foreground mt-5 text-xl font-extrabold tracking-tight">

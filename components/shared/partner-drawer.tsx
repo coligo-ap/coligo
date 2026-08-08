@@ -59,7 +59,7 @@ export function PartnerMenuButton({
       onClick={onClick}
       aria-label={label}
       className={
-        "relative grid size-[44px] place-items-center rounded-lg border shadow-lg " +
+        "relative grid size-[44px] place-items-center rounded-lg border " +
         (className ?? "")
       }
       style={{
@@ -227,7 +227,7 @@ export function PartnerDrawer({
       <aside
         role="dialog"
         aria-modal="true"
-        className="fixed inset-y-0 left-0 z-[121] flex w-[86%] max-w-[360px] flex-col border-e shadow-2xl transition-transform duration-300 ease-out"
+        className="shadow-overlay fixed inset-y-0 left-0 z-[121] flex w-[86%] max-w-[360px] flex-col border-e shadow-2xl transition-transform duration-300 ease-out"
         style={{
           ...themeVars(theme),
           background: theme.surface,

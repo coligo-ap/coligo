@@ -74,7 +74,7 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
           <p className="text-caption mt-4 font-bold tracking-wide uppercase opacity-70">
             {t("coligoPayBalance")}
           </p>
-          <p className="mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums drop-shadow-sm">
+          <p className="drop- mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums">
             <WalletBalanceValue
               kind="topup"
               userId={userId}

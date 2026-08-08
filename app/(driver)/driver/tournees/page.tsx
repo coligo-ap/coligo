@@ -92,7 +92,7 @@ export default async function DriverToursHubPage() {
           href="/driver/codes"
           className="rounded-card-lg flex items-center gap-3 border-2 border-dashed border-[var(--violet-l)] bg-[var(--violet-soft)] px-4 py-3.5 transition-transform active:scale-[0.99]"
         >
-          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--violet)] shadow-sm">
+          <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--violet)]">
             <KeyRound className="size-[18px]" />
           </span>
           <span className="min-w-0 flex-1">
@@ -122,7 +122,7 @@ export default async function DriverToursHubPage() {
                   <li key={m.merchant_driver_id}>
                     <Link
                       href={`/driver/m/${m.merchant_driver_id}`}
-                      className="rounded-card-lg flex items-center gap-3 border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 shadow-[0_4px_16px_rgba(0,0,0,.04)] transition-transform active:scale-[0.99]"
+                      className="rounded-card-lg flex items-center gap-3 border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 transition-transform active:scale-[0.99]"
                     >
                       <span className="grid size-[38px] shrink-0 place-items-center rounded-full bg-[var(--soft)] text-sm font-extrabold text-[var(--ink)]">
                         {m.merchant_name.charAt(0).toUpperCase()}

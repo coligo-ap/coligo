@@ -83,7 +83,7 @@ function MerchantCardCompactImpl({
     <Link
       href={`/m/${merchant.slug}`}
       className={cn(
-        "group border-border bg-surface isolate flex gap-3 rounded-md border p-2.5 shadow-[0_1px_3px_rgba(20,20,50,0.05)] transition-transform active:scale-[.985]",
+        "group border-border bg-surface isolate flex gap-3 rounded-md border p-2.5 transition-transform active:scale-[.985]",
         open === false && "opacity-60"
       )}
     >

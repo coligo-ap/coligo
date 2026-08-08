@@ -129,7 +129,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
               className={cn(
                 "text-body-sm flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 font-bold transition",
                 active
-                  ? "bg-surface text-foreground shadow-sm"
+                  ? "bg-surface text-foreground"
                   : "text-muted hover:text-foreground"
               )}
             >

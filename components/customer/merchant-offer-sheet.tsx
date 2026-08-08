@@ -111,7 +111,7 @@ export function MerchantOfferSheet({
         }}
       >
         <div
-          className="bg-surface flex w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl"
+          className="bg-surface shadow-overlay flex w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] sm:rounded-xl"
           role="dialog"
           aria-modal="true"
         >
@@ -132,7 +132,7 @@ export function MerchantOfferSheet({
           <div className="space-y-4 px-5 py-4">
             {/* Valeur + intitulé + commerçant */}
             <div className="flex items-start gap-3">
-              <span className="bg-accent-600 rounded-card-lg grid size-12 shrink-0 place-items-center text-white shadow-sm">
+              <span className="bg-accent-600 rounded-card-lg grid size-12 shrink-0 place-items-center text-white">
                 <Ticket className="size-6" />
               </span>
               <div className="min-w-0">
@@ -168,7 +168,7 @@ export function MerchantOfferSheet({
                 </span>
                 <span
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-full shadow-sm transition-colors",
+                    "grid size-9 shrink-0 place-items-center rounded-full transition-colors",
                     copied
                       ? "bg-success-600 text-white"
                       : "bg-[#fff] text-[var(--color-accent-600)]"

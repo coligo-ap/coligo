@@ -183,7 +183,7 @@ export function DriveAiBar({
   /* ─────────── Carte de confirmation du trajet ─────────── */
   if (draft) {
     return (
-      <div className="mb-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-3 shadow-sm">
+      <div className="mb-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-3">
         <p
           className="drive-sora text-caption mb-2 flex items-center gap-1.5 font-extrabold tracking-[0.4px] uppercase"
           style={{ color: VIOLET }}

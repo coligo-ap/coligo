@@ -283,7 +283,7 @@ export function CustomerDeliveryMap({
           .join(" — ") || t("locating");
 
   return (
-    <div className="border-border bg-surface rounded-sheet-lg overflow-hidden border shadow-sm">
+    <div className="border-border bg-surface rounded-sheet-lg overflow-hidden border">
       {/* carte compacte */}
       <div
         className="bg-surface-2 relative w-full"

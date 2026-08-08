@@ -74,7 +74,7 @@ export default function RootError({
 
   return (
     <main className="bg-surface-2 flex min-h-screen flex-col items-center justify-center px-6 py-10">
-      <div className="border-border rounded-card-lg w-full max-w-sm border bg-white p-6 text-center shadow-sm">
+      <div className="border-border rounded-card-lg w-full max-w-sm border bg-white p-6 text-center">
         <div
           className={`mx-auto mb-4 flex size-12 items-center justify-center rounded-full ${
             offline

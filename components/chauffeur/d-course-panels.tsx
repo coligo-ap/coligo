@@ -164,7 +164,7 @@ export function DoneScreen({
   return (
     <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-page)] pb-8">
       {/* ── Héro : gain net d'un coup d'œil ── */}
-      <div className="rounded-b-2xl bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
+      <div className="rounded-b-2xl bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center">
         <span
           className="drive-pop mx-auto mb-2.5 grid size-14 place-items-center rounded-full"
           style={{ background: "rgba(22,179,100,.12)" }}

@@ -523,7 +523,7 @@ function DiscountFields({
                 className={cn(
                   "rounded-chip px-3 py-2 text-sm font-medium transition-colors",
                   kind === k
-                    ? "text-primary-700 bg-white shadow-sm"
+                    ? "text-primary-700 bg-white"
                     : "text-muted hover:text-foreground"
                 )}
               >

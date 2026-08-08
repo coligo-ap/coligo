@@ -33,7 +33,7 @@ export default async function BlockedPage() {
 
   return (
     <div className="bg-surface-2 flex min-h-screen items-center justify-center p-6">
-      <div className="border-border rounded-sheet-lg w-full max-w-md border bg-white p-8 text-center shadow-sm">
+      <div className="border-border rounded-sheet-lg w-full max-w-md border bg-white p-8 text-center">
         <div className="bg-danger-50 mx-auto flex size-14 items-center justify-center rounded-full">
           <ShieldX className="text-danger-600 size-7" />
         </div>

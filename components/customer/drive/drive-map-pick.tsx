@@ -352,7 +352,7 @@ export function MapPickScreen({
           ) : null}
         </div>
         {searchOpen && searchResults.length > 0 && (
-          <ul className="mt-1.5 max-h-44 overflow-auto rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+          <ul className="mt-1.5 max-h-44 overflow-auto rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-1">
             {searchResults.map((r, i) => (
               <li key={`${r.lat}-${r.lng}-${i}`} className="flex items-center">
                 <button
@@ -421,7 +421,7 @@ export function MapPickScreen({
         {searchQ.trim() === "" &&
           favOpen &&
           (favorites.length > 0 || recents.length > 0) && (
-            <ul className="mt-1.5 max-h-44 overflow-auto rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+            <ul className="mt-1.5 max-h-44 overflow-auto rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-1">
               {/* Bouton ✕ pour masquer « Tes lieux » manuellement (sinon il se
                   ferme à l'interaction carte). */}
               <li className="flex justify-end px-2 pt-0.5">
@@ -525,7 +525,7 @@ export function MapPickScreen({
           !searching &&
           searchResults.length === 0 &&
           searchQ.trim().length >= 3 && (
-            <p className="rounded-card-lg mt-1.5 border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)] shadow-xl">
+            <p className="rounded-card-lg mt-1.5 border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)]">
               {t("noResults")}
             </p>
           )}

@@ -140,7 +140,7 @@ export default async function AdminAgentDetailPage({
       </Link>
 
       {/* En-tête */}
-      <div className="border-border bg-surface rounded-lg border p-4 shadow-sm">
+      <div className="border-border bg-surface rounded-lg border p-4">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-foreground text-lg font-bold">

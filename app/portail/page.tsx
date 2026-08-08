@@ -47,7 +47,7 @@ function PortailContent() {
           </p>
         </div>
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 shadow-2xl backdrop-blur">
+        <div className="rounded-2xl border border-slate-800 bg-slate-900/70 p-6 backdrop-blur">
           <form action={formAction} className="space-y-4">
             <div className="space-y-1.5">
               <Label htmlFor="email" className="text-slate-300">
@@ -95,7 +95,7 @@ function PortailContent() {
             <button
               type="submit"
               disabled={pending}
-              className="bg-primary-600 hover:bg-primary-500 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+              className="bg-primary-600 hover:bg-primary-500 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white disabled:opacity-60"
             >
               {pending ? (
                 <>

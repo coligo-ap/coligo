@@ -174,7 +174,7 @@ function Note({ value, size }: { value: number; size: number }) {
       height={size}
       viewBox="0 0 76 40"
       aria-hidden
-      className="shrink-0 drop-shadow-sm"
+      className="drop- shrink-0"
     >
       <NoteArt value={value} />
     </svg>
@@ -188,7 +188,7 @@ function Coin({ value, size }: { value: number; size: number }) {
       height={size}
       viewBox="0 0 40 40"
       aria-hidden
-      className="shrink-0 drop-shadow-sm"
+      className="drop- shrink-0"
     >
       <CoinArt value={value} />
     </svg>

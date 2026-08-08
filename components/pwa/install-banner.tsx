@@ -65,7 +65,7 @@ export function InstallBanner({
       >
         <div
           className={cn(
-            "border-border mx-auto flex max-w-sm items-center gap-2.5 rounded-lg border bg-white/95 p-2.5 shadow-lg backdrop-blur transition-all duration-300 ease-out",
+            "border-border mx-auto flex max-w-sm items-center gap-2.5 rounded-lg border bg-white/95 p-2.5 backdrop-blur transition-all duration-300 ease-out",
             shown ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
           )}
         >
