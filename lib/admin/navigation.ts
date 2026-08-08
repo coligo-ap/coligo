@@ -40,6 +40,7 @@ import {
   UserCog,
   Users,
   Wallet,
+  UserPlus,
 } from "lucide-react";
 import type { AlertDomain } from "@/lib/alerts/alert-model";
 
@@ -533,6 +534,24 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Notifications",
             icon: Bell,
             keywords: ["push", "campagne", "message"],
+          },
+          {
+            href: "/admin/marketing/recrutement",
+            label: "Page recrutement",
+            icon: UserPlus,
+            keywords: [
+              "recrute",
+              "partenaires",
+              "métiers",
+              "visuels",
+              "photos",
+              "design",
+              "textes",
+              "chauffeur",
+              "livreur",
+              "commerçant",
+              "agent",
+            ],
           },
         ],
       },

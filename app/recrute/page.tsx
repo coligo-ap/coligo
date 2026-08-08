@@ -21,6 +21,11 @@ import {
   type FeatureFlag,
   type FeatureKey,
 } from "@/lib/data/feature-flags";
+import { getRecruteContent } from "@/lib/data/recrute-content";
+import {
+  recruteDesignVars,
+  type RecruteRole,
+} from "@/lib/config/recrute-content";
 
 export const metadata = {
   title: "Recrutement Coligo — devenez commerçant, livreur, chauffeur ou agent",
@@ -40,94 +45,23 @@ export const metadata = {
 // Drapeaux : recruit_* par métier + kill-switch domaine coligo_pay_agents.
 // =============================================================================
 
-type RoleCard = {
-  key: FeatureKey;
-  /**
-   * Visuel de marque du domaine. Ce sont des captures RÉELLES de l'app,
-   * extraites du panorama des stores (`store-assets/panorama_complet.png`) :
-   * dégradé Coligo continu + l'écran que la personne utilisera vraiment. Une
-   * photo d'illustration montrerait un métier ; ceci montre LA PLATEFORME.
-   * Servies en local — plus aucune dépendance à un hébergeur d'images tiers.
-   */
-  img: string;
-  imgAlt: string;
-  title: string;
-  tagline: string;
-  highlight: string;
-  perks: string[];
-  href: string;
-  cta: string;
-};
-
-const ROLES: RoleCard[] = [
-  {
-    key: "recruit_chauffeur",
-    img: "/heros/chauffeur.webp",
-    imgAlt:
-      "Course Coligo Drive à Béjaïa : départ, destination et prix affichés avant de réserver",
-    title: "Chauffeur",
-    tagline: "Transportez des passagers avec Coligo Drive.",
-    highlight: "Commission 0 %",
-    perks: [
-      "Vous proposez votre prix sur chaque course",
-      "Ville, inter-wilayas et covoiturage par places",
-      "Gains en espèces ou Coligo Pay, détaillés dans l'app",
-    ],
-    href: "/chauffeur/signup",
-    cta: "Devenir chauffeur",
-  },
-  {
-    key: "recruit_merchant",
-    img: "/heros/commercant.webp",
-    imgAlt:
-      "Tableau de bord commerçant Coligo : recette du jour et commandes en direct",
-    title: "Commerçant",
-    tagline: "Vendez en ligne à tout votre quartier.",
-    highlight: "0 DA à l'inscription",
-    perks: [
-      "Commission uniquement sur les ventes, aucun abonnement",
-      "Boutique en ligne + livraison express intégrée",
-      "Caisse, tickets imprimés et statistiques inclus",
-    ],
-    href: "/signup",
-    cta: "Devenir commerçant",
-  },
-  {
-    key: "recruit_driver",
-    img: "/heros/livreur.webp",
-    imgAlt:
-      "Course express proposée à un livreur Coligo : trajet, distance et gain net",
-    title: "Livreur",
-    tagline: "Livrez les commandes près de chez vous.",
-    highlight: "Gains à chaque course",
-    perks: [
-      "Vous choisissez votre zone et vos horaires",
-      "Courses express et tournées programmées",
-      "Revenus suivis en direct, versements transparents",
-    ],
-    href: "/driver/signup",
-    cta: "Devenir livreur",
-  },
-  {
-    key: "recruit_agent",
-    img: "/heros/agent.webp",
-    imgAlt:
-      "Écran « Espaces partenaires » de Coligo : chaque métier a son espace dédié",
-    title: "Agent Coligo Pay",
-    tagline: "Encaissez les recharges de votre quartier.",
-    highlight: "Commission par recharge",
-    perks: [
-      "Un téléphone suffit : QR simple, zéro matériel",
-      "Vous devenez le point de recharge du quartier",
-      "Portefeuille et commissions suivis dans l'app",
-    ],
-    href: "/partenaire/signup",
-    cta: "Devenir agent",
-  },
-];
+/**
+ * Les cartes ne sont plus écrites ici : elles viennent de la base
+ * (`recrute_page` / `recrute_roles`, mig 0450) et sont modifiables par
+ * l'équipe depuis /admin/marketing/recrutement — photo, accroche, avantages
+ * et habillage du héros. Les VALEURS PAR DÉFAUT restent dans le dépôt
+ * (`lib/config/recrute-content.ts`) : la page reste complète et juste même si
+ * la base est vide ou injoignable.
+ */
+type RoleCard = RecruteRole;
 
 export default async function RecrutePage() {
-  const flags = await getFeatureFlags();
+  // Drapeaux et contenu sont INDÉPENDANTS → en parallèle, pas en cascade.
+  const [flags, content] = await Promise.all([
+    getFeatureFlags(),
+    getRecruteContent(),
+  ]);
+  const ROLES = content.roles;
   // Kill-switch DOMAINE : réseau d'agents Coligo Pay masqué (coligo_pay_agents,
   // mig 0449) ⇒ la carte agent disparaît, quel que soit son drapeau recruit_*.
   const visible = ROLES.filter(
@@ -161,7 +95,17 @@ export default async function RecrutePage() {
         </Link>
 
         {/* ───── HERO — promesse + l'offre en très grand ───── */}
-        <section className="cg-brand-gradient relative overflow-hidden rounded-lg p-7 text-white lg:p-10">
+        {/* Habillage choisi par l'équipe : le dégradé passe par des variables
+            CSS, jamais par des couleurs écrites dans le composant. */}
+        <section
+          className="relative overflow-hidden rounded-lg p-7 text-white lg:p-10"
+          style={{
+            ...recruteDesignVars(content.design),
+            backgroundImage:
+              "linear-gradient(135deg, var(--rc-g1), var(--rc-g2) 52%, var(--rc-g3))",
+            backgroundColor: "var(--rc-g2)",
+          }}
+        >
           <div className="relative z-[1]">
             <Image
               src={BRAND_ASSETS.fullWhite}
@@ -175,15 +119,15 @@ export default async function RecrutePage() {
               className="rc-up mt-5 max-w-xl text-3xl leading-tight font-black tracking-tight text-balance lg:text-4xl"
               style={{ animationDelay: "80ms" }}
             >
-              Travaillez avec {APP_CONFIG.name}. Gagnez à votre rythme.
+              {content.heroTitle ??
+                `Travaillez avec ${APP_CONFIG.name}. Gagnez à votre rythme.`}
             </h1>
             <p
               className="rc-up mt-3 max-w-lg text-sm leading-relaxed text-white/85 lg:text-base"
               style={{ animationDelay: "160ms" }}
             >
-              Commerçant, livreur, chauffeur ou agent : choisissez votre métier,
-              inscrivez-vous en ligne et démarrez après validation de votre
-              dossier par l&apos;équipe {APP_CONFIG.name}.
+              {content.heroSubtitle ??
+                `Commerçant, livreur, chauffeur ou agent : choisissez votre métier, inscrivez-vous en ligne et démarrez après validation de votre dossier par l'équipe ${APP_CONFIG.name}.`}
             </p>
             {/* L'offre en TRÈS GRAND — l'argument n° 1 du recrutement. */}
             <div className="mt-7 flex flex-wrap items-end gap-x-10 gap-y-5">

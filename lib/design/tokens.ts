@@ -234,6 +234,41 @@ export const PROMO_GRADIENTS = {
   slate: "linear-gradient(120deg,#16161e,#2a2340 60%,#3a2c5e)",
 } as const;
 
+/**
+ * Habillages du HÉROS DE RECRUTEMENT (/recrute), choisis par l'équipe depuis
+ * l'administration. Ce sont des dégradés de CAMPAGNE, pas des tokens de
+ * chrome : ils vivent ici parce qu'aucune couleur ne doit s'écrire hors des
+ * fichiers de tokens, et parce qu'ils sont appliqués en variables CSS
+ * calculées à l'exécution (le nom du preset vient de la base).
+ */
+export const RECRUTE_HERO_GRADIENTS = {
+  /** Violet de marque — le défaut. */
+  coligo: {
+    g1: "#5b2eff",
+    g2: PRIMARY[600],
+    g3: PRIMARY[700],
+    glow: ACCENT[500],
+  },
+  /** Violet profond, plus sobre et contrasté. */
+  nuit: { g1: "#3b1178", g2: "#2a0f5e", g3: "#14062e", glow: PRIMARY[400] },
+  /** Violet vers rose — campagnes et temps forts. */
+  aurore: {
+    g1: PRIMARY[600],
+    g2: "#9b2fa8",
+    g3: ACCENT[600],
+    glow: ACCENT[300],
+  },
+  /** Vert — met en avant les gains. */
+  emeraude: {
+    g1: PARTNER.goDark,
+    g2: PARTNER.go,
+    g3: "#065f46",
+    glow: PARTNER.goLight,
+  },
+  /** Chaud — saison, Ramadan, fêtes. */
+  ambre: { g1: WARNING[700], g2: WARNING[600], g3: "#7c2d12", glow: "#f7bf4f" },
+} as const;
+
 /** Durées et courbes de mouvement (miroir de `--duration-*` / `--ease-*`). */
 export const MOTION = {
   fast: 160,
