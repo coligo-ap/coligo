@@ -27,7 +27,7 @@ export function CustomerFooter() {
         <Column title={t("about")}>
           <Item href="/about">Coligo</Item>
           <Item href="/blog">{t("blog")}</Item>
-          <Item href="/login">{t("becomeMerchant")}</Item>
+          <Item href="/recrute">{t("joinUs")}</Item>
         </Column>
 
         <Column title={t("help")}>

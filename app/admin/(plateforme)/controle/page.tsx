@@ -95,6 +95,26 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     label: "Vérification d'identité (IDV)",
     hint: "Kill-switch du parcours automatisé document + selfie (scan, liveness, comparaison du visage). Masqué = retiré partout. Les règles par profil et les seuils se pilotent dans Confiance → Identité.",
   },
+  {
+    key: "recruit_merchant",
+    label: "Recrutement — commerçants (/recrute)",
+    hint: "La carte « Devenir commerçant » de la page publique coligo.app/recrute. Masqué = carte retirée ; bientôt/maintenance = grisée sans lien. Le portail /signup lui-même n'est pas coupé (les dossiers restent validés par l'équipe).",
+  },
+  {
+    key: "recruit_driver",
+    label: "Recrutement — livreurs (/recrute)",
+    hint: "La carte « Devenir livreur » de la page publique coligo.app/recrute. Masqué = carte retirée ; bientôt/maintenance = grisée sans lien vers /driver/signup.",
+  },
+  {
+    key: "recruit_chauffeur",
+    label: "Recrutement — chauffeurs (/recrute)",
+    hint: "La carte « Devenir chauffeur » de la page publique coligo.app/recrute. Masqué = carte retirée ; bientôt/maintenance = grisée sans lien vers /chauffeur/signup.",
+  },
+  {
+    key: "recruit_agent",
+    label: "Recrutement — agents Coligo Pay (/recrute)",
+    hint: "La carte « Devenir agent » de la page publique coligo.app/recrute. Masqué = carte retirée ; bientôt/maintenance = grisée sans lien vers /partenaire/signup.",
+  },
 ];
 
 export default async function AdminControlePage() {

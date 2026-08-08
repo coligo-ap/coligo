@@ -28,7 +28,11 @@ export type FeatureKey =
   | "referral"
   | "shared_cart"
   | "intl_card"
-  | "wheel";
+  | "wheel"
+  | "recruit_merchant"
+  | "recruit_driver"
+  | "recruit_chauffeur"
+  | "recruit_agent";
 export type FeatureStatus = "active" | "hidden" | "coming_soon" | "maintenance";
 
 export type FeatureFlag = {
@@ -62,6 +66,10 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "shared_cart",
   "intl_card",
   "wheel",
+  "recruit_merchant",
+  "recruit_driver",
+  "recruit_chauffeur",
+  "recruit_agent",
 ];
 
 function defaultFlag(key: FeatureKey): FeatureFlag {
