@@ -142,12 +142,28 @@ export default async function RecrutePage() {
               inscrivez-vous en ligne et démarrez après validation de votre
               dossier par l&apos;équipe {APP_CONFIG.name}.
             </p>
-            <div className="mt-6 grid max-w-md grid-cols-4 gap-2">
-              <HeroStat value="0 DA" label="Inscription" />
-              <HeroStat value="2 min" label="Dossier" />
-              <HeroStat value="100 %" label="En ligne" />
-              <HeroStat value="24/7" label="Support" />
+            {/* L'offre en TRÈS GRAND — l'argument n° 1 du recrutement. */}
+            <div className="mt-7 flex flex-wrap items-end gap-x-10 gap-y-5">
+              <div>
+                <p className="text-[64px] leading-none font-black tracking-tight lg:text-[96px]">
+                  0&nbsp;%
+                </p>
+                <p className="mt-2 text-[13px] font-bold tracking-wide text-white/90 uppercase">
+                  de commission au lancement
+                </p>
+              </div>
+              <div>
+                <p className="text-[52px] leading-none font-black tracking-tight lg:text-[84px]">
+                  Gratuit
+                </p>
+                <p className="mt-2 text-[13px] font-bold tracking-wide text-white/90 uppercase">
+                  inscription en ligne, 0 DA
+                </p>
+              </div>
             </div>
+            <p className="mt-5 text-[13px] font-semibold text-white/80">
+              Dossier en 2 minutes · Support 24/7
+            </p>
           </div>
           <div
             aria-hidden
@@ -263,16 +279,6 @@ export default async function RecrutePage() {
         </section>
       </div>
     </main>
-  );
-}
-
-/** Mini-chiffre du héro (fond translucide sur le dégradé de marque). */
-function HeroStat({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="rounded-[10px] bg-white/10 px-2 py-2 text-center">
-      <p className="text-sm font-black">{value}</p>
-      <p className="mt-0.5 text-[10px] font-medium text-white/75">{label}</p>
-    </div>
   );
 }
 
