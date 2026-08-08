@@ -46,6 +46,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Le wallet : paiement marchand QR et transferts Envoyer/Recevoir.",
   },
   {
+    key: "coligo_pay_agents",
+    label: "Coligo Pay — réseau d'agents",
+    hint: "Tout le domaine « Agent Coligo Pay » : autre que « active » = méthode « Espèces chez un agent » retirée des recharges (commerçant, livreur, chauffeur, abonnements), option agent retirée des portails partenaires et de /recrute, espace agent suspendu et inscriptions fermées. Le wallet Coligo Pay lui-même n'est pas touché (drapeau dédié ci-dessus).",
+  },
+  {
     key: "cashback",
     label: "Cashback",
     hint: "Le gain et l'usage du cashback. Désactivé = plus de gain ni d'utilisation (sans casser les commandes).",

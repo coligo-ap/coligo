@@ -19,6 +19,7 @@ export type FeatureKey =
   | "drive_carpool"
   | "online_payment"
   | "coligo_pay"
+  | "coligo_pay_agents"
   | "cashback"
   | "express"
   | "tour"
@@ -56,6 +57,7 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "drive_carpool",
   "online_payment",
   "coligo_pay",
+  "coligo_pay_agents",
   "cashback",
   "express",
   "tour",

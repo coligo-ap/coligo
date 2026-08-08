@@ -111,7 +111,13 @@ const ROLES: RoleCard[] = [
 
 export default async function RecrutePage() {
   const flags = await getFeatureFlags();
-  const visible = ROLES.filter((r) => isVisible(flags[r.key]));
+  // Kill-switch DOMAINE : réseau d'agents Coligo Pay masqué (coligo_pay_agents,
+  // mig 0449) ⇒ la carte agent disparaît, quel que soit son drapeau recruit_*.
+  const visible = ROLES.filter(
+    (r) =>
+      isVisible(flags[r.key]) &&
+      (r.key !== "recruit_agent" || flags.coligo_pay_agents.status === "active")
+  );
 
   return (
     <main className="bg-surface-2 min-h-screen">

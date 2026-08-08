@@ -17,13 +17,15 @@ export default async function ContactPage() {
   const flags = await getFeatureFlags();
   const drive = isVisible(flags.drive);
   const pay = isVisible(flags.coligo_pay);
+  // Réseau d'agents Coligo Pay (kill-switch domaine, mig 0449).
+  const agents = pay && flags.coligo_pay_agents.status === "active";
   const delivery = isVisible(flags.express) || isVisible(flags.tour);
 
   const supportAudience = [
     "clients",
     ...(delivery ? ["livreurs"] : []),
     ...(drive ? ["chauffeurs"] : []),
-    ...(pay ? ["agents"] : []),
+    ...(agents ? ["agents"] : []),
   ].join(", ");
 
   const partnerRoles = [
@@ -97,7 +99,7 @@ export default async function ContactPage() {
             title="Devenir commerçant ou partenaire"
           >
             Vous êtes {partnerRoles}
-            {pay ? " ou souhaitez devenir Agent Coligo Pay" : ""} ? Écrivez à{" "}
+            {agents ? " ou souhaitez devenir Agent Coligo Pay" : ""} ? Écrivez à{" "}
             <a
               href={`mailto:${APP_CONFIG.contact.salesEmail}`}
               className="text-primary-700 font-medium hover:underline"

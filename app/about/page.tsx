@@ -206,7 +206,11 @@ export default async function AboutPage() {
               <Service
                 icon={<Wallet className="text-primary-600 size-5" />}
                 title="Coligo Pay"
-                text="Un solde prépayé rechargeable auprès d'agents agréés près de chez vous : payez vos commandes en un geste, sans monnaie et sans carte."
+                text={
+                  flags.coligo_pay_agents.status === "active"
+                    ? "Un solde prépayé rechargeable auprès d'agents agréés près de chez vous : payez vos commandes en un geste, sans monnaie et sans carte."
+                    : "Un solde prépayé rechargeable depuis l'application : payez vos commandes en un geste, sans monnaie et sans carte."
+                }
               />
             )}
           </div>

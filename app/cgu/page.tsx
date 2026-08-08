@@ -14,6 +14,8 @@ export default async function CguPage() {
   const flags = await getFeatureFlags();
   const drive = isVisible(flags.drive);
   const pay = isVisible(flags.coligo_pay);
+  // Réseau d'agents Coligo Pay (kill-switch domaine, mig 0449).
+  const agents = pay && flags.coligo_pay_agents.status === "active";
   const onlinePay = isVisible(flags.online_payment);
   const delivery = isVisible(flags.express) || isVisible(flags.tour);
 
@@ -22,7 +24,7 @@ export default async function CguPage() {
     "commerçants partenaires",
     ...(delivery ? ["livreurs partenaires"] : []),
     ...(drive ? ["chauffeurs partenaires"] : []),
-    ...(pay ? ["agents Coligo Pay"] : []),
+    ...(agents ? ["agents Coligo Pay"] : []),
   ].join(", ");
 
   const partnerKinds = [
@@ -119,18 +121,17 @@ export default async function CguPage() {
               proposant des trajets via le service Coligo Drive.
             </li>
           )}
+          {agents && (
+            <li>
+              <strong>Agent Coligo Pay</strong> : partenaire indépendant agréé
+              par {LEGAL.platform} comme point de recharge du solde Coligo Pay.
+            </li>
+          )}
           {pay && (
-            <>
-              <li>
-                <strong>Agent Coligo Pay</strong> : partenaire indépendant agréé
-                par {LEGAL.platform} comme point de recharge du solde Coligo
-                Pay.
-              </li>
-              <li>
-                <strong>Coligo Pay</strong> : solde prépayé interne à la
-                Plateforme (voir l&apos;article dédié).
-              </li>
-            </>
+            <li>
+              <strong>Coligo Pay</strong> : solde prépayé interne à la
+              Plateforme (voir l&apos;article dédié).
+            </li>
           )}
         </ul>
       ),
@@ -320,7 +321,7 @@ export default async function CguPage() {
 
   if (pay) {
     sections.push({
-      title: "Coligo Pay et agents de recharge",
+      title: agents ? "Coligo Pay et agents de recharge" : "Coligo Pay",
       body: (
         <ul className="list-disc space-y-1 pl-5">
           <li>
@@ -332,10 +333,11 @@ export default async function CguPage() {
             fonctionnalités prévues par la Plateforme.
           </li>
           <li>
-            La recharge s&apos;effectue auprès des Agents Coligo Pay agréés ou
-            par tout autre moyen proposé dans l&apos;application. Chaque
-            opération (recharge, paiement, remboursement) est inscrite dans un
-            registre horodaté et infalsifiable.
+            {agents
+              ? "La recharge s'effectue auprès des Agents Coligo Pay agréés ou par tout autre moyen proposé dans l'application."
+              : "La recharge s'effectue par les moyens proposés dans l'application."}{" "}
+            Chaque opération (recharge, paiement, remboursement) est inscrite
+            dans un registre horodaté et infalsifiable.
           </li>
           <li>
             Le remboursement d&apos;un solde s&apos;effectue sur demande auprès

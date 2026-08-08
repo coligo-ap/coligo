@@ -24,8 +24,10 @@ function buildSections(opts: {
   pay: boolean;
   onlinePay: boolean;
   delivery: boolean;
+  /** Réseau d'agents Coligo Pay visible (drapeau coligo_pay_agents). */
+  agents: boolean;
 }): Section[] {
-  const { drive, pay, onlinePay, delivery } = opts;
+  const { drive, pay, onlinePay, delivery, agents } = opts;
   const sections: Section[] = [];
 
   sections.push({
@@ -175,12 +177,18 @@ function buildSections(opts: {
               },
               {
                 q: "Comment recharger mon solde ?",
-                a: (
+                a: agents ? (
                   <>
                     Rendez-vous chez un <strong>Agent Coligo Pay</strong> près
                     de chez vous (visibles sur la carte dans l&apos;application)
                     : vous payez en espèces, votre solde est crédité
                     immédiatement.
+                  </>
+                ) : (
+                  <>
+                    Directement depuis l&apos;application, par carte{" "}
+                    <strong>CIB / Edahabia</strong> : votre solde est crédité
+                    immédiatement après le paiement.
                   </>
                 ),
               },
@@ -296,7 +304,7 @@ function buildSections(opts: {
             },
           ]
         : []),
-      ...(pay
+      ...(pay && agents
         ? [
             {
               q: "Comment devenir Agent Coligo Pay ?",
@@ -323,6 +331,7 @@ export default async function CentreAidePage() {
     pay: isVisible(flags.coligo_pay),
     onlinePay: isVisible(flags.online_payment),
     delivery: isVisible(flags.express) || isVisible(flags.tour),
+    agents: flags.coligo_pay_agents.status === "active",
   });
 
   return (

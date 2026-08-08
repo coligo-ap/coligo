@@ -19,7 +19,8 @@ export default async function ConfidentialitePage() {
     "commerçants",
     ...(delivery ? ["livreurs"] : []),
     ...(drive ? ["chauffeurs"] : []),
-    ...(pay ? ["agents"] : []),
+    // Réseau d'agents Coligo Pay (kill-switch domaine, mig 0449).
+    ...(pay && flags.coligo_pay_agents.status === "active" ? ["agents"] : []),
   ].join(", ");
 
   return (

@@ -37,7 +37,16 @@ import {
  * RECHARGER — étape 1 : choisir SA méthode. Une décision par écran : chaque
  * méthode ouvre ensuite SON flux dédié (Carte / Virement CCP / Espèces).
  */
-export function PayMethodChoice({ base }: { base: PayBase }) {
+export function PayMethodChoice({
+  base,
+  agentsEnabled = true,
+}: {
+  base: PayBase;
+  /** Réseau d'agents Coligo Pay visible ? (drapeau coligo_pay_agents, passé
+   *  par la page serveur). false = la méthode « Espèces chez un agent »
+   *  disparaît de l'écran (et /especes redirige côté serveur). */
+  agentsEnabled?: boolean;
+}) {
   const { lang, t, tr, dir } = usePayLang();
   const { state } = usePayWallet();
   const { hidden } = useHideBalance();
@@ -62,17 +71,24 @@ export function PayMethodChoice({ base }: { base: PayBase }) {
       badge: "24h",
       badgeTone: "amber" as const,
     },
-    {
-      href: payHref(base, "/especes"),
-      Icon: Banknote,
-      title: lang === "ar" ? "لدى وكيل Coligo Pay" : "Chez un agent Coligo Pay",
-      sub:
-        lang === "ar"
-          ? "اشحن نقدًا لدى وكيل قريب"
-          : "Rechargez en espèces chez un agent",
-      badge: lang === "ar" ? "قريب" : "Proche",
-      badgeTone: "ok" as const,
-    },
+    ...(agentsEnabled
+      ? [
+          {
+            href: payHref(base, "/especes"),
+            Icon: Banknote,
+            title:
+              lang === "ar"
+                ? "لدى وكيل Coligo Pay"
+                : "Chez un agent Coligo Pay",
+            sub:
+              lang === "ar"
+                ? "اشحن نقدًا لدى وكيل قريب"
+                : "Rechargez en espèces chez un agent",
+            badge: lang === "ar" ? "قريب" : "Proche",
+            badgeTone: "ok" as const,
+          },
+        ]
+      : []),
   ];
 
   return (
@@ -138,12 +154,16 @@ export function PayMethodChoice({ base }: { base: PayBase }) {
           <div className="mt-2 space-y-1.5">
             {(lang === "ar"
               ? [
-                  "بطاقة = رصيد فوري · تحويل CCP = تحقق خلال 24س · نقدًا لدى وكيل = فوري",
+                  agentsEnabled
+                    ? "بطاقة = رصيد فوري · تحويل CCP = تحقق خلال 24س · نقدًا لدى وكيل = فوري"
+                    : "بطاقة = رصيد فوري · تحويل CCP = تحقق خلال 24س",
                   "كل عملية مسجّلة وغير قابلة للتعديل — رصيدك محمي ويمكن التحقق منه",
                   "الرصيد يُستعمل تلقائيًا: عمولات، اشتراكات — بدون خطوات إضافية",
                 ]
               : [
-                  "Carte = crédit instantané · Virement CCP = vérifié sous 24 h · Espèces chez un agent = immédiat",
+                  agentsEnabled
+                    ? "Carte = crédit instantané · Virement CCP = vérifié sous 24 h · Espèces chez un agent = immédiat"
+                    : "Carte = crédit instantané · Virement CCP = vérifié sous 24 h",
                   "Chaque opération est enregistrée et infalsifiable — votre solde est protégé",
                   "Le solde sert automatiquement : commissions, abonnements — zéro étape en plus",
                 ]

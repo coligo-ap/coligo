@@ -15,6 +15,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useAgentsVisible } from "@/lib/data/agents-visible-client";
 
 /**
  * Rôles partenaires listés dans la bottom sheet « Rejoindre Coligo ».
@@ -99,6 +100,12 @@ export function PartnerSheetButton({
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const shownLabel = label ?? tr("Espaces partenaires", "فضاءات الشركاء");
+  // Kill-switch domaine agents (mig 0449) : réseau masqué par l'équipe Coligo
+  // ⇒ l'entrée « Agent Coligo Pay » disparaît des propositions.
+  const agentsVisible = useAgentsVisible();
+  const roles = agentsVisible
+    ? PARTNER_ROLES
+    : PARTNER_ROLES.filter((r) => r.key !== "coligo-pay-agent");
   const [open, setOpen] = useState(false);
   // Le portail n'est dispo qu'après montage côté client (document.body).
   const [mounted, setMounted] = useState(false);
@@ -192,7 +199,7 @@ export function PartnerSheetButton({
               </div>
 
               <ul className="flex flex-col gap-1 p-3">
-                {PARTNER_ROLES.map((role) => {
+                {roles.map((role) => {
                   const Icon = role.icon;
                   return (
                     <li key={role.key}>

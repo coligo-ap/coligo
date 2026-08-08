@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { getLocale } from "next-intl/server";
 import { getCurrentPartner } from "@/lib/auth/partner";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import { PartnerSignupForm } from "@/components/partner/signup-form";
 import { AuthScreen } from "@/components/shared/auth-screen";
 import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
@@ -14,6 +15,13 @@ export default async function PartnerSignupPage() {
   // Déjà connecté en agent ? → direct à l'espace.
   const partner = await getCurrentPartner();
   if (partner) redirect("/partenaire");
+
+  // Réseau d'agents masqué (coligo_pay_agents, mig 0449) : les inscriptions
+  // agent sont fermées — retour au login (les agents EXISTANTS se connectent
+  // toujours et voient la bannière de suspension sur leur accueil).
+  const flags = await getFeatureFlags();
+  if (flags.coligo_pay_agents.status !== "active")
+    redirect("/partenaire/login");
 
   const isAr = (await getLocale()) === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);

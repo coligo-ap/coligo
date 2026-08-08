@@ -19,6 +19,7 @@ import {
   SheetTitle,
 } from "@/components/customer/drive/drive-modals";
 import { ColigoCelebration } from "@/components/driver/onboarding/coligo-celebration";
+import { useAgentsVisible } from "@/lib/data/agents-visible-client";
 
 // =============================================================================
 // Feuille de souscription PARTAGÉE (Pass Prioritaire + plans Drive) — brief
@@ -74,6 +75,9 @@ export function SubscribeSheet({
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   const da = tr("DA", "دج");
+  // Kill-switch domaine agents (mig 0449) : réseau masqué ⇒ l'option
+  // « Espèces chez un agent » disparaît des moyens de paiement.
+  const agentsVisible = useAgentsVisible();
 
   const fmtDate = (d: Date) =>
     d.toLocaleDateString(isAr ? "ar-DZ" : "fr-FR", {
@@ -200,15 +204,17 @@ export function SubscribeSheet({
               )}
               href={`${rechargeBase}/ccp`}
             />
-            <MethodRow
-              icon={HandCoins}
-              title={tr("Espèces chez un agent", "نقدًا لدى وكيل")}
-              sub={tr(
-                "Points de recharge Coligo Pay près de chez vous",
-                "نقاط تعبئة كوليغو باي قريبة منك"
-              )}
-              href={`${rechargeBase}/especes`}
-            />
+            {agentsVisible && (
+              <MethodRow
+                icon={HandCoins}
+                title={tr("Espèces chez un agent", "نقدًا لدى وكيل")}
+                sub={tr(
+                  "Points de recharge Coligo Pay près de chez vous",
+                  "نقاط تعبئة كوليغو باي قريبة منك"
+                )}
+                href={`${rechargeBase}/especes`}
+              />
+            )}
             {inlineErr}
             <GhostBtn onClick={onClose}>{tr("Annuler", "إلغاء")}</GhostBtn>
           </>
