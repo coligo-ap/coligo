@@ -7,6 +7,7 @@ import {
   ArrowUpDown,
   Banknote,
   Check,
+  ChevronDown,
   ChevronLeft,
   Loader2,
   Phone,
@@ -112,6 +113,8 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
     date: string;
   }>({ from: "", to: "", date: "" });
   const [sort, setSort] = useState<"time" | "price">("time");
+  // Accordéon des résultats : UNE carte ouverte à la fois (liste fermante).
+  const [openTrip, setOpenTrip] = useState<string | null>(null);
 
   // DÉTECTION AUTO du départ : position GPS → wilaya la plus proche, préremplie
   // en silence (référentiel local, zéro réseau). Remplaçable en tapant la
@@ -307,7 +310,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
 
       {blockedMsg && (
         <p
-          className="mt-2.5 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
+          className="mt-2.5 rounded-[10px] px-3 py-2.5 text-[12px] font-semibold"
           style={{ background: "rgba(108,43,217,.08)", color: VIOLET }}
         >
           {blockedMsg}
@@ -321,12 +324,12 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
             className={
               embedded
                 ? "mt-2.5"
-                : "mt-2.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
+                : "mt-2.5 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
             }
           >
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                <div className="rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
                   <PlaceField
                     value={fromPick}
                     onChange={setFromPick}
@@ -339,7 +342,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   aria-hidden
                   className="ms-[19px] block h-3 w-0 border-s-2 border-dashed border-[var(--d-line)]"
                 />
-                <div className="rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                <div className="rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
                   <PlaceField
                     value={toPick}
                     onChange={setToPick}
@@ -356,7 +359,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 onClick={swap}
                 aria-label={t("carpool.swap")}
                 title={t("carpool.swap")}
-                className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+                className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)]"
                 style={{ color: VIOLET }}
               >
                 <ArrowUpDown className="size-[18px]" />
@@ -412,7 +415,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
 
             {/* Passagers + Rechercher */}
             <div className="mt-2.5 flex items-center gap-2">
-              <div className="flex h-11 shrink-0 items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)]">
+              <div className="flex h-11 shrink-0 items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)]">
                 <button
                   type="button"
                   onClick={() => setPax((p) => Math.max(1, p - 1))}
@@ -437,7 +440,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
               <button
                 type="button"
                 onClick={search}
-                className="drive-sora flex h-11 flex-1 items-center justify-center gap-2 rounded-[12px] text-[14px] font-extrabold text-white"
+                className="drive-sora flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] text-[14px] font-extrabold text-white"
                 style={{ background: VIOLET }}
               >
                 <Search className="size-4" /> {t("carpool.search")}
@@ -499,133 +502,189 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   .slice(1, -1)
                   .map((w) => wname(w))
                   .join(" · ");
+                const openRow = openTrip === trip.id;
                 return (
                   <div
                     key={trip.id}
-                    className="drive-rise mt-2.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
+                    className="mt-2 overflow-hidden rounded-[12px] border bg-[var(--d-surface)]"
+                    style={{
+                      borderColor: openRow ? VIOLET : "var(--d-line)",
+                    }}
                   >
-                    {/* Segment du passager : montée · durée · descente */}
-                    <div className="flex items-start gap-3">
-                      <div className="shrink-0 text-center">
-                        <p className="drive-sora text-[17px] leading-none font-extrabold">
+                    {/* LIGNE COMPACTE (liste fermante) : heure · trajet ·
+                        prix — le détail s'ouvre au tap, façon accordéon. */}
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setOpenTrip((o) => (o === trip.id ? null : trip.id))
+                      }
+                      className="flex w-full items-center gap-2.5 p-3 text-start"
+                    >
+                      <span className="shrink-0 text-center">
+                        <span className="drive-sora block text-[15px] leading-none font-extrabold">
                           {fmtTime(trip.seg_departure_at)}
-                        </p>
-                        <p className="mt-1 text-[9.5px] font-semibold text-[var(--d-muted)]">
-                          {durLabel(trip.seg_km)}
-                        </p>
-                        <p className="mt-0.5 text-[11px] font-bold text-[var(--d-muted)]">
-                          ≈ {arrivalTime(trip.seg_departure_at, trip.seg_km)}
-                        </p>
-                      </div>
-                      <div className="flex w-3 shrink-0 flex-col items-center self-stretch pt-1.5 pb-1">
-                        <span
-                          className="size-[9px] shrink-0 rounded-full border-[2.5px]"
-                          style={{ borderColor: VIOLET }}
-                        />
-                        <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
-                        <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate text-[13.5px] font-extrabold">
-                          {stopLabel(trip.seg_from_text, trip.seg_from_wilaya)}
-                        </p>
-                        <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
-                          {wname(trip.seg_from_wilaya)}
-                        </p>
-                        <p className="mt-1.5 truncate text-[13.5px] font-extrabold">
-                          {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
-                        </p>
-                        <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
-                          {wname(trip.seg_to_wilaya)}
-                        </p>
-                      </div>
-                      <div className="shrink-0 text-end">
-                        <p className="drive-sora text-[20px] leading-none font-extrabold">
-                          {trip.seg_price_da}
-                        </p>
-                        <p className="text-[9.5px] font-semibold text-[var(--d-muted)]">
-                          {t("carpool.perSeat")}
-                        </p>
-                        <p className="mt-1 text-[10px] font-bold text-[var(--d-muted)]">
+                        </span>
+                        <span className="mt-0.5 block text-[9px] font-semibold text-[var(--d-muted)]">
                           {fmtDay(trip.seg_departure_at)}
-                        </p>
-                      </div>
-                    </div>
-
-                    {/* Trajet complet du chauffeur quand on monte en route */}
-                    {viaNames && (
-                      <p
-                        className="mt-1.5 truncate text-[10.5px] font-semibold"
-                        style={{ color: GO }}
-                      >
-                        {t("carpool.via", { stops: viaNames })}
-                      </p>
-                    )}
-
-                    {/* Chauffeur + places + action */}
-                    <div className="mt-2.5 flex items-center gap-2 border-t border-[var(--d-line)] pt-2.5">
-                      <span
-                        className="drive-sora grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-extrabold text-white"
-                        style={{
-                          background: trip.female_only
-                            ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
-                            : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
-                        }}
-                      >
-                        {trip.chauffeur_name[0]?.toUpperCase()}
+                        </span>
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold">
-                          {trip.chauffeur_name}
-                          {trip.chauffeur_rating != null && (
-                            <span className="text-[10px] text-[#E8B53C]">
-                              ★{" "}
-                              {String(trip.chauffeur_rating).replace(".", ",")}
-                            </span>
-                          )}
-                          {trip.female_only && (
-                            <span
-                              className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
-                              style={{
-                                background: "rgba(236,72,153,.13)",
-                                color: ROSE,
-                              }}
-                            >
-                              {t("carpool.femaleOnly")}
-                            </span>
-                          )}
+                        <span className="block truncate text-[12.5px] font-extrabold">
+                          {stopLabel(trip.seg_from_text, trip.seg_from_wilaya)}{" "}
+                          → {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
                         </span>
-                        <span
-                          className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
-                          style={{
-                            background: "rgba(22,179,100,.12)",
-                            color: GO,
-                          }}
-                        >
-                          <UsersRound className="size-3" />
-                          {t("carpool.seatsLeft", { count: trip.seats_left })}
+                        <span className="block truncate text-[10px] font-medium text-[var(--d-muted)]">
+                          {durLabel(trip.seg_km)} · {trip.chauffeur_name}
+                          {trip.chauffeur_rating != null &&
+                            ` · ★ ${String(trip.chauffeur_rating).replace(".", ",")}`}
+                          {trip.my_booking_id
+                            ? ` · ${t("carpool.booked")}`
+                            : ""}
                         </span>
                       </span>
-                      {trip.my_booking_id ? (
-                        <button
-                          type="button"
-                          onClick={() => setTab("mine")}
-                          className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-3.5 text-[12px] font-extrabold"
-                          style={{ background: "#F1E9FC", color: VIOLET }}
-                        >
-                          <Check className="size-3.5" /> {t("carpool.booked")}
-                        </button>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={() => openBook(trip)}
-                          className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-4 text-[12.5px] font-extrabold text-white"
-                          style={{ background: VIOLET }}
-                        >
-                          {t("carpool.book")}
-                        </button>
-                      )}
-                    </div>
+                      <span className="shrink-0 text-end">
+                        <span className="drive-sora block text-[15px] leading-none font-extrabold">
+                          {trip.seg_price_da}
+                        </span>
+                        <span className="block text-[9px] font-semibold text-[var(--d-muted)]">
+                          {t("carpool.perSeat")}
+                        </span>
+                      </span>
+                      <ChevronDown
+                        className={`size-4 shrink-0 text-[var(--d-muted)] transition-transform ${openRow ? "rotate-180" : ""}`}
+                      />
+                    </button>
+
+                    {openRow && (
+                      <div className="border-t border-[var(--d-line)] px-3 pt-2.5 pb-3">
+                        {/* Détail ouvert : rail montée→descente + heures aux
+                        arrêts (l'heure de départ et le prix vivent déjà sur
+                        la ligne compacte — zéro doublon). */}
+                        <div className="flex items-start gap-3">
+                          <div className="flex w-3 shrink-0 flex-col items-center self-stretch pt-1.5 pb-1">
+                            <span
+                              className="size-[9px] shrink-0 rounded-full border-[2.5px]"
+                              style={{ borderColor: VIOLET }}
+                            />
+                            <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
+                            <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate text-[13.5px] font-extrabold">
+                              {stopLabel(
+                                trip.seg_from_text,
+                                trip.seg_from_wilaya
+                              )}
+                            </p>
+                            <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
+                              {wname(trip.seg_from_wilaya)}
+                            </p>
+                            <p className="mt-1.5 truncate text-[13.5px] font-extrabold">
+                              {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
+                            </p>
+                            <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
+                              {wname(trip.seg_to_wilaya)}
+                            </p>
+                          </div>
+                          <div className="shrink-0 text-end">
+                            <p className="text-[9px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                              {t("carpool.boardAt")}
+                            </p>
+                            <p className="drive-sora text-[13px] font-extrabold">
+                              {fmtTime(trip.seg_departure_at)}
+                            </p>
+                            <p className="mt-1 text-[9px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                              {t("carpool.alightAt")}
+                            </p>
+                            <p className="drive-sora text-[13px] font-extrabold">
+                              ≈{" "}
+                              {arrivalTime(trip.seg_departure_at, trip.seg_km)}
+                            </p>
+                          </div>
+                        </div>
+
+                        {/* Trajet complet du chauffeur quand on monte en route */}
+                        {viaNames && (
+                          <p
+                            className="mt-1.5 truncate text-[10.5px] font-semibold"
+                            style={{ color: GO }}
+                          >
+                            {t("carpool.via", { stops: viaNames })}
+                          </p>
+                        )}
+
+                        {/* Chauffeur + places + action */}
+                        <div className="mt-2.5 flex items-center gap-2 border-t border-[var(--d-line)] pt-2.5">
+                          <span
+                            className="drive-sora grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-extrabold text-white"
+                            style={{
+                              background: trip.female_only
+                                ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
+                                : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
+                            }}
+                          >
+                            {trip.chauffeur_name[0]?.toUpperCase()}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold">
+                              {trip.chauffeur_name}
+                              {trip.chauffeur_rating != null && (
+                                <span className="text-[10px] text-[#E8B53C]">
+                                  ★{" "}
+                                  {String(trip.chauffeur_rating).replace(
+                                    ".",
+                                    ","
+                                  )}
+                                </span>
+                              )}
+                              {trip.female_only && (
+                                <span
+                                  className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
+                                  style={{
+                                    background: "rgba(236,72,153,.13)",
+                                    color: ROSE,
+                                  }}
+                                >
+                                  {t("carpool.femaleOnly")}
+                                </span>
+                              )}
+                            </span>
+                            <span
+                              className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                              style={{
+                                background: "rgba(22,179,100,.12)",
+                                color: GO,
+                              }}
+                            >
+                              <UsersRound className="size-3" />
+                              {t("carpool.seatsLeft", {
+                                count: trip.seats_left,
+                              })}
+                            </span>
+                          </span>
+                          {trip.my_booking_id ? (
+                            <button
+                              type="button"
+                              onClick={() => setTab("mine")}
+                              className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] px-3.5 text-[12px] font-extrabold"
+                              style={{ background: "#F1E9FC", color: VIOLET }}
+                            >
+                              <Check className="size-3.5" />{" "}
+                              {t("carpool.booked")}
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => openBook(trip)}
+                              className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] px-4 text-[12.5px] font-extrabold text-white"
+                              style={{ background: VIOLET }}
+                            >
+                              {t("carpool.book")}
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -657,7 +716,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
             return (
               <div
                 key={b.id}
-                className="mb-2.5 rounded-[16px] border bg-[var(--d-surface)] p-3.5"
+                className="mb-2.5 rounded-[12px] border bg-[var(--d-surface)] p-3.5"
                 style={{
                   borderColor: active
                     ? "rgba(108,43,217,.35)"
@@ -704,7 +763,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 )}
                 {active && (
                   <div
-                    className="mt-2.5 flex items-center gap-2.5 rounded-[12px] px-3 py-2.5"
+                    className="mt-2.5 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5"
                     style={{ background: "rgba(108,43,217,.07)" }}
                   >
                     <Ticket
@@ -730,7 +789,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 {active && b.chauffeur_phone && (
                   <a
                     href={`tel:${b.chauffeur_phone}`}
-                    className="drive-sora mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border-[1.5px] text-[12px] font-extrabold"
+                    className="drive-sora mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] border-[1.5px] text-[12px] font-extrabold"
                     style={{ borderColor: VIOLET, color: VIOLET }}
                   >
                     <Phone className="size-3.5" />
@@ -744,7 +803,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     onClick={() =>
                       cancelArm === b.id ? void doCancel(b) : setCancelArm(b.id)
                     }
-                    className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] border text-[11.5px] font-semibold disabled:opacity-60"
+                    className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[8px] border text-[11.5px] font-semibold disabled:opacity-60"
                     style={{
                       borderColor: cancelArm === b.id ? RED : "var(--d-line)",
                       color: cancelArm === b.id ? RED : "var(--d-muted)",
@@ -769,7 +828,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
       {/* ── Feuille de réservation (segment) ── */}
       {bookTrip && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
-          <div className="w-full max-w-[560px] rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className="w-full max-w-[560px] rounded-t-[16px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
             {pinResult ? (
               /* Billet émis : PIN en évidence, à donner au chauffeur. */
               <div className="text-center">
@@ -797,7 +856,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     setBookTrip(null);
                     setTab("mine");
                   }}
-                  className="drive-sora mt-4 flex h-[48px] w-full items-center justify-center rounded-[12px] text-[14.5px] font-extrabold text-white"
+                  className="drive-sora mt-4 flex h-[48px] w-full items-center justify-center rounded-[10px] text-[14.5px] font-extrabold text-white"
                   style={{ background: VIOLET }}
                 >
                   {t("carpool.ok")}
@@ -823,7 +882,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   </button>
                 </div>
                 {/* Timeline MONTÉE / DESCENTE — où et quand, sans ambiguïté. */}
-                <div className="mt-1 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5">
+                <div className="mt-1 rounded-[10px] bg-[var(--d-soft)] px-3 py-2.5">
                   <div className="flex items-center gap-2 text-[11.5px] font-semibold">
                     <span
                       className="size-[9px] shrink-0 rounded-full border-[2.5px]"
@@ -865,7 +924,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
                     {t("carpool.seats")}
                   </span>
-                  <div className="flex h-12 items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)]">
+                  <div className="flex h-12 items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)]">
                     <button
                       type="button"
                       onClick={() => setSeats((s) => Math.max(1, s - 1))}
@@ -906,7 +965,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                         key={k}
                         type="button"
                         onClick={() => setPayment(k)}
-                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border text-[12px] font-bold"
+                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border text-[12px] font-bold"
                         style={
                           payment === k
                             ? {
@@ -939,7 +998,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   type="button"
                   onClick={() => void submitBook()}
                   disabled={bookPending}
-                  className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[12px] text-[15px] font-extrabold text-white disabled:opacity-60"
+                  className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[10px] text-[15px] font-extrabold text-white disabled:opacity-60"
                   style={{ background: GO }}
                 >
                   {bookPending && <Loader2 className="size-5 animate-spin" />}
@@ -975,7 +1034,7 @@ export function CarpoolView() {
           <Link
             href="/drive"
             aria-label={t("carpool.title")}
-            className="grid size-9 shrink-0 place-items-center rounded-[12px] bg-white/15 text-white"
+            className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-white/15 text-white"
           >
             <ChevronLeft className="size-5 rtl:rotate-180" />
           </Link>

@@ -1,5 +1,25 @@
 # Coligo — guide pour Claude Code
 
+## RÈGLE FRONT ABSOLUE — design FLAT, JAMAIS de 3D (consigne permanente)
+
+Interdits sur TOUT écran, TOUT espace (client, chauffeur, livreur, commerçant,
+admin), sans exception :
+
+- **JAMAIS d'ombre portée ni de glow** sur boutons/cartes/CTA/pilules
+  (`boxShadow: 0 12px 24px -10px ${couleur}`, `shadow-[…]` décoratifs). Seule
+  exception : l'élévation FONCTIONNELLE d'un élément flottant (dropdown de
+  suggestions, popover) qui doit se détacher du contenu.
+- **JAMAIS de bouton « 3D » ni trop rond** : boutons d'action et inputs =
+  `rounded-[8px]` à `rounded-[10px]`, cartes = `rounded-[12px]`, feuilles =
+  `rounded-t-[16px]`. `rounded-full` réservé aux PILULES de filtre/segmented
+  et aux avatars.
+- Surfaces PLATES délimitées par bordures (`--d-line`) et fonds doux
+  (`--d-soft`) — standard Bolt Food / Silicon Valley (Linear, Stripe).
+- Les héros dégradés violets de la marque ne sont PAS du 3D : les garder.
+
+Cette règle a déjà été rappelée plusieurs fois par le propriétaire — toute
+nouvelle UI se vérifie contre elle AVANT livraison.
+
 ## UX — messages d'erreur/succès : PRIVILÉGIER L'INLINE, ÉVITER LES TOASTS
 
 Règle produit : **ne pas abuser des toasts** (`toast.error`/`toast.success`).

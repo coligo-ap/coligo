@@ -175,7 +175,7 @@ export function PlaceField({
       )}
 
       {open && hits.length > 0 && (
-        <div className="absolute start-0 top-full z-30 mt-1 max-h-64 w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-[0_18px_44px_-24px_rgba(20,22,40,.55)]">
+        <div className="absolute start-0 top-full z-30 mt-1 max-h-64 w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-[0_18px_44px_-24px_rgba(20,22,40,.55)]">
           {hits.map((h, i) => (
             <button
               key={`${h.display}-${i}`}
@@ -183,7 +183,7 @@ export function PlaceField({
               onClick={() => pick(h)}
               className="flex w-full items-center gap-2.5 border-b border-[var(--d-line)] px-3 py-2.5 text-start last:border-b-0 active:bg-[var(--d-soft)]"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-soft)]">
+              <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-[var(--d-soft)]">
                 {h.kind === "merchant" ? (
                   <Store className="size-3.5" style={{ color: "#6C2BD9" }} />
                 ) : (

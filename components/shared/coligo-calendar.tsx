@@ -111,7 +111,7 @@ export function ColigoCalendar({
     });
 
   return (
-    <div className="rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] p-2.5">
+    <div className="rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)] p-2.5">
       {/* Mois + navigation */}
       <div className="mb-1.5 flex items-center justify-between">
         <button
@@ -119,7 +119,7 @@ export function ColigoCalendar({
           onClick={() => canPrev && move(-1)}
           disabled={!canPrev}
           aria-label="←"
-          className="grid size-8 place-items-center rounded-[10px] bg-[var(--d-soft)] disabled:opacity-30"
+          className="grid size-8 place-items-center rounded-[8px] bg-[var(--d-soft)] disabled:opacity-30"
         >
           <ChevronLeft className="size-4 rtl:rotate-180" />
         </button>
@@ -131,7 +131,7 @@ export function ColigoCalendar({
           onClick={() => canNext && move(1)}
           disabled={!canNext}
           aria-label="→"
-          className="grid size-8 place-items-center rounded-[10px] bg-[var(--d-soft)] disabled:opacity-30"
+          className="grid size-8 place-items-center rounded-[8px] bg-[var(--d-soft)] disabled:opacity-30"
         >
           <ChevronRight className="size-4 rtl:rotate-180" />
         </button>
@@ -161,7 +161,7 @@ export function ColigoCalendar({
                 type="button"
                 disabled={disabled}
                 onClick={() => onChange(day)}
-                className="drive-sora mx-auto my-0.5 grid size-8 place-items-center rounded-[10px] text-[12.5px] font-bold transition-colors disabled:opacity-25"
+                className="drive-sora mx-auto my-0.5 grid size-8 place-items-center rounded-[8px] text-[12.5px] font-bold transition-colors disabled:opacity-25"
                 style={
                   selected
                     ? { background: VIOLET, color: "#fff" }
@@ -207,7 +207,7 @@ export function TimeSelect({
       <select
         value={hour}
         onChange={(e) => onChange(e.target.value, minute)}
-        className="drive-sora h-11 flex-1 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-2 text-center text-[15px] font-extrabold outline-none"
+        className="drive-sora h-11 flex-1 rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)] px-2 text-center text-[15px] font-extrabold outline-none"
         aria-label="HH"
       >
         {Array.from({ length: 24 }, (_, h) => String(h).padStart(2, "0")).map(
@@ -222,7 +222,7 @@ export function TimeSelect({
       <select
         value={minute}
         onChange={(e) => onChange(hour, e.target.value)}
-        className="drive-sora h-11 flex-1 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-2 text-center text-[15px] font-extrabold outline-none"
+        className="drive-sora h-11 flex-1 rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)] px-2 text-center text-[15px] font-extrabold outline-none"
         aria-label="MM"
       >
         {["00", "15", "30", "45"].map((mm) => (

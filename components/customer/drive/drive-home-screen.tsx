@@ -37,7 +37,7 @@ import {
 } from "@/app/(customer)/drive/actions";
 import type { DriveIntentDraft } from "@/app/(customer)/drive/ai-actions";
 import { CustomerBottomNav } from "@/components/customer/customer-bottom-nav";
-import { DriveMap, type LatLng } from "./drive-map";
+import type { LatLng } from "./drive-map";
 import {
   DepModal,
   PrimaryBtn,
@@ -68,8 +68,10 @@ export function DriveHomeScreen({
   dest,
   zoneBlock,
   zoneJoined,
-  isDesktop,
-  routePath,
+  // isDesktop / routePath : conservés dans le contrat (DriveView), plus
+  // rendus ici depuis la suppression de la colonne carte desktop.
+  isDesktop: _isDesktop,
+  routePath: _routePath,
   aiConfirming,
   tripMode,
   setTripMode,
@@ -271,16 +273,18 @@ export function DriveHomeScreen({
       </div>
 
       {/* Contenu — CHEVAUCHE le bas du héro (feuille, signature du design).
-          Mobile : 1 colonne ; desktop : formulaire À GAUCHE + carte À DROITE. */}
-      <main className="relative z-10 -mt-10 flex-1 overflow-y-auto px-5 pb-24">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 lg:grid-cols-[minmax(0,480px)_1fr]">
+          UNE colonne PLEINE LARGEUR : la carte des modes (Ville · Inter ·
+          Covoit) occupe tout le cadre, quasi bord-à-bord (gouttière 10px),
+          pour respirer sur toutes les tailles d'écran. */}
+      <main className="relative z-10 -mt-10 flex-1 overflow-y-auto px-2.5 pb-24">
+        <div className="mx-auto grid w-full gap-6">
           <div className="min-w-0">
             {/* Assistant IA : réserver en langage naturel (darija / ar / fr) —
                 pilule FLOTTANTE sur le dégradé, écho de la recherche accueil.
                 Interrupteur super-admin (Config Drive, mig 0420) : masquée si
                 désactivée — les actions serveur refusent aussi (bypass-proof). */}
             {ctx.aiEnabled && (
-              <div className="rounded-[18px] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
+              <div className="rounded-[12px]">
                 <DriveAiBar
                   pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
                   onResolved={applyAiDraft}
@@ -663,41 +667,9 @@ export function DriveHomeScreen({
             )}
           </div>
 
-          {/* Colonne carte (desktop uniquement) — visualisation du trajet A→B,
-              se met à jour dès qu'un départ/arrivée est choisi. */}
-          {isDesktop && (
-            <div className="hidden lg:block">
-              <div className="sticky top-4 h-[calc(100dvh-150px)] overflow-hidden rounded-[24px] border border-[var(--d-line)]">
-                <DriveMap
-                  markers={[
-                    ...(pickup
-                      ? [
-                          {
-                            id: "me",
-                            pos: pickup,
-                            kind: "me" as const,
-                            label: "A" as const,
-                          },
-                        ]
-                      : []),
-                    ...(dest
-                      ? [
-                          {
-                            id: "dest",
-                            pos: dest,
-                            kind: "pin" as const,
-                            label: "B" as const,
-                          },
-                        ]
-                      : []),
-                  ]}
-                  route={pickup && dest ? (routePath ?? [pickup, dest]) : null}
-                  padding={{ top: 60, bottom: 60, left: 60, right: 60 }}
-                  className="absolute inset-0"
-                />
-              </div>
-            </div>
-          )}
+          {/* (Ancienne colonne carte desktop supprimée : le cadre Drive est
+              désormais un conteneur unique élargi — la carte vit sur les
+              écrans mappick/prix/course.) */}
         </div>
       </main>
 

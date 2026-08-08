@@ -523,7 +523,7 @@ export function DCarpool() {
       <button
         type="button"
         onClick={() => setSheetOpen(true)}
-        className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[12px] text-[14.5px] font-extrabold text-white"
+        className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white"
         style={{ background: VIOLET }}
       >
         <Plus className="size-5" /> {tr("Publier un départ", "نشر رحلة")}
@@ -572,7 +572,7 @@ export function DCarpool() {
               "Ville, commune, destination…",
               "مدينة، بلدية، وجهة…"
             )}
-            className="h-11 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] ps-9 pe-10 text-[13px] font-semibold outline-none"
+            className="h-11 w-full rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)] ps-9 pe-10 text-[13px] font-semibold outline-none"
           />
           {query && (
             <button
@@ -639,7 +639,7 @@ export function DCarpool() {
       )}
 
       {!loading && filtered.length === 0 && (
-        <div className="mt-3 rounded-[14px] border border-[var(--d-line)] p-8 text-center text-[12.5px] text-[var(--d-muted)]">
+        <div className="mt-3 rounded-[10px] border border-[var(--d-line)] p-8 text-center text-[12.5px] text-[var(--d-muted)]">
           <ClipboardList className="mx-auto mb-2 size-7 opacity-60" />
           {tab === "upcoming"
             ? tr(
@@ -665,7 +665,7 @@ export function DCarpool() {
           return (
             <li
               key={t.id}
-              className="overflow-hidden rounded-[16px] border bg-[var(--d-surface)]"
+              className="overflow-hidden rounded-[12px] border bg-[var(--d-surface)]"
               style={
                 // Départ VIVANT = carte mise en avant (même langage que les
                 // commandes en cours côté client).
@@ -838,7 +838,7 @@ export function DCarpool() {
                           <a
                             href={`tel:${b.customer_phone}`}
                             aria-label={tr("Appeler", "اتصال")}
-                            className="grid size-8 shrink-0 place-items-center rounded-[10px] border border-[var(--d-line)]"
+                            className="grid size-8 shrink-0 place-items-center rounded-[8px] border border-[var(--d-line)]"
                             style={{ color: GO }}
                           >
                             <Phone className="size-3.5" />
@@ -877,7 +877,7 @@ export function DCarpool() {
                             }))
                           }
                           placeholder={tr("PIN passager", "PIN الراكب")}
-                          className="drive-sora h-10 w-28 rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold tracking-[3px] outline-none"
+                          className="drive-sora h-10 w-28 rounded-[8px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold tracking-[3px] outline-none"
                         />
                         <button
                           type="button"
@@ -896,7 +896,7 @@ export function DCarpool() {
                               return r;
                             })
                           }
-                          className="drive-sora flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-extrabold text-white disabled:opacity-50"
+                          className="drive-sora flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[13px] font-extrabold text-white disabled:opacity-50"
                           style={{ background: GO }}
                         >
                           {busy === "board" ? (
@@ -929,7 +929,7 @@ export function DCarpool() {
                             ? void run(t.id, "start", () => carpoolStart(t.id))
                             : setConfirmArm((c) => ({ ...c, [t.id]: "start" }))
                         }
-                        className="drive-sora flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
+                        className="drive-sora flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
                         style={{ background: arm === "start" ? "#0E9F6E" : GO }}
                       >
                         {busy === "start" ? (
@@ -949,7 +949,7 @@ export function DCarpool() {
                               )
                             : setConfirmArm((c) => ({ ...c, [t.id]: "cancel" }))
                         }
-                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border text-[12px] font-bold disabled:opacity-60"
+                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border text-[12px] font-bold disabled:opacity-60"
                         style={{
                           borderColor: arm === "cancel" ? RED : "var(--d-line)",
                           color: arm === "cancel" ? RED : "var(--d-muted)",
@@ -975,7 +975,7 @@ export function DCarpool() {
                           ? void run(t.id, "done", () => carpoolComplete(t.id))
                           : setConfirmArm((c) => ({ ...c, [t.id]: "done" }))
                       }
-                      className="drive-sora mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
+                      className="drive-sora mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
                       style={{ background: VIOLET }}
                     >
                       {busy === "done" ? (
@@ -1000,7 +1000,7 @@ export function DCarpool() {
                     <button
                       type="button"
                       onClick={() => republish(t)}
-                      className="drive-sora mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[12px] font-bold"
+                      className="drive-sora mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] border border-[var(--d-line)] text-[12px] font-bold"
                       style={{ color: VIOLET }}
                     >
                       <Plus className="size-3.5" />
@@ -1017,7 +1017,7 @@ export function DCarpool() {
       {/* ── Feuille : publier un départ ── */}
       {sheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
-          <div className="max-h-[92dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className="max-h-[92dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[16px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="drive-sora text-[16px] font-extrabold">
                 {tr("Publier un départ", "نشر رحلة")}
@@ -1033,7 +1033,7 @@ export function DCarpool() {
             </div>
 
             {/* Départ / Arrivée — COMMUNE en saisie libre + suggestions. */}
-            <div className="rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
+            <div className="rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="border-b border-[var(--d-line)]">
@@ -1068,7 +1068,7 @@ export function DCarpool() {
                     setToPick(f);
                   }}
                   aria-label={tr("Inverser", "عكس")}
-                  className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+                  className="grid size-9 shrink-0 place-items-center rounded-[8px] border border-[var(--d-line)] bg-[var(--d-surface)]"
                   style={{ color: VIOLET }}
                 >
                   <ArrowUpDown className="size-4" />
@@ -1134,7 +1134,7 @@ export function DCarpool() {
 
             {/* Aperçu de l'itinéraire + prix PAR SEGMENT (auto). */}
             {chain.length >= 2 && (
-              <div className="mt-3 rounded-[12px] bg-[var(--d-soft)] px-3.5 py-2.5">
+              <div className="mt-3 rounded-[10px] bg-[var(--d-soft)] px-3.5 py-2.5">
                 <p className="text-[11px] font-bold">
                   {chain.map((p) => p.label.split(",")[0]).join(" → ")}{" "}
                   <span className="font-semibold text-[var(--d-muted)]">
@@ -1178,7 +1178,7 @@ export function DCarpool() {
               <button
                 type="button"
                 onClick={() => setCalOpen((v) => !v)}
-                className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[12px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
                 style={{
                   borderColor: depDate ? VIOLET : "var(--d-line)",
                   color: depDate ? VIOLET : "var(--d-muted)",
@@ -1222,7 +1222,7 @@ export function DCarpool() {
                 setRetOn((v) => !v);
                 if (!retDate && depDate) setRetDate(depDate);
               }}
-              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[12px] border-[1.5px] px-3 py-2.5 text-start"
+              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
               style={{
                 borderColor: retOn ? GO : "var(--d-line)",
                 background: retOn ? "rgba(22,179,100,.06)" : "transparent",
@@ -1248,14 +1248,14 @@ export function DCarpool() {
               </span>
             </button>
             {retOn && (
-              <div className="mt-2 rounded-[12px] border border-[var(--d-line)] p-2.5">
+              <div className="mt-2 rounded-[10px] border border-[var(--d-line)] p-2.5">
                 <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
                   {tr("Date du retour", "تاريخ العودة")}
                 </span>
                 <button
                   type="button"
                   onClick={() => setRetCalOpen((v) => !v)}
-                  className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[12px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                  className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
                   style={{
                     borderColor: retDate ? GO : "var(--d-line)",
                     color: retDate ? GO : "var(--d-muted)",
@@ -1296,7 +1296,7 @@ export function DCarpool() {
                 <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
                   {tr("Places", "المقاعد")}
                 </span>
-                <div className="flex h-11 items-center rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
+                <div className="flex h-11 items-center rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
                   <button
                     type="button"
                     onClick={() => setSeats((s) => Math.max(1, s - 1))}
@@ -1335,7 +1335,7 @@ export function DCarpool() {
                       )
                     )
                   }
-                  className="drive-sora h-11 w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold outline-none"
+                  className="drive-sora h-11 w-full rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold outline-none"
                 />
               </label>
             </div>
@@ -1343,7 +1343,7 @@ export function DCarpool() {
             <button
               type="button"
               onClick={() => setFemaleOnly((v) => !v)}
-              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[12px] border-[1.5px] px-3 py-2.5 text-start"
+              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
               style={{
                 borderColor: femaleOnly ? ROSE : "var(--d-line)",
                 background: femaleOnly ? "rgba(236,72,153,.07)" : "transparent",
@@ -1381,7 +1381,7 @@ export function DCarpool() {
               type="button"
               onClick={() => void publish()}
               disabled={pubPending}
-              className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[12px] text-[14.5px] font-extrabold text-white disabled:opacity-60"
+              className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white disabled:opacity-60"
               style={{ background: VIOLET }}
             >
               {pubPending && <Loader2 className="size-5 animate-spin" />}
