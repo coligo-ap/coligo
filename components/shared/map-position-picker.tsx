@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import {
   Check,
+  Clock,
   Crosshair,
   Loader2,
   MapPin,
@@ -17,6 +18,7 @@ import { getPosition } from "@/lib/native/geolocation";
 import {
   geocodeSearch,
   listFavoritePlaces,
+  listRecentPlaces,
   recordPlacePick,
   toggleFavoritePlace,
   type FavPlace,
@@ -172,7 +174,10 @@ export function MapPositionPicker({
   const [searchOpen, setSearchOpen] = useState(false);
 
   // Favoris « Tes lieux » (si activés) : étoile + accès rapide quand vide.
+  // + lieux RÉCENTS (historique des choix) — le panneau du focus montre les
+  // deux, comme le picker d'adresse : le client retrouve ses lieux sans taper.
   const [favorites, setFavorites] = useState<FavPlace[]>([]);
+  const [recentPlaces, setRecentPlaces] = useState<FavPlace[]>([]);
   const [favCells, setFavCells] = useState<Set<string>>(new Set());
   const [favOpen, setFavOpen] = useState(false);
   useEffect(() => {
@@ -183,7 +188,37 @@ export function MapPositionPicker({
         new Set(favs.map((f) => `${f.lat.toFixed(4)},${f.lng.toFixed(4)}`))
       );
     });
+    void listRecentPlaces().then(setRecentPlaces);
   }, [favoritesEnabled]);
+  // Fermeture des panneaux au TAP HORS de la zone de recherche (carte,
+  // contrôles) — fiable au doigt. L'ancien `onBlur` + timer 150 ms se
+  // déclenchait pendant l'animation du clavier dans le WebView (blur
+  // transitoire) : le panneau se refermait à l'instant où il s'ouvrait, et la
+  // course blur/click faisait rater des taps sur les lignes.
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!searchEnabled) return;
+    const onDown = (e: PointerEvent) => {
+      const w = searchWrapRef.current;
+      if (w && e.target instanceof Node && !w.contains(e.target)) {
+        setSearchOpen(false);
+        setFavOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, [searchEnabled]);
+  // Ouverture au focus ET au clic : si l'input a déjà le focus (panneau
+  // refermé entre-temps), `onFocus` ne re-tire pas — le clic, si.
+  const openPanels = () => {
+    if (searchResults.length) setSearchOpen(true);
+    if (
+      favoritesEnabled &&
+      searchQ.trim() === "" &&
+      (favorites.length || recentPlaces.length)
+    )
+      setFavOpen(true);
+  };
   const favKey = (la: number, ln: number) =>
     `${la.toFixed(4)},${ln.toFixed(4)}`;
   const toggleFav = (r: { display: string; lat: number; lng: number }) => {
@@ -548,6 +583,7 @@ export function MapPositionPicker({
       {/* Barre de recherche d'adresse (forward geocoding) — au-dessus de tout. */}
       {searchEnabled && mapReady && (
         <div
+          ref={searchWrapRef}
           className={cn(
             "absolute right-2 left-2",
             // En mode normal, la barre doit rester SOUS le header sticky
@@ -567,16 +603,8 @@ export function MapPositionPicker({
                 setSearchQ(e.target.value);
                 setFavOpen(false);
               }}
-              onFocus={() => {
-                if (searchResults.length) setSearchOpen(true);
-                if (
-                  favoritesEnabled &&
-                  searchQ.trim() === "" &&
-                  favorites.length
-                )
-                  setFavOpen(true);
-              }}
-              onBlur={() => window.setTimeout(() => setFavOpen(false), 150)}
+              onFocus={openPanels}
+              onClick={openPanels}
               placeholder={searchPlaceholder}
               className="placeholder:text-subtle min-w-0 flex-1 bg-transparent text-sm outline-none"
             />
@@ -590,6 +618,12 @@ export function MapPositionPicker({
                   setSearchQ("");
                   setSearchResults([]);
                   setSearchOpen(false);
+                  // Barre redevenue vide → on re-propose les lieux du client.
+                  if (
+                    favoritesEnabled &&
+                    (favorites.length || recentPlaces.length)
+                  )
+                    setFavOpen(true);
                 }}
                 className="text-subtle hover:text-foreground shrink-0"
               >
@@ -659,7 +693,7 @@ export function MapPositionPicker({
           {favoritesEnabled &&
             favOpen &&
             searchQ.trim() === "" &&
-            favorites.length > 0 && (
+            (favorites.length > 0 || recentPlaces.length > 0) && (
               <ul className="bg-surface border-border mt-1.5 max-h-44 overflow-auto rounded-[14px] border py-1 shadow-xl">
                 <li className="flex items-center justify-between px-3 pt-1.5 pb-1">
                   <span className="text-subtle text-[10px] font-extrabold tracking-wide uppercase">
@@ -706,6 +740,53 @@ export function MapPositionPicker({
                     </button>
                   </li>
                 ))}
+                {/* Lieux RÉCENTS (déjà choisis) non favoris : accès en un tap,
+                    étoile pour les épingler dans « Tes lieux ». */}
+                {recentPlaces.filter((r) => !favCells.has(favKey(r.lat, r.lng)))
+                  .length > 0 && (
+                  <li className="px-3 pt-2 pb-1">
+                    <span className="text-subtle text-[10px] font-extrabold tracking-wide uppercase">
+                      Récents
+                    </span>
+                  </li>
+                )}
+                {recentPlaces
+                  .filter((r) => !favCells.has(favKey(r.lat, r.lng)))
+                  .map((r, i) => (
+                    <li key={`rec-${i}`} className="flex items-center">
+                      <button
+                        type="button"
+                        onClick={() =>
+                          flyToResult({
+                            display: r.label,
+                            lat: r.lat,
+                            lng: r.lng,
+                          })
+                        }
+                        className="hover:bg-surface-2 flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-[13px]"
+                      >
+                        <Clock className="text-subtle size-4 shrink-0" />
+                        <span className="min-w-0 flex-1 truncate">
+                          {r.label}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Favori"
+                        onClick={() =>
+                          toggleFav({
+                            display: r.label,
+                            lat: r.lat,
+                            lng: r.lng,
+                          })
+                        }
+                        className="shrink-0 px-2.5 py-2"
+                        style={{ color: "#6C2BD9" }}
+                      >
+                        <Star className="size-4" fill="none" />
+                      </button>
+                    </li>
+                  ))}
               </ul>
             )}
         </div>

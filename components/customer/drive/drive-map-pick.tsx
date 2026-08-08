@@ -92,6 +92,31 @@ export function MapPickScreen({
   const [focusTarget, setFocusTarget] = useState<
     (LatLng & { zoom?: number }) | null
   >(null);
+  // Dernière position émise par la carte : filtre les `moveend` SANS
+  // déplacement (resize clavier) qui refermaient les panneaux à tort.
+  const lastMoveRef = useRef<LatLng | null>(null);
+  // Fermeture des panneaux au TAP HORS de la zone de recherche (carte, feuille
+  // du bas) — fiable au doigt, contrairement à un `blur` que le WebView peut
+  // déclencher pendant l'animation du clavier.
+  const searchWrapRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    const onDown = (e: PointerEvent) => {
+      const w = searchWrapRef.current;
+      if (w && e.target instanceof Node && !w.contains(e.target)) {
+        setSearchOpen(false);
+        setFavOpen(false);
+      }
+    };
+    document.addEventListener("pointerdown", onDown);
+    return () => document.removeEventListener("pointerdown", onDown);
+  }, []);
+  // Ouverture des panneaux au focus ET au clic : si l'input a déjà le focus
+  // (panneau refermé entre-temps), `onFocus` ne re-tire pas — le clic, si.
+  const openPanels = () => {
+    if (searchResults.length > 0) setSearchOpen(true);
+    // Barre vide → on ouvre « Tes lieux » (sinon les résultats).
+    if (searchQ.trim() === "") setFavOpen(true);
+  };
 
   // Favoris « Tes lieux » : étoile pour sauvegarder, accès rapide quand vide.
   // Initialisés depuis le cache module → AFFICHAGE INSTANTANÉ (pas d'attente).
@@ -189,10 +214,26 @@ export function MapPickScreen({
 
   const onMove = useCallback(
     (c: LatLng) => {
-      // Interaction carte (glisser/zoom pour positionner) → on referme les
-      // panneaux pour dégager le curseur central.
-      setSearchOpen(false);
-      setFavOpen(false);
+      // `map.resize()` (ouverture/fermeture du CLAVIER, timers d'init de la
+      // carte) émet un `moveend` SANS déplacement réel. Sans ce garde, le
+      // focus de la barre de recherche (clavier → resize → moveend) refermait
+      // « Tes lieux » à l'instant où il s'ouvrait, et l'adresse repassait
+      // par « … » pour rien. Même point ⇒ on ignore tout.
+      const prev = lastMoveRef.current;
+      lastMoveRef.current = c;
+      if (
+        prev &&
+        Math.abs(prev.lat - c.lat) < 1e-7 &&
+        Math.abs(prev.lng - c.lng) < 1e-7
+      )
+        return;
+      // VRAIE interaction carte (glisser/zoom) → on referme les panneaux pour
+      // dégager le curseur central. Jamais à la 1ʳᵉ émission (init de la
+      // carte, qui peut arriver APRÈS que le client a ouvert la recherche).
+      if (prev) {
+        setSearchOpen(false);
+        setFavOpen(false);
+      }
       setCenter(c);
       // Choix explicite (suggestion/favori/récent/init) : le flyTo a émis ce
       // moveend, mais le libellé est DÉJÀ connu → on le conserve, on ne repasse
@@ -275,7 +316,10 @@ export function MapPickScreen({
       {/* Recherche d'adresse SUR la carte : suggestions, et la sélection
           recentre l'épingle EXACTEMENT sur le lieu choisi (affinable au
           doigt ensuite). */}
-      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 left-[68px] z-20">
+      <div
+        ref={searchWrapRef}
+        className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 left-[68px] z-20"
+      >
         <div className="flex items-center gap-2 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2.5 shadow-lg">
           <Search className="size-4 shrink-0 text-[var(--d-muted)]" />
           <input
@@ -284,11 +328,8 @@ export function MapPickScreen({
               setSearchQ(e.target.value);
               setFavOpen(false);
             }}
-            onFocus={() => {
-              if (searchResults.length > 0) setSearchOpen(true);
-              // Barre vide → on ouvre « Tes lieux » (sinon les résultats).
-              if (searchQ.trim() === "") setFavOpen(true);
-            }}
+            onFocus={openPanels}
+            onClick={openPanels}
             placeholder={t("searchPh")}
             className="min-w-0 flex-1 bg-transparent text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           />
