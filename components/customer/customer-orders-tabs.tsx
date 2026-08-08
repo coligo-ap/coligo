@@ -127,7 +127,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
               type="button"
               onClick={() => setTab(tb.key)}
               className={cn(
-                "flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[13px] font-bold transition",
+                "text-body-sm flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 font-bold transition",
                 active
                   ? "bg-surface text-foreground shadow-sm"
                   : "text-muted hover:text-foreground"
@@ -136,7 +136,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
               {tb.label}
               <span
                 className={cn(
-                  "rounded-full px-1.5 text-[11px] font-bold tabular-nums",
+                  "text-caption rounded-full px-1.5 font-bold tabular-nums",
                   active
                     ? "bg-primary-100 text-primary-700"
                     : "bg-surface-2 text-subtle"
@@ -157,7 +157,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder={t("searchPlaceholder")}
-            className="border-border bg-surface focus:border-primary-500 focus:ring-primary-100 h-11 w-full rounded-[13px] border ps-9 pe-10 text-sm outline-none focus:ring-2"
+            className="border-border bg-surface focus:border-primary-500 focus:ring-primary-100 rounded-card h-11 w-full border ps-9 pe-10 text-sm outline-none focus:ring-2"
           />
           {query && (
             <button
@@ -196,7 +196,7 @@ export function CustomerOrdersTabs({ orders }: { orders: CustomerOrderRow[] }) {
       </div>
 
       {filtered.length === 0 ? (
-        <div className="border-border bg-surface text-muted rounded-[14px] border p-8 text-center text-sm">
+        <div className="border-border bg-surface text-muted rounded-card-lg border p-8 text-center text-sm">
           <ClipboardList className="text-subtle mx-auto mb-2 size-7" />
           {t("emptyCategory")}
         </div>
@@ -229,7 +229,7 @@ function OrderCard({ order: o }: { order: CustomerOrderRow }) {
       <Link
         href={`/commandes/${o.id}`}
         className={cn(
-          "bg-surface flex items-center gap-3 rounded-[16px] border p-3 transition",
+          "bg-surface flex items-center gap-3 rounded-lg border p-3 transition",
           // Commande EN COURS = carte mise en avant (suivi en un tap).
           ongoing
             ? "border-primary-200 ring-primary-100 hover:border-primary-300 ring-2"
@@ -317,7 +317,7 @@ function PaymentBadge({
   const t = useTranslations("orders");
   if (method === "cash") {
     return (
-      <span className="text-muted inline-flex items-center gap-1 text-[11px]">
+      <span className="text-muted text-caption inline-flex items-center gap-1">
         <Banknote className="size-3" />
         {t("payCash")}
       </span>
@@ -325,7 +325,7 @@ function PaymentBadge({
   }
   if (status === "paid") {
     return (
-      <span className="text-success-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+      <span className="text-success-700 text-caption inline-flex items-center gap-1 font-semibold">
         <CreditCard className="size-3" />
         {t("payPaidOnline")}
       </span>
@@ -333,7 +333,7 @@ function PaymentBadge({
   }
   if (status === "failed") {
     return (
-      <span className="text-danger-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+      <span className="text-danger-700 text-caption inline-flex items-center gap-1 font-semibold">
         <CreditCard className="size-3" />
         {t("payFailed")}
       </span>
@@ -341,14 +341,14 @@ function PaymentBadge({
   }
   if (status === "refunded") {
     return (
-      <span className="text-muted inline-flex items-center gap-1 text-[11px] font-medium">
+      <span className="text-muted text-caption inline-flex items-center gap-1 font-medium">
         <CreditCard className="size-3" />
         {t("payRefunded")}
       </span>
     );
   }
   return (
-    <span className="text-warning-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+    <span className="text-warning-700 text-caption inline-flex items-center gap-1 font-semibold">
       <Hourglass className="size-3" />
       {t("payPending")}
     </span>

@@ -95,7 +95,7 @@ export function IpActions({
             disabled={pending}
             onClick={onDisconnect}
             title="Déconnecter tous les comptes vus sur cette IP"
-            className="border-border hover:bg-surface-2 text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+            className="border-border hover:bg-surface-2 text-foreground text-caption inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-semibold disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="size-3 animate-spin" />
@@ -110,7 +110,7 @@ export function IpActions({
             type="button"
             disabled={pending}
             onClick={onUnblock}
-            className="border-success-200 text-success-700 hover:bg-success-50 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+            className="border-success-200 text-success-700 hover:bg-success-50 text-caption inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-semibold disabled:opacity-50"
           >
             <ShieldCheck className="size-3" />
             Débloquer l&apos;IP
@@ -120,7 +120,7 @@ export function IpActions({
             type="button"
             disabled={pending}
             onClick={onBlock}
-            className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+            className="border-danger-200 text-danger-700 hover:bg-danger-50 text-caption inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-semibold disabled:opacity-50"
           >
             <Ban className="size-3" />
             Bloquer l&apos;IP
@@ -163,7 +163,7 @@ export function UserDisconnect({ userId }: { userId: string }) {
         disabled={pending}
         onClick={onClick}
         title="Déconnecter ce compte"
-        className="border-border hover:bg-surface-2 text-muted hover:text-foreground inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-[11px] font-semibold disabled:opacity-50"
+        className="border-border hover:bg-surface-2 text-muted hover:text-foreground text-caption inline-flex items-center gap-1 rounded-sm border px-2 py-1 font-semibold disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-3 animate-spin" />

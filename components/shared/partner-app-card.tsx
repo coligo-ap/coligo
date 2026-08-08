@@ -79,9 +79,9 @@ export function PartnerAppCard({ variant }: { variant: AuthVariant }) {
 
   return (
     <section className="mx-auto mt-6 w-full max-w-[420px] px-4">
-      <div className="border-border bg-surface rounded-[16px] border p-4">
+      <div className="border-border bg-surface rounded-lg border p-4">
         <div className="flex items-center gap-3">
-          <span className="bg-primary-50 text-primary-700 grid size-10 shrink-0 place-items-center rounded-[12px]">
+          <span className="bg-primary-50 text-primary-700 grid size-10 shrink-0 place-items-center rounded-md">
             {platform === "android" ? (
               <Download className="size-5" />
             ) : (
@@ -89,10 +89,10 @@ export function PartnerAppCard({ variant }: { variant: AuthVariant }) {
             )}
           </span>
           <div className="min-w-0 flex-1">
-            <b className="text-foreground block truncate text-[13.5px] font-extrabold">
+            <b className="text-foreground text-body block truncate font-extrabold">
               {name}
             </b>
-            <small className="text-muted block text-[11.5px] font-semibold">
+            <small className="text-muted text-caption-lg block font-semibold">
               {platform === "android"
                 ? tr(
                     "Application Android — installation directe",
@@ -114,7 +114,7 @@ export function PartnerAppCard({ variant }: { variant: AuthVariant }) {
         {platform !== "ios" && (
           <Link
             href={app.href}
-            className="bg-primary-600 hover:bg-primary-700 mt-3 flex items-center justify-center gap-1.5 rounded-[12px] px-4 py-2.5 text-[13px] font-extrabold text-white transition-colors"
+            className="bg-primary-600 hover:bg-primary-700 text-body-sm mt-3 flex items-center justify-center gap-1.5 rounded-md px-4 py-2.5 font-extrabold text-white transition-colors"
           >
             {tr("Installer l'application", "تثبيت التطبيق")}
             <ArrowRight className="size-4 rtl:-scale-x-100" />

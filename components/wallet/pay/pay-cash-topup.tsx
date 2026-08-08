@@ -32,14 +32,14 @@ export function PayCashTopup({ base }: { base: PayBase }) {
 
       {/* À savoir — le crédit est immédiat une fois l'espèce remise */}
       <div
-        className="mt-3 flex items-start gap-2.5 rounded-[16px] p-3.5"
+        className="mt-3 flex items-start gap-2.5 rounded-lg p-3.5"
         style={{ background: "var(--d-accent)" }}
       >
         <Info
           className="mt-[1px] size-4 shrink-0"
           style={{ color: "var(--d-violet)" }}
         />
-        <p className="text-[12px] leading-snug font-semibold text-[var(--d-ink)]">
+        <p className="text-label leading-snug font-semibold text-[var(--d-ink)]">
           {tr.cashNote}
         </p>
       </div>

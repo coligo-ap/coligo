@@ -55,13 +55,13 @@ export function CustomerBottomNav({
               href={item.href}
               prefetch
               aria-label={`${t("drive")} · ${t("driveTag")}`}
-              className="relative flex flex-col items-center justify-center gap-1 py-1.5 text-[11px]"
+              className="text-caption relative flex flex-col items-center justify-center gap-1 py-1.5"
             >
               <span className="relative flex h-[26px] w-full items-center justify-center">
                 <span className="absolute -top-2 left-1/2 -translate-x-1/2">
                   {/* Cercle PLAT dégradé violet→rose Coligo (pas d'ombre, pas de
                       relief). La Tesla blanche des cartes le remplit. */}
-                  <span className="from-primary-600 via-primary-400 relative grid size-9 place-items-center overflow-hidden rounded-full bg-gradient-to-br to-[#FF2D7A]">
+                  <span className="from-primary-600 via-primary-400 to-accent-500 relative grid size-9 place-items-center overflow-hidden rounded-full bg-gradient-to-br">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src="/drive/vehicles/voiture-coligo-white.png"
@@ -97,7 +97,7 @@ export function CustomerBottomNav({
               // du composant sert à l'icône, pas à de l'air (règle produit).
               // `min-w-0` + libellé `truncate` : police système agrandie ⇒
               // le libellé se tronque au lieu de déborder sur le voisin.
-              "flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1.5 text-[11px] transition-colors",
+              "text-caption flex min-w-0 flex-col items-center justify-center gap-1 px-0.5 py-1.5 transition-colors",
               active ? "text-primary-700" : "text-muted hover:text-foreground"
             )}
           >

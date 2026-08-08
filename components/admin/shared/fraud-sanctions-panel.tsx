@@ -145,22 +145,22 @@ function SanctionRow({
   }
 
   return (
-    <li className="border-danger-200 bg-danger-50/50 flex items-center gap-3 rounded-[12px] border p-3">
+    <li className="border-danger-200 bg-danger-50/50 flex items-center gap-3 rounded-md border p-3">
       <span className="min-w-0 flex-1">
         <span className="text-foreground flex flex-wrap items-center gap-1.5 text-sm font-semibold">
           {label}
-          <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
+          <span className="bg-surface-2 text-muted text-caption rounded-full px-2 py-0.5 font-semibold">
             {sanction.source === "auto" ? "Moteur (auto)" : "Équipe"}
           </span>
         </span>
-        <span className="text-muted block text-[12px]">
+        <span className="text-muted text-label block">
           {sanction.reason} · {fmt(sanction.created_at)}
           {sanction.expires_at
             ? ` · expire le ${fmt(sanction.expires_at)}`
             : ""}
         </span>
         {error && (
-          <span className="text-danger-700 block text-[12px] font-medium">
+          <span className="text-danger-700 text-label block font-medium">
             {error}
           </span>
         )}
@@ -169,7 +169,7 @@ function SanctionRow({
         type="button"
         onClick={revoke}
         disabled={pending}
-        className="bg-success-600 hover:bg-success-700 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[13px] font-bold text-white transition-colors disabled:opacity-60"
+        className="bg-success-600 hover:bg-success-700 rounded-control text-body-sm inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 font-bold text-white transition-colors disabled:opacity-60"
       >
         {pending ? (
           <Loader2 className="size-3.5 animate-spin" />

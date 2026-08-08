@@ -174,11 +174,11 @@ export function OrderChat({
   return (
     <div
       dir={isRtl ? "rtl" : "ltr"}
-      className="border-border bg-surface overflow-hidden rounded-[18px] border shadow-sm"
+      className="border-border bg-surface rounded-sheet-lg overflow-hidden border shadow-sm"
     >
       {/* En-tête */}
       <div className="border-border flex items-center justify-between gap-2 border-b px-3.5 py-2.5">
-        <p className="text-foreground flex items-center gap-1.5 text-[13px] font-bold">
+        <p className="text-foreground text-body-sm flex items-center gap-1.5 font-bold">
           <Send className="size-3.5" />
           {isRtl ? "الرسائل" : "Messages"}
         </p>
@@ -186,7 +186,7 @@ export function OrderChat({
           <a
             href={`tel:${phone}`}
             aria-label={phoneLabel ?? "Appeler"}
-            className="bg-success-50 text-success-700 hover:bg-success-100 grid size-8 shrink-0 place-items-center rounded-[10px] transition-colors"
+            className="bg-success-50 text-success-700 hover:bg-success-100 rounded-control grid size-8 shrink-0 place-items-center transition-colors"
           >
             <Phone className="size-3.5" />
           </a>
@@ -199,7 +199,7 @@ export function OrderChat({
         className="flex max-h-[180px] min-h-[64px] flex-col gap-1.5 overflow-y-auto px-3.5 py-3"
       >
         {messages.length === 0 ? (
-          <p className="text-muted py-2 text-center text-[12px]">
+          <p className="text-muted text-label py-2 text-center">
             {isRtl
               ? "أرسل رسالة سريعة أدناه."
               : "Envoyez un message rapide ci-dessous."}
@@ -213,7 +213,7 @@ export function OrderChat({
                 className={`flex ${mine ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-[78%] rounded-2xl px-3 py-1.5 text-[13px] font-semibold ${
+                  className={`text-body-sm max-w-[78%] rounded-2xl px-3 py-1.5 font-semibold ${
                     mine
                       ? "bg-primary-600 rounded-br-md text-white"
                       : "bg-surface-2 text-foreground rounded-bl-md"
@@ -223,7 +223,7 @@ export function OrderChat({
                     {m.body ?? labelFor(m.code ?? "", locale)}
                   </span>
                   <span
-                    className={`ms-2 inline-flex items-center gap-0.5 align-middle text-[10px] font-medium ${
+                    className={`text-micro ms-2 inline-flex items-center gap-0.5 align-middle font-medium ${
                       mine ? "text-white/70" : "text-muted"
                     }`}
                   >
@@ -254,13 +254,13 @@ export function OrderChat({
             type="button"
             disabled={pending}
             onClick={() => send(q.code)}
-            className="border-border bg-surface text-foreground hover:bg-surface-2 rounded-full border px-3 py-1.5 text-[12px] font-semibold transition-colors active:scale-95 disabled:opacity-50"
+            className="border-border bg-surface text-foreground hover:bg-surface-2 text-label rounded-full border px-3 py-1.5 font-semibold transition-colors active:scale-95 disabled:opacity-50"
           >
             {locale === "ar" ? q.ar : q.fr}
           </button>
         ))}
         {pending && (
-          <span className="text-muted inline-flex items-center gap-1 px-1 text-[12px]">
+          <span className="text-muted text-label inline-flex items-center gap-1 px-1">
             <Loader2 className="size-3 animate-spin" />
           </span>
         )}
@@ -268,7 +268,7 @@ export function OrderChat({
 
       {/* Saisie libre (≤ 300 caractères) */}
       <div className="border-border border-t px-3 py-2.5">
-        <div className="bg-surface-2 focus-within:border-primary-400 border-border flex items-end gap-2 rounded-[14px] border px-3 py-2">
+        <div className="bg-surface-2 focus-within:border-primary-400 border-border rounded-card-lg flex items-end gap-2 border px-3 py-2">
           <textarea
             value={text}
             onChange={(e) => setText(e.target.value.slice(0, MAX_CHARS))}
@@ -281,7 +281,7 @@ export function OrderChat({
             rows={1}
             placeholder={isRtl ? "اكتب رسالة…" : "Écrire un message…"}
             disabled={pending}
-            className="text-foreground max-h-24 min-h-[24px] w-full resize-none bg-transparent text-[13px] outline-none disabled:opacity-50"
+            className="text-foreground text-body-sm max-h-24 min-h-[24px] w-full resize-none bg-transparent outline-none disabled:opacity-50"
           />
           <button
             type="button"
@@ -298,14 +298,14 @@ export function OrderChat({
           </button>
         </div>
         {text.length > MAX_CHARS - 50 && (
-          <p className="text-subtle mt-1 text-right text-[11px] tabular-nums">
+          <p className="text-subtle text-caption mt-1 text-right tabular-nums">
             {text.length}/{MAX_CHARS}
           </p>
         )}
       </div>
 
       {error && (
-        <p className="text-danger-700 bg-danger-50 px-3.5 py-1.5 text-[12px] font-semibold">
+        <p className="text-danger-700 bg-danger-50 text-label px-3.5 py-1.5 font-semibold">
           {error}
         </p>
       )}

@@ -19,7 +19,7 @@ export function ZoneBlockNotice({
   return (
     <div
       className={cn(
-        "rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-center",
+        "rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-center",
         className
       )}
     >
@@ -28,14 +28,14 @@ export function ZoneBlockNotice({
         {message}
       </p>
       {joined ? (
-        <p className="mt-1.5 text-[12px] font-bold text-emerald-700">
+        <p className="text-label mt-1.5 font-bold text-emerald-700">
           On vous prévient dès l&apos;ouverture !
         </p>
       ) : (
         <button
           type="button"
           onClick={onJoin}
-          className="mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[12px] font-bold text-white"
+          className="text-label mt-1.5 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 font-bold text-white"
         >
           <BellRing className="size-3.5" />
           Prévenez-moi
@@ -78,7 +78,7 @@ export function Leg({
         )}
       </div>
       <div className="flex-1 pb-2.5">
-        <p className="text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+        <p className="text-micro-lg font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
           {label}
         </p>
         <p className="mt-0.5 text-sm font-bold">{value}</p>
@@ -114,19 +114,19 @@ export function OptRow({
     >
       <div className="flex min-w-0 items-center gap-3">
         <span
-          className="grid size-[34px] shrink-0 place-items-center rounded-[11px]"
+          className="rounded-control-lg grid size-[34px] shrink-0 place-items-center"
           style={{ background: soft, color }}
         >
           {icon}
         </span>
         <span className="min-w-0">
           <b
-            className="block text-[13.5px]"
+            className="text-body block"
             style={{ color: color === "var(--d-ink)" ? undefined : color }}
           >
             {title}
           </b>
-          <span className="block truncate text-[11px] text-[var(--d-muted)]">
+          <span className="text-caption block truncate text-[var(--d-muted)]">
             {sub}
           </span>
         </span>

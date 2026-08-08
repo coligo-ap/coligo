@@ -96,7 +96,7 @@ export function PrintOrderButton({
   }
 
   const base =
-    "inline-flex items-center justify-center gap-2 rounded-[10px] font-medium transition-colors disabled:opacity-50";
+    "inline-flex items-center justify-center gap-2 rounded-control font-medium transition-colors disabled:opacity-50";
   const sized = size === "sm" ? "h-9 px-3 text-sm" : "h-10 px-4 text-sm";
   const style =
     variant === "primary"

@@ -91,7 +91,7 @@ export function CustomerHeader({
             type="button"
             onClick={() => setPickerOpen(true)}
             className={cn(
-              "inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm",
+              "rounded-control inline-flex items-center gap-2 border px-3 py-2 text-sm",
               themed
                 ? "border-white/25 hover:bg-white/10"
                 : "hover:bg-surface-2 border-border"
@@ -166,7 +166,7 @@ export function CustomerHeader({
           >
             <ShoppingCart className="size-5" />
             {cartCount > 0 && (
-              <span className="bg-primary-600 absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 text-[10px] font-bold text-white">
+              <span className="bg-primary-600 text-micro absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full px-1 font-bold text-white">
                 {cartCount}
               </span>
             )}
@@ -185,7 +185,7 @@ export function CustomerHeader({
             <Link
               href="/se-connecter"
               className={cn(
-                "inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-medium",
+                "rounded-control inline-flex items-center gap-2 px-4 py-2 text-sm font-medium",
                 themed
                   ? "bg-white text-neutral-900 hover:bg-white/90"
                   : "bg-primary-600 hover:bg-primary-700 text-white"
@@ -284,7 +284,7 @@ export function CustomerHeader({
               >
                 <ShoppingCart className="size-[18px]" />
                 {cartCount > 0 && (
-                  <span className="bg-success-600 absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 text-[9px] font-bold text-white">
+                  <span className="bg-success-600 text-nano absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 font-bold text-white">
                     {cartCount}
                   </span>
                 )}
@@ -304,7 +304,7 @@ export function CustomerHeader({
           }}
         >
           <div
-            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-[20px]"
+            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-xl"
             style={{
               paddingBottom: "calc(0px + env(safe-area-inset-bottom))",
             }}

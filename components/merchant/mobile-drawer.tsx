@@ -155,12 +155,12 @@ export function MobileDrawer({
               return (
                 <div
                   key={item.href}
-                  className="text-subtle flex min-h-[44px] cursor-not-allowed items-center gap-3 rounded-[10px] px-3 py-2 text-sm"
+                  className="text-subtle rounded-control flex min-h-[44px] cursor-not-allowed items-center gap-3 px-3 py-2 text-sm"
                   title="Bientôt disponible"
                 >
                   <Icon className="size-5 shrink-0" />
                   <span className="flex-1">{item.label}</span>
-                  <span className="text-subtle text-[10px] tracking-wider uppercase">
+                  <span className="text-subtle text-micro tracking-wider uppercase">
                     Bientôt
                   </span>
                 </div>
@@ -174,7 +174,7 @@ export function MobileDrawer({
                 href={item.href}
                 onClick={close}
                 className={cn(
-                  "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+                  "rounded-control flex min-h-[44px] items-center gap-3 px-3 py-2 text-sm transition-colors",
                   active
                     ? "bg-primary-50 text-primary-900 font-medium"
                     : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -190,7 +190,7 @@ export function MobileDrawer({
             href="/telecharger"
             onClick={close}
             className={cn(
-              "flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+              "rounded-control flex min-h-[44px] w-full items-center gap-3 px-3 py-2 text-sm transition-colors",
               pathname.startsWith("/telecharger")
                 ? "bg-primary-50 text-primary-900 font-medium"
                 : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -203,7 +203,7 @@ export function MobileDrawer({
           <Link
             href="/aide"
             onClick={close}
-            className="text-muted hover:bg-surface-2 hover:text-foreground flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
+            className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control flex min-h-[44px] w-full items-center gap-3 px-3 py-2 text-sm transition-colors"
           >
             <HelpCircle className="size-5 shrink-0" />
             <span className="flex-1 text-left">Aide &amp; support</span>
@@ -235,7 +235,7 @@ function DrawerLogoutButton() {
     <button
       type="submit"
       disabled={pending}
-      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 flex min-h-[44px] w-full items-center justify-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 rounded-control flex min-h-[44px] w-full items-center justify-center gap-2 border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
     >
       {pending ? (
         <Loader2 className="size-5 shrink-0 animate-spin" />

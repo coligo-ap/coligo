@@ -294,8 +294,8 @@ export function CartRoom({
   if (view === null) {
     return (
       <div className="mx-auto max-w-lg px-4 py-6">
-        <div className="bg-surface-3 h-24 animate-pulse rounded-[20px]" />
-        <div className="bg-surface-3 mt-3 h-64 animate-pulse rounded-[20px]" />
+        <div className="bg-surface-3 h-24 animate-pulse rounded-xl" />
+        <div className="bg-surface-3 mt-3 h-64 animate-pulse rounded-xl" />
       </div>
     );
   }
@@ -551,10 +551,10 @@ export function CartRoom({
             <img
               src={merchant.logo_url}
               alt=""
-              className="size-11 shrink-0 rounded-[13px] bg-white object-cover"
+              className="rounded-card size-11 shrink-0 bg-white object-cover"
             />
           ) : (
-            <span className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-white/15">
+            <span className="rounded-card grid size-11 shrink-0 place-items-center bg-white/15">
               <ShoppingBag className="size-5" />
             </span>
           )}
@@ -562,12 +562,12 @@ export function CartRoom({
             <p className="truncate text-base leading-tight font-extrabold">
               {merchant?.name}
             </p>
-            <p className="text-[12px] font-semibold text-white/80">
+            <p className="text-label font-semibold text-white/80">
               {t("cartOf", { name: view.captain_name ?? t("captain") })}
             </p>
           </div>
           {/* Langues (comme le sélecteur client existant) : FR / AR / EN. */}
-          <div className="flex shrink-0 gap-0.5 rounded-full bg-white/15 p-0.5 text-[11px] font-extrabold">
+          <div className="text-caption flex shrink-0 gap-0.5 rounded-full bg-white/15 p-0.5 font-extrabold">
             {(
               [
                 ["fr", "FR"],
@@ -605,7 +605,7 @@ export function CartRoom({
               />
             ))}
           </div>
-          <p className="text-[12px] font-bold text-white/90">
+          <p className="text-label font-bold text-white/90">
             {t("participants", { count: members.length })}
           </p>
         </div>
@@ -806,19 +806,19 @@ export function CartRoom({
         )}
 
         {actionError && (
-          <p className="rounded-[12px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800">
+          <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-sm font-medium text-rose-800">
             {actionError}
           </p>
         )}
         {notice && (
-          <p className="border-success-200 bg-success-50 text-success-800 rounded-[12px] border px-3 py-2 text-sm font-medium">
+          <p className="border-success-200 bg-success-50 text-success-800 rounded-md border px-3 py-2 text-sm font-medium">
             {notice}
           </p>
         )}
 
         {/* ── ARTICLES PAR PARTICIPANT ── */}
         {itemsByMember.length === 0 ? (
-          <div className="bg-surface rounded-[20px] p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+          <div className="bg-surface rounded-xl p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
             <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
               <ShoppingBag className="size-6" />
             </span>
@@ -831,7 +831,7 @@ export function CartRoom({
           itemsByMember.map(({ member, items: mItems }) => (
             <section
               key={member.id}
-              className="bg-surface overflow-hidden rounded-[18px] shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
+              className="bg-surface rounded-sheet-lg overflow-hidden shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
             >
               {/* En-tête OUVRANT/FERMANT : compte + sous-total toujours lisibles. */}
               <button
@@ -851,15 +851,15 @@ export function CartRoom({
                   colorIndex={member.color_index}
                   size="sm"
                 />
-                <p className="text-foreground min-w-0 flex-1 truncate text-[13px] font-extrabold">
+                <p className="text-foreground text-body-sm min-w-0 flex-1 truncate font-extrabold">
                   {t("addedBy", { name: memberName(member) })}
                 </p>
                 {member.id === myMemberId && (
-                  <span className="bg-primary-50 text-primary-700 shrink-0 rounded-full px-2 py-0.5 text-[10px] font-extrabold">
+                  <span className="bg-primary-50 text-primary-700 text-micro shrink-0 rounded-full px-2 py-0.5 font-extrabold">
                     {t("you")}
                   </span>
                 )}
-                <span className="text-muted shrink-0 text-[11px] font-bold tabular-nums">
+                <span className="text-muted text-caption shrink-0 font-bold tabular-nums">
                   {mItems.length} ·{" "}
                   {formatDA(mItems.reduce((s, i) => s + i.line_total_da, 0))}
                 </span>
@@ -899,7 +899,7 @@ export function CartRoom({
                         else setActionError(t("revokeFailed"));
                       })();
                     }}
-                    className="text-subtle hover:text-danger-600 inline-flex items-center gap-1 text-[11px] font-bold disabled:opacity-50"
+                    className="text-subtle hover:text-danger-600 text-caption inline-flex items-center gap-1 font-bold disabled:opacity-50"
                   >
                     {actionBusy === `revoke:${member.id}` ? (
                       <Loader2 className="size-3 animate-spin" />
@@ -934,10 +934,10 @@ export function CartRoom({
                       <img
                         src={it.image_url}
                         alt=""
-                        className="bg-surface-2 size-11 shrink-0 rounded-[10px] object-cover"
+                        className="bg-surface-2 rounded-control size-11 shrink-0 object-cover"
                       />
                     ) : (
-                      <span className="bg-surface-2 text-subtle grid size-11 shrink-0 place-items-center rounded-[10px]">
+                      <span className="bg-surface-2 text-subtle rounded-control grid size-11 shrink-0 place-items-center">
                         <ShoppingBag className="size-4.5" />
                       </span>
                     )}
@@ -946,7 +946,7 @@ export function CartRoom({
                         {ar && it.name_ar ? it.name_ar : it.name_fr}
                       </p>
                       {it.options.length > 0 && (
-                        <p className="text-muted truncate text-[11px]">
+                        <p className="text-muted text-caption truncate">
                           {it.options
                             .map((o) =>
                               ar && o.name_ar ? o.name_ar : o.name_fr
@@ -954,7 +954,7 @@ export function CartRoom({
                             .join(" · ")}
                         </p>
                       )}
-                      <p className="text-muted text-[11px] font-semibold">
+                      <p className="text-muted text-caption font-semibold">
                         {formatDA(it.unit_price_da)}
                         {it.unit ? ` / ${it.unit}` : ""}
                         {!it.available && ` — ${t("unavailable")}`}
@@ -1066,7 +1066,7 @@ export function CartRoom({
           </div>
           {/* Transparence : frais de service (+ livraison si le propriétaire
               l'a choisie) s'ajoutent — le payeur voit le détail sur /payer. */}
-          <p className="text-subtle mt-0.5 text-[11px] font-semibold">
+          <p className="text-subtle text-caption mt-0.5 font-semibold">
             {t("roomFeesNote")}
           </p>
           {/* Progression vers le minimum de commande (style Bolt) : le groupe
@@ -1077,7 +1077,7 @@ export function CartRoom({
             open &&
             (total_da < merchant.min_order_da ? (
               <div className="mb-2">
-                <div className="flex items-baseline justify-between gap-2 text-[11px] font-semibold">
+                <div className="text-caption flex items-baseline justify-between gap-2 font-semibold">
                   <span className="text-muted">
                     {t("minOrderLeft", {
                       amount: formatDA(merchant.min_order_da - total_da),
@@ -1100,7 +1100,7 @@ export function CartRoom({
                 </div>
               </div>
             ) : total_da > 0 ? (
-              <p className="text-success-700 mb-2 inline-flex items-center gap-1 text-[11px] font-bold">
+              <p className="text-success-700 text-caption mb-2 inline-flex items-center gap-1 font-bold">
                 <Check className="size-3.5" />
                 {t("minOrderReached")}
               </p>
@@ -1118,7 +1118,7 @@ export function CartRoom({
                       setJoinOpen(true);
                     }
                   }}
-                  className="border-primary-200 text-primary-700 flex-1 rounded-[13px] border-2 px-3 py-2.5 text-center text-sm font-extrabold transition active:scale-[0.98]"
+                  className="border-primary-200 text-primary-700 rounded-card flex-1 border-2 px-3 py-2.5 text-center text-sm font-extrabold transition active:scale-[0.98]"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     <Plus className="size-4" />
@@ -1130,7 +1130,7 @@ export function CartRoom({
                     type="button"
                     onClick={() => void payFromOpen()}
                     disabled={actionBusy === "paybtn" || actionBusy === "order"}
-                    className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[13px] border-2 border-transparent px-3 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
+                    className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-3 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
                   >
                     <span className="inline-flex items-center gap-1.5">
                       {actionBusy === "paybtn" || actionBusy === "order" ? (
@@ -1149,7 +1149,7 @@ export function CartRoom({
                 type="button"
                 onClick={() => void payNow()}
                 disabled={actionBusy === "roompay"}
-                className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[13px] border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
+                className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
               >
                 <span className="inline-flex items-center gap-1.5">
                   {actionBusy === "roompay" ? (
@@ -1170,7 +1170,7 @@ export function CartRoom({
                   type="button"
                   onClick={() => void order()}
                   disabled={actionBusy === "order"}
-                  className="bg-primary-600 hover:bg-primary-700 flex-1 rounded-[13px] border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                  className="bg-primary-600 hover:bg-primary-700 rounded-card flex-1 border-2 border-transparent px-4 py-2.5 text-sm font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
                 >
                   <span className="inline-flex items-center gap-1.5">
                     {actionBusy === "order" ? (
@@ -1203,7 +1203,7 @@ export function CartRoom({
                   setPaidPopup(false);
                   router.push(`/commandes/${cart.order_id}`);
                 }}
-                className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+                className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm px-4 py-3.5 font-extrabold text-white transition active:scale-[0.98]"
               >
                 {t("seeOrder")}
               </button>
@@ -1211,7 +1211,7 @@ export function CartRoom({
               <button
                 type="button"
                 onClick={() => setPaidPopup(false)}
-                className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+                className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm px-4 py-3.5 font-extrabold text-white transition active:scale-[0.98]"
               >
                 {t("paidPopupClose")}
               </button>
@@ -1220,7 +1220,7 @@ export function CartRoom({
               <button
                 type="button"
                 onClick={() => setPaidPopup(false)}
-                className="text-muted hover:text-foreground rounded-[12px] py-2.5 text-sm font-bold transition"
+                className="text-muted hover:text-foreground rounded-md py-2.5 text-sm font-bold transition"
               >
                 {t("paidPopupClose")}
               </button>
@@ -1238,17 +1238,17 @@ export function CartRoom({
           onClick={() => setJoinOpen(false)}
         >
           <div
-            className="bg-surface w-full max-w-[420px] rounded-t-[26px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[26px] sm:pb-6"
+            className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />
-            <div className="bg-primary-50 text-primary-600 mx-auto mb-3 grid size-[54px] place-items-center rounded-[16px]">
+            <div className="bg-primary-50 text-primary-600 mx-auto mb-3 grid size-[54px] place-items-center rounded-lg">
               <UserPlus className="size-[26px]" />
             </div>
-            <h3 className="text-foreground text-center text-[18px] font-extrabold tracking-[-0.4px]">
+            <h3 className="text-foreground text-heading-sm text-center font-extrabold tracking-[-0.4px]">
               {t("joinTitle", { name: view.captain_name ?? t("captain") })}
             </h3>
-            <p className="text-muted mx-auto mt-1.5 max-w-[320px] text-center text-[13px] font-semibold">
+            <p className="text-muted text-body-sm mx-auto mt-1.5 max-w-[320px] text-center font-semibold">
               {t("joinBody")}
             </p>
             <input
@@ -1256,14 +1256,14 @@ export function CartRoom({
               onChange={(e) => setJoinName(e.target.value.slice(0, 24))}
               placeholder={t("joinPlaceholder")}
               maxLength={24}
-              className="border-border bg-surface-2 text-foreground mt-4 w-full rounded-[13px] border px-4 py-3 text-center text-sm font-bold outline-none focus:border-[color:var(--color-primary-500)]"
+              className="border-border bg-surface-2 text-foreground rounded-card mt-4 w-full border px-4 py-3 text-center text-sm font-bold outline-none focus:border-[color:var(--color-primary-500)]"
             />
             <div className="mt-3 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={() => void doJoin(false)}
                 disabled={joinBusy}
-                className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-3.5 text-[15px] font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
+                className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm px-4 py-3.5 font-extrabold text-white transition active:scale-[0.98] disabled:opacity-60"
               >
                 {joinBusy ? (
                   <Loader2 className="mx-auto size-5 animate-spin" />
@@ -1275,7 +1275,7 @@ export function CartRoom({
                 type="button"
                 onClick={() => void doJoin(true)}
                 disabled={joinBusy}
-                className="text-muted hover:text-foreground rounded-[12px] py-2.5 text-sm font-bold transition"
+                className="text-muted hover:text-foreground rounded-md py-2.5 text-sm font-bold transition"
               >
                 {t("joinSkip")}
               </button>
@@ -1299,7 +1299,7 @@ function Banner({
   return (
     <div
       className={cn(
-        "flex items-start gap-2 rounded-[13px] border px-3.5 py-2.5 text-[13px] font-semibold",
+        "rounded-card text-body-sm flex items-start gap-2 border px-3.5 py-2.5 font-semibold",
         tone === "amber" && "border-amber-200 bg-amber-50 text-amber-800",
         tone === "success" &&
           "border-success-200 bg-success-50 text-success-800",
@@ -1383,11 +1383,11 @@ function RecoveryCard({
   const isDelivery = cart.fulfillment_type === "delivery";
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-3.5">
+    <div className="border-border bg-surface rounded-lg border p-3.5">
       <div className="flex items-center gap-2.5">
         <span
           className={cn(
-            "grid size-9 shrink-0 place-items-center rounded-[11px]",
+            "rounded-control-lg grid size-9 shrink-0 place-items-center",
             isDelivery
               ? "bg-primary-50 text-primary-700"
               : "bg-surface-2 text-subtle"
@@ -1400,10 +1400,10 @@ function RecoveryCard({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <p className="text-foreground text-[13.5px] font-extrabold">
+          <p className="text-foreground text-body font-extrabold">
             {isDelivery ? t("recoveryDelivery") : t("recoveryPickup")}
           </p>
-          <p className="text-muted truncate text-[11.5px] font-semibold">
+          <p className="text-muted text-caption-lg truncate font-semibold">
             {isDelivery && cart.delivery_address_text
               ? cart.delivery_address_text
               : t("recoveryByOwner", { name: captainName })}
@@ -1413,7 +1413,7 @@ function RecoveryCard({
           <button
             type="button"
             onClick={() => void openEdit()}
-            className="border-border text-foreground shrink-0 rounded-full border px-3 py-1.5 text-[12px] font-bold"
+            className="border-border text-foreground text-label shrink-0 rounded-full border px-3 py-1.5 font-bold"
           >
             {t("recoveryEdit")}
           </button>
@@ -1428,7 +1428,7 @@ function RecoveryCard({
               disabled={busy}
               onClick={() => void save("pickup")}
               className={cn(
-                "flex-1 rounded-[12px] border-2 px-3 py-2 text-[12.5px] font-extrabold disabled:opacity-60",
+                "text-label-lg flex-1 rounded-md border-2 px-3 py-2 font-extrabold disabled:opacity-60",
                 !isDelivery
                   ? "border-primary-600 text-primary-700 bg-primary-50"
                   : "border-border text-muted"
@@ -1446,7 +1446,7 @@ function RecoveryCard({
                 }
               }}
               className={cn(
-                "flex-1 rounded-[12px] border-2 px-3 py-2 text-[12.5px] font-extrabold disabled:opacity-60",
+                "text-label-lg flex-1 rounded-md border-2 px-3 py-2 font-extrabold disabled:opacity-60",
                 isDelivery
                   ? "border-primary-600 text-primary-700 bg-primary-50"
                   : "border-border text-muted"
@@ -1466,7 +1466,7 @@ function RecoveryCard({
             </p>
           ) : (
             <div className="space-y-1.5">
-              <p className="text-muted px-1 text-[11px] font-bold tracking-wide uppercase">
+              <p className="text-muted text-caption px-1 font-bold tracking-wide uppercase">
                 {t("recoveryChooseAddr")}
               </p>
               {addresses.map((a) => (
@@ -1477,18 +1477,18 @@ function RecoveryCard({
                     busy || a.lat == null || a.lng == null || a.out_of_range
                   }
                   onClick={() => void save("delivery", a.id)}
-                  className="border-border bg-surface-2 flex w-full items-center gap-2 rounded-[12px] border px-3 py-2 text-start text-[12.5px] font-semibold disabled:opacity-50"
+                  className="border-border bg-surface-2 text-label-lg flex w-full items-center gap-2 rounded-md border px-3 py-2 text-start font-semibold disabled:opacity-50"
                 >
                   <Truck className="text-primary-700 size-3.5 shrink-0" />
                   <span className="min-w-0 flex-1">
                     <span className="block truncate">{a.address_text}</span>
                     {a.out_of_range ? (
-                      <small className="block truncate text-[11px] font-bold text-rose-600">
+                      <small className="text-caption block truncate font-bold text-rose-600">
                         {t("recoveryOutOfRange")}
                         {a.distance_km != null ? ` · ${a.distance_km} km` : ""}
                       </small>
                     ) : a.fee_da != null ? (
-                      <small className="text-muted block truncate text-[11px] font-semibold">
+                      <small className="text-muted text-caption block truncate font-semibold">
                         {t("recoveryFeeFrom", { fee: a.fee_da })}
                       </small>
                     ) : null}

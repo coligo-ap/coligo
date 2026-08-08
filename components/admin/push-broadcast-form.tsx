@@ -33,7 +33,7 @@ export function PushBroadcastForm({
   return (
     <form
       action={formAction}
-      className="border-border space-y-5 rounded-[14px] border bg-white p-5"
+      className="border-border rounded-card-lg space-y-5 border bg-white p-5"
     >
       <fieldset>
         <legend className="mb-2 text-sm font-semibold">Destinataires</legend>
@@ -41,7 +41,7 @@ export function PushBroadcastForm({
           {ROLE_OPTIONS.map((r) => (
             <label
               key={r.key}
-              className="border-border hover:bg-surface-2 has-[:checked]:border-primary-400 has-[:checked]:bg-primary-50 flex cursor-pointer items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors"
+              className="border-border hover:bg-surface-2 has-[:checked]:border-primary-400 has-[:checked]:bg-primary-50 rounded-control flex cursor-pointer items-center gap-2 border px-3 py-2 text-sm font-medium transition-colors"
             >
               <input
                 type="checkbox"
@@ -73,7 +73,7 @@ export function PushBroadcastForm({
           name="wilaya"
           inputMode="numeric"
           placeholder="Ex. : 16 (Alger), 06 (Béjaïa)"
-          className="border-border focus:border-primary-400 w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border focus:border-primary-400 rounded-control w-full border px-3 py-2 text-sm outline-none"
         />
         <p className="text-muted mt-1 text-xs">
           Envoie aux appareils abonnés à cette wilaya (promo de zone),{" "}
@@ -95,7 +95,7 @@ export function PushBroadcastForm({
           required
           maxLength={80}
           placeholder="Ex. : Nouveautés Coligo 🎉"
-          className="border-border focus:border-primary-400 w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border focus:border-primary-400 rounded-control w-full border px-3 py-2 text-sm outline-none"
         />
       </div>
 
@@ -110,7 +110,7 @@ export function PushBroadcastForm({
           maxLength={300}
           rows={3}
           placeholder="Le texte de la notification…"
-          className="border-border focus:border-primary-400 w-full resize-y rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border focus:border-primary-400 rounded-control w-full resize-y border px-3 py-2 text-sm outline-none"
         />
       </div>
 
@@ -126,7 +126,7 @@ export function PushBroadcastForm({
           id="push-route"
           name="route"
           placeholder="/promos, /driver, /commande/…"
-          className="border-border focus:border-primary-400 w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border focus:border-primary-400 rounded-control w-full border px-3 py-2 text-sm outline-none"
         />
         <p className="text-muted mt-1 text-xs">
           Chemin interne ouvert quand l&apos;utilisateur touche la notification
@@ -139,7 +139,7 @@ export function PushBroadcastForm({
           type="submit"
           disabled={pending}
           className={cn(
-            "bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-semibold text-white transition-colors",
+            "bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-colors",
             pending && "cursor-not-allowed opacity-60"
           )}
         >

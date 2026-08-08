@@ -31,7 +31,7 @@ export function PartnerSubPage({
           <ArrowLeft className="size-4 rtl:-scale-x-100" />
         </Link>
         <div className="min-w-0">
-          <h1 className="text-foreground truncate text-[17px] font-extrabold">
+          <h1 className="text-foreground text-title-lg truncate font-extrabold">
             {title}
           </h1>
           {subtitle && (

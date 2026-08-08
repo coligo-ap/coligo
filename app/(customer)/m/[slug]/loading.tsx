@@ -7,7 +7,7 @@ export default function MerchantLoading() {
   return (
     <div className="mx-auto max-w-3xl lg:px-6 lg:py-6">
       {/* Couverture */}
-      <div className="bg-surface-3 h-40 w-full animate-pulse lg:rounded-[18px]" />
+      <div className="bg-surface-3 lg:rounded-sheet-lg h-40 w-full animate-pulse" />
       {/* En-tête boutique */}
       <div className="flex items-center gap-3 px-4 py-4 lg:px-0">
         <div className="bg-surface-3 size-14 shrink-0 animate-pulse rounded-full" />
@@ -28,10 +28,7 @@ export default function MerchantLoading() {
       {/* Grille produits */}
       <div className="mt-4 grid grid-cols-2 gap-3 px-4 sm:grid-cols-3 lg:px-0">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-48 animate-pulse rounded-[16px]"
-          />
+          <div key={i} className="bg-surface-3 h-48 animate-pulse rounded-lg" />
         ))}
       </div>
     </div>

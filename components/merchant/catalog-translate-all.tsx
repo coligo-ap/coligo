@@ -74,7 +74,7 @@ export function CatalogTranslateAll({
         </span>
         {/* Pastille IA : assume la traduction par intelligence artificielle. */}
         {!busy && (
-          <span className="bg-primary-600 rounded-full px-1.5 py-px text-[9px] leading-4 font-extrabold text-white">
+          <span className="bg-primary-600 text-nano rounded-full px-1.5 py-px leading-4 font-extrabold text-white">
             IA
           </span>
         )}

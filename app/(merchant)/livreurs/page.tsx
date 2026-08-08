@@ -82,7 +82,7 @@ export default async function MerchantDriversPage() {
       </header>
 
       {!deliveryReady && (
-        <div className="border-warning-200 bg-warning-50 text-warning-700 mb-4 rounded-[12px] border px-4 py-3 text-sm">
+        <div className="border-warning-200 bg-warning-50 text-warning-700 mb-4 rounded-md border px-4 py-3 text-sm">
           Active d&apos;abord la livraison (Express ou Tournée) dans{" "}
           <a className="underline" href="/settings">
             Paramètres

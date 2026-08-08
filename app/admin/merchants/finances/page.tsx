@@ -14,10 +14,7 @@ export default async function MerchantFinancesTab() {
   return (
     // Cible de l'alerte « dette espèces » (surbrillance ?focus=…) : le hub
     // finances entier — la dette se lit sur les soldes des demandes.
-    <div
-      data-alert-focus="merchant_cash_debt"
-      className="space-y-5 rounded-[16px]"
-    >
+    <div data-alert-focus="merchant_cash_debt" className="space-y-5 rounded-lg">
       <p className="text-muted text-sm">
         Traitez les demandes de versement des commerçants. « Marquer payée »
         débite le solde — à faire <strong>après</strong> le virement réel.
@@ -25,7 +22,7 @@ export default async function MerchantFinancesTab() {
       <MerchantPayouts payouts={payouts} />
       <Link
         href="/admin/versements"
-        className="border-border bg-surface hover:bg-surface-2 text-muted hover:text-foreground flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+        className="border-border bg-surface hover:bg-surface-2 text-muted hover:text-foreground flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium transition-colors"
       >
         <HandCoins className="text-primary-500 size-4" />
         Verser les partenaires (Agents Coligo Pay) →

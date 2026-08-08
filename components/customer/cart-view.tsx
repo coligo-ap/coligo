@@ -382,7 +382,7 @@ export function CartView({
         <p className="text-muted mt-2 text-sm">{t("emptySubtitle")}</p>
         <Link
           href="/"
-          className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex items-center justify-center rounded-[10px] px-4 py-2 text-sm font-medium text-white"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control mt-6 inline-flex items-center justify-center px-4 py-2 text-sm font-medium text-white"
         >
           {t("seeMerchants")}
         </Link>
@@ -397,7 +397,7 @@ export function CartView({
       type="button"
       onClick={() => setDetailOpen((v) => !v)}
       aria-expanded={detailOpen}
-      className="text-primary-700 flex w-full items-center justify-between gap-2 text-[12.5px] font-bold"
+      className="text-primary-700 text-label-lg flex w-full items-center justify-between gap-2 font-bold"
     >
       <span className="inline-flex items-center gap-1.5">
         <BadgePercent className="text-accent-600 size-4" />
@@ -417,7 +417,7 @@ export function CartView({
       {cart.merchant_slug && (
         <Link
           href={`/m/${cart.merchant_slug}`}
-          className="bg-surface-2 text-foreground mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 text-[13px] font-bold"
+          className="bg-surface-2 text-foreground text-body-sm mb-3 inline-flex items-center gap-1.5 rounded-full px-3.5 py-2 font-bold"
         >
           <ArrowLeft className="size-4 rtl:-scale-x-100" />
           {t("backTo")}{" "}
@@ -443,7 +443,7 @@ export function CartView({
             });
             if (ok) clearCart();
           }}
-          className="text-danger-600 inline-flex items-center gap-1 text-[13px] font-bold"
+          className="text-danger-600 text-body-sm inline-flex items-center gap-1 font-bold"
         >
           <Trash2 className="size-4" />
           {t("clear")}
@@ -478,9 +478,9 @@ export function CartView({
           return (
             <div
               key={item.line_key}
-              className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-3 shadow-sm"
+              className="border-border bg-surface flex items-center gap-3 rounded-lg border p-3 shadow-sm"
             >
-              <div className="bg-surface-2 relative size-[58px] shrink-0 overflow-hidden rounded-[8px]">
+              <div className="bg-surface-2 relative size-[58px] shrink-0 overflow-hidden rounded-sm">
                 {item.image_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -504,7 +504,7 @@ export function CartView({
                   <div className="shrink-0 text-right">
                     <p
                       className={cn(
-                        "text-[15px] font-extrabold tabular-nums",
+                        "text-title-sm font-extrabold tabular-nums",
                         lineTotal < rawLineTotal
                           ? "text-accent-600"
                           : "text-foreground"
@@ -513,7 +513,7 @@ export function CartView({
                       {formatDA(lineTotal)}
                     </p>
                     {lineTotal < rawLineTotal && (
-                      <p className="text-subtle text-[11px] tabular-nums line-through">
+                      <p className="text-subtle text-caption tabular-nums line-through">
                         {formatDA(rawLineTotal)}
                       </p>
                     )}
@@ -522,7 +522,7 @@ export function CartView({
 
                 {/* Options/variantes choisies. */}
                 {item.options && item.options.length > 0 && (
-                  <p className="text-muted mt-0.5 line-clamp-2 text-[11px] font-medium">
+                  <p className="text-muted text-caption mt-0.5 line-clamp-2 font-medium">
                     {item.options.map((o) => o.option_name_fr).join(" · ")}
                   </p>
                 )}
@@ -547,7 +547,7 @@ export function CartView({
                 {(freeUnits > 0 || offer) && (
                   <div className="mt-1 flex flex-wrap items-center gap-1.5">
                     {freeUnits > 0 ? (
-                      <span className="bg-accent-600 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                      <span className="bg-accent-600 text-micro inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-extrabold text-white">
                         <Gift className="size-3" />
                         {t("freeApplied", { count: freeUnits })}
                       </span>
@@ -555,14 +555,14 @@ export function CartView({
                       offer && (
                         // Étiquette IDENTIQUE à « Offert » : fond rose foncé
                         // + texte blanc (jamais de rose sur fond rose).
-                        <span className="bg-accent-600 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+                        <span className="bg-accent-600 text-micro inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 font-extrabold text-white">
                           <Gift className="size-3" />
                           {t("buyGetLabel", { buy: offer.buy, get: offer.get })}
                         </span>
                       )
                     )}
                     {needForOffer > 0 && (
-                      <span className="text-muted text-[10.5px] font-semibold">
+                      <span className="text-muted text-micro-lg font-semibold">
                         {t("addForOffer", { count: needForOffer })}
                       </span>
                     )}
@@ -658,7 +658,7 @@ export function CartView({
                   key={b.item.line_key}
                   className="flex items-center gap-2.5 py-2"
                 >
-                  <div className="bg-surface size-8 shrink-0 overflow-hidden rounded-[8px]">
+                  <div className="bg-surface size-8 shrink-0 overflow-hidden rounded-sm">
                     {b.item.image_url ? (
                       // eslint-disable-next-line @next/next/no-img-element
                       <img
@@ -670,12 +670,12 @@ export function CartView({
                   </div>
 
                   <div className="min-w-0 flex-1">
-                    <p className="text-foreground line-clamp-1 text-[12.5px] font-bold">
+                    <p className="text-foreground text-label-lg line-clamp-1 font-bold">
                       {b.item.name}
                     </p>
                     {/* UN résumé compact : réduction → nouveau prix, et/ou
                         unités offertes. (Noms de promos retirés : redondants.) */}
-                    <p className="text-muted flex items-center gap-1.5 text-[10.5px] font-semibold">
+                    <p className="text-muted text-micro-lg flex items-center gap-1.5 font-semibold">
                       {b.hasDiscount && (
                         <span>
                           {b.discountPct > 0 ? `−${b.discountPct} % → ` : ""}
@@ -691,7 +691,7 @@ export function CartView({
                     </p>
                   </div>
 
-                  <span className="text-success-700 dark:text-success-400 shrink-0 text-[12.5px] font-black tabular-nums">
+                  <span className="text-success-700 dark:text-success-400 text-label-lg shrink-0 font-black tabular-nums">
                     −{formatDA(b.totalSaved)}
                   </span>
                 </div>
@@ -704,7 +704,7 @@ export function CartView({
                       côte ; s'il y a trop long, la ligne DÉFILE (jamais de
                       retour à la ligne). */}
                   <div className="flex min-w-0 [scrollbar-width:none] items-center gap-2 overflow-x-auto whitespace-nowrap [&::-webkit-scrollbar]:hidden">
-                    <span className="text-primary-700 flex shrink-0 items-center gap-1.5 text-[11px] font-bold">
+                    <span className="text-primary-700 text-caption flex shrink-0 items-center gap-1.5 font-bold">
                       <Ticket className="text-accent-600 size-3.5 shrink-0" />
                       {t("promoCodeHint")}
                     </span>
@@ -740,29 +740,29 @@ export function CartView({
           {hasDetail && !detailOpen && detailToggle}
 
           {cashbackGain > 0 && (
-            <div className="bg-success-50 text-success-700 flex items-center gap-2 rounded-[10px] px-3 py-2 text-[12px] font-bold">
+            <div className="bg-success-50 text-success-700 rounded-control text-label flex items-center gap-2 px-3 py-2 font-bold">
               <Gift className="size-4 shrink-0" />
               {t("cashbackGain", { amount: formatDA(cashbackGain) })}
             </div>
           )}
           <div className="flex items-center justify-between">
             <span className="min-w-0">
-              <span className="text-muted block text-[13px] font-semibold">
+              <span className="text-muted text-body-sm block font-semibold">
                 {t("subtotalUnits", { count: units })}
               </span>
               {savings > 0 && (
-                <span className="text-accent-600 text-[11.5px] font-bold">
+                <span className="text-accent-600 text-caption-lg font-bold">
                   {t("savings", { amount: formatDA(savings) })}
                 </span>
               )}
             </span>
             <span className="flex flex-col items-end leading-none">
               {savings > 0 && (
-                <span className="text-subtle mb-0.5 text-[12px] font-semibold tabular-nums line-through">
+                <span className="text-subtle text-label mb-0.5 font-semibold tabular-nums line-through">
                   {formatDA(settled.normalTotalDa)}
                 </span>
               )}
-              <span className="text-foreground text-[21px] font-black tracking-[-0.6px] tabular-nums">
+              <span className="text-foreground text-display-sm font-black tracking-[-0.6px] tabular-nums">
                 {formatDA(subtotal)}
               </span>
             </span>
@@ -770,12 +770,12 @@ export function CartView({
           {/* Transparence (même esprit que /payer) : le client sait AVANT de
               continuer que service/livraison s'ajoutent — détaillés au
               paiement, jamais de surprise sur le total final. */}
-          <p className="text-subtle -mt-1 text-[11.5px] font-semibold">
+          <p className="text-subtle text-caption-lg -mt-1 font-semibold">
             {t("feesAtCheckout")}
           </p>
           <Link
             href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[10px] text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-[52px] w-full items-center justify-center gap-2 text-base font-extrabold text-white shadow-[0_8px_22px_-6px_rgba(91,91,230,0.55)]"
           >
             {t("checkout")}
             <ArrowRight className="size-5 rtl:-scale-x-100" />
@@ -786,7 +786,7 @@ export function CartView({
                 type="button"
                 onClick={openInvite}
                 disabled={inviteBusy}
-                className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-[46px] w-full items-center justify-center gap-2 rounded-[10px] border-2 text-[15px] font-extrabold transition-colors disabled:opacity-60"
+                className="border-primary-200 text-primary-700 hover:bg-primary-50 rounded-control text-title-sm inline-flex h-[46px] w-full items-center justify-center gap-2 border-2 font-extrabold transition-colors disabled:opacity-60"
               >
                 {inviteBusy ? (
                   <Loader2 className="size-4.5 animate-spin" />
@@ -816,11 +816,11 @@ export function CartView({
           onClick={() => !inviteBusy && setInviteConfig(null)}
         >
           <div
-            className="bg-surface w-full max-w-[420px] rounded-t-[26px] px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[26px] sm:pb-6"
+            className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-4 pb-[calc(1.5rem+env(safe-area-inset-bottom))] shadow-2xl sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <b className="text-foreground text-[16px] font-extrabold">
+              <b className="text-foreground text-title font-extrabold">
                 {tsc("inviteCta")}
               </b>
               <button
@@ -835,7 +835,7 @@ export function CartView({
 
             {inviteConfig.step === "mode" ? (
               <>
-                <p className="text-muted mb-3 text-[13px] font-semibold">
+                <p className="text-muted text-body-sm mb-3 font-semibold">
                   {tsc("inviteModeSub")}
                 </p>
                 <div className="space-y-2">
@@ -843,16 +843,16 @@ export function CartView({
                     type="button"
                     disabled={inviteBusy}
                     onClick={() => void inviteFamily({ fulfillment: "pickup" })}
-                    className="border-border bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start disabled:opacity-60"
+                    className="border-border bg-surface-2 rounded-card-lg flex w-full items-center gap-3 border px-3.5 py-3 text-start disabled:opacity-60"
                   >
-                    <span className="bg-surface text-subtle grid size-10 shrink-0 place-items-center rounded-[11px]">
+                    <span className="bg-surface text-subtle rounded-control-lg grid size-10 shrink-0 place-items-center">
                       <Store className="size-5" />
                     </span>
                     <span className="min-w-0 flex-1">
-                      <b className="text-foreground block text-[14px] font-extrabold">
+                      <b className="text-foreground text-body-lg block font-extrabold">
                         {tsc("recoveryPickup")}
                       </b>
-                      <small className="text-muted text-[11.5px] font-semibold">
+                      <small className="text-muted text-caption-lg font-semibold">
                         {tsc("invitePickupSub")}
                       </small>
                     </span>
@@ -865,16 +865,16 @@ export function CartView({
                         inviteBusy || inviteConfig.deliveryOffered !== true
                       }
                       onClick={() => void pickDeliveryStep()}
-                      className="border-primary-200 bg-primary-50 flex w-full items-center gap-3 rounded-[14px] border px-3.5 py-3 text-start disabled:opacity-60"
+                      className="border-primary-200 bg-primary-50 rounded-card-lg flex w-full items-center gap-3 border px-3.5 py-3 text-start disabled:opacity-60"
                     >
-                      <span className="text-primary-700 grid size-10 shrink-0 place-items-center rounded-[11px] bg-white">
+                      <span className="text-primary-700 rounded-control-lg grid size-10 shrink-0 place-items-center bg-white">
                         <Truck className="size-5" />
                       </span>
                       <span className="min-w-0 flex-1">
-                        <b className="text-foreground block text-[14px] font-extrabold">
+                        <b className="text-foreground text-body-lg block font-extrabold">
                           {tsc("recoveryDelivery")}
                         </b>
-                        <small className="text-muted text-[11.5px] font-semibold">
+                        <small className="text-muted text-caption-lg font-semibold">
                           {tsc("inviteDeliverySub")}
                         </small>
                       </span>
@@ -882,7 +882,7 @@ export function CartView({
                     </button>
                   )}
                 </div>
-                <p className="text-subtle mt-2.5 text-[11px] font-semibold">
+                <p className="text-subtle text-caption mt-2.5 font-semibold">
                   {inviteConfig.deliveryOffered === false
                     ? tsc("inviteDeliveryUnavailable")
                     : tsc("inviteTourNote")}
@@ -890,7 +890,7 @@ export function CartView({
               </>
             ) : (
               <>
-                <p className="text-muted mb-3 text-[13px] font-semibold">
+                <p className="text-muted text-body-sm mb-3 font-semibold">
                   {tsc("recoveryChooseAddr")}
                 </p>
                 {/* MÊME interface que le checkout (« Où livrer ? ») : 3 tuiles
@@ -929,7 +929,7 @@ export function CartView({
                   />
                 </div>
                 {inviteBusy && (
-                  <p className="text-muted mt-2.5 flex items-center gap-2 text-[12.5px] font-semibold">
+                  <p className="text-muted text-label-lg mt-2.5 flex items-center gap-2 font-semibold">
                     <Loader2 className="size-3.5 animate-spin" />
                     {tsc("inviteCreating")}
                   </p>
@@ -939,7 +939,7 @@ export function CartView({
                   onClick={() =>
                     setInviteConfig((c) => (c ? { ...c, step: "mode" } : c))
                   }
-                  className="text-muted mt-3 text-[12.5px] font-bold"
+                  className="text-muted text-label-lg mt-3 font-bold"
                 >
                   ← {tsc("inviteBack")}
                 </button>
@@ -1035,7 +1035,7 @@ function CodeChip({
       onClick={copy}
       aria-label={`${code} — ${copiedLabel}`}
       className={cn(
-        "inline-flex min-w-0 shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10.5px] font-bold transition-colors active:scale-[0.96]",
+        "text-micro-lg inline-flex min-w-0 shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 font-bold transition-colors active:scale-[0.96]",
         copied
           ? "bg-success-100 text-success-700"
           : "bg-surface text-foreground"

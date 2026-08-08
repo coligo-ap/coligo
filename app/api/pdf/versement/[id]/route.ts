@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { PDFDocument, PDFPage, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, PDFPage, StandardFonts, type rgb } from "pdf-lib";
 import {
   getPayoutStatement,
   type PayoutStatement,
@@ -28,7 +28,7 @@ export const dynamic = "force-dynamic";
  * versements payés.
  */
 
-const { VIOLET, INK, MUTED, LINE, GO, RED, SOFT } = PDF_INK;
+const { VIOLET, INK, MUTED, LINE, GO, RED, SOFT, WHITE } = PDF_INK;
 
 /* ───────────────────────────── FACTURE RÉSUMÉ ───────────────────────────── */
 
@@ -41,19 +41,19 @@ function buildSummaryPage(doc: PDFDocument, st: PayoutStatement, fonts: Fonts) {
 
   // ── Bandeau ──
   page.drawRectangle({ x: 0, y: y - 30, width, height: 78, color: VIOLET });
-  text("COLIGO", M, y - 2, 20, { bold: true, color: rgb(1, 1, 1) });
+  text("COLIGO", M, y - 2, 20, { bold: true, color: WHITE });
   text(`Facture n° ${st.invoiceNumber}`, width - M, y + 2, 13, {
     right: true,
     bold: true,
-    color: rgb(1, 1, 1),
+    color: WHITE,
   });
-  text("Facture de versement", M, y - 20, 11, { color: rgb(1, 1, 1) });
+  text("Facture de versement", M, y - 20, 11, { color: WHITE });
   text(
     `Réf. ${st.reference} · éditée le ${st.generatedAtLabel}`,
     width - M,
     y - 16,
     9,
-    { right: true, color: rgb(1, 1, 1) }
+    { right: true, color: WHITE }
   );
   y -= 66;
 
@@ -173,12 +173,12 @@ function buildSummaryPage(doc: PDFDocument, st: PayoutStatement, fonts: Fonts) {
   });
   text("MONTANT NET VERSÉ", M + 12, y - 8, 10, {
     bold: true,
-    color: rgb(1, 1, 1),
+    color: WHITE,
   });
   text(`${grp(t.paidDa)} DA`, width - M - 12, y - 10, 16, {
     right: true,
     bold: true,
-    color: rgb(1, 1, 1),
+    color: WHITE,
   });
   y -= 46;
 
@@ -262,13 +262,13 @@ function buildDetailPages(doc: PDFDocument, st: PayoutStatement, fonts: Fonts) {
       height: 58,
       color: VIOLET,
     });
-    text("COLIGO", M, y - 6, 14, { bold: true, color: rgb(1, 1, 1) });
+    text("COLIGO", M, y - 6, 14, { bold: true, color: WHITE });
     text(
       `Facture détaillée n° ${st.invoiceNumber} · ${st.periodLabel}`,
       W - M,
       y - 6,
       10,
-      { right: true, bold: true, color: rgb(1, 1, 1) }
+      { right: true, bold: true, color: WHITE }
     );
     y -= 34;
     if (first) {

@@ -95,7 +95,7 @@ const DATE_PRESETS: { key: string; label: string; from: () => string }[] = [
 ];
 
 function selectCls() {
-  return "border-border bg-surface h-10 rounded-[10px] border px-2.5 text-[13px] font-medium outline-none";
+  return "border-border bg-surface h-10 rounded-control border px-2.5 text-body-sm font-medium outline-none";
 }
 
 export function AdminOrdersExplorer({
@@ -167,7 +167,7 @@ export function AdminOrdersExplorer({
   return (
     <div className="space-y-4">
       {/* ---- Barre de recherche + filtres ---- */}
-      <div className="border-border bg-surface space-y-3 rounded-[14px] border p-3">
+      <div className="border-border bg-surface rounded-card-lg space-y-3 border p-3">
         <div className="relative">
           <Search className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
           <input
@@ -178,7 +178,7 @@ export function AdminOrdersExplorer({
               applyDebounced({ q: e.target.value });
             }}
             placeholder="N° de commande, nom ou téléphone du client…"
-            className="border-border bg-surface-2 h-11 w-full rounded-[12px] border pr-3 pl-10 text-sm outline-none"
+            className="border-border bg-surface-2 h-11 w-full rounded-md border pr-3 pl-10 text-sm outline-none"
           />
           {isPending && (
             <Loader2 className="text-muted absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin" />
@@ -195,7 +195,7 @@ export function AdminOrdersExplorer({
                 applyDebounced({ mq: e.target.value });
               }}
               placeholder="Commerçant…"
-              className="border-border bg-surface h-10 w-full rounded-[10px] border pr-2 pl-8 text-[13px] outline-none"
+              className="border-border bg-surface rounded-control text-body-sm h-10 w-full border pr-2 pl-8 outline-none"
             />
           </div>
           <div className="relative">
@@ -207,7 +207,7 @@ export function AdminOrdersExplorer({
                 applyDebounced({ dq: e.target.value });
               }}
               placeholder="Livreur…"
-              className="border-border bg-surface h-10 w-full rounded-[10px] border pr-2 pl-8 text-[13px] outline-none"
+              className="border-border bg-surface rounded-control text-body-sm h-10 w-full border pr-2 pl-8 outline-none"
             />
           </div>
           <select
@@ -283,7 +283,7 @@ export function AdminOrdersExplorer({
               type="date"
               value={filters.from ?? ""}
               onChange={(e) => apply({ from: e.target.value })}
-              className="border-border bg-surface h-9 rounded-[10px] border px-2 text-xs outline-none"
+              className="border-border bg-surface rounded-control h-9 border px-2 text-xs outline-none"
               aria-label="Du"
             />
             <span className="text-muted text-xs">→</span>
@@ -291,7 +291,7 @@ export function AdminOrdersExplorer({
               type="date"
               value={filters.to ?? ""}
               onChange={(e) => apply({ to: e.target.value })}
-              className="border-border bg-surface h-9 rounded-[10px] border px-2 text-xs outline-none"
+              className="border-border bg-surface rounded-control h-9 border px-2 text-xs outline-none"
               aria-label="Au"
             />
           </div>
@@ -327,7 +327,7 @@ export function AdminOrdersExplorer({
             type="button"
             onClick={() => apply({ page: page - 1 }, false)}
             disabled={page <= 1 || isPending}
-            className="border-border hover:bg-surface-2 inline-flex size-9 items-center justify-center rounded-[10px] border disabled:opacity-40"
+            className="border-border hover:bg-surface-2 rounded-control inline-flex size-9 items-center justify-center border disabled:opacity-40"
             aria-label="Page précédente"
           >
             <ChevronLeft className="size-4" />
@@ -339,7 +339,7 @@ export function AdminOrdersExplorer({
             type="button"
             onClick={() => apply({ page: page + 1 }, false)}
             disabled={page >= pageCount || isPending}
-            className="border-border hover:bg-surface-2 inline-flex size-9 items-center justify-center rounded-[10px] border disabled:opacity-40"
+            className="border-border hover:bg-surface-2 rounded-control inline-flex size-9 items-center justify-center border disabled:opacity-40"
             aria-label="Page suivante"
           >
             <ChevronRight className="size-4" />
@@ -371,7 +371,7 @@ function OrderRowCard({ row }: { row: AdminOrderRow }) {
     <li>
       <Link
         href={`/admin/orders/${row.id}`}
-        className="border-border bg-surface hover:border-primary-200 hover:bg-primary-50/30 flex items-center gap-3 rounded-[14px] border p-3.5 transition-colors"
+        className="border-border bg-surface hover:border-primary-200 hover:bg-primary-50/30 rounded-card-lg flex items-center gap-3 border p-3.5 transition-colors"
       >
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-1.5">
@@ -403,7 +403,7 @@ function OrderRowCard({ row }: { row: AdminOrderRow }) {
               </span>
             )}
           </p>
-          <p className="text-subtle mt-0.5 text-[11px]">
+          <p className="text-subtle text-caption mt-0.5">
             {isDelivery
               ? row.delivery_mode === "tour"
                 ? "Livraison tournée"
@@ -423,7 +423,7 @@ function OrderRowCard({ row }: { row: AdminOrderRow }) {
           <p className="text-sm font-bold tabular-nums">
             {formatDA(row.total_da)}
           </p>
-          <p className="text-muted mt-0.5 inline-flex items-center gap-1 text-[11px]">
+          <p className="text-muted text-caption mt-0.5 inline-flex items-center gap-1">
             {row.payment_method === "online" ? (
               <CreditCard className="size-3" />
             ) : (

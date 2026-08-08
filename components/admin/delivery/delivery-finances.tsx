@@ -133,7 +133,7 @@ export async function DeliveryFinances() {
 
       <section
         data-alert-focus="drivers_over_cap"
-        className="border-border bg-surface mb-6 rounded-[14px] border p-5"
+        className="border-border bg-surface rounded-card-lg mb-6 border p-5"
       >
         <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
           <Truck className="size-4" />
@@ -184,7 +184,7 @@ export async function DeliveryFinances() {
         </p>
       </section>
 
-      <section className="border-border bg-surface rounded-[14px] border p-5">
+      <section className="border-border bg-surface rounded-card-lg border p-5">
         <h2 className="mb-3 flex items-center gap-2 text-base font-semibold">
           <Receipt className="size-4" />
           Audit admin récent
@@ -237,7 +237,7 @@ function Kpi({
     amber: "bg-warning-50 text-warning-700",
   };
   return (
-    <div className={"rounded-[12px] p-3 " + colors[tone]}>
+    <div className={"rounded-md p-3 " + colors[tone]}>
       <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
         {icon}
         {label}

@@ -67,7 +67,7 @@ export function IdvModeCard({ mode }: { mode: IdvModeFull }) {
   return (
     <form
       action={formAction}
-      className="border-border bg-surface space-y-3 rounded-[16px] border p-4"
+      className="border-border bg-surface space-y-3 rounded-lg border p-4"
     >
       <input type="hidden" name="key" value={mode.key} />
 
@@ -134,7 +134,7 @@ export function IdvModeCard({ mode }: { mode: IdvModeFull }) {
               style={{ width: `${100 - a}%` }}
             />
           </div>
-          <div className="text-muted mt-1 flex justify-between text-[10px]">
+          <div className="text-muted text-micro mt-1 flex justify-between">
             <span>Refus &lt; {r} %</span>
             <span>Revue humaine</span>
             <span>Approbation ≥ {a} %</span>
@@ -200,7 +200,7 @@ export function IdvModeCard({ mode }: { mode: IdvModeFull }) {
               <select
                 name={`policy_${field}`}
                 defaultValue={mode.policy?.[field] ?? "review"}
-                className="border-border bg-surface h-8 rounded-[10px] border px-2 text-xs"
+                className="border-border bg-surface rounded-control h-8 border px-2 text-xs"
               >
                 <option value="review">Revue humaine</option>
                 <option value="reject">Refus automatique</option>
@@ -223,7 +223,7 @@ export function IdvModeCard({ mode }: { mode: IdvModeFull }) {
                 <input type="hidden" name="check_face_match" value="on" />
                 <input type="checkbox" checked disabled className="size-4" />
                 {IDV_CHECK_LABELS_FR[check]}
-                <span className="text-[10px]">(toujours actif)</span>
+                <span className="text-micro">(toujours actif)</span>
               </label>
             ) : (
               <label

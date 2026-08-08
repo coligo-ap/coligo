@@ -40,7 +40,7 @@ export function AuthNavBar({
         <nav className="flex items-center gap-1 text-sm lg:gap-3">
           <Link
             href="/"
-            className="text-muted hover:text-foreground hover:bg-surface-2 hidden items-center gap-1.5 rounded-[10px] px-3 py-1.5 font-medium sm:inline-flex"
+            className="text-muted hover:text-foreground hover:bg-surface-2 rounded-control hidden items-center gap-1.5 px-3 py-1.5 font-medium sm:inline-flex"
           >
             <ArrowLeft className="size-4 rtl:rotate-180" />
             {tr("Marketplace", "السوق")}
@@ -52,7 +52,7 @@ export function AuthNavBar({
           {variant !== "customer" && (
             <Link
               href="/se-connecter"
-              className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium lg:text-sm"
+              className="border-border hover:bg-surface-2 rounded-control inline-flex items-center gap-1.5 border px-3 py-1.5 text-xs font-medium lg:text-sm"
             >
               <UserIcon className="size-3.5" />
               {tr("Je suis client", "أنا زبون")}

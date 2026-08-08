@@ -9,10 +9,7 @@ export default function FavorisLoading() {
       <div className="bg-surface-3 mt-2 h-4 w-56 animate-pulse rounded" />
       <div className="mt-4 space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-40 animate-pulse rounded-[16px]"
-          />
+          <div key={i} className="bg-surface-3 h-40 animate-pulse rounded-lg" />
         ))}
       </div>
     </div>

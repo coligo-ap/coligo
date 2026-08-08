@@ -142,13 +142,13 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
           <h2 className="flex flex-wrap items-center gap-2 text-xl font-bold tracking-tight">
             {c.full_name || "Sans nom"}
             {suspended && (
-              <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold">
+              <span className="bg-danger-100 text-danger-700 text-label inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold">
                 <Ban className="size-3.5" /> Suspendu
                 {!c.is_blocked && c.fraud_suspended ? " (anti-fraude)" : ""}
               </span>
             )}
             {c.is_female_verified && (
-              <span className="bg-accent-100 text-accent-700 rounded-full px-2.5 py-1 text-[12px] font-bold">
+              <span className="bg-accent-100 text-accent-700 text-label rounded-full px-2.5 py-1 font-bold">
                 Profil vérifié
               </span>
             )}
@@ -158,7 +158,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
               .filter(Boolean)
               .join(" · ") || "Aucun contact"}
           </p>
-          <p className="text-subtle mt-0.5 text-[12px]">
+          <p className="text-subtle text-label mt-0.5">
             Client depuis le {fmt(c.created_at)}
           </p>
         </div>
@@ -168,7 +168,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
           onClick={toggleBlock}
           disabled={blockPending}
           className={cn(
-            "inline-flex items-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60",
+            "inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60",
             suspended
               ? "bg-success-600 hover:bg-success-700 text-white"
               : "bg-danger-600 hover:bg-danger-700 text-white"
@@ -186,13 +186,13 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
       </header>
 
       {error && (
-        <p className="bg-danger-50 text-danger-700 mt-3 rounded-[12px] px-3 py-2 text-sm font-medium">
+        <p className="bg-danger-50 text-danger-700 mt-3 rounded-md px-3 py-2 text-sm font-medium">
           {error}
         </p>
       )}
 
       {c.is_blocked && (
-        <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[12px] border p-3 text-sm">
+        <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-md border p-3 text-sm">
           Suspendu le {fmt(c.blocked_at)}
           {c.blocked_by ? ` par ${c.blocked_by}` : ""}
           {c.blocked_reason ? ` — « ${c.blocked_reason} »` : ""}
@@ -200,7 +200,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
       )}
 
       {!c.is_blocked && c.fraud_suspended && (
-        <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[12px] border p-3 text-sm">
+        <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-md border p-3 text-sm">
           Suspendu par le module Anti-fraude — le client voit « Compte suspendu
           » dans l&apos;app. « Réactiver le compte » lève cette sanction, ou
           gère-la ligne par ligne dans la section « Sanctions anti-fraude »
@@ -283,11 +283,11 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             {detail.locations.slice(0, 12).map((l, i) => (
               <li
                 key={`${l.kind}-${i}`}
-                className="border-border flex items-center gap-3 rounded-[12px] border p-2.5"
+                className="border-border flex items-center gap-3 rounded-md border p-2.5"
               >
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-[11px] font-bold",
+                    "text-caption rounded-full px-2 py-0.5 font-bold",
                     LOCATION_META[l.kind].className
                   )}
                 >
@@ -297,7 +297,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
                   <span className="text-foreground block truncate text-sm font-medium">
                     {l.label}
                   </span>
-                  <span className="text-muted block truncate text-[12px]">
+                  <span className="text-muted text-label block truncate">
                     {l.detail ?? "—"} · {fmt(l.seen_at)}
                   </span>
                 </span>
@@ -305,7 +305,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
                   href={`https://www.google.com/maps?q=${l.lat},${l.lng}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="text-primary-700 hover:bg-surface-2 shrink-0 rounded-[10px] px-2 py-1 text-[12px] font-semibold"
+                  className="text-primary-700 hover:bg-surface-2 rounded-control text-label shrink-0 px-2 py-1 font-semibold"
                 >
                   Carte
                 </a>
@@ -328,7 +328,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             {detail.devices.map((d) => (
               <li
                 key={`${d.ip}-${d.last_seen_at}`}
-                className="text-muted flex flex-wrap items-center justify-between gap-2 text-[13px]"
+                className="text-muted text-body-sm flex flex-wrap items-center justify-between gap-2"
               >
                 <span className="text-foreground font-medium">
                   {d.platform ?? "—"} · {d.ip}
@@ -356,14 +356,14 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
             {detail.orders.map((o) => (
               <li
                 key={o.id}
-                className="border-border flex items-center gap-3 rounded-[12px] border p-2.5"
+                className="border-border flex items-center gap-3 rounded-md border p-2.5"
               >
                 <span className="min-w-0 flex-1">
                   <span className="text-foreground block truncate text-sm font-medium">
                     {o.merchant_name ?? "Commerçant"}
                     {o.order_number ? ` · n°${o.order_number}` : ""}
                   </span>
-                  <span className="text-muted block text-[12px]">
+                  <span className="text-muted text-label block">
                     {fmt(o.created_at)} · {o.payment_method} ·{" "}
                     {o.delivery_mode ?? o.fulfillment_type ?? "retrait"}
                   </span>
@@ -371,7 +371,7 @@ export function CustomerDetailView({ detail }: { detail: CustomerDetail }) {
                 <span className="text-foreground shrink-0 text-sm font-bold tabular-nums">
                   {formatDA(o.total_da)}
                 </span>
-                <span className="text-muted shrink-0 text-[12px]">
+                <span className="text-muted text-label shrink-0">
                   {o.status}
                 </span>
               </li>
@@ -403,15 +403,15 @@ function Stat({
   Icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[14px] border p-3">
-      <p className="text-muted flex items-center gap-1.5 text-[12px] font-semibold">
+    <div className="border-border bg-surface rounded-card-lg border p-3">
+      <p className="text-muted text-label flex items-center gap-1.5 font-semibold">
         <Icon className="size-3.5" />
         {label}
       </p>
       <p className="text-foreground mt-1 truncate text-lg font-bold tabular-nums">
         {value}
       </p>
-      {hint && <p className="text-subtle truncate text-[12px]">{hint}</p>}
+      {hint && <p className="text-subtle text-label truncate">{hint}</p>}
     </div>
   );
 }
@@ -460,7 +460,7 @@ function FeatureRow({
   return (
     <li
       className={cn(
-        "border-border flex items-center gap-3 rounded-[12px] border p-3",
+        "border-border flex items-center gap-3 rounded-md border p-3",
         blocked && "border-danger-200 bg-danger-50"
       )}
     >
@@ -468,11 +468,11 @@ function FeatureRow({
         <span className="text-foreground block text-sm font-semibold">
           {meta.label}
         </span>
-        <span className="text-muted block text-[12px]">
+        <span className="text-muted text-label block">
           {blocked ? (reason ? `Coupée — ${reason}` : "Coupée") : meta.help}
         </span>
         {error && (
-          <span className="text-danger-700 block text-[12px] font-medium">
+          <span className="text-danger-700 text-label block font-medium">
             {error}
           </span>
         )}
@@ -482,7 +482,7 @@ function FeatureRow({
         onClick={toggle}
         disabled={pending}
         className={cn(
-          "inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-[13px] font-bold transition-colors disabled:opacity-60",
+          "rounded-control text-body-sm inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 font-bold transition-colors disabled:opacity-60",
           blocked
             ? "bg-success-600 hover:bg-success-700 text-white"
             : "border-border hover:bg-surface-2 text-muted border"
@@ -523,7 +523,7 @@ function NoteEditor({
         }}
         rows={3}
         placeholder="Contexte utile à l'équipe support (jamais visible du client)."
-        className="border-border bg-surface text-foreground mt-2 w-full rounded-[12px] border p-3 text-sm"
+        className="border-border bg-surface text-foreground mt-2 w-full rounded-md border p-3 text-sm"
       />
       <div className="mt-2 flex items-center gap-3">
         <button
@@ -537,7 +537,7 @@ function NoteEditor({
               else setSaved(true);
             })
           }
-          className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-[13px] font-bold text-white disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control text-body-sm inline-flex items-center gap-2 px-3.5 py-2 font-bold text-white disabled:opacity-60"
         >
           {pending ? (
             <Loader2 className="size-3.5 animate-spin" />
@@ -546,7 +546,7 @@ function NoteEditor({
           ) : null}
           {saved ? "Enregistrée" : "Enregistrer"}
         </button>
-        {error && <span className="text-danger-700 text-[13px]">{error}</span>}
+        {error && <span className="text-danger-700 text-body-sm">{error}</span>}
       </div>
     </>
   );

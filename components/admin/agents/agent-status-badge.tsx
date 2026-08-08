@@ -9,7 +9,7 @@ const STATUS_META: Record<string, { label: string; cls: string }> = {
 };
 
 const PILL =
-  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold";
+  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-micro font-bold";
 
 /** Badge d'état d'un Agent Coligo Pay (statut du dossier + vérification). */
 export function AgentStatusBadge({

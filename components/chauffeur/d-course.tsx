@@ -442,10 +442,10 @@ export function DCourse() {
             >
               <X className="size-7" style={{ color: RED }} />
             </span>
-            <h1 className="drive-sora text-[21px] font-extrabold">
+            <h1 className="drive-sora text-display-sm font-extrabold">
               {tr("Course annulée", "أُلغي المشوار")}
             </h1>
-            <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
+            <p className="text-body-sm mt-1 max-w-[280px] text-[var(--d-muted)]">
               {tr(
                 "La course a été remise dans la liste des demandes. Aucun frais.",
                 "أُعيد المشوار إلى قائمة الطلبات. بدون رسوم."
@@ -496,17 +496,17 @@ export function DCourse() {
           >
             <Check className="size-7" style={{ color: GO }} />
           </span>
-          <h1 className="drive-sora text-[21px] font-extrabold">
+          <h1 className="drive-sora text-display-sm font-extrabold">
             {isAr
               ? `${ride.customer_name} قَبِل العرض!`
               : `${ride.customer_name} a accepté !`}
           </h1>
-          <p className="text-[13px] text-[var(--d-muted)]">
+          <p className="text-body-sm text-[var(--d-muted)]">
             {tr("Course confirmée à", "تأكّد المشوار بسعر")}{" "}
             <b>{formatDA(ride.agreed_price_da)}</b>
           </p>
         </div>
-        <div className="mt-4 mb-2.5 flex flex-col gap-1.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-muted)]">
+        <div className="text-label-lg mt-4 mb-2.5 flex flex-col gap-1.5 rounded-md bg-[var(--d-soft)] px-3 py-2.5 font-semibold text-[var(--d-muted)]">
           <span className="flex items-center gap-2">
             <i
               className="size-[9px] shrink-0 rounded-full"
@@ -547,7 +547,7 @@ export function DCourse() {
             onClick={() =>
               goNav(pickup.lat, pickup.lng, tr("le client", "الزبون"))
             }
-            className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[15px] border-[1.5px] text-[14px] font-bold"
+            className="drive-sora rounded-card-xl text-body-lg mt-2 flex h-12 w-full items-center justify-center gap-2 border-[1.5px] font-bold"
             style={{ borderColor: GO, color: GO }}
           >
             <Navigation className="size-4" />{" "}
@@ -646,7 +646,7 @@ export function DCourse() {
         route={pickup && dest ? (ridePath ?? [pickup, dest]) : null}
         padding={{ top: 90, bottom: 420, left: 60, right: 60 }}
       />
-      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="text-body absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 font-bold whitespace-nowrap shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: inProgress ? GO : VIOLET }}
@@ -670,7 +670,7 @@ export function DCourse() {
             setChatOpen(true);
             setMsgBanner(null);
           }}
-          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-start shadow-xl"
+          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-lg border-2 bg-[var(--d-surface)] px-3.5 py-3 text-start shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <span
@@ -680,15 +680,15 @@ export function DCourse() {
             <MessageSquare className="size-4" style={{ color: VIOLET }} />
           </span>
           <span className="min-w-0 flex-1">
-            <b className="block text-[13px]">
+            <b className="text-body-sm block">
               {tr("Nouveau message du client", "رسالة جديدة من الزبون")}
             </b>
-            <span className="block truncate text-[12px] text-[var(--d-muted)]">
+            <span className="text-label block truncate text-[var(--d-muted)]">
               {msgBanner}
             </span>
           </span>
           <span
-            className="shrink-0 text-[11px] font-extrabold"
+            className="text-caption shrink-0 font-extrabold"
             style={{ color: VIOLET }}
           >
             {tr("Voir", "عرض")}
@@ -699,7 +699,7 @@ export function DCourse() {
       {/* Back-to-back : course suivante près de la dépose (compteur 12 s) */}
       {inProgress && nextOff && (
         <div
-          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-30 overflow-hidden rounded-[20px] border-2 bg-[var(--d-surface)] shadow-xl"
+          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-30 overflow-hidden rounded-xl border-2 bg-[var(--d-surface)] shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <div
@@ -724,10 +724,10 @@ export function DCourse() {
                 {nextOff.customer_name[0]?.toUpperCase()}
               </span>
               <span className="min-w-0 flex-1">
-                <b className="flex items-center gap-1 text-[13.5px]">
+                <b className="text-body flex items-center gap-1">
                   {nextOff.customer_name}
                   {nextOff.customer_rating != null && (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                    <span className="text-caption inline-flex items-center gap-0.5 font-bold text-[var(--color-warning-700)]">
                       <Star
                         className="size-3 shrink-0"
                         style={{ color: "#E8B53C", fill: "#E8B53C" }}
@@ -736,7 +736,7 @@ export function DCourse() {
                     </span>
                   )}
                 </b>
-                <span className="text-[11px] text-[var(--d-muted)]">
+                <span className="text-caption text-[var(--d-muted)]">
                   {isAr
                     ? `على بعد ${fmtkm(nextOff.pickup_dist_km)} من نقطة الإنزال · المشوار ${fmtkm(nextOff.distance_km)}`
                     : `À ${fmtkm(nextOff.pickup_dist_km)} de votre point de dépose · course ${fmtkm(nextOff.distance_km)}`}
@@ -747,18 +747,18 @@ export function DCourse() {
                   {nextOff.proposed_price_da + nextOff.boost_amount_da}{" "}
                   {tr("DA", "دج")}
                 </b>
-                <span className="text-[10px] text-[var(--d-muted)]">
+                <span className="text-micro text-[var(--d-muted)]">
                   {tr("prix client", "سعر الزبون")}
                 </span>
               </span>
             </div>
-            <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
+            <p className="text-caption mt-1.5 text-[var(--d-muted)]">
               {nextOff.pickup_text ?? "—"} → {nextOff.dest_text ?? "—"}
             </p>
             <div className="mt-2.5 flex gap-2">
               <button
                 type="button"
-                className="drive-sora h-[42px] flex-1 rounded-[12px] text-[13px] font-bold text-white"
+                className="drive-sora text-body-sm h-[42px] flex-1 rounded-md font-bold text-white"
                 style={{ background: VIOLET }}
                 onClick={() => {
                   setQueued(nextOff);
@@ -769,7 +769,7 @@ export function DCourse() {
               </button>
               <button
                 type="button"
-                className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[var(--d-soft)] text-[13px] font-bold text-[var(--d-muted)]"
+                className="drive-sora text-body-sm h-[42px] flex-1 rounded-md bg-[var(--d-soft)] font-bold text-[var(--d-muted)]"
                 onClick={() => {
                   declined.current.add(nextOff.id);
                   setNextOff(null);
@@ -782,7 +782,7 @@ export function DCourse() {
         </div>
       )}
 
-      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[60vh] overflow-y-auto rounded-t-2xl border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {/* Tracker d'étapes (progression visuelle, parité écran client). */}
@@ -818,7 +818,7 @@ export function DCourse() {
 
         {queued && (
           <div
-            className="mb-2.5 flex items-center gap-2 rounded-[13px] px-3 py-2.5 text-[12.5px] font-bold"
+            className="rounded-card text-label-lg mb-2.5 flex items-center gap-2 px-3 py-2.5 font-bold"
             style={{ background: "var(--d-accent)", color: VIOLET }}
           >
             <Check className="size-4 shrink-0" />
@@ -827,7 +827,7 @@ export function DCourse() {
             {tr("DA", "دج")}
             <button
               type="button"
-              className="ms-auto text-[11px] font-semibold text-[var(--d-muted)]"
+              className="text-caption ms-auto font-semibold text-[var(--d-muted)]"
               onClick={() => setQueued(null)}
             >
               {tr("Retirer", "إزالة")}
@@ -836,7 +836,7 @@ export function DCourse() {
         )}
 
         {/* Fiche client : identité + prix + adresse cliquable (→ itinéraire). */}
-        <div className="mb-2.5 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+        <div className="rounded-sheet-xl mb-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
           <div className="flex items-center gap-3">
             <span
               className="drive-sora grid size-[52px] shrink-0 place-items-center rounded-full text-xl font-extrabold text-white"
@@ -847,12 +847,12 @@ export function DCourse() {
               {ride.customer_name[0]?.toUpperCase()}
             </span>
             <span className="min-w-0 flex-1">
-              <b className="drive-sora block text-[17px] font-extrabold">
+              <b className="drive-sora text-title-lg block font-extrabold">
                 {ride.customer_name}
               </b>
               <span className="mt-1 flex flex-wrap gap-1.5">
                 {ride.customer_rating != null && (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
+                  <span className="text-caption inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 font-bold text-[var(--color-warning-700)]">
                     <Star
                       className="size-3 shrink-0"
                       style={{ color: "#E8B53C", fill: "#E8B53C" }}
@@ -861,7 +861,7 @@ export function DCourse() {
                   </span>
                 )}
                 {ride.proxy_name && (
-                  <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
+                  <span className="text-caption rounded-full bg-[var(--d-soft)] px-2.5 py-1 font-bold text-[var(--d-muted)]">
                     {tr("Pour un proche", "لأحد الأقارب")}
                   </span>
                 )}
@@ -879,7 +879,7 @@ export function DCourse() {
                   );
                   return iw ? (
                     <span
-                      className="rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                      className="text-caption rounded-full px-2.5 py-1 font-extrabold"
                       style={{
                         background: "rgba(108,43,217,.12)",
                         color: VIOLET,
@@ -895,12 +895,12 @@ export function DCourse() {
             {/* Prix convenu (collé à l'identité — plus de bloc séparé). */}
             <span className="shrink-0 text-end">
               <span
-                className="drive-sora block text-[18px] leading-none font-extrabold"
+                className="drive-sora text-heading-sm block leading-none font-extrabold"
                 style={{ color: VIOLET }}
               >
                 {formatDA(ride.agreed_price_da)}
               </span>
-              <span className="mt-1 block text-[10px] font-bold text-[var(--d-muted)]">
+              <span className="text-micro mt-1 block font-bold text-[var(--d-muted)]">
                 {inProgress
                   ? ride.prepaid
                     ? ride.cash_due_da > 0
@@ -918,7 +918,7 @@ export function DCourse() {
           <button
             type="button"
             onClick={onItinerary}
-            className="mt-3 flex w-full items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-start text-[12.5px] font-bold"
+            className="rounded-card text-label-lg mt-3 flex w-full items-center gap-2 bg-[var(--d-soft)] px-3 py-2.5 text-start font-bold"
           >
             <span
               className="grid size-6 shrink-0 place-items-center rounded-full"
@@ -940,7 +940,7 @@ export function DCourse() {
                   tr("Point de départ du client", "نقطة انطلاق الزبون"))}
             </span>
             <span
-              className="flex shrink-0 items-center gap-0.5 text-[11px] font-extrabold"
+              className="text-caption flex shrink-0 items-center gap-0.5 font-extrabold"
               style={{ color: VIOLET }}
             >
               <Navigation className="size-3.5" /> {tr("Itinéraire", "المسار")}
@@ -954,7 +954,7 @@ export function DCourse() {
           <button
             type="button"
             onClick={onCall}
-            className="drive-sora flex h-[50px] items-center justify-center gap-2 rounded-[15px] text-[14px] font-bold text-white"
+            className="drive-sora rounded-card-xl text-body-lg flex h-[50px] items-center justify-center gap-2 font-bold text-white"
             style={{ background: VIOLET }}
           >
             <PhoneCall className="size-[18px] shrink-0" />{" "}
@@ -963,13 +963,13 @@ export function DCourse() {
           <button
             type="button"
             onClick={() => setChatOpen(true)}
-            className="drive-sora relative flex h-[50px] items-center justify-center gap-2 rounded-[15px] bg-[var(--d-soft)] text-[14px] font-bold"
+            className="drive-sora rounded-card-xl text-body-lg relative flex h-[50px] items-center justify-center gap-2 bg-[var(--d-soft)] font-bold"
           >
             <MessageSquare className="size-[18px] shrink-0" />{" "}
             {tr("Message", "رسالة")}
             {unread > 0 && (
               <span
-                className="drive-badge absolute top-1.5 right-2 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
+                className="drive-badge text-caption absolute top-1.5 right-2 grid min-w-[20px] place-items-center rounded-full px-1.5 font-extrabold text-white"
                 style={{ background: RED }}
               >
                 {unread}
@@ -985,7 +985,7 @@ export function DCourse() {
               <button
                 type="button"
                 onClick={() => setShareOpen(true)}
-                className="flex h-[40px] flex-1 items-center justify-center gap-1.5 rounded-[13px] border border-[var(--d-line)] text-[12.5px] font-bold text-[var(--d-muted)]"
+                className="rounded-card text-label-lg flex h-[40px] flex-1 items-center justify-center gap-1.5 border border-[var(--d-line)] font-bold text-[var(--d-muted)]"
               >
                 <Share2 className="size-4" />{" "}
                 {tr("Partager le suivi", "مشاركة التتبّع")}
@@ -995,7 +995,7 @@ export function DCourse() {
               <button
                 type="button"
                 onClick={() => setSosOpen(true)}
-                className="flex h-[40px] w-[96px] shrink-0 items-center justify-center gap-1.5 rounded-[13px] border text-[12.5px] font-bold"
+                className="rounded-card text-label-lg flex h-[40px] w-[96px] shrink-0 items-center justify-center gap-1.5 border font-bold"
                 style={{ borderColor: RED, color: RED }}
               >
                 <AlertTriangle className="size-4" /> SOS
@@ -1006,7 +1006,7 @@ export function DCourse() {
 
         {ride.prepaid && (
           <p
-            className="mb-2.5 flex items-start gap-1.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
+            className="rounded-card text-label-lg mb-2.5 flex items-start gap-1.5 px-3 py-2.5 leading-relaxed font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             <Lock className="mt-0.5 size-3.5 shrink-0" />
@@ -1070,7 +1070,7 @@ export function DCourse() {
 
         {error && (
           <p
-            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+            className="mb-2 rounded-md px-3 py-2 text-center text-xs font-bold"
             style={{ background: "rgba(229,72,77,.1)", color: RED }}
           >
             {error}
@@ -1097,7 +1097,7 @@ export function DCourse() {
               type="button"
               onClick={() => void transition("in_progress")}
               disabled={busy}
-              className="drive-sora mt-2 flex h-[46px] w-full items-center justify-center gap-1.5 rounded-[15px] border-[1.5px] border-[var(--d-line)] text-[13.5px] font-bold disabled:opacity-50"
+              className="drive-sora rounded-card-xl text-body mt-2 flex h-[46px] w-full items-center justify-center gap-1.5 border-[1.5px] border-[var(--d-line)] font-bold disabled:opacity-50"
               style={{ color: VIOLET }}
             >
               {tr(
@@ -1110,7 +1110,7 @@ export function DCourse() {
         ) : (
           <>
             <p
-              className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+              className="mb-2 rounded-md px-3 py-2 text-center text-xs font-bold"
               style={{ background: "rgba(22,179,100,.12)", color: GO }}
             >
               {tr(
@@ -1144,7 +1144,7 @@ export function DCourse() {
         <SheetTitle>
           {tr("Code PIN du client", "رمز PIN الخاص بالزبون")}
         </SheetTitle>
-        <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+        <p className="text-body-sm mb-3 text-[var(--d-muted)]">
           {isAr ? (
             <>
               عند وصولك، اطلب من الزبون <b>رمز PIN (4 أرقام)</b>. تأكيده يبدأ
@@ -1167,7 +1167,7 @@ export function DCourse() {
           }
           inputMode="numeric"
           placeholder="• • • •"
-          className="drive-sora mb-1 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-center text-2xl font-extrabold tracking-[8px] outline-none"
+          className="drive-sora rounded-card-lg mb-1 w-full border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-center text-2xl font-extrabold tracking-[8px] outline-none"
         />
         {error && (
           <p className="text-center text-xs font-bold" style={{ color: RED }}>
@@ -1241,7 +1241,7 @@ export function DCourse() {
         <SheetTitle>
           {tr("Appeler", "الاتصال بـ")} {ride.customer_name}
         </SheetTitle>
-        <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+        <p className="text-body-sm mb-3 text-[var(--d-muted)]">
           {tr(
             "Coligo Call protège votre numéro et celui du client.",
             "كوليغو كول يحمي رقمك ورقم الزبون."
@@ -1253,13 +1253,13 @@ export function DCourse() {
             setCallMenu(false);
             call.start(false);
           }}
-          className="drive-sora mb-2 flex h-[54px] w-full items-center gap-3 rounded-[14px] px-4 text-[14px] font-bold text-white"
+          className="drive-sora rounded-card-lg text-body-lg mb-2 flex h-[54px] w-full items-center gap-3 px-4 font-bold text-white"
           style={{ background: VIOLET }}
         >
           <PhoneCall className="size-5" />
           <span className="flex-1 text-start">
             Coligo Call
-            <span className="block text-[11px] font-semibold opacity-85">
+            <span className="text-caption block font-semibold opacity-85">
               {tr("Numéro masqué · recommandé", "رقم مخفي · موصى به")}
             </span>
           </span>
@@ -1269,14 +1269,14 @@ export function DCourse() {
           <a
             href={`tel:${ride.customer_phone}`}
             onClick={() => setCallMenu(false)}
-            className="drive-sora mb-1 flex h-[54px] w-full items-center gap-3 rounded-[14px] border-[1.5px] border-[var(--d-line)] px-4 text-[14px] font-bold"
+            className="drive-sora rounded-card-lg text-body-lg mb-1 flex h-[54px] w-full items-center gap-3 border-[1.5px] border-[var(--d-line)] px-4 font-bold"
           >
             <Phone className="size-5" style={{ color: VIOLET }} />
             <span className="flex-1 text-start">
               {tr("Appeler le numéro direct", "الاتصال بالرقم المباشر")}
               <span
                 dir="ltr"
-                className="block text-[11px] font-semibold text-[var(--d-muted)]"
+                className="text-caption block font-semibold text-[var(--d-muted)]"
               >
                 {ride.customer_phone}
               </span>
@@ -1294,7 +1294,7 @@ export function DCourse() {
       {shareUrl && (
         <Sheet open={shareOpen} onClose={() => setShareOpen(false)}>
           <SheetTitle>{tr("Partager le suivi", "مشاركة التتبّع")}</SheetTitle>
-          <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+          <p className="text-body-sm mb-3 text-[var(--d-muted)]">
             {tr(
               "Vos proches suivent la course en direct (position live), sans compte.",
               "يتابع أقاربك المشوار مباشرة (الموقع الحي)، دون حساب."
@@ -1302,7 +1302,7 @@ export function DCourse() {
           </p>
           {/* Aperçu carte du trajet A → B */}
           <DriveMap
-            className="relative h-[190px] w-full overflow-hidden rounded-[18px] border border-[var(--d-line)]"
+            className="rounded-sheet-lg relative h-[190px] w-full overflow-hidden border border-[var(--d-line)]"
             markers={[
               ...(pickup
                 ? [
@@ -1329,7 +1329,7 @@ export function DCourse() {
             padding={{ top: 44, bottom: 44, left: 44, right: 44 }}
           />
           {/* Rail A → B (adresses) */}
-          <div className="my-3 flex gap-2.5 rounded-[14px] bg-[var(--d-soft)] px-3 py-2.5">
+          <div className="rounded-card-lg my-3 flex gap-2.5 bg-[var(--d-soft)] px-3 py-2.5">
             <div className="flex w-3 shrink-0 flex-col items-center pt-1">
               <span
                 className="size-1.5 rounded-full"
@@ -1341,7 +1341,7 @@ export function DCourse() {
                 style={{ background: ROSE }}
               />
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-2 text-[12px] font-semibold">
+            <div className="text-label flex min-w-0 flex-1 flex-col gap-2 font-semibold">
               <span className="truncate">
                 {pickupAddr ??
                   tr("Point de départ du client", "نقطة انطلاق الزبون")}
@@ -1366,7 +1366,7 @@ export function DCourse() {
                   "_blank"
                 )
               }
-              className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+              className="drive-sora rounded-card-lg text-body flex h-12 flex-1 items-center justify-center gap-2 font-bold text-white"
               style={{ background: GO }}
             >
               <MessageCircle className="size-4" /> WhatsApp
@@ -1384,7 +1384,7 @@ export function DCourse() {
                   "_self"
                 )
               }
-              className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+              className="drive-sora rounded-card-lg text-body flex h-12 flex-1 items-center justify-center gap-2 bg-[var(--d-soft)] font-bold"
             >
               <Smartphone className="size-4" /> SMS
             </button>
@@ -1392,7 +1392,7 @@ export function DCourse() {
           <button
             type="button"
             onClick={() => void copyShare()}
-            className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[13.5px] font-bold"
+            className="drive-sora rounded-card-lg text-body mt-2 flex h-12 w-full items-center justify-center gap-2 border-[1.5px] font-bold"
             style={
               linkCopied
                 ? { borderColor: GO, color: GO }

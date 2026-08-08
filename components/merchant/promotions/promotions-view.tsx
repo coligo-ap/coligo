@@ -137,7 +137,7 @@ export function PromotionsView({ items }: { items: PromotionListItem[] }) {
               {t.label}
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums",
+                  "text-micro rounded-full px-1.5 py-0.5 font-semibold tabular-nums",
                   active
                     ? "bg-primary-100 text-primary-800"
                     : "bg-surface-3 text-muted"
@@ -200,9 +200,9 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
   }
 
   return (
-    <li className="border-border bg-surface flex flex-col gap-3 rounded-[16px] border p-4 shadow-sm">
+    <li className="border-border bg-surface flex flex-col gap-3 rounded-lg border p-4 shadow-sm">
       <div className="flex items-start gap-3">
-        <span className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-[12px]">
+        <span className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-md">
           <Icon className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -256,7 +256,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
           type="button"
           onClick={onToggle}
           disabled={pending || promo.effectiveStatus === "expired"}
-          className="text-muted hover:bg-surface-2 hover:text-foreground inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-medium disabled:opacity-40"
+          className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium disabled:opacity-40"
         >
           {pending ? (
             <Loader2 className="size-3.5 animate-spin" />
@@ -267,7 +267,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
         </button>
         <Link
           href={`/promotions/${promo.id}`}
-          className="text-muted hover:bg-surface-2 hover:text-foreground inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-medium"
+          className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium"
         >
           <Pencil className="size-3.5" />
           Modifier
@@ -276,7 +276,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
           type="button"
           onClick={onDelete}
           disabled={pending}
-          className="text-danger-600 hover:bg-danger-50 ml-auto inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-medium disabled:opacity-40"
+          className="text-danger-600 hover:bg-danger-50 rounded-control ml-auto inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium disabled:opacity-40"
         >
           <Trash2 className="size-3.5" />
           Supprimer
@@ -290,7 +290,7 @@ function PromotionCard({ promo }: { promo: PromotionListItem }) {
 function EmptyState({ tab }: { tab: PromotionStatus }) {
   const label = TABS.find((t) => t.key === tab)?.label.toLowerCase() ?? "";
   return (
-    <div className="border-border bg-surface flex flex-col items-center justify-center rounded-[16px] border border-dashed py-16 text-center">
+    <div className="border-border bg-surface flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
       <div className="bg-primary-50 text-primary-600 mb-4 flex size-14 items-center justify-center rounded-2xl">
         <Tag className="size-7" />
       </div>

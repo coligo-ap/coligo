@@ -38,7 +38,7 @@ export default async function AdminOrdersPage({
           l'explorateur, déjà pré-filtré par le href de l'alerte. */}
       <div
         data-alert-focus="deliveries_stuck_in_transit"
-        className="rounded-[16px]"
+        className="rounded-lg"
       >
         <AdminOrdersExplorer
           rows={rows}

@@ -235,7 +235,7 @@ export function GuestPayView({
   if (info === null) {
     return (
       <Screen>
-        <div className="bg-surface-3 h-64 animate-pulse rounded-[22px]" />
+        <div className="bg-surface-3 rounded-sheet-xl h-64 animate-pulse" />
       </Screen>
     );
   }
@@ -255,7 +255,7 @@ export function GuestPayView({
 
           <Link
             href="/"
-            className="border-border text-foreground mt-4 flex h-11 w-full items-center justify-center rounded-[13px] border text-sm font-bold"
+            className="border-border text-foreground rounded-card mt-4 flex h-11 w-full items-center justify-center border text-sm font-bold"
           >
             {t("goHome")}
           </Link>
@@ -294,7 +294,7 @@ export function GuestPayView({
           </p>
           <Link
             href="/"
-            className="border-border text-foreground mt-4 flex h-11 w-full items-center justify-center rounded-[13px] border text-sm font-bold"
+            className="border-border text-foreground rounded-card mt-4 flex h-11 w-full items-center justify-center border text-sm font-bold"
           >
             {t("goHome")}
           </Link>
@@ -314,7 +314,7 @@ export function GuestPayView({
     const paidDetails = (
       <div className="mt-4 space-y-2.5">
         {info.order_number && (
-          <div className="bg-surface-2 flex items-center justify-between rounded-[14px] px-4 py-2.5">
+          <div className="bg-surface-2 rounded-card-lg flex items-center justify-between px-4 py-2.5">
             <span className="text-muted text-xs font-bold">
               {t("paidOrderNo")}
             </span>
@@ -324,7 +324,7 @@ export function GuestPayView({
           </div>
         )}
         {info.is_delivery && (
-          <div className="bg-surface-2 rounded-[14px] px-4 py-2.5 text-center">
+          <div className="bg-surface-2 rounded-card-lg px-4 py-2.5 text-center">
             <span className="text-muted text-xs font-bold">
               {t("paidDeliveryInfo", {
                 name: info?.captain_name ?? t("captain"),
@@ -333,9 +333,9 @@ export function GuestPayView({
           </div>
         )}
         {info.pickup_code && (
-          <div className="border-primary-100 bg-primary-50 rounded-[16px] border p-3.5">
+          <div className="border-primary-100 bg-primary-50 rounded-lg border p-3.5">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-primary-800 text-[12.5px] font-extrabold">
+              <span className="text-primary-800 text-label-lg font-extrabold">
                 {tOrders("codeToGiveMerchant")}
               </span>
               <span className="text-primary-600 text-[26px] leading-none font-black tracking-[6px] tabular-nums">
@@ -349,9 +349,9 @@ export function GuestPayView({
                 fullValue={info.pickup_code}
                 caption={tOrders("codeScanHintMerchant")}
               />
-              <p className="text-primary-700/90 text-[12px] font-semibold">
+              <p className="text-primary-700/90 text-label font-semibold">
                 {tOrders("codeScanHintMerchant")}
-                <span className="mt-1 block text-[11px] font-bold opacity-80">
+                <span className="text-caption mt-1 block font-bold opacity-80">
                   {tOrders("tapToEnlarge")}
                 </span>
               </p>
@@ -393,7 +393,7 @@ export function GuestPayView({
             quelqu'un qui ne l'a pas encore). */}
         <Link
           href="/"
-          className="border-border bg-surface text-foreground mt-3 block rounded-[14px] border px-4 py-3 text-center text-sm font-extrabold transition active:scale-[0.98]"
+          className="border-border bg-surface text-foreground rounded-card-lg mt-3 block border px-4 py-3 text-center text-sm font-extrabold transition active:scale-[0.98]"
         >
           {t("guestDiscoverCta")}
         </Link>
@@ -413,7 +413,7 @@ export function GuestPayView({
             <button
               type="button"
               onClick={() => setPaidPopupClosed(true)}
-              className="bg-primary-600 hover:bg-primary-700 mt-4 w-full rounded-[14px] px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg mt-4 w-full px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
             >
               {t("paidPopupClose")}
             </button>
@@ -440,7 +440,7 @@ export function GuestPayView({
 
           <Link
             href="/"
-            className="border-border text-foreground mt-4 flex h-11 w-full items-center justify-center rounded-[13px] border text-sm font-bold"
+            className="border-border text-foreground rounded-card mt-4 flex h-11 w-full items-center justify-center border text-sm font-bold"
           >
             {t("goHome")}
           </Link>
@@ -474,14 +474,14 @@ export function GuestPayView({
 
         {/* RÉCAP ARTICLES — identique au checkout du propriétaire (mig 0427). */}
         {(info.items?.length ?? 0) > 0 && (
-          <div className="border-border mt-4 rounded-[16px] border px-4 py-3">
-            <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+          <div className="border-border mt-4 rounded-lg border px-4 py-3">
+            <p className="text-muted text-caption mb-1.5 font-bold tracking-wide uppercase">
               {t("payItemsTitle", { count: info.items!.length })}
             </p>
             {info.items!.map((it, i) => (
               <div
                 key={i}
-                className="flex items-baseline justify-between py-1 text-[13px]"
+                className="text-body-sm flex items-baseline justify-between py-1"
               >
                 <span className="min-w-0 pe-2 font-semibold">
                   <span className="text-primary-600 me-1 font-extrabold">
@@ -497,8 +497,8 @@ export function GuestPayView({
             ))}
           </div>
         )}
-        <div className="bg-surface-2 mt-4 rounded-[16px] px-4 py-3 text-center">
-          <p className="text-muted text-[11px] font-bold tracking-wide uppercase">
+        <div className="bg-surface-2 mt-4 rounded-lg px-4 py-3 text-center">
+          <p className="text-muted text-caption font-bold tracking-wide uppercase">
             {t("payAmountLabel")}
           </p>
           <p className="text-foreground text-3xl font-black tabular-nums">
@@ -507,7 +507,7 @@ export function GuestPayView({
           {/* DÉTAIL avant paiement (mig 0423) : sous-total, frais de service,
               livraison — le payeur sait exactement ce qu'il règle. */}
           {info.subtotal_da != null && (
-            <dl className="border-border mt-2.5 space-y-1 border-t pt-2.5 text-[12.5px]">
+            <dl className="border-border text-label-lg mt-2.5 space-y-1 border-t pt-2.5">
               <div className="flex items-center justify-between">
                 <dt className="text-muted font-semibold">
                   {t("payBreakSubtotal")}
@@ -542,8 +542,8 @@ export function GuestPayView({
 
         {/* TRANSPARENCE (mig 0422) : le propriétaire a déjà fixé le mode et
             l'adresse au checkout — l'invité voit ce qu'il paie exactement. */}
-        <div className="border-border mt-3 rounded-[14px] border px-4 py-3">
-          <p className="text-muted text-[11px] font-bold tracking-wide uppercase">
+        <div className="border-border rounded-card-lg mt-3 border px-4 py-3">
+          <p className="text-muted text-caption font-bold tracking-wide uppercase">
             {t("payModeTitle", { name: info.captain_name ?? t("captain") })}
           </p>
           <p className="text-foreground mt-1 text-sm font-extrabold">
@@ -566,14 +566,14 @@ export function GuestPayView({
         </div>
 
         {confirming ? (
-          <div className="mt-4 flex items-center justify-center gap-2 rounded-[13px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
+          <div className="rounded-card mt-4 flex items-center justify-center gap-2 border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-bold text-amber-800">
             <Loader2 className="size-4 animate-spin" />
             {t("payPendingConfirm")}
           </div>
         ) : (
           <>
             {(returnState === "failure" || payError) && (
-              <p className="mt-3 rounded-[12px] border border-rose-200 bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-800">
+              <p className="mt-3 rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-800">
                 {payError ?? t("payFailedBanner")}
               </p>
             )}
@@ -585,7 +585,7 @@ export function GuestPayView({
                 type="button"
                 onClick={() => setMethod("dz")}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 text-start transition-colors",
+                  "rounded-card-lg flex w-full items-center gap-3 border-2 px-3.5 py-3 text-start transition-colors",
                   method === "dz"
                     ? "border-primary-400 bg-primary-50/50"
                     : "border-border"
@@ -593,7 +593,7 @@ export function GuestPayView({
               >
                 <span
                   className={cn(
-                    "grid size-9 shrink-0 place-items-center rounded-[10px]",
+                    "rounded-control grid size-9 shrink-0 place-items-center",
                     method === "dz"
                       ? "bg-primary-600 text-white"
                       : "bg-surface-2 text-subtle"
@@ -605,7 +605,7 @@ export function GuestPayView({
                   <span className="text-foreground block text-sm font-extrabold">
                     {t("payEdahabia")}
                   </span>
-                  <span className="text-muted block text-[11px] font-semibold">
+                  <span className="text-muted text-caption block font-semibold">
                     {t("payEdahabiaSub")}
                   </span>
                 </span>
@@ -619,7 +619,7 @@ export function GuestPayView({
                     type="button"
                     onClick={() => setMethod("intl")}
                     className={cn(
-                      "flex w-full items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 text-start transition-colors",
+                      "rounded-card-lg flex w-full items-center gap-3 border-2 px-3.5 py-3 text-start transition-colors",
                       method === "intl"
                         ? "border-primary-400 bg-primary-50/50"
                         : "border-border"
@@ -627,7 +627,7 @@ export function GuestPayView({
                   >
                     <span
                       className={cn(
-                        "grid size-9 shrink-0 place-items-center rounded-[10px]",
+                        "rounded-control grid size-9 shrink-0 place-items-center",
                         method === "intl"
                           ? "bg-primary-600 text-white"
                           : "bg-surface-2 text-subtle"
@@ -639,7 +639,7 @@ export function GuestPayView({
                       <span className="text-foreground block text-sm font-extrabold">
                         {t("payIntl")}
                       </span>
-                      <span className="text-muted block text-[11px] font-semibold">
+                      <span className="text-muted text-caption block font-semibold">
                         {t("payIntlSub")}
                       </span>
                     </span>
@@ -648,15 +648,15 @@ export function GuestPayView({
                     )}
                   </button>
                 ) : (
-                  <div className="border-border flex items-center gap-3 rounded-[14px] border-2 px-3.5 py-3 opacity-55">
-                    <span className="bg-surface-2 text-subtle grid size-9 shrink-0 place-items-center rounded-[10px]">
+                  <div className="border-border rounded-card-lg flex items-center gap-3 border-2 px-3.5 py-3 opacity-55">
+                    <span className="bg-surface-2 text-subtle rounded-control grid size-9 shrink-0 place-items-center">
                       <Globe className="size-4.5" />
                     </span>
                     <span className="min-w-0 flex-1">
                       <span className="text-foreground block text-sm font-extrabold">
                         {t("payIntl")}
                       </span>
-                      <span className="text-muted block text-[11px] font-semibold">
+                      <span className="text-muted text-caption block font-semibold">
                         {t("payIntlSoon")}
                       </span>
                     </span>
@@ -668,7 +668,7 @@ export function GuestPayView({
               type="button"
               onClick={() => void pay()}
               disabled={paying}
-              className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex w-full items-center justify-center gap-2 rounded-[14px] px-4 py-4 text-base font-extrabold text-white shadow-[0_10px_24px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg mt-4 inline-flex w-full items-center justify-center gap-2 px-4 py-4 text-base font-extrabold text-white shadow-[0_10px_24px_-8px_rgba(91,46,255,0.5)] transition active:scale-[0.98] disabled:opacity-60"
             >
               {paying ? (
                 <Loader2 className="size-5 animate-spin" />
@@ -677,7 +677,7 @@ export function GuestPayView({
               )}
               {t("payCta", { amount: formatDA(info.total_da) })}
             </button>
-            <p className="text-subtle mt-2.5 flex items-center justify-center gap-1 text-center text-[11px] font-semibold">
+            <p className="text-subtle text-caption mt-2.5 flex items-center justify-center gap-1 text-center font-semibold">
               <Lock className="size-3" />
               {t("paySecure")}
             </p>
@@ -717,7 +717,7 @@ function Screen({ children }: { children: React.ReactNode }) {
 
 function Card({ children }: { children: React.ReactNode }) {
   return (
-    <div className="bg-surface rounded-[22px] p-5 shadow-[0_18px_44px_-20px_rgba(40,35,90,.35)]">
+    <div className="bg-surface rounded-sheet-xl p-5 shadow-[0_18px_44px_-20px_rgba(40,35,90,.35)]">
       {children}
     </div>
   );

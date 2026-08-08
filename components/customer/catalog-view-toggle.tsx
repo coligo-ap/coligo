@@ -53,14 +53,14 @@ export function CatalogViewToggle({
       type="button"
       onClick={toggle}
       aria-label={t("viewToggleAria")}
-      className="bg-surface-2 hover:bg-surface-3 flex shrink-0 flex-col items-center justify-center gap-0.5 self-stretch rounded-[16px] px-4 transition-colors active:scale-[0.97]"
+      className="bg-surface-2 hover:bg-surface-3 flex shrink-0 flex-col items-center justify-center gap-0.5 self-stretch rounded-lg px-4 transition-colors active:scale-[0.97]"
     >
       {next === "categories" ? (
         <LayoutGrid className="text-foreground size-[18px]" />
       ) : (
         <Rows3 className="text-foreground size-[18px]" />
       )}
-      <span className="text-foreground text-[11.5px] leading-none font-bold whitespace-nowrap">
+      <span className="text-foreground text-caption-lg leading-none font-bold whitespace-nowrap">
         {next === "categories" ? t("catButtonCats") : t("catButtonList")}
       </span>
     </button>

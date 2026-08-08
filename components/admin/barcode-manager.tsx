@@ -91,14 +91,14 @@ export function BarcodeManager({
           <ScanBarcode className="size-5" />
           Catalogue code-barres
         </h2>
-        <p className="text-muted mt-0.5 text-[13px]">
+        <p className="text-muted text-body-sm mt-0.5">
           La saisie admin PRIME sur OpenFoodFacts. Activation par surface :
           onglet « Contrôle services ».
         </p>
       </header>
 
       {/* Ajout / correction */}
-      <section className="border-border rounded-[14px] border bg-white p-4">
+      <section className="border-border rounded-card-lg border bg-white p-4">
         <p className="mb-2 text-sm font-bold">Ajouter / corriger</p>
         <div className="grid gap-2 sm:grid-cols-[180px_1fr_160px_auto]">
           <Input
@@ -137,12 +137,12 @@ export function BarcodeManager({
           </Button>
         </div>
         {addErr && (
-          <p className="text-danger-600 mt-2 text-[12.5px] font-semibold">
+          <p className="text-danger-600 text-label-lg mt-2 font-semibold">
             {addErr}
           </p>
         )}
         {addOk && (
-          <p className="text-success-700 mt-2 inline-flex items-center gap-1 text-[12.5px] font-semibold">
+          <p className="text-success-700 text-label-lg mt-2 inline-flex items-center gap-1 font-semibold">
             <Check className="size-3.5" /> Enregistré.
           </p>
         )}
@@ -150,7 +150,7 @@ export function BarcodeManager({
 
       {/* Scans non résolus — enrichissement en un clic */}
       {unresolved.length > 0 && (
-        <section className="border-warning-200 bg-warning-50/50 rounded-[14px] border p-4">
+        <section className="border-warning-200 bg-warning-50/50 rounded-card-lg border p-4">
           <p className="mb-2 text-sm font-bold">
             Scans non résolus (30 j) — à enrichir
           </p>
@@ -158,7 +158,7 @@ export function BarcodeManager({
             {unresolved.map((u) => (
               <li
                 key={u.barcode}
-                className="flex items-center gap-3 py-2 text-[13px]"
+                className="text-body-sm flex items-center gap-3 py-2"
               >
                 <span className="font-mono font-bold tabular-nums">
                   {u.barcode}
@@ -178,7 +178,7 @@ export function BarcodeManager({
                     setAddOk(false);
                     window.scrollTo({ top: 0, behavior: "smooth" });
                   }}
-                  className="text-primary-700 ms-auto text-[12.5px] font-bold hover:underline"
+                  className="text-primary-700 text-label-lg ms-auto font-bold hover:underline"
                 >
                   Ajouter
                 </button>
@@ -189,7 +189,7 @@ export function BarcodeManager({
       )}
 
       {/* Catalogue */}
-      <section className="border-border rounded-[14px] border bg-white">
+      <section className="border-border rounded-card-lg border bg-white">
         <div className="border-border flex items-center gap-2 border-b p-3">
           <Input
             value={q}
@@ -197,7 +197,7 @@ export function BarcodeManager({
             placeholder="Filtrer (code, nom, marque)…"
             className="max-w-xs"
           />
-          <span className="text-muted ms-auto text-[12px] font-semibold">
+          <span className="text-muted text-label ms-auto font-semibold">
             {filtered.length} / {catalog.length}
           </span>
         </div>
@@ -262,7 +262,7 @@ function CatalogLine({ row }: { row: CatalogRow }) {
   return (
     <li className="px-4 py-2.5">
       <div className="flex items-center gap-3">
-        <span className="w-[130px] shrink-0 font-mono text-[13px] font-bold tabular-nums">
+        <span className="text-body-sm w-[130px] shrink-0 font-mono font-bold tabular-nums">
           {row.barcode}
         </span>
         {editing ? (
@@ -280,14 +280,14 @@ function CatalogLine({ row }: { row: CatalogRow }) {
             />
           </div>
         ) : (
-          <span className="min-w-0 flex-1 truncate text-[13.5px]">
+          <span className="text-body min-w-0 flex-1 truncate">
             <b>{row.product_name}</b>
             {row.brand && <span className="text-muted"> · {row.brand}</span>}
           </span>
         )}
         <span
           className={cn(
-            "shrink-0 rounded-full px-2 py-0.5 text-[10.5px] font-extrabold",
+            "text-micro-lg shrink-0 rounded-full px-2 py-0.5 font-extrabold",
             row.source === "admin"
               ? "bg-primary-50 text-primary-700"
               : "bg-surface-2 text-muted"
@@ -302,7 +302,7 @@ function CatalogLine({ row }: { row: CatalogRow }) {
               onClick={save}
               disabled={saving || !name.trim()}
               aria-label="Enregistrer"
-              className="text-success-700 hover:bg-success-50 grid size-8 shrink-0 place-items-center rounded-[8px] disabled:opacity-50"
+              className="text-success-700 hover:bg-success-50 grid size-8 shrink-0 place-items-center rounded-sm disabled:opacity-50"
             >
               {saving ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -319,7 +319,7 @@ function CatalogLine({ row }: { row: CatalogRow }) {
                 setErr(null);
               }}
               aria-label="Annuler"
-              className="text-muted hover:bg-surface-2 grid size-8 shrink-0 place-items-center rounded-[8px]"
+              className="text-muted hover:bg-surface-2 grid size-8 shrink-0 place-items-center rounded-sm"
             >
               <X className="size-4" />
             </button>
@@ -330,7 +330,7 @@ function CatalogLine({ row }: { row: CatalogRow }) {
               type="button"
               onClick={() => setEditing(true)}
               aria-label="Modifier"
-              className="text-muted hover:bg-surface-2 hover:text-foreground grid size-8 shrink-0 place-items-center rounded-[8px]"
+              className="text-muted hover:bg-surface-2 hover:text-foreground grid size-8 shrink-0 place-items-center rounded-sm"
             >
               <Pencil className="size-4" />
             </button>
@@ -339,7 +339,7 @@ function CatalogLine({ row }: { row: CatalogRow }) {
               onClick={() => void remove()}
               disabled={deleting}
               aria-label="Supprimer"
-              className="text-danger-600 hover:bg-danger-50 grid size-8 shrink-0 place-items-center rounded-[8px] disabled:opacity-50"
+              className="text-danger-600 hover:bg-danger-50 grid size-8 shrink-0 place-items-center rounded-sm disabled:opacity-50"
             >
               {deleting ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -351,7 +351,7 @@ function CatalogLine({ row }: { row: CatalogRow }) {
         )}
       </div>
       {err && (
-        <p className="text-danger-600 mt-1 text-[12px] font-semibold">{err}</p>
+        <p className="text-danger-600 text-label mt-1 font-semibold">{err}</p>
       )}
     </li>
   );

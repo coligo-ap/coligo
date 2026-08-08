@@ -208,7 +208,7 @@ export default async function OrderDetailPage({
       {/* ─── HERO compact (style Uber Eats) : TOUT l'essentiel d'un coup
           d'œil, sans scroller — n°, statut, type, créneau, paiement, client
           et appel en un tap. ─── */}
-      <header className="border-border bg-surface mb-4 rounded-[16px] border p-4">
+      <header className="border-border bg-surface mb-4 rounded-lg border p-4">
         <div className="flex flex-wrap items-center gap-2.5">
           <h1 className="font-mono text-2xl font-bold tracking-tight lg:text-3xl">
             #{orderRef}
@@ -305,7 +305,7 @@ export default async function OrderDetailPage({
         <div className="min-w-0 space-y-4">
           {/* Note du client EN PREMIER — c'est ce qui change la préparation. */}
           {o.notes && o.notes !== "seed" && (
-            <section className="border-warning-200 bg-warning-50 rounded-[14px] border p-3.5">
+            <section className="border-warning-200 bg-warning-50 rounded-card-lg border p-3.5">
               <p className="text-warning-800 flex items-center gap-1.5 text-xs font-bold tracking-wide uppercase">
                 <StickyNote className="size-3.5" />
                 Note du client
@@ -317,7 +317,7 @@ export default async function OrderDetailPage({
           )}
 
           {/* Items */}
-          <section className="border-border bg-surface rounded-[16px] border">
+          <section className="border-border bg-surface rounded-lg border">
             <header className="border-border flex items-center justify-between border-b px-4 py-3">
               <h2 className="text-sm font-bold">Articles</h2>
               <span className="text-muted text-xs font-semibold tabular-nums">
@@ -329,7 +329,7 @@ export default async function OrderDetailPage({
               {itemGroups.map((group) => (
                 <div key={group.title}>
                   {/* En-tête de catégorie — aide le commerçant à préparer rayon par rayon */}
-                  <div className="bg-surface-2/60 text-subtle flex items-center justify-between px-4 py-1.5 text-[11px] font-semibold tracking-wide uppercase">
+                  <div className="bg-surface-2/60 text-subtle text-caption flex items-center justify-between px-4 py-1.5 font-semibold tracking-wide uppercase">
                     <span>{group.title}</span>
                     <span className="tabular-nums">
                       {countItems(group.items)} art.
@@ -341,7 +341,7 @@ export default async function OrderDetailPage({
                         key={item.id}
                         className="flex items-center gap-3 px-4 py-2.5"
                       >
-                        <span className="bg-primary-50 text-primary-700 flex h-8 min-w-8 shrink-0 items-center justify-center rounded-[9px] px-1.5 text-[13px] font-bold whitespace-nowrap tabular-nums">
+                        <span className="bg-primary-50 text-primary-700 rounded-chip text-body-sm flex h-8 min-w-8 shrink-0 items-center justify-center px-1.5 font-bold whitespace-nowrap tabular-nums">
                           {formatQtyUnit(Number(item.quantity), item.unit)}
                         </span>
                         <div className="min-w-0 flex-1">
@@ -403,7 +403,7 @@ export default async function OrderDetailPage({
           </section>
 
           {/* Timeline */}
-          <section className="border-border bg-surface rounded-[16px] border p-4">
+          <section className="border-border bg-surface rounded-lg border p-4">
             <h2 className="mb-3 text-sm font-bold">Suivi</h2>
             <OrderStatusTimeline status={o.status} events={orderEvents} />
           </section>
@@ -416,7 +416,7 @@ export default async function OrderDetailPage({
               côté commerçant (cf. PROMPT 9 anti-fraude — le client communique
               son code au livreur, le commerçant ne doit JAMAIS le voir). */}
           {o.fulfillment_type === "delivery" ? (
-            <section className="border-warning-200 bg-warning-50 rounded-[16px] border p-4">
+            <section className="border-warning-200 bg-warning-50 rounded-lg border p-4">
               <p className="text-warning-700 mb-2 text-xs font-bold tracking-wide uppercase">
                 Livraison
               </p>
@@ -456,7 +456,7 @@ export default async function OrderDetailPage({
           ) : (
             /* Remise au client — le n° et le créneau sont déjà dans le héro
                (jamais de doublon d'information) : ici, uniquement la consigne. */
-            <section className="border-primary-200 bg-primary-50/60 rounded-[16px] border p-4">
+            <section className="border-primary-200 bg-primary-50/60 rounded-lg border p-4">
               <p className="text-primary-900/70 text-xs font-bold tracking-wide uppercase">
                 Remise au client
               </p>
@@ -478,7 +478,7 @@ export default async function OrderDetailPage({
 
           {/* Actions — barre fixe en bas sur TÉLÉPHONE seulement ; carte
               normale dès la tablette (md, la colonne droite existe). */}
-          <section className="border-border bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] md:static md:bottom-auto md:rounded-[16px] md:border md:p-4 md:shadow-none lg:p-5">
+          <section className="border-border bg-surface fixed inset-x-0 bottom-[calc(4rem+env(safe-area-inset-bottom))] z-20 border-t p-4 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] md:static md:bottom-auto md:rounded-lg md:border md:p-4 md:shadow-none lg:p-5">
             <h2 className="mb-3 hidden text-sm font-bold md:block">Action</h2>
             <div className="mx-auto max-w-[1100px] md:max-w-none">
               <OrderActions
@@ -531,7 +531,7 @@ function EarningsCard({ e }: { e: MerchantOrderEarnings }) {
   const pct =
     e.products > 0 ? Math.round((e.commission / e.products) * 100) : 0;
   return (
-    <section className="border-border bg-surface rounded-[16px] border">
+    <section className="border-border bg-surface rounded-lg border">
       <details className="group">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-2 px-4 py-3.5 [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2 text-sm font-bold">

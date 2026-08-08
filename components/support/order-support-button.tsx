@@ -44,7 +44,7 @@ export function OrderSupportButton({
       }
       className={
         className ??
-        "border-border bg-surface text-foreground hover:bg-surface-2 flex w-full items-center justify-center gap-2 rounded-[16px] border px-4 py-3 text-[13px] font-bold shadow-sm transition-colors"
+        "border-border bg-surface text-foreground hover:bg-surface-2 text-body-sm flex w-full items-center justify-center gap-2 rounded-lg border px-4 py-3 font-bold shadow-sm transition-colors"
       }
     >
       <LifeBuoy className="text-primary-600 size-4" />

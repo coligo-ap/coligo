@@ -48,7 +48,7 @@ export function ChauffeurActions({
             run(() => setChauffeurVerified(chauffeurId, !isVerified))
           }
           className={cn(
-            "inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
+            "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
             isVerified
               ? "bg-success-50 text-success-700 hover:bg-success-100"
               : "bg-primary-600 hover:bg-primary-700 text-white"
@@ -78,7 +78,7 @@ export function ChauffeurActions({
             }
           }}
           className={cn(
-            "inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
+            "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
             isFrozen
               ? "bg-warning-100 text-warning-800 hover:bg-warning-200"
               : "text-muted hover:bg-surface-2"
@@ -95,7 +95,7 @@ export function ChauffeurActions({
             run(() => setChauffeurBlocked(chauffeurId, !isBlocked))
           }
           className={cn(
-            "inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
+            "inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs font-semibold transition-colors disabled:opacity-50",
             isBlocked
               ? "bg-danger-600 hover:bg-danger-700 text-white"
               : "text-muted hover:bg-surface-2"

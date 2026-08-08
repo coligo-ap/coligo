@@ -79,7 +79,7 @@ export function MerchantClosedNotice({
   return (
     <>
       {/* Bandeau persistant en tête de boutique */}
-      <div className="border-warning-200 bg-warning-50 text-warning-900 mb-4 flex items-start gap-3 rounded-[14px] border px-4 py-3">
+      <div className="border-warning-200 bg-warning-50 text-warning-900 rounded-card-lg mb-4 flex items-start gap-3 border px-4 py-3">
         <Clock className="mt-0.5 size-5 shrink-0" />
         <div className="min-w-0 text-sm">
           <p className="font-semibold">{reason}</p>
@@ -101,7 +101,7 @@ export function MerchantClosedNotice({
           onClick={() => setShowModal(false)}
         >
           <div
-            className="w-full max-w-sm rounded-[20px] bg-white p-5 shadow-xl"
+            className="w-full max-w-sm rounded-xl bg-white p-5 shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-start justify-between gap-3">
@@ -127,7 +127,7 @@ export function MerchantClosedNotice({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center gap-2 rounded-[12px] px-4 text-sm font-semibold text-white"
+                  className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white"
                 >
                   <CalendarClock className="size-4" />
                   {t("scheduleOrder")}
@@ -136,7 +136,7 @@ export function MerchantClosedNotice({
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-4 text-sm font-semibold text-white"
+                  className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-md px-4 text-sm font-semibold text-white"
                 >
                   {t("gotIt")}
                 </button>

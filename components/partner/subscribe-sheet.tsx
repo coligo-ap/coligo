@@ -105,13 +105,13 @@ export function SubscribeSheet({
         (step === "success" ? (
           <>
             <ColigoCelebration variant="verified" />
-            <p className="drive-sora mt-1 text-center text-[17px] font-extrabold text-[var(--d-ink)]">
+            <p className="drive-sora text-title-lg mt-1 text-center font-extrabold text-[var(--d-ink)]">
               {tr(
                 "Paiement et abonnement validé, bravo !",
                 "تم الدفع وتفعيل الاشتراك — مبروك!"
               )}
             </p>
-            <p className="mt-1 text-center text-[12.5px] text-[var(--d-muted)]">
+            <p className="text-label-lg mt-1 text-center text-[var(--d-muted)]">
               {isAr
                 ? `${offer.title} نشط حتى ${fmtDate(end)}.`
                 : `${offer.title} actif jusqu'au ${fmtDate(end)}.`}
@@ -123,24 +123,24 @@ export function SubscribeSheet({
             <SheetTitle>
               {tr("Confirmer l'abonnement", "تأكيد الاشتراك")}
             </SheetTitle>
-            <div className="mt-1 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3.5">
+            <div className="rounded-card-xl mt-1 border-[1.5px] border-[var(--d-line)] p-3.5">
               <div className="flex items-baseline justify-between gap-2">
-                <b className="drive-sora text-[15px] text-[var(--d-ink)]">
+                <b className="drive-sora text-title-sm text-[var(--d-ink)]">
                   {offer.title}
                 </b>
                 <b
-                  className="drive-sora text-[15px] tabular-nums"
+                  className="drive-sora text-title-sm tabular-nums"
                   style={{ color: VIOLET }}
                 >
                   {fmtDA(offer.priceDa)} {da}
                 </b>
               </div>
-              <p className="mt-0.5 text-[12px] text-[var(--d-muted)]">
+              <p className="text-label mt-0.5 text-[var(--d-muted)]">
                 {fmtDate(start)} → {fmtDate(end)}
                 {offer.note ? ` · ${offer.note}` : ""}
               </p>
               {offer.advantages.length > 0 && (
-                <ul className="mt-2.5 space-y-1.5 text-[12.5px] text-[var(--d-ink)]">
+                <ul className="text-label-lg mt-2.5 space-y-1.5 text-[var(--d-ink)]">
                   {offer.advantages.map((a, i) => (
                     <li key={i} className="flex items-start gap-2">
                       <Check
@@ -153,7 +153,7 @@ export function SubscribeSheet({
                 </ul>
               )}
             </div>
-            <div className="mt-2.5 flex items-center gap-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-[12px]">
+            <div className="rounded-card text-label mt-2.5 flex items-center gap-2 bg-[var(--d-soft)] px-3 py-2.5">
               <Wallet className="size-4 shrink-0" style={{ color: VIOLET }} />
               <span className="text-[var(--d-muted)]">
                 {tr(
@@ -177,7 +177,7 @@ export function SubscribeSheet({
             <SheetTitle>
               {offer.title} · {fmtDA(offer.priceDa)} {da}
             </SheetTitle>
-            <p className="mb-2.5 text-[12.5px] text-[var(--d-muted)]">
+            <p className="text-label-lg mb-2.5 text-[var(--d-muted)]">
               {isAr
                 ? `رصيد كوليغو باي (${fmtDA(balance)} دج) لا يغطي هذا العرض — اختر وسيلة دفع:`
                 : `Solde Coligo Pay (${fmtDA(balance)} DA) insuffisant — choisissez un moyen de paiement :`}
@@ -242,7 +242,7 @@ function MethodRow({
   const inner = (
     <>
       <span
-        className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
+        className="grid size-[38px] shrink-0 place-items-center rounded-md"
         style={{ background: "var(--d-accent)", color: VIOLET }}
       >
         {busy ? (
@@ -253,14 +253,14 @@ function MethodRow({
       </span>
       <span>
         {title}
-        <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
+        <small className="text-caption mt-0.5 block font-medium text-[var(--d-muted)]">
           {sub}
         </small>
       </span>
     </>
   );
   const cls =
-    "mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-start text-[13.5px] font-bold text-[var(--d-ink)]";
+    "mb-2 flex w-full items-center gap-3 rounded-card-xl border-[1.5px] border-[var(--d-line)] p-3 text-start text-body font-bold text-[var(--d-ink)]";
   return href ? (
     <Link href={href} prefetch className={cls}>
       {inner}

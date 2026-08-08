@@ -140,7 +140,7 @@ export function AdminAlertCenterView({
 
       {/* Cartes d'alerte */}
       {visible.length === 0 ? (
-        <div className="border-border bg-surface rounded-[16px] border p-10 text-center">
+        <div className="border-border bg-surface rounded-lg border p-10 text-center">
           <CheckCircle2 className="text-success-500 mx-auto size-10" />
           <p className="text-foreground mt-3 text-sm font-semibold">
             Aucune alerte 🎉
@@ -156,7 +156,7 @@ export function AdminAlertCenterView({
               key={a.code}
               href={alertFocusHref(a)}
               className={cn(
-                "bg-surface group rounded-[16px] border-l-4 p-4 shadow-sm transition-shadow hover:shadow-md",
+                "bg-surface group rounded-lg border-l-4 p-4 shadow-sm transition-shadow hover:shadow-md",
                 a.severity === "critical"
                   ? "border-danger-400"
                   : a.severity === "warning"
@@ -167,7 +167,7 @@ export function AdminAlertCenterView({
               <div className="flex items-start justify-between gap-2">
                 <span
                   className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                    "text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold",
                     SEVERITY_BADGE_CLASS[a.severity]
                   )}
                 >
@@ -201,7 +201,7 @@ export function AdminAlertCenterView({
       {showLate && lateOrders.length > 0 && (
         <section
           data-alert-focus="orders_late_crit orders_late_warn orders_stuck_pending"
-          className="border-border mt-8 rounded-[16px] border-t pt-2"
+          className="border-border mt-8 rounded-lg border-t pt-2"
         >
           <AdminLateOrdersView
             orders={lateOrders}

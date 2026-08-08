@@ -135,7 +135,7 @@ export function OrderAdminPanel({
     });
 
   const btn = (variant: "primary" | "danger" | "warning" | "neutral") =>
-    "inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 " +
+    "inline-flex items-center gap-1.5 rounded-control px-3 py-2 text-xs font-bold transition-colors disabled:opacity-50 " +
     {
       primary: "bg-success-600 hover:bg-success-700 text-white",
       danger: "border-danger-200 text-danger-700 hover:bg-danger-50 border",
@@ -144,13 +144,13 @@ export function OrderAdminPanel({
     }[variant];
 
   return (
-    <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+    <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
       <h2 className="text-muted text-xs font-bold uppercase">Gestion</h2>
 
       {feedback && (
         <p
           className={
-            "mt-2 rounded-[10px] px-3 py-2 text-xs font-semibold " +
+            "rounded-control mt-2 px-3 py-2 text-xs font-semibold " +
             (feedback.tone === "ok"
               ? "bg-success-100 text-success-700"
               : "bg-danger-100 text-danger-700")
@@ -330,7 +330,7 @@ export function OrderAdminPanel({
       {/* ---- Mini-formulaires (modale) ---- */}
       {modal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-sm rounded-[18px] p-5 shadow-2xl">
+          <div className="bg-surface rounded-sheet-lg w-full max-w-sm p-5 shadow-2xl">
             <h3 className="text-base font-black">
               {
                 {
@@ -373,7 +373,7 @@ export function OrderAdminPanel({
                         "Commande remise au réseau — livreurs proches notifiés."
                       )
                     }
-                    className="border-border hover:bg-surface-2 flex w-full items-center gap-2 rounded-[12px] border px-3 py-2.5 text-sm font-bold"
+                    className="border-border hover:bg-surface-2 flex w-full items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-bold"
                   >
                     <Users className="size-4" />
                     Remettre au réseau (priorité réseau)
@@ -383,7 +383,7 @@ export function OrderAdminPanel({
                   <select
                     value={targetDriver}
                     onChange={(e) => setTargetDriver(e.target.value)}
-                    className="border-border bg-surface-2 h-10 min-w-0 flex-1 rounded-[10px] border px-2 text-sm outline-none"
+                    className="border-border bg-surface-2 rounded-control h-10 min-w-0 flex-1 border px-2 text-sm outline-none"
                   >
                     <option value="">Attribuer à un livreur…</option>
                     {candidates
@@ -409,7 +409,7 @@ export function OrderAdminPanel({
                         "Commande réattribuée — nouveau livreur notifié."
                       )
                     }
-                    className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1 rounded-[10px] px-3 text-sm font-bold text-white disabled:opacity-50"
+                    className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-1 px-3 text-sm font-bold text-white disabled:opacity-50"
                   >
                     <UserCheck className="size-4" />
                     OK
@@ -423,7 +423,7 @@ export function OrderAdminPanel({
                 <select
                   value={compensateDriverId}
                   onChange={(e) => setCompensateDriverId(e.target.value)}
-                  className="border-border bg-surface-2 h-10 w-full rounded-[10px] border px-2 text-sm outline-none"
+                  className="border-border bg-surface-2 rounded-control h-10 w-full border px-2 text-sm outline-none"
                 >
                   {compensables.map((d) => (
                     <option key={d.id} value={d.id}>
@@ -438,9 +438,9 @@ export function OrderAdminPanel({
                     setAmount(e.target.value.replace(/\D/g, "").slice(0, 5))
                   }
                   placeholder="Montant (DA, max 20 000)"
-                  className="border-border bg-surface-2 w-full rounded-[12px] border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
+                  className="border-border bg-surface-2 w-full rounded-md border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
                 />
-                <p className="text-subtle text-[11px]">
+                <p className="text-subtle text-caption">
                   L&apos;indemnité apparaîtra « à recevoir » sur le prochain
                   relevé du livreur. Une seule indemnité par commande.
                 </p>
@@ -456,13 +456,13 @@ export function OrderAdminPanel({
                     setAmount(e.target.value.replace(/\D/g, "").slice(0, 7))
                   }
                   placeholder={`Montant (DA, max ${order.refundRemainingDa})`}
-                  className="border-border bg-surface-2 w-full rounded-[12px] border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
+                  className="border-border bg-surface-2 w-full rounded-md border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
                 />
                 <div className="flex gap-1.5">
                   <button
                     type="button"
                     onClick={() => setAmount(String(order.refundRemainingDa))}
-                    className="border-border text-muted rounded-full border px-2.5 py-1 text-[11px] font-bold"
+                    className="border-border text-muted text-caption rounded-full border px-2.5 py-1 font-bold"
                   >
                     Total ({formatDA(order.refundRemainingDa)})
                   </button>
@@ -471,12 +471,12 @@ export function OrderAdminPanel({
                     onClick={() =>
                       setAmount(String(Math.floor(order.refundRemainingDa / 2)))
                     }
-                    className="border-border text-muted rounded-full border px-2.5 py-1 text-[11px] font-bold"
+                    className="border-border text-muted text-caption rounded-full border px-2.5 py-1 font-bold"
                   >
                     50 %
                   </button>
                 </div>
-                <p className="text-subtle text-[11px]">
+                <p className="text-subtle text-caption">
                   Crédité sur le Coligo Pay du client (notification envoyée).
                   Anti-double-remboursement garanti côté base.
                 </p>
@@ -491,7 +491,7 @@ export function OrderAdminPanel({
                   setAmount(e.target.value.replace(/\D/g, "").slice(0, 7))
                 }
                 placeholder="Montant (DA)"
-                className="border-border bg-surface-2 mt-3 w-full rounded-[12px] border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
+                className="border-border bg-surface-2 mt-3 w-full rounded-md border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
               />
             )}
 
@@ -504,7 +504,7 @@ export function OrderAdminPanel({
                   ? "Motif (optionnel, tracé dans l'audit)"
                   : "Motif (obligatoire, tracé dans l'audit)"
               }
-              className="border-border bg-surface-2 mt-3 w-full resize-none rounded-[12px] border px-3 py-2.5 text-[13px] outline-none"
+              className="border-border bg-surface-2 text-body-sm mt-3 w-full resize-none rounded-md border px-3 py-2.5 outline-none"
             />
 
             {modal !== "reassign" && (
@@ -513,7 +513,7 @@ export function OrderAdminPanel({
                   type="button"
                   onClick={() => setModal(null)}
                   disabled={pending}
-                  className="border-border text-muted flex-1 rounded-[12px] border py-2.5 text-sm font-bold"
+                  className="border-border text-muted flex-1 rounded-md border py-2.5 text-sm font-bold"
                 >
                   Retour
                 </button>
@@ -578,7 +578,7 @@ export function OrderAdminPanel({
                       );
                   }}
                   className={
-                    "inline-flex flex-1 items-center justify-center gap-1 rounded-[12px] py-2.5 text-sm font-bold text-white disabled:opacity-50 " +
+                    "inline-flex flex-1 items-center justify-center gap-1 rounded-md py-2.5 text-sm font-bold text-white disabled:opacity-50 " +
                     (modal === "cancel" || modal === "failed"
                       ? "bg-danger-600 hover:bg-danger-700"
                       : "bg-primary-600 hover:bg-primary-700")

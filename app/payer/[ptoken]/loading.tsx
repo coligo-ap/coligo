@@ -5,7 +5,7 @@ export default function GuestPayLoading() {
   return (
     <div className="bg-surface-2 grid min-h-dvh place-items-center px-4">
       <div className="w-full max-w-sm">
-        <div className="bg-surface-3 h-64 animate-pulse rounded-[22px]" />
+        <div className="bg-surface-3 rounded-sheet-xl h-64 animate-pulse" />
       </div>
     </div>
   );

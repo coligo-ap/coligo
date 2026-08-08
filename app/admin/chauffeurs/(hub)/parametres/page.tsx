@@ -15,14 +15,14 @@ export default function DriveSettingsTab() {
 
       <Link
         href="/admin/zones"
-        className="border-border bg-surface hover:bg-surface-2 text-muted hover:text-foreground flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+        className="border-border bg-surface hover:bg-surface-2 text-muted hover:text-foreground flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium transition-colors"
       >
         <MapPinned className="text-primary-500 size-4" />
         Zones de service (autoriser / bloquer le Drive par secteur) →
       </Link>
       <Link
         href="/admin/controle"
-        className="border-border bg-surface hover:bg-surface-2 text-muted hover:text-foreground flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+        className="border-border bg-surface hover:bg-surface-2 text-muted hover:text-foreground flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium transition-colors"
       >
         <Power className="text-primary-500 size-4" />
         Rayon de dispatch Drive &amp; disponibilité des services →

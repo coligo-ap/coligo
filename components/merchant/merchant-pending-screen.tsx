@@ -23,7 +23,7 @@ export async function MerchantPendingScreen({
 
   return (
     <div className="bg-surface-2 flex min-h-screen flex-col items-center justify-center p-6">
-      <div className="border-border bg-surface w-full max-w-md rounded-[20px] border p-7 text-center shadow-sm">
+      <div className="border-border bg-surface w-full max-w-md rounded-xl border p-7 text-center shadow-sm">
         <div className="mb-5 flex justify-center">
           <Logo size="md" />
         </div>
@@ -76,14 +76,14 @@ export async function MerchantPendingScreen({
         </p>
 
         {rejected && reason && (
-          <p className="border-danger-200 bg-danger-50 text-danger-700 mt-4 rounded-[12px] border px-3 py-2 text-left text-sm">
+          <p className="border-danger-200 bg-danger-50 text-danger-700 mt-4 rounded-md border px-3 py-2 text-left text-sm">
             <span className="font-semibold">Motif :</span> {reason}
           </p>
         )}
 
         <a
           href={`mailto:${APP_CONFIG.contact.supportEmail}`}
-          className="text-primary-700 hover:bg-primary-50 mt-5 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-semibold transition-colors"
+          className="text-primary-700 hover:bg-primary-50 rounded-control mt-5 inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold transition-colors"
         >
           <MailQuestion className="size-4" />
           Contacter le support
@@ -92,7 +92,7 @@ export async function MerchantPendingScreen({
         <form action={logout} className="border-border mt-5 border-t pt-5">
           <button
             type="submit"
-            className="text-muted hover:bg-surface-2 hover:text-foreground inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-medium transition-colors"
+            className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control inline-flex items-center gap-2 px-3 py-2 text-sm font-medium transition-colors"
           >
             <LogOut className="size-4" />
             Se déconnecter

@@ -66,7 +66,7 @@ export async function IdvRequiredScreen({
         {STEPS.map(({ Illus, label, labelAr }, i) => (
           <div
             key={label}
-            className="flex items-center gap-3 rounded-[16px] p-3"
+            className="flex items-center gap-3 rounded-lg p-3"
             style={{
               background: "var(--idv-card)",
               border: "1px solid var(--idv-line)",
@@ -90,7 +90,7 @@ export async function IdvRequiredScreen({
       </Link>
 
       <p
-        className="mt-3 flex items-center justify-center gap-1.5 text-[11px]"
+        className="text-caption mt-3 flex items-center justify-center gap-1.5"
         style={{ color: "var(--idv-muted)" }}
       >
         <Lock className="size-3.5" />

@@ -137,7 +137,7 @@ export default async function AdminOrderDetailPage({
 
       {/* ---- Acteurs ---- */}
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <User className="size-3.5" />
             Client
@@ -172,7 +172,7 @@ export default async function AdminOrderDetailPage({
           )}
         </section>
 
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Store className="size-3.5" />
             Commerçant
@@ -186,7 +186,7 @@ export default async function AdminOrderDetailPage({
           </Link>
         </section>
 
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Bike className="size-3.5" />
             Livreur
@@ -226,7 +226,7 @@ export default async function AdminOrderDetailPage({
       </div>
 
       {/* ---- Articles + montants ---- */}
-      <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
         <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
           <Receipt className="size-3.5" />
           Articles
@@ -294,7 +294,7 @@ export default async function AdminOrderDetailPage({
       </section>
 
       {/* ---- Paiement ---- */}
-      <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
         <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
           {o.payment_method === "online" ? (
             <CreditCard className="size-3.5" />
@@ -371,7 +371,7 @@ export default async function AdminOrderDetailPage({
 
       {/* ---- Écritures livreur ---- */}
       {ledger.length > 0 && (
-        <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Bike className="size-3.5" />
             Écritures livreur (grand livre)

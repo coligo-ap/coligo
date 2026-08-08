@@ -82,19 +82,19 @@ export function AppDownloadPage({
         </Link>
       )}
       {/* Hero */}
-      <section className="cg-brand-gradient relative overflow-hidden rounded-[20px] px-6 py-8 text-white shadow-lg lg:px-10 lg:py-10">
+      <section className="cg-brand-gradient relative overflow-hidden rounded-xl px-6 py-8 text-white shadow-lg lg:px-10 lg:py-10">
         <div
           aria-hidden="true"
           className="pointer-events-none absolute -top-16 -right-16 size-56 rounded-full bg-white/10 blur-2xl"
         />
         <div className="relative flex flex-col items-center gap-5 text-center sm:flex-row sm:items-center sm:gap-6 sm:text-start">
-          <span className="flex size-20 shrink-0 items-center justify-center rounded-[22px] bg-white/15 p-2 shadow-inner ring-1 ring-white/20 backdrop-blur">
+          <span className="rounded-sheet-xl flex size-20 shrink-0 items-center justify-center bg-white/15 p-2 shadow-inner ring-1 ring-white/20 backdrop-blur">
             <Image
               src={iconSrc}
               alt={appName}
               width={72}
               height={72}
-              className="rounded-[16px]"
+              className="rounded-lg"
             />
           </span>
           <div className="min-w-0">
@@ -149,7 +149,7 @@ export function AppDownloadPage({
             return (
               <div
                 key={b.title}
-                className="border-border rounded-[16px] border bg-white p-4"
+                className="border-border rounded-lg border bg-white p-4"
               >
                 <span className="bg-primary-50 text-primary-600 flex size-10 items-center justify-center rounded-full">
                   <Icon className="size-5" />
@@ -171,7 +171,7 @@ export function AppDownloadPage({
         <h2 className="text-foreground text-lg font-semibold">
           {tr("Comment l’installer ?", "كيف يُثبَّت؟")}
         </h2>
-        <ol className="border-border divide-border mt-3 divide-y overflow-hidden rounded-[16px] border bg-white">
+        <ol className="border-border divide-border mt-3 divide-y overflow-hidden rounded-lg border bg-white">
           {STEPS.map((s) => (
             <li key={s.n} className="flex items-start gap-4 p-4">
               <span className="bg-primary-600 flex size-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white">
@@ -191,7 +191,7 @@ export function AppDownloadPage({
       </section>
 
       {/* Note sécurité */}
-      <div className="border-border bg-surface-2 mt-6 flex items-start gap-3 rounded-[14px] border p-4">
+      <div className="border-border bg-surface-2 rounded-card-lg mt-6 flex items-start gap-3 border p-4">
         <ShieldCheck className="text-primary-600 size-5 shrink-0" />
         <p className="text-muted text-xs leading-relaxed">
           {tr(

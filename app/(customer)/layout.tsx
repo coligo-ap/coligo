@@ -84,7 +84,7 @@ export default async function CustomerGroupLayout({
           fraudGate.readonly && (
             <div
               role="status"
-              className="border-warning-200 bg-warning-50 text-warning-900 mx-4 mt-3 rounded-[16px] border px-4 py-3 text-sm font-semibold lg:mx-6"
+              className="border-warning-200 bg-warning-50 text-warning-900 mx-4 mt-3 rounded-lg border px-4 py-3 text-sm font-semibold lg:mx-6"
             >
               Votre compte est en lecture seule : vous pouvez consulter vos
               commandes, mais aucune nouvelle action n&apos;est possible pour le

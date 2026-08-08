@@ -167,13 +167,13 @@ export function ShareStoryManager({
   return (
     <div className="space-y-4">
       {/* Activation */}
-      <section className="border-border bg-surface rounded-[16px] border p-4">
+      <section className="border-border bg-surface rounded-lg border p-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-sm font-bold">
               Carte de partage post-commande
             </h2>
-            <p className="text-muted mt-0.5 text-[13px]">
+            <p className="text-muted text-body-sm mt-0.5">
               Sur chaque commande livrée : story générée (code parrain + QR),
               partage WhatsApp / Facebook / Instagram / TikTok / Snapchat.
             </p>
@@ -183,7 +183,7 @@ export function ShareStoryManager({
             onClick={toggle}
             disabled={togglePending}
             className={cn(
-              "inline-flex items-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-60",
+              "inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-60",
               settings.enabled
                 ? "bg-success-600 hover:bg-success-700"
                 : "bg-danger-600 hover:bg-danger-700"
@@ -200,9 +200,9 @@ export function ShareStoryManager({
       </section>
 
       {/* Design de la story */}
-      <section className="border-border bg-surface rounded-[16px] border p-4">
+      <section className="border-border bg-surface rounded-lg border p-4">
         <h2 className="text-sm font-bold">Design de la story</h2>
-        <p className="text-muted mt-0.5 text-[13px]">
+        <p className="text-muted text-body-sm mt-0.5">
           Appliqué immédiatement à l&apos;image générée (1080×1920) ET à la
           carte dans l&apos;app.
         </p>
@@ -216,24 +216,24 @@ export function ShareStoryManager({
                 onClick={() => pickDesign(d.key)}
                 disabled={designPending}
                 className={cn(
-                  "rounded-[14px] border-2 p-1.5 text-left transition-all disabled:opacity-60",
+                  "rounded-card-lg border-2 p-1.5 text-left transition-all disabled:opacity-60",
                   active
                     ? "border-primary-600 ring-primary-500/25 ring-2"
                     : "border-border hover:border-primary-300"
                 )}
               >
                 <span
-                  className="relative block aspect-9/16 max-h-36 w-full overflow-hidden rounded-[10px] bg-cover bg-center"
+                  className="rounded-control relative block aspect-9/16 max-h-36 w-full overflow-hidden bg-cover bg-center"
                   style={{
                     backgroundImage: settings.image_url
                       ? `${overlayGradient(d.gradient)}, url(${settings.image_url})`
                       : d.gradient,
                   }}
                 >
-                  <span className="absolute inset-x-0 top-3 text-center text-[11px] font-black text-white">
+                  <span className="text-caption absolute inset-x-0 top-3 text-center font-black text-white">
                     coligo
                   </span>
-                  <span className="absolute inset-x-2 top-1/2 -translate-y-1/2 rounded-md border border-dashed border-white/60 py-1 text-center font-mono text-[9px] font-bold text-white">
+                  <span className="text-nano absolute inset-x-2 top-1/2 -translate-y-1/2 rounded-md border border-dashed border-white/60 py-1 text-center font-mono font-bold text-white">
                     CODE
                   </span>
                   {active && (
@@ -242,7 +242,7 @@ export function ShareStoryManager({
                     </span>
                   )}
                 </span>
-                <span className="mt-1 block px-0.5 text-[12px] font-semibold">
+                <span className="text-label mt-1 block px-0.5 font-semibold">
                   {d.label}
                 </span>
               </button>
@@ -252,16 +252,16 @@ export function ShareStoryManager({
       </section>
 
       {/* Photo de la story */}
-      <section className="border-border bg-surface rounded-[16px] border p-4">
+      <section className="border-border bg-surface rounded-lg border p-4">
         <h2 className="text-sm font-bold">Photo de la story</h2>
-        <p className="text-muted mt-0.5 text-[13px]">
+        <p className="text-muted text-body-sm mt-0.5">
           Optionnelle — dessinée en fond de la story, sous le voile du design
           choisi (les textes restent lisibles). Choisis une photo qui va avec le
           message : plat, livraison, ambiance…
         </p>
         <div className="mt-3 flex flex-wrap items-start gap-4">
           <span
-            className="border-border block h-40 w-[90px] shrink-0 overflow-hidden rounded-[10px] border bg-cover bg-center"
+            className="border-border rounded-control block h-40 w-[90px] shrink-0 overflow-hidden border bg-cover bg-center"
             style={{
               backgroundImage: settings.image_url
                 ? `${overlayGradient(activeGradient)}, url(${settings.image_url})`
@@ -284,7 +284,7 @@ export function ShareStoryManager({
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={photoPending}
-              className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-60"
+              className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-md px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-60"
             >
               {photoPending ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -298,7 +298,7 @@ export function ShareStoryManager({
                 type="button"
                 onClick={removePhoto}
                 disabled={removePending}
-                className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 ms-2 inline-flex items-center gap-2 rounded-[12px] border px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60"
+                className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 ms-2 inline-flex items-center gap-2 rounded-md border px-4 py-2.5 text-sm font-bold transition-colors disabled:opacity-60"
               >
                 {removePending ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -308,7 +308,7 @@ export function ShareStoryManager({
                 Retirer
               </button>
             )}
-            <p className="text-muted text-[12px]">
+            <p className="text-muted text-label">
               JPG/PNG/WebP, 5 Mo max. Idéal : portrait 1080×1920 (l&apos;image
               est recadrée pour couvrir).
             </p>
@@ -317,9 +317,9 @@ export function ShareStoryManager({
       </section>
 
       {/* Conditions (source unique : Parrainage) */}
-      <section className="border-border bg-surface rounded-[16px] border p-4">
+      <section className="border-border bg-surface rounded-lg border p-4">
         <h2 className="text-sm font-bold">Cadeaux affichés au client</h2>
-        <p className="text-muted mt-0.5 text-[13px]">
+        <p className="text-muted text-body-sm mt-0.5">
           {referral?.enabled ? (
             <>
               Ami : <strong>+{formatDA(referral.reward_referee_da)}</strong> ·
@@ -335,7 +335,7 @@ export function ShareStoryManager({
         <Link
           href="/admin/marketing/parrainage"
           prefetch
-          className="text-primary-700 mt-2 inline-flex items-center gap-1.5 text-[13px] font-bold hover:underline"
+          className="text-primary-700 text-body-sm mt-2 inline-flex items-center gap-1.5 font-bold hover:underline"
         >
           Régler les conditions dans Parrainage
           <ExternalLink className="size-3.5" />
@@ -343,7 +343,7 @@ export function ShareStoryManager({
       </section>
 
       {error && (
-        <p className="text-danger-700 bg-danger-50 rounded-[12px] px-3 py-2 text-sm font-medium">
+        <p className="text-danger-700 bg-danger-50 rounded-md px-3 py-2 text-sm font-medium">
           {error}
         </p>
       )}

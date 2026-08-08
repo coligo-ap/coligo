@@ -55,7 +55,7 @@ function PinSetup({ onDone }: { onDone: () => void }) {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
   return (
-    <div className="border-warning-200 bg-warning-100 rounded-[16px] border p-4">
+    <div className="border-warning-200 bg-warning-100 rounded-lg border p-4">
       <p className="text-warning-700 mb-1 flex items-center gap-2 text-sm font-semibold">
         <ShieldCheck className="size-4" /> Définissez votre code PIN
       </p>
@@ -159,7 +159,7 @@ function SellCredit({
   };
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
+    <div className="border-border bg-surface rounded-lg border p-4 shadow-sm">
       <h2 className="text-foreground flex items-center gap-2 text-sm font-bold">
         <span className="bg-primary-600 flex size-7 items-center justify-center rounded-full text-white">
           <Send className="size-4" />
@@ -172,14 +172,14 @@ function SellCredit({
       </p>
 
       {!canSell ? (
-        <p className="text-warning-700 bg-warning-100 rounded-[12px] p-2.5 text-xs">
+        <p className="text-warning-700 bg-warning-100 rounded-md p-2.5 text-xs">
           Définissez d&apos;abord votre PIN (ci-dessus) et assurez-vous que
           votre compte est actif.
         </p>
       ) : (
         <>
           {/* Étape 1 — trouver le bénéficiaire */}
-          <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
+          <p className="text-subtle text-caption mb-1 font-semibold uppercase">
             1 · Bénéficiaire
           </p>
           <div className="flex gap-2">
@@ -211,7 +211,7 @@ function SellCredit({
 
           {buyer && (
             <div className="mt-3 space-y-3">
-              <div className="bg-success-100 flex items-center gap-2 rounded-[12px] p-3">
+              <div className="bg-success-100 flex items-center gap-2 rounded-md p-3">
                 <CheckCircle2 className="text-success-700 size-4 shrink-0" />
                 <span className="text-foreground text-sm font-semibold">
                   {buyer.name ?? "Opérateur"}
@@ -223,7 +223,7 @@ function SellCredit({
 
               {/* Étape 2 — montant */}
               <div>
-                <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
+                <p className="text-subtle text-caption mb-1 font-semibold uppercase">
                   2 · Montant payé en espèces
                 </p>
                 <div className="flex flex-wrap gap-2">
@@ -253,7 +253,7 @@ function SellCredit({
 
               {/* Étape 3 — PIN + envoyer */}
               <div>
-                <p className="text-subtle mb-1 text-[11px] font-semibold uppercase">
+                <p className="text-subtle text-caption mb-1 font-semibold uppercase">
                   3 · Confirmez avec votre PIN
                 </p>
                 <PasswordInput

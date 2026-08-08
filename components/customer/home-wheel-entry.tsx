@@ -73,7 +73,7 @@ export function HomeWheelEntry() {
     <Link
       href="/roue"
       prefetch
-      className="hw-anim relative block overflow-hidden rounded-[18px] px-4 py-3 text-white shadow-[0_16px_36px_-18px_rgba(108,43,217,.55)]"
+      className="hw-anim rounded-sheet-lg relative block overflow-hidden px-4 py-3 text-white shadow-[0_16px_36px_-18px_rgba(108,43,217,.55)]"
       style={{
         backgroundImage:
           "linear-gradient(120deg,#6C2BD9 0%,#8A4DFF 55%,#FF2D7A 130%)",
@@ -127,7 +127,7 @@ export function HomeWheelEntry() {
               animation: "hwSpin 7s linear infinite",
             }}
           />
-          <span className="relative grid size-6 place-items-center rounded-full bg-white text-[#6C2BD9] shadow">
+          <span className="relative grid size-6 place-items-center rounded-full bg-white text-[var(--color-primary-600)] shadow">
             <Gift
               className="size-3.5"
               style={{ animation: "hwBob 1.6s ease-in-out infinite" }}
@@ -135,7 +135,7 @@ export function HomeWheelEntry() {
           </span>
           {canSpin && (
             <span
-              className="absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-[#FFD84D] text-[9px] font-extrabold text-[#4C1B9B]"
+              className="text-nano absolute -top-0.5 -right-0.5 grid size-4 place-items-center rounded-full bg-[#FFD84D] font-extrabold text-[#4C1B9B]"
               style={{ animation: "hwPing 1.6s ease-out infinite" }}
             >
               1
@@ -144,10 +144,10 @@ export function HomeWheelEntry() {
         </span>
 
         <span className="min-w-0 flex-1">
-          <b className="block text-[14.5px] font-extrabold tracking-[-0.2px]">
+          <b className="text-body-xl block font-extrabold tracking-[-0.2px]">
             {t("homeTitle")}
           </b>
-          <span className="block truncate text-[12px] font-semibold text-white/85">
+          <span className="text-label block truncate font-semibold text-white/85">
             {/* Déjà joué (état CONFIRMÉ) → « reviens demain », pas de fausse
                 promesse de tour ; état inconnu → accroche générique. */}
             {canSpin
@@ -158,7 +158,7 @@ export function HomeWheelEntry() {
           </span>
         </span>
 
-        <span className="flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 text-[12.5px] font-extrabold text-[#6C2BD9]">
+        <span className="text-label-lg flex shrink-0 items-center gap-1 rounded-full bg-white px-3 py-1.5 font-extrabold text-[var(--color-primary-600)]">
           {t("homeCta")}
           <ChevronRight className="size-3.5 rtl:-scale-x-100" />
         </span>

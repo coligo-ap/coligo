@@ -171,7 +171,7 @@ export default async function AdminRideDetailPage({
 
       {/* ---- Acteurs + trajet ---- */}
       <div className="mt-4 grid gap-3 lg:grid-cols-3">
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <User className="size-3.5" />
             Client
@@ -196,7 +196,7 @@ export default async function AdminRideDetailPage({
           )}
         </section>
 
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Car className="size-3.5" />
             Chauffeur
@@ -227,7 +227,7 @@ export default async function AdminRideDetailPage({
           )}
         </section>
 
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <MapPin className="size-3.5" />
             Trajet
@@ -249,7 +249,7 @@ export default async function AdminRideDetailPage({
       </div>
 
       {/* ---- Paiement ---- */}
-      <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
         <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
           {r.payment_method === "cash" ? (
             <Banknote className="size-3.5" />
@@ -341,7 +341,7 @@ export default async function AdminRideDetailPage({
       />
 
       {/* ---- Historique ---- */}
-      <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
         <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
           <History className="size-3.5" />
           Historique complet
@@ -380,7 +380,7 @@ export default async function AdminRideDetailPage({
                   <p className="text-muted mt-0.5 text-xs">{e.detail}</p>
                 )}
                 {(e.admin || e.ip) && (
-                  <p className="text-subtle mt-0.5 text-[11px]">
+                  <p className="text-subtle text-caption mt-0.5">
                     {e.admin ?? "admin"}
                     {e.ip ? ` · IP ${e.ip}` : ""}
                   </p>

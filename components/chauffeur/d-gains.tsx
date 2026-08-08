@@ -59,15 +59,15 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
   const isAr = useLocale() === "ar";
   const tr = (fr: string, ar: string) => (isAr ? ar : fr);
   return (
-    <div className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3">
-      <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
+    <div className="rounded-card-xl mb-2 flex items-center gap-3 border border-[var(--d-line)] p-3">
+      <span className="rounded-control-lg grid size-[34px] shrink-0 place-items-center bg-[var(--d-soft)]">
         <Car className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <b className="block truncate text-[13.5px]">
+        <b className="text-body block truncate">
           {r.customer_name} → {r.dest_text ?? "—"}
         </b>
-        <small className="flex flex-wrap items-center gap-1 text-[11px] text-[var(--d-muted)]">
+        <small className="text-caption flex flex-wrap items-center gap-1 text-[var(--d-muted)]">
           {new Date(r.when).toLocaleDateString("fr-FR", {
             day: "numeric",
             month: "short",
@@ -106,7 +106,7 @@ function HistoRow({ r }: { r: ChauffeurHistoryRide }) {
         </small>
       </span>
       <span
-        className="shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold"
+        className="text-micro shrink-0 rounded-full px-2 py-1 font-extrabold"
         style={
           r.completed
             ? { background: "rgba(22,179,100,.12)", color: GO }
@@ -213,13 +213,13 @@ export function DHisto() {
                 <button
                   type="button"
                   onClick={() => toggle(key)}
-                  className="flex w-full items-center gap-2 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-start"
+                  className="rounded-card-lg flex w-full items-center gap-2 border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-start"
                 >
                   <span className="min-w-0 flex-1">
-                    <b className="drive-sora block text-[14px] capitalize">
+                    <b className="drive-sora text-body-lg block capitalize">
                       {label}
                     </b>
-                    <small className="text-[11px] text-[var(--d-muted)]">
+                    <small className="text-caption text-[var(--d-muted)]">
                       {items.length}{" "}
                       {isAr ? "مشوار" : `course${items.length > 1 ? "s" : ""}`}{" "}
                       · {tr("net", "صافي")} +{formatDA(net)}
@@ -246,7 +246,7 @@ export function DHisto() {
               type="button"
               onClick={() => void loadMore()}
               disabled={loadingMore}
-              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] text-[13px] font-bold disabled:opacity-60"
+              className="rounded-card-lg text-body-sm mt-2 flex h-12 w-full items-center justify-center gap-2 border border-[var(--d-line)] bg-[var(--d-surface)] font-bold disabled:opacity-60"
             >
               {loadingMore ? (
                 <Loader2 className="size-4 animate-spin" />

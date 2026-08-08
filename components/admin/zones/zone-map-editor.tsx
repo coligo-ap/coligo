@@ -6,6 +6,7 @@ import { Loader2, Search, Undo2, Trash2, X } from "lucide-react";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 import { zoneCircleGeoJSON } from "@/lib/driver/work-zone";
 import { geocodeSearch } from "@/app/(customer)/actions";
+import { INK, MAP } from "@/lib/design/tokens";
 
 /**
  * Éditeur de zone sur carte (admin) — deux modes :
@@ -87,14 +88,14 @@ export function ZoneMapEditor({
           id: "z-circle-fill",
           type: "fill",
           source: "z-circle",
-          paint: { "fill-color": "#6c2bd9", "fill-opacity": 0.12 } as never,
+          paint: { "fill-color": MAP.zoneLine, "fill-opacity": 0.12 } as never,
         });
         map.addLayer({
           id: "z-circle-line",
           type: "line",
           source: "z-circle",
           paint: {
-            "line-color": "#6c2bd9",
+            "line-color": MAP.zoneLine,
             "line-width": 2,
             "line-dasharray": [2, 1.5],
           } as never,
@@ -108,13 +109,13 @@ export function ZoneMapEditor({
           id: "z-poly-fill",
           type: "fill",
           source: "z-poly",
-          paint: { "fill-color": "#16a34a", "fill-opacity": 0.14 } as never,
+          paint: { "fill-color": MAP.green, "fill-opacity": 0.14 } as never,
         });
         map.addLayer({
           id: "z-poly-line",
           type: "line",
           source: "z-poly",
-          paint: { "line-color": "#16a34a", "line-width": 2.5 } as never,
+          paint: { "line-color": MAP.green, "line-width": 2.5 } as never,
         });
         map.addSource("z-poly-pts", {
           type: "geojson",
@@ -126,8 +127,8 @@ export function ZoneMapEditor({
           source: "z-poly-pts",
           paint: {
             "circle-radius": 5,
-            "circle-color": "#16a34a",
-            "circle-stroke-color": "#fff",
+            "circle-color": MAP.green,
+            "circle-stroke-color": INK.white,
             "circle-stroke-width": 2,
           } as never,
         });
@@ -267,7 +268,7 @@ export function ZoneMapEditor({
   };
 
   return (
-    <div className="border-border relative h-[340px] w-full overflow-hidden rounded-[12px] border">
+    <div className="border-border relative h-[340px] w-full overflow-hidden rounded-md border">
       <div
         ref={containerRef}
         className="h-full w-full bg-[#e8e8e8]"
@@ -301,13 +302,13 @@ export function ZoneMapEditor({
           ) : null}
         </div>
         {results.length > 0 && (
-          <ul className="bg-surface border-border mt-1.5 max-h-52 overflow-auto rounded-[12px] border py-1 shadow-xl">
+          <ul className="bg-surface border-border mt-1.5 max-h-52 overflow-auto rounded-md border py-1 shadow-xl">
             {results.map((r, i) => (
               <li key={i}>
                 <button
                   type="button"
                   onClick={() => flyTo(r)}
-                  className="hover:bg-surface-2 w-full px-3 py-2 text-left text-[13px]"
+                  className="hover:bg-surface-2 text-body-sm w-full px-3 py-2 text-left"
                 >
                   {r.display}
                 </button>
@@ -320,14 +321,14 @@ export function ZoneMapEditor({
       {/* Croix centrale (radius). */}
       {mode === "radius" && ready && (
         <div className="pointer-events-none absolute top-1/2 left-1/2 z-[2] -translate-x-1/2 -translate-y-1/2">
-          <div className="size-3 rounded-full bg-[#6c2bd9] ring-2 ring-white" />
+          <div className="bg-primary-600 size-3 rounded-full ring-2 ring-white" />
         </div>
       )}
 
       {/* Outils polygone. */}
       {mode === "polygon" && ready && (
         <div className="absolute bottom-2 left-2 z-30 flex items-center gap-2">
-          <span className="bg-surface/95 text-foreground rounded-full px-2.5 py-1 text-[11px] font-semibold shadow">
+          <span className="bg-surface/95 text-foreground text-caption rounded-full px-2.5 py-1 font-semibold shadow">
             {poly.length} point{poly.length > 1 ? "s" : ""} · tapez pour ajouter
           </span>
           <button

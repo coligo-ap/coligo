@@ -102,7 +102,7 @@ export function AdminReportsList({ rows }: { rows: ReportRow[] }) {
             return (
               <li
                 key={r.id}
-                className="border-border bg-surface rounded-[14px] border p-4"
+                className="border-border bg-surface rounded-card-lg border p-4"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
@@ -121,7 +121,7 @@ export function AdminReportsList({ rows }: { rows: ReportRow[] }) {
                   </div>
                   <span
                     className={
-                      "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold " +
+                      "text-caption shrink-0 rounded-full px-2.5 py-1 font-bold " +
                       meta.cls
                     }
                   >
@@ -130,12 +130,12 @@ export function AdminReportsList({ rows }: { rows: ReportRow[] }) {
                 </div>
 
                 {r.details && (
-                  <p className="text-foreground/80 bg-surface-2 mt-2.5 rounded-[10px] p-2.5 text-[13px]">
+                  <p className="text-foreground/80 bg-surface-2 rounded-control text-body-sm mt-2.5 p-2.5">
                     {r.details}
                   </p>
                 )}
 
-                <p className="text-subtle mt-2 text-[11px]">
+                <p className="text-subtle text-caption mt-2">
                   {new Date(r.created_at).toLocaleString("fr-DZ", {
                     timeZone: "Africa/Algiers",
                   })}
@@ -149,7 +149,7 @@ export function AdminReportsList({ rows }: { rows: ReportRow[] }) {
                         type="button"
                         disabled={busy || r.status === s}
                         onClick={() => act(r.id, s)}
-                        className="border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-[10px] border px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
+                        className="border-border hover:bg-surface-2 rounded-control inline-flex items-center gap-1 border px-3 py-1.5 text-xs font-semibold disabled:opacity-40"
                       >
                         {busy && <Loader2 className="size-3 animate-spin" />}
                         {STATUS_META[s].label}

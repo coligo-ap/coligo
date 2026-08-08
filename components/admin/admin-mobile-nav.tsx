@@ -80,7 +80,7 @@ export function AdminMobileNav({
         type="button"
         onClick={() => setOpen(true)}
         aria-label="Ouvrir le menu"
-        className="text-muted hover:bg-surface-2 hover:text-foreground relative -ml-1 flex size-10 shrink-0 items-center justify-center rounded-[10px] lg:hidden"
+        className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control relative -ml-1 flex size-10 shrink-0 items-center justify-center lg:hidden"
       >
         <Menu className="size-5" />
         {overall !== "ok" && (
@@ -180,7 +180,7 @@ function MobileItem({
         href={d.href}
         onClick={onNavigate}
         className={cn(
-          "flex min-h-[44px] items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+          "rounded-control flex min-h-[44px] items-center gap-3 px-3 py-2 text-sm transition-colors",
           active
             ? critical
               ? "bg-danger-50 text-danger-700 font-medium"
@@ -200,7 +200,7 @@ function MobileItem({
           {d.sections.map((section, i) => (
             <div key={section.label ?? i} className="py-0.5">
               {section.label && (
-                <p className="text-muted px-2 pt-1.5 pb-0.5 text-[10px] font-bold tracking-wide uppercase">
+                <p className="text-muted text-micro px-2 pt-1.5 pb-0.5 font-bold tracking-wide uppercase">
                   {section.label}
                 </p>
               )}
@@ -219,7 +219,7 @@ function MobileItem({
                       href={page.href}
                       onClick={onNavigate}
                       className={cn(
-                        "flex min-h-[40px] items-center gap-2 rounded-[8px] px-2 py-1.5 text-[13px] transition-colors",
+                        "text-body-sm flex min-h-[40px] items-center gap-2 rounded-sm px-2 py-1.5 transition-colors",
                         on
                           ? "text-primary-700 bg-primary-50/70 font-semibold"
                           : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -238,7 +238,7 @@ function MobileItem({
                             href={child.href}
                             onClick={onNavigate}
                             className={cn(
-                              "ml-3.5 flex min-h-[36px] items-center gap-2 rounded-[8px] px-2 py-1 text-[12.5px] transition-colors",
+                              "text-label-lg ml-3.5 flex min-h-[36px] items-center gap-2 rounded-sm px-2 py-1 transition-colors",
                               childOn
                                 ? "text-primary-700 bg-primary-50/70 font-semibold"
                                 : "text-muted hover:bg-surface-2 hover:text-foreground"

@@ -66,7 +66,7 @@ export function ApkDownloadButton({
 
   if (!url) {
     return (
-      <div className="border-border bg-surface-2 text-muted flex items-center justify-center gap-2 rounded-[14px] border border-dashed px-5 py-4 text-sm font-medium">
+      <div className="border-border bg-surface-2 text-muted rounded-card-lg flex items-center justify-center gap-2 border border-dashed px-5 py-4 text-sm font-medium">
         <Smartphone className="size-5 shrink-0" />
         Bientôt disponible — lien en cours de préparation.
       </div>
@@ -75,7 +75,7 @@ export function ApkDownloadButton({
 
   if (mode === "native-current") {
     return (
-      <div className="border-success-100 bg-success-50 text-success-700 flex items-center justify-center gap-2 rounded-[14px] border px-5 py-4 text-sm font-semibold">
+      <div className="border-success-100 bg-success-50 text-success-700 rounded-card-lg flex items-center justify-center gap-2 border px-5 py-4 text-sm font-semibold">
         <CheckCircle2 className="size-5 shrink-0" />
         Vous utilisez déjà la dernière version 🎉
       </div>
@@ -97,7 +97,7 @@ export function ApkDownloadButton({
     <a
       href={href}
       download={fileName}
-      className="cg-brand-gradient focus-visible:ring-primary-300 group flex w-full items-center justify-center gap-3 rounded-[14px] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-[#6C2BD9]/25 transition-all hover:shadow-xl focus:outline-none focus-visible:ring-2"
+      className="cg-brand-gradient focus-visible:ring-primary-300 group rounded-card-lg shadow-primary-600/25 flex w-full items-center justify-center gap-3 px-6 py-4 text-base font-semibold text-white shadow-lg transition-all hover:shadow-xl focus:outline-none focus-visible:ring-2"
     >
       <Icon className="size-5 shrink-0 transition-transform group-hover:translate-y-0.5" />
       {label}

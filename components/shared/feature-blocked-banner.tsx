@@ -56,7 +56,7 @@ export function FeatureBlockedBanner({
     <div
       role="status"
       className={cn(
-        "border-warning-200 bg-warning-50 text-warning-900 flex items-start gap-3 rounded-[14px] border px-4 py-3 shadow-sm",
+        "border-warning-200 bg-warning-50 text-warning-900 rounded-card-lg flex items-start gap-3 border px-4 py-3 shadow-sm",
         variant === "overlay" &&
           "fixed inset-x-3 top-[calc(env(safe-area-inset-top)+8px)] z-40",
         className

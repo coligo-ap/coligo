@@ -223,7 +223,7 @@ export function WheelBubble() {
           {canSpin && (
             <span
               aria-hidden
-              className="absolute -top-1 -right-1 grid size-[19px] place-items-center rounded-full text-[10px] font-black text-white"
+              className="text-micro absolute -top-1 -right-1 grid size-[19px] place-items-center rounded-full font-black text-white"
               style={{ background: "#FF2D7A" }}
             >
               1

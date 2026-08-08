@@ -38,7 +38,7 @@ export function CollapsibleSection({
       open={open}
       onToggle={(e) => setOpen((e.currentTarget as HTMLDetailsElement).open)}
       className={cn(
-        "group bg-surface mt-4 rounded-[16px] border p-4",
+        "group bg-surface mt-4 rounded-lg border p-4",
         tone === "danger" ? "border-danger-200" : "border-border"
       )}
     >
@@ -58,7 +58,7 @@ export function CollapsibleSection({
         {typeof count === "number" && (
           <span
             className={cn(
-              "rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums",
+              "text-caption rounded-full px-2 py-0.5 font-bold tabular-nums",
               tone === "danger"
                 ? "bg-danger-100 text-danger-700"
                 : "bg-surface-2 text-muted"
@@ -69,7 +69,7 @@ export function CollapsibleSection({
         )}
         <ChevronDown className="text-muted ms-auto size-4 shrink-0 transition-transform group-open:rotate-180" />
       </summary>
-      {hint && <p className="text-muted mt-1 text-[13px]">{hint}</p>}
+      {hint && <p className="text-muted text-body-sm mt-1">{hint}</p>}
       {children}
     </details>
   );

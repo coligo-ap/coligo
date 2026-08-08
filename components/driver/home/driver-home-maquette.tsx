@@ -333,17 +333,17 @@ export function DriverHomeMaquette({
           <button
             type="button"
             onClick={() => router.push("/driver/gains")}
-            className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+            className="flex items-center gap-1.5 rounded-lg border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
             style={{ background: "#6C2BD9", borderColor: "#4B1FA6" }}
           >
             <span className="flex flex-col items-start leading-none">
               <span
-                className="text-[18px] font-extrabold tracking-[-0.5px]"
+                className="text-heading-sm font-extrabold tracking-[-0.5px]"
                 style={{ fontFamily: SORA }}
               >
                 {grp(earnedToday)} {tr("DA", "دج")}
               </span>
-              <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+              <span className="text-nano mt-0.5 font-medium whitespace-nowrap opacity-85">
                 {tr("Revenu du jour", "دخل اليوم")} · {coursesToday}{" "}
                 {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
               </span>
@@ -356,14 +356,14 @@ export function DriverHomeMaquette({
         <div className="flex items-start justify-end gap-2">
           <NotificationBell
             source={{ table: "driver_notifications" }}
-            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg"
             iconClassName="size-5"
           />
           <button
             type="button"
             onClick={recenter}
             aria-label={tr("Centrer sur ma position", "التمركز على موقعي")}
-            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--line)] bg-[var(--surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--line)] bg-[var(--surface)] shadow-lg"
           >
             <LocateFixed
               className="size-5"
@@ -385,7 +385,7 @@ export function DriverHomeMaquette({
             aria-label={tr("Disponibilité", "التوفر")}
             onClick={toggle}
             disabled={!online && netOffline}
-            className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+            className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
             style={{
               borderColor: online ? "rgba(22,179,100,.35)" : "var(--line)",
               background: online ? "rgba(22,179,100,.07)" : "var(--surface)",
@@ -410,7 +410,7 @@ export function DriverHomeMaquette({
               >
                 {online ? tr("En ligne", "متصل") : tr("Hors ligne", "غير متصل")}
               </span>
-              <span className="block truncate text-[12px] text-[var(--muted)]">
+              <span className="text-label block truncate text-[var(--muted)]">
                 {online
                   ? tr(
                       "En recherche d'une commande à livrer…",
@@ -450,7 +450,7 @@ export function DriverHomeMaquette({
           <div className="space-y-3">
             <div className="flex items-center gap-3">
               <span
-                className="grid size-12 shrink-0 place-items-center rounded-[16px] text-[18px] font-extrabold text-white"
+                className="text-heading-sm grid size-12 shrink-0 place-items-center rounded-lg font-extrabold text-white"
                 style={{ fontFamily: SORA, background: "var(--violet)" }}
               >
                 {(driverName || "L").charAt(0).toUpperCase()}
@@ -458,7 +458,7 @@ export function DriverHomeMaquette({
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <b
-                    className="truncate text-[15px] font-extrabold text-[var(--ink)]"
+                    className="text-title-sm truncate font-extrabold text-[var(--ink)]"
                     style={{ fontFamily: SORA }}
                   >
                     {driverName || tr("Livreur", "موصّل")}
@@ -470,7 +470,7 @@ export function DriverHomeMaquette({
                     />
                   )}
                 </div>
-                <span className="block truncate text-[12px] text-[var(--muted)]">
+                <span className="text-label block truncate text-[var(--muted)]">
                   {tr("Livreur Coligo", "موصّل كوليغو")}
                 </span>
               </div>
@@ -484,18 +484,18 @@ export function DriverHomeMaquette({
                   setMenuOpen(false);
                   router.push("/driver/gains");
                 }}
-                className="flex min-w-0 flex-col gap-0.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
+                className="rounded-card-lg flex min-w-0 flex-col gap-0.5 border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
               >
-                <span className="text-[11px] font-medium text-[var(--muted)]">
+                <span className="text-caption font-medium text-[var(--muted)]">
                   {tr("Aujourd'hui", "اليوم")}
                 </span>
                 <span
-                  className="truncate text-[17px] leading-none font-extrabold text-[var(--ink)]"
+                  className="text-title-lg truncate leading-none font-extrabold text-[var(--ink)]"
                   style={{ fontFamily: SORA }}
                 >
                   {grp(earnedToday)} {tr("DA", "دج")}
                 </span>
-                <span className="mt-0.5 truncate text-[10px] text-[var(--muted)]">
+                <span className="text-micro mt-0.5 truncate text-[var(--muted)]">
                   {coursesToday}{" "}
                   {isAr ? "توصيلة" : "course" + (coursesToday > 1 ? "s" : "")}
                 </span>
@@ -506,19 +506,19 @@ export function DriverHomeMaquette({
                   setMenuOpen(false);
                   router.push("/driver/recharger");
                 }}
-                className="flex min-w-0 flex-col gap-0.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
+                className="rounded-card-lg flex min-w-0 flex-col gap-0.5 border border-[var(--line)] bg-[var(--surface)] p-3 text-left"
               >
-                <span className="flex items-center gap-1.5 text-[11px] font-medium text-[var(--muted)]">
+                <span className="text-caption flex items-center gap-1.5 font-medium text-[var(--muted)]">
                   <Wallet className="size-3.5" />
                   {tr("Portefeuille", "المحفظة")}
                 </span>
                 <span
-                  className="truncate text-[17px] leading-none font-extrabold text-[var(--ink)]"
+                  className="text-title-lg truncate leading-none font-extrabold text-[var(--ink)]"
                   style={{ fontFamily: SORA }}
                 >
                   <DriverBalanceAmount driverId={driverId} />
                 </span>
-                <span className="mt-0.5 truncate text-[10px] text-[var(--muted)]">
+                <span className="text-micro mt-0.5 truncate text-[var(--muted)]">
                   Coligo Pay
                 </span>
               </button>
@@ -529,7 +529,7 @@ export function DriverHomeMaquette({
           <div className="space-y-2">
             {logoutErr && (
               <p
-                className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+                className="text-label rounded-md px-3 py-2 text-center font-bold"
                 style={{ background: "var(--red-soft)", color: "var(--red)" }}
               >
                 {logoutErr}
@@ -539,7 +539,7 @@ export function DriverHomeMaquette({
               type="button"
               onClick={() => void doLogout()}
               disabled={loggingOut}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] border py-3 text-[13.5px] font-bold"
+              className="rounded-card-lg text-body flex w-full items-center justify-center gap-2 border py-3 font-bold"
               style={{ borderColor: "var(--red-soft)", color: "var(--red)" }}
             >
               {loggingOut ? (
@@ -591,7 +591,7 @@ export function DriverHomeMaquette({
                 onClick={() => setMenuOpen(false)}
                 trailing={
                   tourPending > 0 ? (
-                    <span className="grid size-6 place-items-center rounded-full bg-[var(--violet)] text-[11px] font-extrabold text-white">
+                    <span className="text-caption grid size-6 place-items-center rounded-full bg-[var(--violet)] font-extrabold text-white">
                       {tourPending}
                     </span>
                   ) : undefined
@@ -643,7 +643,7 @@ export function DriverHomeMaquette({
         {/* Apparence & langue */}
         <DrawerSection title={tr("Apparence & langue", "المظهر واللغة")}>
           <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-            <span className="text-[13px] font-semibold text-[var(--ink)]">
+            <span className="text-body-sm font-semibold text-[var(--ink)]">
               {tr("Thème & langue", "السمة واللغة")}
             </span>
             <div className="flex items-center gap-2">

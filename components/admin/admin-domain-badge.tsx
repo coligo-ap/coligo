@@ -34,7 +34,7 @@ export function DomainBadge({
     <span
       aria-label={`${summary.count} alerte${summary.count > 1 ? "s" : ""}`}
       className={cn(
-        "inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold tabular-nums",
+        "text-micro inline-flex min-w-[18px] items-center justify-center rounded-full px-1 font-extrabold tabular-nums",
         SEVERITY_BADGE_CLASS[summary.severity],
         absolute && "absolute -top-0.5 -right-0.5"
       )}

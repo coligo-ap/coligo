@@ -36,7 +36,7 @@ export default function DevGeolocationPage() {
         </p>
       </header>
 
-      <section className="border-border bg-surface space-y-3 rounded-[14px] border p-5">
+      <section className="border-border bg-surface rounded-card-lg space-y-3 border p-5">
         <div className="flex flex-wrap gap-2">
           <Button onClick={requestOnce} disabled={loading}>
             <Crosshair className="size-4" />
@@ -60,7 +60,7 @@ export default function DevGeolocationPage() {
         </div>
 
         {error && (
-          <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
+          <div className="rounded-control border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-800">
             {error.message}{" "}
             <span className="text-rose-500">({error.kind})</span>
           </div>

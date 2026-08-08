@@ -107,7 +107,9 @@ export function MediaUpload({
       <div
         className={cn(
           "border-border bg-surface-2 relative overflow-hidden border",
-          isLogo ? "size-24 rounded-full" : "h-32 w-full rounded-[14px] sm:h-40"
+          isLogo
+            ? "size-24 rounded-full"
+            : "rounded-card-lg h-32 w-full sm:h-40"
         )}
       >
         {url ? (
@@ -155,7 +157,7 @@ export function MediaUpload({
             type="button"
             onClick={onRemove}
             disabled={busy}
-            className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1 text-xs font-medium"
+            className="text-danger-600 hover:bg-danger-50 rounded-control inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium"
           >
             <Trash2 className="size-3.5" />
             Supprimer

@@ -60,7 +60,7 @@ export function NotificationsForm() {
 
       {/* Permission notifications système */}
       {prefs.notifications && permission !== "granted" && (
-        <div className="border-warning-200 bg-warning-50 mt-3 flex flex-wrap items-center justify-between gap-2 rounded-[12px] border p-3">
+        <div className="border-warning-200 bg-warning-50 mt-3 flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
           <p className="text-warning-800 text-sm">
             {permission === "denied"
               ? "Les notifications sont bloquées dans les réglages du navigateur/appareil."
@@ -72,7 +72,7 @@ export function NotificationsForm() {
             <button
               type="button"
               onClick={() => void request()}
-              className="bg-warning-600 hover:bg-warning-700 inline-flex h-9 items-center rounded-[10px] px-3 text-sm font-semibold text-white"
+              className="bg-warning-600 hover:bg-warning-700 rounded-control inline-flex h-9 items-center px-3 text-sm font-semibold text-white"
             >
               Autoriser
             </button>
@@ -86,7 +86,7 @@ export function NotificationsForm() {
           type="button"
           onClick={testSound}
           disabled={testing}
-          className="border-border hover:bg-surface-2 inline-flex h-10 items-center gap-2 rounded-[12px] border px-4 text-sm font-medium disabled:opacity-60"
+          className="border-border hover:bg-surface-2 inline-flex h-10 items-center gap-2 rounded-md border px-4 text-sm font-medium disabled:opacity-60"
         >
           {testing ? (
             <Loader2 className="size-4 animate-spin" />
@@ -117,7 +117,7 @@ function ToggleRow({
   onChange: (value: boolean) => void;
 }) {
   return (
-    <label className="hover:bg-surface-2 -mx-2 flex cursor-pointer items-start justify-between gap-4 rounded-[12px] px-2 py-3 transition-colors">
+    <label className="hover:bg-surface-2 -mx-2 flex cursor-pointer items-start justify-between gap-4 rounded-md px-2 py-3 transition-colors">
       <div className="min-w-0">
         <p className="text-sm font-medium">{label}</p>
         <p className="text-muted mt-0.5 text-xs">{description}</p>

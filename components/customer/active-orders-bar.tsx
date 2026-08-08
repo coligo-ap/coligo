@@ -246,7 +246,7 @@ function ActiveRideCard({
     <Link
       href="/drive"
       className={cn(
-        "border-border bg-surface pointer-events-auto relative flex items-center gap-3 rounded-[14px] border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
+        "border-border bg-surface rounded-card-lg pointer-events-auto relative flex items-center gap-3 border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
         multi ? "w-[86%] shrink-0 snap-start" : "flex w-full"
       )}
     >
@@ -284,10 +284,10 @@ function ActiveRideCard({
       </span>
 
       <span className="min-w-0 flex-1">
-        <span className="text-foreground flex items-center gap-1.5 truncate text-[13.5px] font-bold">
+        <span className="text-foreground text-body flex items-center gap-1.5 truncate font-bold">
           <span className="text-primary-700 font-black">{t("rideTitle")}</span>
           {ride.dest_text && (
-            <span className="text-muted inline-flex min-w-0 items-center gap-0.5 text-[12px] font-semibold">
+            <span className="text-muted text-label inline-flex min-w-0 items-center gap-0.5 font-semibold">
               <MapPin className="size-3 shrink-0" />
               <span className="truncate">{ride.dest_text}</span>
             </span>
@@ -295,7 +295,7 @@ function ActiveRideCard({
         </span>
         <span
           className={cn(
-            "mt-0.5 block truncate text-[12px] font-semibold",
+            "text-label mt-0.5 block truncate font-semibold",
             ride.awaiting_payment
               ? "text-warning-600"
               : arrived
@@ -365,7 +365,7 @@ function ActiveOrderCard({
     <Link
       href={`/commandes/${order.id}`}
       className={cn(
-        "border-border bg-surface pointer-events-auto relative flex items-center gap-3 rounded-[14px] border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
+        "border-border bg-surface rounded-card-lg pointer-events-auto relative flex items-center gap-3 border p-2.5 pe-8 shadow-[0_10px_30px_-10px_rgba(20,20,50,0.35)] transition-transform active:scale-[0.98]",
         multi ? "w-[86%] shrink-0 snap-start" : "flex w-full"
       )}
     >
@@ -373,7 +373,7 @@ function ActiveOrderCard({
 
       {/* Commerçant + statut. */}
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block truncate text-[13.5px] font-bold">
+        <span className="text-foreground text-body block truncate font-bold">
           {/* N° de commande EN PREMIER (côté gauche/start), bien visible. */}
           {order.order_number && (
             <span className="text-primary-700 me-1.5 font-black">
@@ -384,7 +384,7 @@ function ActiveOrderCard({
         </span>
         <span
           className={cn(
-            "mt-0.5 block truncate text-[12px] font-semibold",
+            "text-label mt-0.5 block truncate font-semibold",
             ready
               ? "text-success-700"
               : preparing

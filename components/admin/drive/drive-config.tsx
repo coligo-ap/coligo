@@ -22,7 +22,7 @@ export async function DriveConfig() {
     <div className="space-y-6">
       <Link
         href="/admin/chauffeurs/abonnements"
-        className="border-primary-200 bg-primary-50 text-primary-700 flex items-center gap-2 rounded-[12px] border px-3 py-2.5 text-sm font-medium"
+        className="border-primary-200 bg-primary-50 text-primary-700 flex items-center gap-2 rounded-md border px-3 py-2.5 text-sm font-medium"
       >
         <CreditCard className="size-4 shrink-0" />
         <span>

@@ -103,7 +103,7 @@ export function InstallAppButton({
         type="button"
         onClick={onInstall}
         className={cn(
-          "border-border hover:bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border bg-white p-4 text-start transition-colors",
+          "border-border hover:bg-surface-2 rounded-card-lg flex w-full items-center gap-3 border bg-white p-4 text-start transition-colors",
           className
         )}
       >

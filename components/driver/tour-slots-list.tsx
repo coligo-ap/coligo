@@ -83,22 +83,22 @@ export function TourSlotsList({
         return (
           <li
             key={s.id}
-            className="space-y-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
+            className="rounded-sheet-lg space-y-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
           >
             <div className="flex items-center gap-3">
               {/* Chip date (jour + numéro) */}
               <span
-                className="flex size-12 shrink-0 flex-col items-center justify-center rounded-[14px] bg-[var(--d-soft)] leading-none"
+                className="rounded-card-lg flex size-12 shrink-0 flex-col items-center justify-center bg-[var(--d-soft)] leading-none"
                 style={{ color: "var(--d-ink)" }}
               >
-                <span className="text-[10px] font-bold text-[var(--d-muted)] uppercase">
+                <span className="text-micro font-bold text-[var(--d-muted)] uppercase">
                   {date.toLocaleDateString(isAr ? "ar-DZ" : "fr-FR", {
                     weekday: "short",
                     timeZone: "Africa/Algiers",
                   })}
                 </span>
                 <span
-                  className="mt-0.5 text-[18px] font-extrabold"
+                  className="text-heading-sm mt-0.5 font-extrabold"
                   style={{ fontFamily: SORA }}
                 >
                   {date.toLocaleDateString("fr-FR", {
@@ -109,12 +109,12 @@ export function TourSlotsList({
               </span>
               <div className="min-w-0 flex-1">
                 <p
-                  className="text-[17px] font-extrabold tracking-[-0.3px] text-[var(--d-ink)] tabular-nums"
+                  className="text-title-lg font-extrabold tracking-[-0.3px] text-[var(--d-ink)] tabular-nums"
                   style={{ fontFamily: SORA }}
                 >
                   {s.start_time.slice(0, 5)} – {s.end_time.slice(0, 5)}
                 </p>
-                <p className="mt-0.5 flex items-center gap-1.5 text-[12px] font-medium text-[var(--d-muted)] tabular-nums">
+                <p className="text-label mt-0.5 flex items-center gap-1.5 font-medium text-[var(--d-muted)] tabular-nums">
                   <Package className="size-3.5" />
                   {isAr
                     ? `${s.pendingCount} طلب للتوصيل`
@@ -135,7 +135,7 @@ export function TourSlotsList({
             {s.myTourId ? (
               <Link
                 href={`/driver/m/${merchantDriverId}/tours/${s.myTourId}`}
-                className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold text-white active:scale-[0.99]"
+                className="text-title-sm flex h-[52px] w-full items-center justify-center gap-2 rounded-lg font-bold text-white active:scale-[0.99]"
                 style={{
                   fontFamily: SORA,
                   background: BRAND_VIOLET,
@@ -150,7 +150,7 @@ export function TourSlotsList({
                 type="button"
                 disabled={pending || s.pendingCount === 0}
                 onClick={() => onStart(s.id)}
-                className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold text-white transition-opacity active:scale-[0.99] disabled:opacity-50"
+                className="text-title-sm flex h-[52px] w-full items-center justify-center gap-2 rounded-lg font-bold text-white transition-opacity active:scale-[0.99] disabled:opacity-50"
                 style={{
                   fontFamily: SORA,
                   background: BRAND_VIOLET,

@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import "maplibre-gl/dist/maplibre-gl.css";
 import type maplibregl from "maplibre-gl";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import { ACCENT, INK, MAP, PRIMARY, withAlpha } from "@/lib/design/tokens";
 import {
   fetchJsonCached,
   registerMapCacheProtocol,
@@ -509,11 +510,11 @@ export function DriveMap({
         if (m.label) {
           // Épingle étiquetée A (départ, violet) / B (arrivée, rose) : goutte +
           // lettre blanche → le client/chauffeur lit le trajet d'un coup d'œil.
-          const color = m.label === "A" ? "#6C2BD9" : "#FF2D7A";
+          const color = m.label === "A" ? PRIMARY[600] : ACCENT[500];
           el.innerHTML =
             '<div style="width:30px;height:30px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);background:' +
             color +
-            ';display:flex;align-items:center;justify-content:center;border:2.5px solid #fff;box-shadow:0 6px 14px -3px rgba(0,0,0,.45)"><span style="transform:rotate(-45deg);color:#fff;font-weight:800;font-size:14px;line-height:1;font-family:system-ui,-apple-system,sans-serif">' +
+            `;display:flex;align-items:center;justify-content:center;border:2.5px solid ${INK.white};box-shadow:0 6px 14px -3px rgba(0,0,0,.45)"><span style="transform:rotate(-45deg);color:${INK.white};font-weight:800;font-size:14px;line-height:1;font-family:system-ui,-apple-system,sans-serif">` +
             m.label +
             "</span></div>";
         } else if (m.kind === "me") {
@@ -526,20 +527,21 @@ export function DriveMap({
           // l'écran (bug vécu). z-index:-1 : l'onde passe SOUS le remplissage
           // du point (le point ne crée pas de contexte d'empilement).
           const wave = (delay: string) =>
-            `<div style="position:absolute;left:50%;top:50%;z-index:-1;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(108,43,217,.28);animation:me-radar-wave 2.4s ease-out ${delay} infinite"></div>`;
+            `<div style="position:absolute;left:50%;top:50%;z-index:-1;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:${withAlpha(
+              MAP.me,
+              0.28
+            )};animation:me-radar-wave 2.4s ease-out ${delay} infinite"></div>`;
           el.innerHTML =
-            '<div style="position:relative;width:20px;height:20px;border-radius:50%;background:#6C2BD9;border:4px solid #fff;box-shadow:0 0 0 6px rgba(108,43,217,.38)">' +
+            `<div style="position:relative;width:20px;height:20px;border-radius:50%;background:${MAP.me};border:4px solid ${INK.white};box-shadow:0 0 0 6px ${withAlpha(MAP.me, 0.38)}">` +
             `<div data-radar style="display:${m.radar ? "block" : "none"}">` +
             wave("0s") +
             wave(".8s") +
             wave("1.6s") +
             "</div></div>";
         } else if (m.kind === "car") {
-          el.innerHTML =
-            '<div style="width:38px;height:38px;border-radius:50%;background:#0B0C12;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 8px 18px -4px rgba(0,0,0,.4)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-5.5a2 2 0 0 0-1.9-1.5H8.4a2 2 0 0 0-1.9 1.5L5 17Z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></div>';
+          el.innerHTML = `<div style="width:38px;height:38px;border-radius:50%;background:${MAP.vehicle};display:flex;align-items:center;justify-content:center;border:3px solid ${INK.white};box-shadow:0 8px 18px -4px rgba(0,0,0,.4)"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="${INK.white}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 17h14l-1.5-5.5a2 2 0 0 0-1.9-1.5H8.4a2 2 0 0 0-1.9 1.5L5 17Z"/><circle cx="7.5" cy="18.5" r="1.5"/><circle cx="16.5" cy="18.5" r="1.5"/></svg></div>`;
         } else {
-          el.innerHTML =
-            '<div style="width:28px;height:28px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);background:#0B0C12;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -3px rgba(0,0,0,.4)"><svg width="14" height="14" viewBox="0 0 24 24" style="transform:rotate(-45deg)" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>';
+          el.innerHTML = `<div style="width:28px;height:28px;border-radius:50% 50% 50% 4px;transform:rotate(45deg);background:${MAP.vehicle};display:flex;align-items:center;justify-content:center;box-shadow:0 6px 14px -3px rgba(0,0,0,.4)"><svg width="14" height="14" viewBox="0 0 24 24" style="transform:rotate(-45deg)" fill="none" stroke="${INK.white}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 6-9 12-9 12s-9-6-9-12a9 9 0 0 1 18 0Z"/><circle cx="12" cy="10" r="2.5"/></svg></div>`;
         }
         const mk = new Mk({
           element: el,
@@ -723,19 +725,22 @@ export function DriveMap({
     };
     // Liseré blanc sous la route : contraste sur fond clair ET sombre.
     setLine("drive-route-casing", route, {
-      "line-color": "#FFFFFF",
+      "line-color": MAP.routeCasing,
       "line-width": 10,
       "line-opacity": 0.85,
     });
-    setLine("drive-route", route, { "line-color": "#6C2BD9", "line-width": 6 });
+    setLine("drive-route", route, {
+      "line-color": MAP.route,
+      "line-width": 6,
+    });
     // Pointillés animés (rose Coligo) qui « avancent » vers l'arrivée.
     setLine("drive-route-anim", route, {
-      "line-color": "#FF2D7A",
+      "line-color": MAP.destination,
       "line-width": 2.5,
       "line-dasharray": [0, 4, 3],
     });
     setLine("drive-approach", approach, {
-      "line-color": "#B7BBC8",
+      "line-color": MAP.approach,
       "line-width": 5,
       "line-dasharray": [2, 1.6],
     });

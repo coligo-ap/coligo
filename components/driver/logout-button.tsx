@@ -57,7 +57,7 @@ export function DriverLogoutButton() {
         )}
       </Button>
       {note && (
-        <div className="border-border bg-surface absolute end-0 top-full z-50 mt-1.5 w-max max-w-[calc(100vw-2rem)] rounded-[10px] border px-2.5 py-1.5 shadow-lg">
+        <div className="border-border bg-surface rounded-control absolute end-0 top-full z-50 mt-1.5 w-max max-w-[calc(100vw-2rem)] border px-2.5 py-1.5 shadow-lg">
           <ActionNote note={note} />
         </div>
       )}

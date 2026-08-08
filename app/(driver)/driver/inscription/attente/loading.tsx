@@ -7,9 +7,9 @@ export default function DriverPendingLoading() {
           <div className="size-14 animate-pulse rounded-full bg-[var(--soft)]" />
           <div className="h-6 w-56 animate-pulse rounded-lg bg-[var(--soft)]" />
         </div>
-        <div className="h-64 animate-pulse rounded-[18px] bg-[var(--soft)]" />
-        <div className="h-16 animate-pulse rounded-[14px] bg-[var(--soft)]" />
-        <div className="h-16 animate-pulse rounded-[14px] bg-[var(--soft)]" />
+        <div className="rounded-sheet-lg h-64 animate-pulse bg-[var(--soft)]" />
+        <div className="rounded-card-lg h-16 animate-pulse bg-[var(--soft)]" />
+        <div className="rounded-card-lg h-16 animate-pulse bg-[var(--soft)]" />
       </main>
     </div>
   );

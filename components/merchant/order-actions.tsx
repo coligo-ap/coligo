@@ -82,7 +82,7 @@ export function OrderActions({
 
   if (status === "completed") {
     return (
-      <p className="text-success-700 bg-success-50 rounded-[12px] px-4 py-3 text-sm font-medium">
+      <p className="text-success-700 bg-success-50 rounded-md px-4 py-3 text-sm font-medium">
         {fulfillmentType === "delivery"
           ? "Commande livrée — terminée."
           : "Commande récupérée — terminée."}
@@ -91,7 +91,7 @@ export function OrderActions({
   }
   if (status === "cancelled") {
     return (
-      <p className="text-muted bg-surface-3 rounded-[12px] px-4 py-3 text-sm font-medium">
+      <p className="text-muted bg-surface-3 rounded-md px-4 py-3 text-sm font-medium">
         Commande annulée.
       </p>
     );
@@ -105,11 +105,11 @@ export function OrderActions({
   // au client. On reflète l'état du livreur pour informer le commerçant.
   if (status === "ready" && isDelivery) {
     return deliveryPickedUpAt ? (
-      <p className="text-success-800 bg-success-50 border-success-200 rounded-[12px] border px-4 py-3 text-sm font-medium">
+      <p className="text-success-800 bg-success-50 border-success-200 rounded-md border px-4 py-3 text-sm font-medium">
         Récupérée par le livreur — livraison en cours. Rien à faire de ton côté.
       </p>
     ) : (
-      <p className="text-primary-800 bg-primary-50 border-primary-200 rounded-[12px] border px-4 py-3 text-sm font-medium">
+      <p className="text-primary-800 bg-primary-50 border-primary-200 rounded-md border px-4 py-3 text-sm font-medium">
         Commande prête — en attente du livreur. La remise sera confirmée par le
         livreur (pas de code à valider ici).
       </p>

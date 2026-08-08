@@ -122,7 +122,7 @@ export function MerchantCategoriesPanel({
                   (mig 0314 : principale masquée = commerce masqué) et le
                   modèle de catalogue. */}
               <div className="flex flex-wrap items-center gap-2">
-                <label className="text-muted text-[11px] font-medium">
+                <label className="text-muted text-caption font-medium">
                   Principale
                 </label>
                 <select
@@ -135,7 +135,7 @@ export function MerchantCategoriesPanel({
                       "Catégorie principale mise à jour."
                     )
                   }
-                  className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2 text-xs font-semibold"
+                  className="border-border-strong bg-surface rounded-control h-9 min-w-0 flex-1 border px-2 text-xs font-semibold"
                   aria-label="Catégorie principale"
                 >
                   {!primary && <option value="">— Aucune —</option>}
@@ -147,7 +147,7 @@ export function MerchantCategoriesPanel({
                   ))}
                 </select>
               </div>
-              <p className="text-subtle text-[11px]">
+              <p className="text-subtle text-caption">
                 La principale pilote l&apos;inscription, le modèle de catalogue
                 et la visibilité : si sa catégorie est « masquée », le commerce
                 disparaît du marketplace. L&apos;ancienne principale reste en
@@ -204,7 +204,7 @@ export function MerchantCategoriesPanel({
                   value={addCode}
                   disabled={busy || addable.length === 0}
                   onChange={(e) => setAddCode(e.target.value)}
-                  className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2 text-xs"
+                  className="border-border-strong bg-surface rounded-control h-9 min-w-0 flex-1 border px-2 text-xs"
                   aria-label="Catégorie à ajouter"
                 >
                   <option value="">
@@ -231,7 +231,7 @@ export function MerchantCategoriesPanel({
                       "Catégorie ajoutée."
                     );
                   }}
-                  className="bg-primary-600 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+                  className="bg-primary-600 rounded-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
                 >
                   {busy ? (
                     <Loader2 className="size-3.5 animate-spin" />

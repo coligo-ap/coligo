@@ -68,12 +68,12 @@ export function MerchantSidebar({
             return (
               <div
                 key={item.href}
-                className="text-subtle flex cursor-not-allowed items-center gap-3 rounded-[10px] px-3 py-2 text-sm"
+                className="text-subtle rounded-control flex cursor-not-allowed items-center gap-3 px-3 py-2 text-sm"
                 title="Bientôt disponible"
               >
                 <Icon className="size-4 shrink-0" />
                 <span className="flex-1">{item.label}</span>
-                <span className="text-subtle text-[10px] tracking-wider uppercase">
+                <span className="text-subtle text-micro tracking-wider uppercase">
                   Bientôt
                 </span>
               </div>
@@ -85,7 +85,7 @@ export function MerchantSidebar({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+                "rounded-control flex items-center gap-3 px-3 py-2 text-sm transition-colors",
                 active
                   ? "bg-primary-50 text-primary-900 font-medium"
                   : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -98,7 +98,7 @@ export function MerchantSidebar({
                 <NavAlertBadge orders={alertOrders} />
               )}
               {item.badge !== undefined && (
-                <span className="bg-primary-100 text-primary-800 rounded-full px-1.5 py-0.5 text-[10px] font-semibold tabular-nums">
+                <span className="bg-primary-100 text-primary-800 text-micro rounded-full px-1.5 py-0.5 font-semibold tabular-nums">
                   {item.badge}
                 </span>
               )}
@@ -111,7 +111,7 @@ export function MerchantSidebar({
         <Link
           href="/telecharger"
           className={cn(
-            "flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors",
+            "rounded-control flex w-full items-center gap-3 px-3 py-2 text-sm transition-colors",
             pathname.startsWith("/telecharger")
               ? "bg-primary-50 text-primary-900 font-medium"
               : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -122,7 +122,7 @@ export function MerchantSidebar({
         </Link>
         <Link
           href="/aide"
-          className="text-muted hover:bg-surface-2 hover:text-foreground flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
+          className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control flex w-full items-center gap-3 px-3 py-2 text-sm transition-colors"
         >
           <HelpCircle className="size-4 shrink-0" />
           Aide &amp; support

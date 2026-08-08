@@ -56,18 +56,18 @@ export function InstallAppBanner() {
   };
 
   return (
-    <div className="border-primary-100 bg-primary-50 mt-3 flex items-center gap-3 rounded-[16px] border px-3.5 py-2.5">
+    <div className="border-primary-100 bg-primary-50 mt-3 flex items-center gap-3 rounded-lg border px-3.5 py-2.5">
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src="/icon-192.png"
         alt=""
-        className="size-11 shrink-0 rounded-[12px] shadow-sm"
+        className="size-11 shrink-0 rounded-md shadow-sm"
       />
       <div className="min-w-0 flex-1">
-        <b className="text-foreground block truncate text-[13.5px] font-extrabold">
+        <b className="text-foreground text-body block truncate font-extrabold">
           {t("title")}
         </b>
-        <small className="text-muted block truncate text-[11.5px] font-semibold">
+        <small className="text-muted text-caption-lg block truncate font-semibold">
           {t("subtitleShort")}
         </small>
         {/* Le BADGE OFFICIEL de la boutique de l'appareil, cliquable : c'est

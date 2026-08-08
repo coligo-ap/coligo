@@ -78,7 +78,7 @@ export function PayHistory({ base }: { base: PayBase }) {
   };
 
   const inputCls =
-    "w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-ink)] outline-none";
+    "w-full rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-label-lg font-semibold text-[var(--d-ink)] outline-none";
 
   return (
     <PayScreen dir={dir}>
@@ -168,7 +168,7 @@ export function PayHistory({ base }: { base: PayBase }) {
           type="button"
           disabled={more}
           onClick={() => void loadMore()}
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--d-line)] py-3 text-[13px] font-bold text-[var(--d-ink)] disabled:opacity-60"
+          className="rounded-card-lg text-body-sm mt-3 flex w-full items-center justify-center gap-2 border border-[var(--d-line)] py-3 font-bold text-[var(--d-ink)] disabled:opacity-60"
         >
           {more && <Loader2 className="size-4 animate-spin" />}
           {t.loadMore}
@@ -191,7 +191,7 @@ function Chip({
     <button
       type="button"
       onClick={onClick}
-      className="rounded-full border px-2.5 py-1 text-[11.5px] font-bold"
+      className="text-caption-lg rounded-full border px-2.5 py-1 font-bold"
       style={
         on
           ? {

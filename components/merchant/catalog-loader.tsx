@@ -37,12 +37,12 @@ export function CatalogLoader({
   if (isPending && !data) {
     return (
       <div className="space-y-3 p-4 lg:p-6">
-        <div className="bg-surface-3 h-10 w-64 animate-pulse rounded-[12px]" />
-        <div className="bg-surface-3 h-10 w-full animate-pulse rounded-[10px]" />
+        <div className="bg-surface-3 h-10 w-64 animate-pulse rounded-md" />
+        <div className="bg-surface-3 rounded-control h-10 w-full animate-pulse" />
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="bg-surface-3 h-16 w-full animate-pulse rounded-[12px]"
+            className="bg-surface-3 h-16 w-full animate-pulse rounded-md"
           />
         ))}
       </div>
@@ -52,7 +52,7 @@ export function CatalogLoader({
   if (data?.error) {
     return (
       <div className="p-4 lg:p-6">
-        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-control border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Erreur de chargement du catalogue : {data.error}
         </div>
       </div>

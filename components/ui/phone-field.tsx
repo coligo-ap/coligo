@@ -184,7 +184,7 @@ export function PhoneField({
 
       <div
         className={cn(
-          "bg-surface flex h-12 items-center gap-1.5 rounded-[12px] border pr-3.5 pl-3 transition-colors focus-within:ring-2",
+          "bg-surface flex h-12 items-center gap-1.5 rounded-md border pr-3.5 pl-3 transition-colors focus-within:ring-2",
           shownError
             ? "border-danger-500 focus-within:border-danger-500 focus-within:ring-danger-500/20"
             : "border-border-strong focus-within:border-primary-400 focus-within:ring-primary-400/40",
@@ -198,12 +198,12 @@ export function PhoneField({
         <p
           id={`${fieldId}-error`}
           role="alert"
-          className="text-danger-600 px-0.5 text-[11.5px] font-medium"
+          className="text-danger-600 text-caption-lg px-0.5 font-medium"
         >
           {shownError}
         </p>
       ) : hint ? (
-        <p className="text-subtle px-0.5 text-[11.5px] font-medium">{hint}</p>
+        <p className="text-subtle text-caption-lg px-0.5 font-medium">{hint}</p>
       ) : null}
     </div>
   );

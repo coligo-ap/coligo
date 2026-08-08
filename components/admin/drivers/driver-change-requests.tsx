@@ -114,7 +114,7 @@ export function DriverChangeRequests({
       <ActionNote note={note} className="mb-2" />
       <ul className="space-y-3">
         {requests.map((r) => (
-          <li key={r.id} className="border-border rounded-[12px] border p-3">
+          <li key={r.id} className="border-border rounded-md border p-3">
             <div className="flex items-start justify-between gap-3">
               <div className="min-w-0">
                 <p className="text-sm font-semibold capitalize">{r.kind}</p>
@@ -144,7 +144,7 @@ export function DriverChangeRequests({
 
             {/* Avant → après : ce que le livreur veut changer. */}
             {r.payload && Object.keys(r.payload).length > 0 && (
-              <div className="bg-surface-2 mt-2 rounded-[10px] p-2.5 text-xs">
+              <div className="bg-surface-2 rounded-control mt-2 p-2.5 text-xs">
                 {Object.entries(r.payload).map(([k, v]) => {
                   const before = currentVehicle?.[k];
                   const showBefore =

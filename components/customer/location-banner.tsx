@@ -41,8 +41,8 @@ export function LocationBanner() {
 
   return (
     <>
-      <div className="border-primary-100 bg-primary-50 mb-4 flex items-center gap-3 rounded-[16px] border p-3.5">
-        <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-[13px] text-white shadow-sm">
+      <div className="border-primary-100 bg-primary-50 mb-4 flex items-center gap-3 rounded-lg border p-3.5">
+        <span className="bg-primary-600 rounded-card grid size-11 shrink-0 place-items-center text-white shadow-sm">
           <Navigation className="size-5" />
         </span>
         <div className="min-w-0 flex-1">
@@ -57,7 +57,7 @@ export function LocationBanner() {
           type="button"
           onClick={allow}
           disabled={detecting}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-[11px] px-3.5 py-2.5 text-xs font-bold text-white transition-colors disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control-lg inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2.5 text-xs font-bold text-white transition-colors disabled:opacity-60"
         >
           {detecting ? (
             <>
@@ -90,7 +90,7 @@ export function LocationBanner() {
           }}
         >
           <div
-            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-[20px]"
+            className="bg-surface flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:max-h-[90vh] sm:rounded-xl"
             style={{
               paddingBottom: "calc(0px + env(safe-area-inset-bottom))",
             }}

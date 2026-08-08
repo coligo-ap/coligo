@@ -39,10 +39,10 @@ export function DWait() {
         >
           <Clock className="size-7" style={{ color: VIOLET }} />
         </span>
-        <h1 className="drive-sora text-[21px] font-extrabold">
+        <h1 className="drive-sora text-display-sm font-extrabold">
           {tr("Dossier envoyé ✓", "تم إرسال الملف ✓")}
         </h1>
-        <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
+        <p className="text-body-sm mx-auto mt-1 max-w-[290px] text-[var(--d-muted)]">
           {isAr ? (
             <>
               <b>فريق كوليغو</b> يتحقق من وثائقك. لن تتمكن من الوصول إلى حساب
@@ -124,9 +124,9 @@ function Step({
           <span className="min-h-[18px] w-[2px] flex-1 bg-[var(--d-line)]" />
         )}
       </div>
-      <div className="pb-4 text-[13px] font-semibold">
+      <div className="text-body-sm pb-4 font-semibold">
         {title}
-        <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
+        <small className="text-caption mt-0.5 block font-medium text-[var(--d-muted)]">
           {sub}
         </small>
       </div>
@@ -183,12 +183,12 @@ export function DFrozen({ reason }: { reason: string | null }) {
           <Lock className="size-7" style={{ color: RED }} />
         </span>
         <h1
-          className="drive-sora text-[21px] font-extrabold"
+          className="drive-sora text-display-sm font-extrabold"
           style={{ color: RED }}
         >
           {tr("Compte gelé", "حساب مجمَّد")}
         </h1>
-        <p className="mx-auto mt-1 mb-3 max-w-[300px] text-[13px] text-[var(--d-muted)]">
+        <p className="text-body-sm mx-auto mt-1 mb-3 max-w-[300px] text-[var(--d-muted)]">
           {tr(
             "Votre compte chauffeur a été suspendu par Coligo.",
             "تم تعليق حساب السائق الخاص بك من طرف كوليغو."
@@ -206,14 +206,16 @@ export function DFrozen({ reason }: { reason: string | null }) {
       {motifs.map((m) => (
         <div
           key={m.title}
-          className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
+          className="rounded-card-xl mb-2 flex items-center gap-3 border border-[var(--d-line)] p-3"
         >
-          <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
+          <span className="rounded-control-lg grid size-[34px] shrink-0 place-items-center bg-[var(--d-soft)]">
             {m.icon}
           </span>
           <span>
-            <b className="block text-[13.5px]">{m.title}</b>
-            <small className="text-[11px] text-[var(--d-muted)]">{m.sub}</small>
+            <b className="text-body block">{m.title}</b>
+            <small className="text-caption text-[var(--d-muted)]">
+              {m.sub}
+            </small>
           </span>
         </div>
       ))}
@@ -244,12 +246,12 @@ export function DBlocked() {
           <Ban className="size-7" style={{ color: RED }} />
         </span>
         <h1
-          className="drive-sora text-[21px] font-extrabold"
+          className="drive-sora text-display-sm font-extrabold"
           style={{ color: RED }}
         >
           {tr("Compte suspendu", "حساب موقوف")}
         </h1>
-        <p className="mx-auto mt-1 max-w-[290px] text-[13px] text-[var(--d-muted)]">
+        <p className="text-body-sm mx-auto mt-1 max-w-[290px] text-[var(--d-muted)]">
           {tr(
             "Votre compte a été suspendu définitivement. Contactez le support Coligo pour plus d'informations.",
             "تم إيقاف حسابك نهائيًا. تواصل مع دعم كوليغو لمزيد من المعلومات."

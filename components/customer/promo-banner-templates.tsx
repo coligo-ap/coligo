@@ -116,7 +116,7 @@ function MiniProduct({
         <div className="truncate text-[7px] font-semibold text-neutral-600">
           {p.name_fr}
         </div>
-        <div className="font-display text-[9.5px] leading-none font-extrabold text-[#C81428]">
+        <div className="font-display text-nano-lg leading-none font-extrabold text-[#C81428]">
           {grp(promo ?? p.price_da)}
           {promo != null && (
             <span className="ms-0.5 text-[6.5px] font-medium text-neutral-400 line-through">
@@ -145,7 +145,7 @@ function Countdown({ endsAt }: { endsAt: string }) {
   const cell =
     "rounded-md border border-amber-300/60 bg-white/15 px-1.5 py-0.5 tabular-nums";
   return (
-    <div className="mt-2 flex items-center gap-1 font-mono text-[13px] font-extrabold text-white">
+    <div className="text-body-sm mt-2 flex items-center gap-1 font-mono font-extrabold text-white">
       <span className={cell}>{pad(Math.floor(s / 3600))}</span>
       <span className="promo-blink text-amber-300">:</span>
       <span className={cell}>{pad(Math.floor((s % 3600) / 60))}</span>
@@ -192,7 +192,7 @@ export function BannerCard({ banner }: { banner: PromoBanner }) {
       // au gabarit ci-dessous, mais elle GRANDIT si le texte a besoin de place
       // — typiquement quand l'utilisateur a agrandi la police de son téléphone.
       // Avant, le titre était coupé en deux (bug vécu sur Galaxy S10E).
-      className="@container relative flex w-full overflow-hidden rounded-[16px] shadow-md"
+      className="@container relative flex w-full overflow-hidden rounded-lg shadow-md"
       style={{ background: grad, containerType: "inline-size" }}
     >
       {/* Gabarit de proportion : `padding-top` en % se calcule sur la LARGEUR

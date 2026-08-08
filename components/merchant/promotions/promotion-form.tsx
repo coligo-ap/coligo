@@ -167,9 +167,9 @@ export function PromotionForm({
                 key={t}
                 type="button"
                 onClick={() => setType(t)}
-                className="border-border bg-surface hover:border-primary-400 hover:bg-primary-50/40 flex items-center gap-4 rounded-[16px] border p-4 text-left transition-colors"
+                className="border-border bg-surface hover:border-primary-400 hover:bg-primary-50/40 flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
               >
-                <span className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-[12px]">
+                <span className="bg-primary-50 text-primary-700 flex size-11 shrink-0 items-center justify-center rounded-md">
                   <Icon className="size-5" />
                 </span>
                 <span className="min-w-0 flex-1">
@@ -196,7 +196,7 @@ export function PromotionForm({
         <input type="hidden" name="type" value={type} />
 
         {/* Type rappelé + changement (création seulement) */}
-        <div className="border-border bg-surface flex items-center gap-3 rounded-[16px] border p-4">
+        <div className="border-border bg-surface flex items-center gap-3 rounded-lg border p-4">
           <TypeBadge type={type} />
           {!isEdit && (
             <button
@@ -210,7 +210,7 @@ export function PromotionForm({
         </div>
 
         {/* Titre */}
-        <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+        <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
           <div className="space-y-1.5">
             <Label>
               Titre affiché au client (FR)
@@ -247,7 +247,7 @@ export function PromotionForm({
         )}
 
         {type === "flash_sale" && (
-          <div className="border-danger-200 bg-danger-50 text-danger-800 flex items-start gap-2 rounded-[12px] border p-3 text-xs">
+          <div className="border-danger-200 bg-danger-50 text-danger-800 flex items-start gap-2 rounded-md border p-3 text-xs">
             <Timer className="mt-0.5 size-4 shrink-0" />
             <span>
               Vente flash : elle démarre <b>immédiatement</b> et dure{" "}
@@ -259,7 +259,7 @@ export function PromotionForm({
         )}
 
         {type === "anti_gaspillage" && (
-          <div className="border-success-200 bg-success-50 text-success-800 flex items-start gap-2 rounded-[12px] border p-3 text-xs">
+          <div className="border-success-200 bg-success-50 text-success-800 flex items-start gap-2 rounded-md border p-3 text-xs">
             <Leaf className="mt-0.5 size-4 shrink-0" />
             <span>
               Anti-gaspillage : mettez vos invendus / surplus à prix cassé.
@@ -298,7 +298,7 @@ export function PromotionForm({
         {/* Période — VENTE FLASH : durée (h/min, 24 h max) au lieu de dates ;
             la vente démarre MAINTENANT. Autres types : dates classiques. */}
         {type === "flash_sale" ? (
-          <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+          <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
             <h2 className="text-base font-semibold">Durée de la vente flash</h2>
             <p className="text-muted -mt-2 text-xs">
               Démarre dès l&apos;enregistrement. 24 heures maximum.
@@ -312,7 +312,7 @@ export function PromotionForm({
                   disabled={pending}
                   onClick={() => setFlashMinutes(m)}
                   className={cn(
-                    "rounded-full border px-3 py-1.5 text-[13px] font-bold transition-colors",
+                    "text-body-sm rounded-full border px-3 py-1.5 font-bold transition-colors",
                     flashMinutes === m
                       ? "border-danger-500 bg-danger-50 text-danger-700"
                       : "border-border bg-surface text-muted hover:border-danger-300"
@@ -393,7 +393,7 @@ export function PromotionForm({
             />
           </section>
         ) : (
-          <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+          <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
             <h2 className="text-base font-semibold">Période (optionnel)</h2>
             <p className="text-muted -mt-2 text-xs">
               Début pré-rempli sur maintenant (modifiable) · début futur =
@@ -425,7 +425,7 @@ export function PromotionForm({
         )}
 
         {state.error && (
-          <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+          <div className="rounded-control border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
             {state.error}
           </div>
         )}
@@ -486,7 +486,7 @@ function TypeBadge({ type }: { type: PromotionType }) {
   const meta = PROMOTION_TYPE_META[type];
   return (
     <>
-      <span className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px]">
+      <span className="bg-primary-50 text-primary-700 rounded-control flex size-9 shrink-0 items-center justify-center">
         <Icon className="size-5" />
       </span>
       <div>
@@ -508,12 +508,12 @@ function DiscountFields({
     promotion?.discount_kind ?? "percent"
   );
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
       <h2 className="text-base font-semibold">Réduction</h2>
       <div className="grid gap-4 sm:grid-cols-[1fr_1fr]">
         <div className="space-y-1.5">
           <Label>Type</Label>
-          <div className="bg-surface-3 grid grid-cols-2 gap-1 rounded-[12px] p-1">
+          <div className="bg-surface-3 grid grid-cols-2 gap-1 rounded-md p-1">
             {(["percent", "amount"] as DiscountKind[]).map((k) => (
               <button
                 key={k}
@@ -521,7 +521,7 @@ function DiscountFields({
                 onClick={() => setKind(k)}
                 disabled={pending}
                 className={cn(
-                  "rounded-[9px] px-3 py-2 text-sm font-medium transition-colors",
+                  "rounded-chip px-3 py-2 text-sm font-medium transition-colors",
                   kind === k
                     ? "text-primary-700 bg-white shadow-sm"
                     : "text-muted hover:text-foreground"
@@ -568,7 +568,7 @@ function PromoCodeFields({
   pending: boolean;
 }) {
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
       <h2 className="text-base font-semibold">Code & limites</h2>
       <div className="space-y-1.5">
         <Label>
@@ -643,7 +643,7 @@ function QuantityFields({
   pending: boolean;
 }) {
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
       <h2 className="text-base font-semibold">Offre quantité</h2>
       <p className="text-muted -mt-2 text-xs">
         « X achetés = Y offert(s) ». Ex. 2 achetés = 1 offert.
@@ -722,7 +722,7 @@ function GiftFields({
   pending: boolean;
 }) {
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
       <h2 className="text-base font-semibold">Cadeau offert</h2>
       <div className="space-y-1.5">
         <Label>
@@ -758,21 +758,21 @@ function FreeDeliveryFields({
   pending: boolean;
 }) {
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
       <h2 className="text-base font-semibold">Livraison offerte</h2>
 
       {/* Type de livraison concerné : TOURNÉE seule éligible (verrouillée). */}
       <div className="space-y-1.5">
         <Label>Type de livraison concerné</Label>
         <div className="grid grid-cols-2 gap-2">
-          <div className="border-primary-500 bg-primary-50/60 flex items-center gap-2 rounded-[12px] border-2 px-3 py-2.5">
+          <div className="border-primary-500 bg-primary-50/60 flex items-center gap-2 rounded-md border-2 px-3 py-2.5">
             <Truck className="text-primary-700 size-4 shrink-0" />
             <span className="text-primary-800 text-sm font-semibold">
               Tournée
             </span>
             <Check className="text-primary-600 ms-auto size-4 shrink-0" />
           </div>
-          <div className="border-border bg-surface-3 flex items-center gap-2 rounded-[12px] border px-3 py-2.5 opacity-60">
+          <div className="border-border bg-surface-3 flex items-center gap-2 rounded-md border px-3 py-2.5 opacity-60">
             <Zap className="text-muted size-4 shrink-0" />
             <span className="text-muted text-sm font-medium line-through">
               Express
@@ -848,7 +848,7 @@ function ProductSelector({
   }
 
   return (
-    <section className="border-border bg-surface space-y-3 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-3 rounded-lg border p-5">
       <div className="flex items-center justify-between">
         <h2 className="text-base font-semibold">
           Produits concernés<span className="text-rose-600"> *</span>
@@ -879,7 +879,7 @@ function ProductSelector({
               disabled={pending}
             />
           </div>
-          <ul className="border-border divide-border max-h-64 divide-y overflow-y-auto rounded-[12px] border">
+          <ul className="border-border divide-border max-h-64 divide-y overflow-y-auto rounded-md border">
             {filtered.map((p) => {
               const checked = selected.has(p.id);
               return (
@@ -916,7 +916,7 @@ function ProductSelector({
 
           {/* Récap des produits sélectionnés : retrait rapide en cas d'erreur. */}
           {selectedProducts.length > 0 && (
-            <div className="border-primary-100 bg-primary-50/40 space-y-2 rounded-[12px] border p-3">
+            <div className="border-primary-100 bg-primary-50/40 space-y-2 rounded-md border p-3">
               <p className="text-primary-800 text-xs font-semibold">
                 Produits sélectionnés ({selectedProducts.length})
               </p>

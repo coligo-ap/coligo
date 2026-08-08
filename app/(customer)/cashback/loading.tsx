@@ -15,7 +15,7 @@ export default function CashbackLoading() {
       </div>
 
       {/* Carte lien Coligo Pay. */}
-      <div className="bg-surface-3 mt-4 h-[78px] animate-pulse rounded-[18px]" />
+      <div className="bg-surface-3 rounded-sheet-lg mt-4 h-[78px] animate-pulse" />
 
       {/* Historique. */}
       <div className="mt-6 space-y-3">
@@ -23,7 +23,7 @@ export default function CashbackLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="bg-surface-3 h-14 animate-pulse rounded-[14px]"
+            className="bg-surface-3 rounded-card-lg h-14 animate-pulse"
           />
         ))}
       </div>

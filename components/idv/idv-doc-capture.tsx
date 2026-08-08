@@ -499,7 +499,7 @@ export function IdvDocCapture({
           <div className="flex w-full items-center justify-center gap-8 px-8">
             {/* Repli fichier — toujours disponible. */}
             <label
-              className="flex cursor-pointer flex-col items-center gap-1 text-[11px] text-white/80"
+              className="text-caption flex cursor-pointer flex-col items-center gap-1 text-white/80"
               aria-label={tr("Choisir une photo", "اختيار صورة")}
             >
               <span className="rounded-full bg-white/15 p-3 backdrop-blur">
@@ -564,7 +564,7 @@ export function IdvDocCapture({
                 type="button"
                 onClick={toggleTorch}
                 aria-label={tr("Torche", "المصباح")}
-                className={`flex flex-col items-center gap-1 text-[11px] ${
+                className={`text-caption flex flex-col items-center gap-1 ${
                   torchOn ? "text-amber-300" : "text-white/80"
                 }`}
               >

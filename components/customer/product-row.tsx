@@ -164,7 +164,7 @@ export function ProductRow({
     >
       {/* Vignette (overflow caché → le badge promo reste dedans). Photo
           entière sur fond blanc (object-contain), comme les cartes produit. */}
-      <div className="border-border relative size-16 shrink-0 overflow-hidden rounded-[8px] border bg-white">
+      <div className="border-border relative size-16 shrink-0 overflow-hidden rounded-sm border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -186,7 +186,7 @@ export function ProductRow({
           </div>
         )}
         {hasPromo && promoPct > 0 && (
-          <span className="bg-accent-600 absolute top-1 left-1 z-10 rounded-[6px] px-1.5 py-0.5 text-[9px] font-extrabold text-white shadow-sm">
+          <span className="bg-accent-600 text-nano absolute top-1 left-1 z-10 rounded-[6px] px-1.5 py-0.5 font-extrabold text-white shadow-sm">
             −{promoPct}%
           </span>
         )}
@@ -219,7 +219,7 @@ export function ProductRow({
           )}
           {quantityOffer && (
             // Étiquette cohérente avec « Offert » : rose foncé + blanc.
-            <span className="bg-accent-600 ms-auto inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 text-[10px] font-extrabold text-white">
+            <span className="bg-accent-600 text-micro ms-auto inline-flex shrink-0 items-center rounded-md px-1.5 py-0.5 font-extrabold text-white">
               {t("buyGetLabel", {
                 buy: quantityOffer.buy,
                 get: quantityOffer.get,
@@ -228,16 +228,16 @@ export function ProductRow({
           )}
         </div>
         {isOut ? (
-          <div className="text-danger-600 mt-1 text-[11px] font-bold">
+          <div className="text-danger-600 text-caption mt-1 font-bold">
             {t("outOfStock")}
           </div>
         ) : isLow ? (
-          <div className="text-warning-700 mt-1 flex items-center gap-1 text-[11px] font-bold">
+          <div className="text-warning-700 text-caption mt-1 flex items-center gap-1 font-bold">
             <AlertTriangle className="size-3" />
             {t("onlyLeft", { count: product.stock_qty ?? 0 })}
           </div>
         ) : isOk ? (
-          <div className="text-success-700 mt-1 flex items-center gap-1 text-[11px] font-bold">
+          <div className="text-success-700 text-caption mt-1 flex items-center gap-1 font-bold">
             <Check className="size-3" />
             {t("inStock")}
           </div>

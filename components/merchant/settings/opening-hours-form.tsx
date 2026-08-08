@@ -107,7 +107,7 @@ export function OpeningHoursForm({
             <div
               key={day}
               className={cn(
-                "border-border bg-surface rounded-[12px] border p-3",
+                "border-border bg-surface rounded-md border p-3",
                 closed && "bg-surface-2"
               )}
             >
@@ -120,7 +120,7 @@ export function OpeningHoursForm({
                     type="button"
                     onClick={() => copyToAll(day)}
                     disabled={pending || closed}
-                    className="text-muted hover:text-foreground hover:bg-surface-2 inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-[11px] disabled:opacity-40"
+                    className="text-muted hover:text-foreground hover:bg-surface-2 text-caption inline-flex items-center gap-1 rounded-sm px-2 py-1 disabled:opacity-40"
                     title="Copier sur tous les jours"
                   >
                     <Copy className="size-3" />
@@ -130,7 +130,7 @@ export function OpeningHoursForm({
                     type="button"
                     onClick={() => addSlot(day)}
                     disabled={pending || slots.length >= 4}
-                    className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-[11px] font-medium disabled:opacity-40"
+                    className="text-primary-700 hover:bg-primary-50 text-caption inline-flex items-center gap-1 rounded-sm px-2 py-1 font-medium disabled:opacity-40"
                   >
                     <Plus className="size-3" />
                     Créneau
@@ -161,7 +161,7 @@ export function OpeningHoursForm({
                           />
                           {overnight && !invalid && (
                             <span
-                              className="bg-primary-50 text-primary-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                              className="bg-primary-50 text-primary-700 text-micro inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-semibold"
                               title="Ce créneau se termine le lendemain"
                             >
                               <Moon className="size-3" />
@@ -172,13 +172,13 @@ export function OpeningHoursForm({
                             type="button"
                             onClick={() => removeSlot(day, i)}
                             disabled={pending}
-                            className="text-danger-600 hover:bg-danger-50 ml-auto rounded-[8px] p-1.5"
+                            className="text-danger-600 hover:bg-danger-50 ml-auto rounded-sm p-1.5"
                           >
                             <Trash2 className="size-3.5" />
                           </button>
                         </div>
                         {invalid && (
-                          <p className="text-danger-600 text-[11px]">
+                          <p className="text-danger-600 text-caption">
                             L&apos;ouverture et la fermeture doivent être
                             différentes.
                           </p>
@@ -229,7 +229,7 @@ function TimeInput({
       onChange={(e) => onChange(e.target.value)}
       disabled={disabled}
       step={300}
-      className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-9 rounded-[10px] border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+      className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 rounded-control h-9 border px-2 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
     />
   );
 }

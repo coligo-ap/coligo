@@ -128,14 +128,14 @@ export function ReferralManager({
   return (
     <div>
       {/* Nav segmentée */}
-      <div className="border-border bg-surface-2 mb-4 flex w-fit max-w-full gap-1 overflow-x-auto rounded-[13px] border p-1">
+      <div className="border-border bg-surface-2 rounded-card mb-4 flex w-fit max-w-full gap-1 overflow-x-auto border p-1">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
             className={cn(
-              "flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-sm font-bold transition-colors",
+              "rounded-control flex shrink-0 items-center gap-1.5 px-3 py-1.5 text-sm font-bold transition-colors",
               tab === t.key
                 ? "bg-surface text-foreground shadow-sm"
                 : "text-muted hover:text-foreground"
@@ -145,7 +145,7 @@ export function ReferralManager({
             {t.badge != null && (
               <span
                 className={cn(
-                  "rounded-full px-1.5 py-0.5 text-[11px] font-extrabold",
+                  "text-caption rounded-full px-1.5 py-0.5 font-extrabold",
                   t.key === "revue"
                     ? "bg-amber-100 text-amber-800"
                     : "bg-surface-3 text-muted"
@@ -196,7 +196,7 @@ function OverviewPanel({
   return (
     <div className="space-y-3">
       {settings && !settings.enabled && (
-        <div className="rounded-[13px] border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+        <div className="rounded-card border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
           {
             "Programme DÉSACTIVÉ — les nouveaux codes ne s'attribuent pas. Active dans « Réglages » (et le drapeau referral dans Plateforme → Contrôle)."
           }
@@ -222,8 +222,8 @@ function OverviewPanel({
         <Kpi label="Codes générés" value={String(stats.codes_total)} />
       </div>
       {settings && (
-        <div className="border-border bg-surface rounded-[16px] border p-4 text-sm">
-          <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+        <div className="border-border bg-surface rounded-lg border p-4 text-sm">
+          <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             Réglages actifs
           </p>
           <p className="text-foreground mt-1.5 font-medium">
@@ -252,7 +252,7 @@ function Kpi({
   return (
     <div
       className={cn(
-        "border-border bg-surface rounded-[14px] border p-3",
+        "border-border bg-surface rounded-card-lg border p-3",
         warn && "border-amber-200 bg-amber-50"
       )}
     >
@@ -268,7 +268,7 @@ function Kpi({
       >
         {value}
       </p>
-      <p className="text-muted text-[11px] font-bold">{label}</p>
+      <p className="text-muted text-caption font-bold">{label}</p>
     </div>
   );
 }
@@ -313,7 +313,7 @@ function SettingsPanel({
   };
 
   return (
-    <div className="border-border bg-surface max-w-xl rounded-[16px] border p-4">
+    <div className="border-border bg-surface max-w-xl rounded-lg border p-4">
       <label className="flex items-center justify-between gap-3 py-1">
         <span>
           <span className="text-foreground block text-sm font-extrabold">
@@ -383,7 +383,7 @@ function SettingsPanel({
         type="button"
         onClick={save}
         disabled={pending}
-        className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-sm font-extrabold text-white transition-colors disabled:opacity-60"
+        className="bg-primary-600 hover:bg-primary-700 rounded-control-lg mt-3 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-extrabold text-white transition-colors disabled:opacity-60"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />
@@ -413,7 +413,7 @@ function Field({
         min={0}
         value={value}
         onChange={onChange}
-        className="border-border bg-surface text-foreground focus:border-primary-400 w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+        className="border-border bg-surface text-foreground focus:border-primary-400 rounded-control-lg w-full border px-3 py-2 text-sm font-semibold outline-none"
       />
     </label>
   );
@@ -452,14 +452,14 @@ function ListPanel({ initialRows }: { initialRows: AdminReferralRow[] }) {
             onChange={(e) => setQ(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && runSearch()}
             placeholder="Nom, téléphone ou code…"
-            className="border-border bg-surface text-foreground w-full rounded-[11px] border py-2 ps-9 pe-3 text-sm outline-none"
+            className="border-border bg-surface text-foreground rounded-control-lg w-full border py-2 ps-9 pe-3 text-sm outline-none"
           />
         </div>
         <button
           type="button"
           onClick={runSearch}
           disabled={searching}
-          className="bg-primary-600 hover:bg-primary-700 rounded-[11px] px-3.5 py-2 text-sm font-extrabold text-white transition-colors disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control-lg px-3.5 py-2 text-sm font-extrabold text-white transition-colors disabled:opacity-60"
         >
           {searching ? <Loader2 className="size-4 animate-spin" /> : "Chercher"}
         </button>
@@ -495,7 +495,7 @@ function ReviewPanel({ rows }: { rows: AdminReferralRow[] }) {
   const held = rows.filter((r) => r.status === "held");
   if (held.length === 0) {
     return (
-      <div className="border-border bg-surface rounded-[16px] border p-6 text-center">
+      <div className="border-border bg-surface rounded-lg border p-6 text-center">
         <span className="bg-success-50 text-success-700 mx-auto grid size-11 place-items-center rounded-2xl">
           <Check className="size-5" />
         </span>
@@ -511,7 +511,7 @@ function ReviewPanel({ rows }: { rows: AdminReferralRow[] }) {
   }
   return (
     <div className="space-y-3">
-      <div className="flex items-start gap-2 rounded-[13px] border border-amber-200 bg-amber-50 px-4 py-3">
+      <div className="rounded-card flex items-start gap-2 border border-amber-200 bg-amber-50 px-4 py-3">
         <ShieldAlert className="mt-0.5 size-4 shrink-0 text-amber-700" />
         <p className="text-sm font-medium text-amber-800">
           Récompenses GELÉES en attendant ta décision. Approuver crédite
@@ -530,14 +530,14 @@ function RowsList({ rows }: { rows: AdminReferralRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <div className="border-border bg-surface rounded-[16px] border p-6 text-center">
+      <div className="border-border bg-surface rounded-lg border p-6 text-center">
         <p className="text-muted text-sm">Aucun parrainage pour ce filtre.</p>
       </div>
     );
   }
 
   return (
-    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-lg border">
       {rows.map((r) => (
         <ReferralRow
           key={r.id}
@@ -641,7 +641,7 @@ function ReferralRow({
         </span>
         <span
           className={cn(
-            "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold",
+            "text-caption shrink-0 rounded-full px-2.5 py-1 font-extrabold",
             meta.cls
           )}
         >
@@ -682,7 +682,7 @@ function ReferralRow({
           </dl>
 
           {row.fraud_note && (
-            <p className="mt-2 flex items-start gap-1.5 rounded-[10px] bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
+            <p className="rounded-control mt-2 flex items-start gap-1.5 bg-amber-50 px-3 py-2 text-xs font-medium text-amber-800">
               <ShieldAlert className="mt-0.5 size-3.5 shrink-0" />
               {row.fraud_note}
             </p>
@@ -732,8 +732,8 @@ function PartyCard({
   amountDa: number;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[12px] border px-3 py-2.5">
-      <p className="text-subtle text-[10px] font-extrabold tracking-wide uppercase">
+    <div className="border-border bg-surface rounded-md border px-3 py-2.5">
+      <p className="text-subtle text-micro font-extrabold tracking-wide uppercase">
         {title} · {formatDA(amountDa)}
       </p>
       <p className="text-foreground mt-0.5 text-sm font-extrabold">
@@ -772,7 +772,7 @@ function ActionBtn({
       onClick={onClick}
       disabled={busy}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-extrabold transition-colors disabled:opacity-60",
+        "rounded-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-extrabold transition-colors disabled:opacity-60",
         danger
           ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
           : "bg-primary-600 hover:bg-primary-700 text-white"

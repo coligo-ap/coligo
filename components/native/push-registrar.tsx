@@ -169,7 +169,7 @@ export function PushRegistrar({ role }: { role: PushRole }) {
 
   return (
     <div className="fixed inset-x-4 bottom-20 z-50 mx-auto max-w-md">
-      <div className="border-border flex items-start gap-3 rounded-[14px] border bg-white p-4 shadow-lg">
+      <div className="border-border rounded-card-lg flex items-start gap-3 border bg-white p-4 shadow-lg">
         <span className="bg-primary-50 text-primary-600 flex size-9 shrink-0 items-center justify-center rounded-full">
           {mode === "install" ? (
             <SquarePlus className="size-4.5" />
@@ -189,7 +189,7 @@ export function PushRegistrar({ role }: { role: PushRole }) {
               type="button"
               onClick={enable}
               disabled={enabling}
-              className="bg-primary-600 hover:bg-primary-700 mt-2.5 inline-flex items-center gap-1.5 rounded-[10px] px-3.5 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
+              className="bg-primary-600 hover:bg-primary-700 rounded-control mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors disabled:opacity-60"
             >
               <BellRing className="size-3.5" />
               {enabling ? "…" : t("enableCta")}

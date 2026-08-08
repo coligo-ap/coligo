@@ -147,7 +147,7 @@ export function PlaceField({
             if (hits.length > 0) setOpen(true);
           }}
           placeholder={placeholder}
-          className="h-10 w-full min-w-0 bg-transparent text-[14px] font-bold outline-none placeholder:font-semibold placeholder:text-[var(--d-muted)]"
+          className="text-body-lg h-10 w-full min-w-0 bg-transparent font-bold outline-none placeholder:font-semibold placeholder:text-[var(--d-muted)]"
         />
         {busy ? (
           <Loader2 className="size-4 shrink-0 animate-spin text-[var(--d-muted)]" />
@@ -168,14 +168,14 @@ export function PlaceField({
       </div>
       {/* Rattachement wilaya visible : le client comprend le matching. */}
       {value && (
-        <p className="ms-[22px] mt-0.5 truncate text-[10px] font-semibold text-[var(--d-muted)]">
+        <p className="text-micro ms-[22px] mt-0.5 truncate font-semibold text-[var(--d-muted)]">
           {value.secondary ? `${value.secondary} · ` : ""}
           {isAr ? "ولاية" : "wilaya"} {wilayaName(value.wilaya, isAr)}
         </p>
       )}
 
       {open && hits.length > 0 && (
-        <div className="absolute start-0 top-full z-30 mt-1 max-h-64 w-full max-w-[calc(100vw-2rem)] overflow-y-auto rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-[0_18px_44px_-24px_rgba(20,22,40,.55)]">
+        <div className="rounded-control absolute start-0 top-full z-30 mt-1 max-h-64 w-full max-w-[calc(100vw-2rem)] overflow-y-auto border border-[var(--d-line)] bg-[var(--d-surface)] shadow-[0_18px_44px_-24px_rgba(20,22,40,.55)]">
           {hits.map((h, i) => (
             <button
               key={`${h.display}-${i}`}
@@ -183,7 +183,7 @@ export function PlaceField({
               onClick={() => pick(h)}
               className="flex w-full items-center gap-2.5 border-b border-[var(--d-line)] px-3 py-2.5 text-start last:border-b-0 active:bg-[var(--d-soft)]"
             >
-              <span className="grid size-7 shrink-0 place-items-center rounded-[8px] bg-[var(--d-soft)]">
+              <span className="grid size-7 shrink-0 place-items-center rounded-sm bg-[var(--d-soft)]">
                 {h.kind === "merchant" ? (
                   <Store className="size-3.5" style={{ color: "#6C2BD9" }} />
                 ) : (
@@ -191,11 +191,11 @@ export function PlaceField({
                 )}
               </span>
               <span className="min-w-0 flex-1">
-                <span className="block truncate text-[12.5px] font-bold">
+                <span className="text-label-lg block truncate font-bold">
                   {h.display}
                 </span>
                 {h.secondary && (
-                  <span className="block truncate text-[10.5px] font-medium text-[var(--d-muted)]">
+                  <span className="text-micro-lg block truncate font-medium text-[var(--d-muted)]">
                     {h.secondary}
                   </span>
                 )}

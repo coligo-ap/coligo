@@ -47,7 +47,7 @@ export function RidePhoneShareToggle({ rideId }: { rideId: string }) {
       onClick={toggle}
       disabled={pending}
       aria-pressed={shared}
-      className="mt-2 flex w-full items-center gap-3 rounded-[14px] border-[1.5px] border-[var(--d-line)] px-3.5 py-2.5 text-start disabled:opacity-60"
+      className="rounded-card-lg mt-2 flex w-full items-center gap-3 border-[1.5px] border-[var(--d-line)] px-3.5 py-2.5 text-start disabled:opacity-60"
     >
       <span
         className="grid size-8 shrink-0 place-items-center rounded-full"
@@ -56,8 +56,8 @@ export function RidePhoneShareToggle({ rideId }: { rideId: string }) {
         {shared ? <Eye className="size-4" /> : <EyeOff className="size-4" />}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block text-[13px] font-bold">{t("shareNumber")}</span>
-        <span className="block text-[11px] leading-snug text-[var(--d-muted)]">
+        <span className="text-body-sm block font-bold">{t("shareNumber")}</span>
+        <span className="text-caption block leading-snug text-[var(--d-muted)]">
           {shared ? t("shareNumberOnHint") : t("shareNumberOffHint")}
         </span>
       </span>

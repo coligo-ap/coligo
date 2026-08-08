@@ -66,7 +66,7 @@ export function ProductCreateTabs({
         </h1>
 
         {/* Nav sous-page segmentée */}
-        <div className="border-border bg-surface-2 mt-4 inline-flex max-w-full gap-1 overflow-x-auto rounded-[12px] border p-1">
+        <div className="border-border bg-surface-2 mt-4 inline-flex max-w-full gap-1 overflow-x-auto rounded-md border p-1">
           {tabs.map((tb) => (
             <button
               key={tb.id}
@@ -74,7 +74,7 @@ export function ProductCreateTabs({
               onClick={() => setTab(tb.id)}
               aria-pressed={tab === tb.id}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1.5 rounded-[9px] px-3.5 py-2 text-sm font-medium transition-colors",
+                "rounded-chip inline-flex shrink-0 items-center gap-1.5 px-3.5 py-2 text-sm font-medium transition-colors",
                 tab === tb.id
                   ? "bg-surface text-foreground shadow-sm"
                   : "text-muted hover:text-foreground"
@@ -84,7 +84,7 @@ export function ProductCreateTabs({
               {tb.badge != null && (
                 <span
                   className={cn(
-                    "rounded-full px-1.5 py-0.5 text-[11px] font-semibold tabular-nums",
+                    "text-caption rounded-full px-1.5 py-0.5 font-semibold tabular-nums",
                     tab === tb.id
                       ? "bg-primary-50 text-primary-700"
                       : "bg-surface-3 text-muted"

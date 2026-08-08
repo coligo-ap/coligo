@@ -40,8 +40,8 @@ export function HubTabs({
     <div
       className={
         hero
-          ? "flex gap-[3px] rounded-[14px] bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]"
-          : "mb-4 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1"
+          ? "rounded-card-lg flex gap-[3px] bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]"
+          : "rounded-card-lg mb-4 flex gap-[3px] bg-[var(--d-soft)] p-1"
       }
     >
       {tabs.map((t) => {
@@ -51,7 +51,7 @@ export function HubTabs({
             key={t.href}
             href={t.href}
             prefetch
-            className="flex-1 rounded-[11px] p-2 text-center text-[12.5px] font-bold transition-colors"
+            className="rounded-control-lg text-label-lg flex-1 p-2 text-center font-bold transition-colors"
             style={
               on
                 ? hero
@@ -80,14 +80,14 @@ export function HubTabs({
   return (
     <div className="-mx-5 mb-4">
       <div
-        className="relative overflow-hidden rounded-b-[28px] px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-12 text-white"
+        className="relative overflow-hidden rounded-b-2xl px-5 pt-[calc(env(safe-area-inset-top)+1rem)] pb-12 text-white"
         style={{
           backgroundImage:
             "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
         }}
       >
         <ThemeDecor />
-        <h1 className="drive-sora relative z-10 text-[21px] font-extrabold tracking-[-0.5px] drop-shadow-sm">
+        <h1 className="drive-sora text-display-sm relative z-10 font-extrabold tracking-[-0.5px] drop-shadow-sm">
           {heroTitle}
         </h1>
       </div>

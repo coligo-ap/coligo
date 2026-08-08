@@ -114,7 +114,7 @@ export function TourScheduleEditor({
           return (
             <li
               key={d.weekday}
-              className="border-border bg-surface rounded-[14px] border p-4"
+              className="border-border bg-surface rounded-card-lg border p-4"
             >
               <div className="flex items-center justify-between gap-2">
                 <p className="text-sm font-semibold">{d.label}</p>

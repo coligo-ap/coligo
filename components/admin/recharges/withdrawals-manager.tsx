@@ -29,7 +29,7 @@ function grp(n: number) {
 export function WithdrawalsManager({ rows }: { rows: PendingWithdrawal[] }) {
   if (rows.length === 0) return null;
   return (
-    <section className="border-border bg-surface mt-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface mt-4 rounded-lg border p-5">
       <h2 className="text-foreground text-base font-bold">
         Demandes de retrait Coligo Pay
         <span className="bg-warning-100 text-warning-700 ml-2 rounded-full px-2 py-0.5 text-xs font-bold">
@@ -78,7 +78,7 @@ function WithdrawalRow({ r }: { r: PendingWithdrawal }) {
 
   if (done) {
     return (
-      <div className="border-border text-muted rounded-[12px] border border-dashed px-3 py-2.5 text-sm">
+      <div className="border-border text-muted rounded-md border border-dashed px-3 py-2.5 text-sm">
         {done === "paid" ? "✓ Payée" : "Refusée"} — {r.ownerLabel} ·{" "}
         {grp(r.amountDa)} DA
       </div>
@@ -86,7 +86,7 @@ function WithdrawalRow({ r }: { r: PendingWithdrawal }) {
   }
 
   return (
-    <div className="border-border rounded-[12px] border p-3">
+    <div className="border-border rounded-md border p-3">
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
         <b className="text-sm">{r.ownerLabel}</b>
         <span className="text-muted text-xs">
@@ -111,7 +111,7 @@ function WithdrawalRow({ r }: { r: PendingWithdrawal }) {
               type="button"
               disabled={busy != null}
               onClick={() => (payArmed ? void doPay() : setPayArmed(true))}
-              className="bg-success-600 hover:bg-success-700 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+              className="bg-success-600 hover:bg-success-700 rounded-control inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
             >
               {busy === "pay" ? (
                 <Loader2 className="size-3.5 animate-spin" />
@@ -127,7 +127,7 @@ function WithdrawalRow({ r }: { r: PendingWithdrawal }) {
                 setPayArmed(false);
                 setRejecting(true);
               }}
-              className="border-border text-danger-600 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+              className="border-border text-danger-600 rounded-control inline-flex items-center gap-1.5 border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
             >
               <X className="size-3.5" />
               Refuser
@@ -141,13 +141,13 @@ function WithdrawalRow({ r }: { r: PendingWithdrawal }) {
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder="Motif du refus (montré au partenaire)"
-            className="border-border min-w-[240px] flex-1 rounded-[10px] border px-3 py-1.5 text-sm outline-none"
+            className="border-border rounded-control min-w-[240px] flex-1 border px-3 py-1.5 text-sm outline-none"
           />
           <button
             type="button"
             disabled={busy != null || !note.trim()}
             onClick={() => void doReject()}
-            className="bg-danger-600 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
+            className="bg-danger-600 rounded-control inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-50"
           >
             {busy === "reject" && <Loader2 className="size-3.5 animate-spin" />}
             Confirmer le refus

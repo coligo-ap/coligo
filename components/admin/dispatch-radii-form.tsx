@@ -36,7 +36,7 @@ export function DispatchRadiiForm({
   return (
     <form
       action={formAction}
-      className="border-border bg-surface space-y-4 rounded-[16px] border p-5"
+      className="border-border bg-surface space-y-4 rounded-lg border p-5"
     >
       <p className="text-muted text-xs">
         Distance maximale entre l&apos;acteur (livreur / chauffeur) et le point

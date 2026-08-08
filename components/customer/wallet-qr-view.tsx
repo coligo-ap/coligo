@@ -277,16 +277,16 @@ export function WalletQrView({
         >
           <ChevronLeft className="size-[18px] rtl:-scale-x-100" />
         </button>
-        <h1 className="text-[19px] font-black">{t("qrTitle")}</h1>
+        <h1 className="text-heading font-black">{t("qrTitle")}</h1>
       </header>
 
       {/* Sélecteur Payer/Recevoir : uniquement si le P2P est activé. Sinon
           l'écran est un pur scanner de paiement marchand (crédit fermé). */}
       {step === "scan" && p2pEnabled && (
-        <div className="relative mx-4 mt-3 flex rounded-[14px] bg-white/15 p-1">
+        <div className="rounded-card-lg relative mx-4 mt-3 flex bg-white/15 p-1">
           <span
             className={cn(
-              "absolute inset-y-1 start-1 w-[calc(50%-0.25rem)] rounded-[11px] bg-white transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)]",
+              "rounded-control-lg absolute inset-y-1 start-1 w-[calc(50%-0.25rem)] bg-white transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)]",
               tab === "recv" && "translate-x-full rtl:-translate-x-full"
             )}
           />
@@ -358,14 +358,14 @@ export function WalletQrView({
               <QrScanner
                 onScan={handleScan}
                 oneShot={false}
-                className="aspect-square w-full max-w-[240px] rounded-[28px]"
+                className="aspect-square w-full max-w-[240px] rounded-2xl"
               />
-              <p className="mt-6 max-w-[280px] text-center text-[13.5px] font-bold opacity-90">
+              <p className="text-body mt-6 max-w-[280px] text-center font-bold opacity-90">
                 {t("qrScanAny")}
               </p>
 
               {error && (
-                <p className="bg-danger-50 text-danger-700 mt-4 max-w-[280px] rounded-[12px] px-3.5 py-2.5 text-center text-[12.5px] font-semibold">
+                <p className="bg-danger-50 text-danger-700 text-label-lg mt-4 max-w-[280px] rounded-md px-3.5 py-2.5 text-center font-semibold">
                   {error}
                 </p>
               )}
@@ -374,7 +374,7 @@ export function WalletQrView({
                 <button
                   type="button"
                   onClick={() => setCodeMode(true)}
-                  className="mt-6 inline-flex items-center gap-2 rounded-[13px] bg-white/15 px-5 py-3 text-[13px] font-extrabold"
+                  className="rounded-card text-body-sm mt-6 inline-flex items-center gap-2 bg-white/15 px-5 py-3 font-extrabold"
                 >
                   <Keyboard className="size-4" />
                   {t("qrEnterCode")}
@@ -386,7 +386,7 @@ export function WalletQrView({
                     onChange={(e) => setCodeInput(e.target.value.toUpperCase())}
                     placeholder={t("qrEnterCodePlaceholder")}
                     autoCapitalize="characters"
-                    className="text-foreground bg-surface w-full rounded-[13px] px-3.5 py-3.5 text-center text-sm font-bold tracking-wider outline-none"
+                    className="text-foreground bg-surface rounded-card w-full px-3.5 py-3.5 text-center text-sm font-bold tracking-wider outline-none"
                   />
                   <div className="flex gap-2">
                     <button
@@ -395,7 +395,7 @@ export function WalletQrView({
                         setCodeMode(false);
                         setCodeInput("");
                       }}
-                      className="h-11 flex-1 rounded-[12px] bg-white/15 text-sm font-extrabold"
+                      className="h-11 flex-1 rounded-md bg-white/15 text-sm font-extrabold"
                     >
                       {t("cancel")}
                     </button>
@@ -403,7 +403,7 @@ export function WalletQrView({
                       type="button"
                       disabled={busy || codeInput.trim().length < 8}
                       onClick={() => handleScan(codeInput)}
-                      className="text-primary-700 inline-flex h-11 flex-1 items-center justify-center rounded-[12px] bg-white text-sm font-extrabold disabled:opacity-50"
+                      className="text-primary-700 inline-flex h-11 flex-1 items-center justify-center rounded-md bg-white text-sm font-extrabold disabled:opacity-50"
                     >
                       {busy ? (
                         <Loader2 className="size-4 animate-spin" />
@@ -422,20 +422,20 @@ export function WalletQrView({
       {/* ── MONTANT (transfert P2P) ───────────────────────────────────────── */}
       {step === "amount" && pending?.kind === "transfer" && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
               <Send className="size-7" />
             </div>
-            <p className="text-muted mt-4 text-[12px] font-bold tracking-wide uppercase">
+            <p className="text-muted text-label mt-4 font-bold tracking-wide uppercase">
               {t("qrSendTo")}
             </p>
             <p className="text-foreground mt-0.5 text-lg font-black">
               {pending.name}
             </p>
-            <label className="text-muted mt-5 block text-start text-[11.5px] font-extrabold tracking-wide uppercase">
+            <label className="text-muted text-caption-lg mt-5 block text-start font-extrabold tracking-wide uppercase">
               {t("qrAmountLabel")}
             </label>
-            <div className="border-border bg-surface-2 focus-within:border-primary-400 mt-1.5 flex items-center gap-2 rounded-[14px] border px-4 py-3.5">
+            <div className="border-border bg-surface-2 focus-within:border-primary-400 rounded-card-lg mt-1.5 flex items-center gap-2 border px-4 py-3.5">
               <input
                 inputMode="numeric"
                 autoFocus
@@ -449,7 +449,7 @@ export function WalletQrView({
               <span className="text-muted shrink-0 text-sm font-bold">DA</span>
             </div>
             {error && (
-              <p className="text-danger-600 mt-3 text-[12.5px] font-semibold">
+              <p className="text-danger-600 text-label-lg mt-3 font-semibold">
                 {error}
               </p>
             )}
@@ -457,7 +457,7 @@ export function WalletQrView({
               type="button"
               disabled={amountInput === ""}
               onClick={confirmAmount}
-              className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-40"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-4 inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-40"
             >
               {t("qrContinue")}
               <ArrowRight className="size-4 rtl:-scale-x-100" />
@@ -489,7 +489,7 @@ export function WalletQrView({
       )}
       {step === "confirm" && pending && !showReset && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
               {pending.kind === "pay" ? (
                 <ShieldCheck className="size-7" />
@@ -497,7 +497,7 @@ export function WalletQrView({
                 <Send className="size-7" />
               )}
             </div>
-            <p className="text-muted mt-4 text-[12px] font-bold tracking-wide uppercase">
+            <p className="text-muted text-label mt-4 font-bold tracking-wide uppercase">
               {pending.kind === "pay" ? t("qrPayTo") : t("qrSendTo")}
             </p>
             <p className="text-foreground mt-0.5 text-lg font-black">
@@ -507,7 +507,7 @@ export function WalletQrView({
               {formatDA(pending.amountDa)}
             </p>
 
-            <p className="text-muted mt-5 text-[13px] font-bold">
+            <p className="text-muted text-body-sm mt-5 font-bold">
               {t("qrEnterPin")}
             </p>
             <input
@@ -518,11 +518,11 @@ export function WalletQrView({
                 setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
               }
               placeholder="••••"
-              className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-2 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+              className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-card-lg mt-2 w-full border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
             />
 
             {error && (
-              <p className="text-danger-600 mt-2 text-[12.5px] font-semibold">
+              <p className="text-danger-600 text-label-lg mt-2 font-semibold">
                 {error}
               </p>
             )}
@@ -531,7 +531,7 @@ export function WalletQrView({
               type="button"
               disabled={busy || pin.length !== 4}
               onClick={confirmExecute}
-              className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-extrabold text-white disabled:opacity-40"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-40"
             >
               {busy ? (
                 <Loader2 className="size-5 animate-spin" />
@@ -544,7 +544,7 @@ export function WalletQrView({
             <button
               type="button"
               onClick={() => setShowReset(true)}
-              className="text-primary-600 mt-3 text-[12.5px] font-bold"
+              className="text-primary-600 text-label-lg mt-3 font-bold"
             >
               {t("pinForgot")}
             </button>
@@ -562,7 +562,7 @@ export function WalletQrView({
       {/* ── REÇU ──────────────────────────────────────────────────────────── */}
       {step === "success" && receipt && (
         <div className="flex flex-1 flex-col items-center justify-center px-6 pb-10">
-          <div className="bg-surface w-full max-w-[320px] rounded-[26px] p-7 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="bg-surface rounded-panel-lg w-full max-w-[320px] p-7 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             <div className="bg-success-100 text-success-700 mx-auto grid size-16 place-items-center rounded-full">
               <Check className="size-9" />
             </div>
@@ -574,7 +574,7 @@ export function WalletQrView({
             <p className="text-primary-600 mt-2 text-[34px] leading-none font-black tabular-nums">
               {formatDA(receipt.amountDa)}
             </p>
-            <p className="text-muted mt-2 text-[13px] font-semibold">
+            <p className="text-muted text-body-sm mt-2 font-semibold">
               {t.rich(
                 receipt.kind === "pay"
                   ? "qrSuccessDesc"
@@ -591,7 +591,7 @@ export function WalletQrView({
             <button
               type="button"
               onClick={() => router.push("/coligo-pay")}
-              className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-[15px] font-extrabold text-white"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-6 inline-flex h-12 w-full items-center justify-center font-extrabold text-white"
             >
               {t("qrDone")}
             </button>
@@ -602,7 +602,7 @@ export function WalletQrView({
       {/* ── RECEVOIR : mon QR personnel (actif) ───────────────────────────── */}
       {tab === "recv" && step === "scan" && (
         <div className="flex flex-1 flex-col items-center px-6 pt-6">
-          <div className="w-[236px] rounded-[26px] bg-white p-5 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+          <div className="rounded-panel-lg w-[236px] bg-white p-5 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
             {myHandle ? (
               <div className="mx-auto w-fit">
                 <OrderQr value={`coligo:user:${myHandle}`} size={180} />
@@ -612,7 +612,7 @@ export function WalletQrView({
                 <Loader2 className="size-6 animate-spin" />
               </div>
             )}
-            <p className="text-foreground mt-4 text-[15px] font-black">
+            <p className="text-foreground text-title-sm mt-4 font-black">
               {customerName}
             </p>
             {myHandle && (
@@ -621,7 +621,7 @@ export function WalletQrView({
               </p>
             )}
           </div>
-          <p className="mt-5 max-w-[300px] text-center text-[13px] font-bold opacity-90">
+          <p className="text-body-sm mt-5 max-w-[300px] text-center font-bold opacity-90">
             {t("qrShowToReceive")}
           </p>
         </div>
@@ -646,7 +646,7 @@ function LockedPanel({
       <span className="grid size-16 place-items-center rounded-full bg-white/15">
         <Lock className="size-8" />
       </span>
-      <p className="mt-4 max-w-[260px] text-[14px] font-bold opacity-90">
+      <p className="text-body-lg mt-4 max-w-[260px] font-bold opacity-90">
         {label}
       </p>
       {/* Sortie de secours : le reset par email LÈVE aussi le verrouillage. */}
@@ -654,7 +654,7 @@ function LockedPanel({
         <button
           type="button"
           onClick={onForgot}
-          className="mt-4 rounded-[13px] bg-white/15 px-5 py-3 text-[13px] font-extrabold"
+          className="rounded-card text-body-sm mt-4 bg-white/15 px-5 py-3 font-extrabold"
         >
           {forgotLabel}
         </button>
@@ -718,14 +718,14 @@ function CreatePinPanel({
   }
 
   return (
-    <div className="bg-surface mt-4 w-full max-w-[320px] rounded-[26px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
+    <div className="bg-surface rounded-panel-lg mt-4 w-full max-w-[320px] p-6 text-center shadow-[0_20px_50px_-16px_rgba(0,0,0,.4)]">
       <div className="bg-primary-50 text-primary-600 mx-auto grid size-14 place-items-center rounded-2xl">
         <Lock className="size-7" />
       </div>
       <p className="text-foreground mt-4 text-lg font-black">{labelTitle}</p>
-      <p className="text-muted mt-1 text-[13px] font-medium">{labelDesc}</p>
+      <p className="text-muted text-body-sm mt-1 font-medium">{labelDesc}</p>
 
-      <label className="text-muted mt-5 block text-start text-[11.5px] font-extrabold tracking-wide uppercase">
+      <label className="text-muted text-caption-lg mt-5 block text-start font-extrabold tracking-wide uppercase">
         {labelPin}
       </label>
       <input
@@ -736,9 +736,9 @@ function CreatePinPanel({
           setErr(null);
         }}
         placeholder="••••"
-        className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+        className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-card mt-1.5 w-full border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
       />
-      <label className="text-muted mt-3 block text-start text-[11.5px] font-extrabold tracking-wide uppercase">
+      <label className="text-muted text-caption-lg mt-3 block text-start font-extrabold tracking-wide uppercase">
         {labelConfirm}
       </label>
       <input
@@ -749,10 +749,10 @@ function CreatePinPanel({
           setErr(null);
         }}
         placeholder="••••"
-        className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 mt-1.5 w-full rounded-[13px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+        className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-card mt-1.5 w-full border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
       />
       {err && (
-        <p className="text-danger-600 mt-2 text-[12.5px] font-semibold">
+        <p className="text-danger-600 text-label-lg mt-2 font-semibold">
           {err}
         </p>
       )}
@@ -760,7 +760,7 @@ function CreatePinPanel({
         type="button"
         disabled={busy || pin.length !== 4 || confirm.length !== 4}
         onClick={save}
-        className="bg-primary-600 hover:bg-primary-700 mt-5 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-40"
+        className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-5 inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-40"
       >
         {busy ? <Loader2 className="size-5 animate-spin" /> : labelCta}
       </button>

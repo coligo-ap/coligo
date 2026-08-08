@@ -63,7 +63,7 @@ export function OfflineRetry() {
         type="button"
         onClick={tryReconnect}
         disabled={checking}
-        className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-[12px] px-6 text-sm font-semibold text-white transition-colors active:scale-95 disabled:opacity-60"
+        className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-11 items-center justify-center gap-2 rounded-md px-6 text-sm font-semibold text-white transition-colors active:scale-95 disabled:opacity-60"
       >
         {checking ? (
           <Loader2 className="size-4 animate-spin" />

@@ -8,10 +8,10 @@ export default function DriverKycLoading() {
           <div className="h-6 w-56 animate-pulse rounded-lg bg-[var(--soft)]" />
           <div className="h-4 w-72 animate-pulse rounded-lg bg-[var(--soft)]" />
         </div>
-        <div className="h-24 animate-pulse rounded-[18px] bg-[var(--soft)]" />
-        <div className="h-16 animate-pulse rounded-[18px] bg-[var(--soft)]" />
-        <div className="h-16 animate-pulse rounded-[18px] bg-[var(--soft)]" />
-        <div className="h-[52px] animate-pulse rounded-[16px] bg-[var(--soft)]" />
+        <div className="rounded-sheet-lg h-24 animate-pulse bg-[var(--soft)]" />
+        <div className="rounded-sheet-lg h-16 animate-pulse bg-[var(--soft)]" />
+        <div className="rounded-sheet-lg h-16 animate-pulse bg-[var(--soft)]" />
+        <div className="h-[52px] animate-pulse rounded-lg bg-[var(--soft)]" />
       </main>
     </div>
   );

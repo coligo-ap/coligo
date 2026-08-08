@@ -35,7 +35,7 @@ export default async function DriverRegistrationsTab() {
         validé. Ouvrez une fiche pour examiner les documents et décider.
       </p>
 
-      <section className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5">
+      <section className="border-warning-200 bg-warning-50/60 rounded-lg border p-4 lg:p-5">
         <h2 className="text-warning-900 mb-3 flex items-center gap-2 text-base font-bold">
           <Clock className="size-4" />À valider ({drivers.length})
         </h2>
@@ -49,7 +49,7 @@ export default async function DriverRegistrationsTab() {
               <li key={d.id}>
                 <Link
                   href={`/admin/drivers/${d.id}`}
-                  className="border-warning-200 bg-surface hover:bg-surface-2 flex items-center gap-3 rounded-[14px] border p-3"
+                  className="border-warning-200 bg-surface hover:bg-surface-2 rounded-card-lg flex items-center gap-3 border p-3"
                 >
                   {d.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element

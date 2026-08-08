@@ -228,7 +228,7 @@ export function PriorityCard() {
         type="button"
         onClick={() => setUserOpen(!open)}
         aria-expanded={open}
-        className="flex w-full items-center gap-2 bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-4 py-3 text-start text-white"
+        className="to-primary-600 flex w-full items-center gap-2 bg-gradient-to-r from-[#5B2EFF] px-4 py-3 text-start text-white"
       >
         <Crown className="size-5 shrink-0" />
         <span className="min-w-0 flex-1 truncate font-extrabold">

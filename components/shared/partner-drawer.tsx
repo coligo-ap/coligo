@@ -59,7 +59,7 @@ export function PartnerMenuButton({
       onClick={onClick}
       aria-label={label}
       className={
-        "relative grid size-[44px] place-items-center rounded-[16px] border shadow-lg " +
+        "relative grid size-[44px] place-items-center rounded-lg border shadow-lg " +
         (className ?? "")
       }
       style={{
@@ -71,7 +71,7 @@ export function PartnerMenuButton({
       <Menu className="size-5" />
       {badge != null && badge > 0 && (
         <span
-          className="absolute -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 text-[10px] font-extrabold text-white shadow"
+          className="text-micro absolute -top-1 grid h-[18px] min-w-[18px] place-items-center rounded-full px-1 font-extrabold text-white shadow"
           style={{ insetInlineEnd: -4, background: theme.accent }}
         >
           {badge > 9 ? "9+" : badge}
@@ -92,11 +92,11 @@ export function DrawerSection({
   return (
     <div className="px-3 py-2">
       {title && (
-        <p className="px-3 pb-1.5 text-[11px] font-bold tracking-wide text-[var(--pd-muted)] uppercase">
+        <p className="text-caption px-3 pb-1.5 font-bold tracking-wide text-[var(--pd-muted)] uppercase">
           {title}
         </p>
       )}
-      <div className="overflow-hidden rounded-[16px] border border-[var(--pd-line)] bg-[var(--pd-surface)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--pd-line)] bg-[var(--pd-surface)]">
         {children}
       </div>
     </div>
@@ -128,7 +128,7 @@ export function DrawerRow({
   const inner = (
     <>
       <span
-        className="grid size-9 shrink-0 place-items-center rounded-[11px]"
+        className="rounded-control-lg grid size-9 shrink-0 place-items-center"
         style={{
           background: danger ? "rgba(229,72,77,.10)" : "var(--pd-soft)",
           color: danger ? "#E5484D" : "var(--pd-accent)",
@@ -138,13 +138,13 @@ export function DrawerRow({
       </span>
       <span className="min-w-0 flex-1 text-start">
         <b
-          className="block text-[13.5px] font-semibold"
+          className="text-body block font-semibold"
           style={{ color: danger ? "#E5484D" : "var(--pd-ink)" }}
         >
           {label}
         </b>
         {sublabel && (
-          <span className="block truncate text-[11.5px] text-[var(--pd-muted)]">
+          <span className="text-caption-lg block truncate text-[var(--pd-muted)]">
             {sublabel}
           </span>
         )}

@@ -6,10 +6,7 @@ export default function Loading() {
         <div className="bg-surface mt-6 h-7 w-2/3 animate-pulse rounded-full" />
         <div className="mt-8 space-y-4">
           {Array.from({ length: 8 }).map((_, i) => (
-            <div
-              key={i}
-              className="bg-surface h-20 animate-pulse rounded-[16px]"
-            />
+            <div key={i} className="bg-surface h-20 animate-pulse rounded-lg" />
           ))}
         </div>
       </div>

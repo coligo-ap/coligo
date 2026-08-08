@@ -494,7 +494,7 @@ export function DRequests({
   if (!online) {
     return (
       <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
-        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
           {interScope
             ? tr("Trajets Inter-wilayas", "مشاوير بين الولايات")
             : tr("Demandes de courses", "طلبات المشاوير")}
@@ -507,10 +507,10 @@ export function DRequests({
             <Power className="size-8" style={{ color: "#9CA3AF" }} />
           </span>
           <div className="max-w-xs">
-            <h2 className="drive-sora text-[18px] font-extrabold">
+            <h2 className="drive-sora text-heading-sm font-extrabold">
               {tr("Vous êtes hors ligne", "أنت غير متصل")}
             </h2>
-            <p className="mt-1 text-[13px] text-[var(--d-muted)]">
+            <p className="text-body-sm mt-1 text-[var(--d-muted)]">
               {tr(
                 "Passez en ligne pour être à l'écoute et recevoir les demandes de course autour de vous.",
                 "اتصل بالشبكة لتكون في وضع الاستماع وتستقبل طلبات المشاوير من حولك."
@@ -521,7 +521,7 @@ export function DRequests({
             type="button"
             onClick={() => void goOnline()}
             disabled={goingOnline}
-            className="drive-sora flex h-[52px] w-full max-w-xs items-center justify-center gap-2 rounded-[16px] text-base font-extrabold text-white disabled:opacity-60"
+            className="drive-sora flex h-[52px] w-full max-w-xs items-center justify-center gap-2 rounded-lg text-base font-extrabold text-white disabled:opacity-60"
             style={{ background: GO, boxShadow: `0 12px 24px -10px ${GO}` }}
           >
             {goingOnline ? <Loader2 className="size-5 animate-spin" /> : null}
@@ -544,7 +544,7 @@ export function DRequests({
       );
     return (
       <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
-        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
           {tr("Trajets Inter-wilayas", "مشاوير بين الولايات")}
         </h1>
         <div className="flex flex-col items-center gap-4 py-16 text-center">
@@ -555,14 +555,14 @@ export function DRequests({
             <Route className="size-8" style={{ color: VIOLET }} />
           </span>
           <div className="max-w-xs">
-            <h2 className="drive-sora text-[18px] font-extrabold">
+            <h2 className="drive-sora text-heading-sm font-extrabold">
               {tr("Service suspendu", "الخدمة موقوفة مؤقتًا")}
             </h2>
-            <p className="mt-1 text-[13px] text-[var(--d-muted)]">{msg}</p>
+            <p className="text-body-sm mt-1 text-[var(--d-muted)]">{msg}</p>
           </div>
           <Link
             href="/chauffeur/demandes"
-            className="drive-sora flex h-[46px] w-full max-w-xs items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] border-[var(--d-line)] text-[13.5px] font-bold"
+            className="drive-sora rounded-card-lg text-body flex h-[46px] w-full max-w-xs items-center justify-center gap-1.5 border-[1.5px] border-[var(--d-line)] font-bold"
           >
             <ChevronLeft className="size-4 rtl:rotate-180" />
             {tr("Retour aux demandes en ville", "العودة إلى طلبات المدينة")}
@@ -713,11 +713,11 @@ export function DRequests({
           padding={{ top: 100, bottom: 280, left: 50, right: 50 }}
         />
         <div className="pointer-events-none absolute top-[calc(88px+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 gap-2">
-          <span className="rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 text-[11px] font-extrabold text-[var(--d-muted)] shadow">
+          <span className="text-caption rounded-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1.5 font-extrabold text-[var(--d-muted)] shadow">
             {fmtkm(mapReq.pickup_dist_km)} · {tr("approche", "الاقتراب")}
           </span>
           <span
-            className="rounded-full border-[1.5px] bg-[var(--d-surface)] px-3 py-1.5 text-[11px] font-extrabold shadow"
+            className="text-caption rounded-full border-[1.5px] bg-[var(--d-surface)] px-3 py-1.5 font-extrabold shadow"
             style={{ borderColor: VIOLET, color: VIOLET }}
           >
             {fmtkm(mapReq.distance_km)} · {tr("course", "المشوار")}
@@ -726,11 +726,11 @@ export function DRequests({
         <button
           type="button"
           onClick={() => setMapReq(null)}
-          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="rounded-card-lg absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         >
           <ChevronLeft className="size-5 rtl:rotate-180" />
         </button>
-        <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+        <div className="rounded-t-panel-lg absolute inset-x-0 bottom-0 z-10 border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
           <div className="mb-1.5 flex items-center gap-2.5">
             <span
               className="drive-sora grid size-9 shrink-0 place-items-center rounded-full text-sm font-extrabold text-white"
@@ -747,12 +747,12 @@ export function DRequests({
                   ? ` · ${tr("Confort", "كونفور")}`
                   : ""}
               </b>
-              <span className="block text-[12px] text-[var(--d-muted)]">
+              <span className="text-label block text-[var(--d-muted)]">
                 {mapReq.pickup_text ?? "—"} → {mapReq.dest_text ?? "—"}
               </span>
             </span>
           </div>
-          <div className="mb-3 flex flex-col gap-1.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5 text-[12.5px] font-semibold text-[var(--d-muted)]">
+          <div className="text-label-lg mb-3 flex flex-col gap-1.5 rounded-md bg-[var(--d-soft)] px-3 py-2.5 font-semibold text-[var(--d-muted)]">
             <span className="flex items-center gap-2">
               <i className="size-[9px] rounded-full bg-[#B7BBC8]" />
               {tr("Vous → client", "أنت ← الزبون")}
@@ -788,20 +788,20 @@ export function DRequests({
             <Link
               href="/chauffeur/demandes"
               aria-label={tr("Retour aux demandes", "العودة إلى الطلبات")}
-              className="grid size-9 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+              className="grid size-9 shrink-0 place-items-center rounded-md border border-[var(--d-line)] bg-[var(--d-surface)]"
             >
               <ChevronLeft className="size-5 rtl:rotate-180" />
             </Link>
-            <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+            <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
               {tr("Trajets Inter-wilayas", "مشاوير بين الولايات")}
             </h1>
           </div>
         ) : (
-          <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+          <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
             {tr("Demandes de courses", "طلبات المشاوير")}
           </h1>
         )}
-        <p className="mt-0.5 text-[11.5px] font-medium text-[var(--d-muted)]">
+        <p className="text-caption-lg mt-0.5 font-medium text-[var(--d-muted)]">
           <b style={{ color: GO }}>{demandes.length}</b>{" "}
           {interScope
             ? isAr
@@ -824,7 +824,7 @@ export function DRequests({
               key={k}
               type="button"
               onClick={() => setSort(k)}
-              className="drive-sora flex h-7 shrink-0 items-center rounded-[14px] border px-3 text-[10px] font-bold whitespace-nowrap transition-colors"
+              className="drive-sora rounded-card-lg text-micro flex h-7 shrink-0 items-center border px-3 font-bold whitespace-nowrap transition-colors"
               style={
                 sort === k
                   ? {
@@ -851,7 +851,7 @@ export function DRequests({
                 key={k}
                 type="button"
                 onClick={() => setTripFilter((f) => (f === k ? "all" : k))}
-                className="drive-sora flex h-7 shrink-0 items-center gap-1 rounded-[14px] border px-3 text-[10px] font-bold whitespace-nowrap transition-colors"
+                className="drive-sora rounded-card-lg text-micro flex h-7 shrink-0 items-center gap-1 border px-3 font-bold whitespace-nowrap transition-colors"
                 style={
                   tripFilter === k
                     ? {
@@ -869,7 +869,7 @@ export function DRequests({
           <button
             type="button"
             onClick={() => setCompact((c) => !c)}
-            className="drive-sora flex h-7 shrink-0 items-center gap-1 rounded-[14px] border px-3 text-[10px] font-bold whitespace-nowrap"
+            className="drive-sora rounded-card-lg text-micro flex h-7 shrink-0 items-center gap-1 border px-3 font-bold whitespace-nowrap"
             style={
               compact
                 ? {
@@ -897,12 +897,12 @@ export function DRequests({
             key={k}
             type="button"
             onClick={() => setTab(k)}
-            className="drive-sora relative h-[38px] flex-1 text-[12px] font-bold"
+            className="drive-sora text-label relative h-[38px] flex-1 font-bold"
             style={{ color: tab === k ? VIOLET : "var(--d-muted)" }}
           >
             {label}
             <span
-              className="ms-1 inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[9px] px-1.5 text-[9px] font-extrabold"
+              className="rounded-chip text-nano ms-1 inline-flex h-[18px] min-w-[18px] items-center justify-center px-1.5 font-extrabold"
               style={
                 tab === k
                   ? { background: "#F1E9FC", color: VIOLET }
@@ -927,7 +927,7 @@ export function DRequests({
       {!interScope && tab === "demandes" && tripFilter === "inter" && (
         <Link
           href="/chauffeur/interwilayas"
-          className="mx-[18px] mt-2 flex h-9 items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[11.5px] font-bold"
+          className="rounded-control text-caption-lg mx-[18px] mt-2 flex h-9 items-center justify-center gap-1.5 border border-[var(--d-line)] font-bold"
           style={{ color: VIOLET }}
         >
           <Route className="size-3.5" />
@@ -939,18 +939,18 @@ export function DRequests({
       {/* Filtre « je rentre chez moi » actif */}
       {dirActive && tab === "demandes" && (
         <div
-          className="mx-[18px] mt-2.5 flex items-center gap-2.5 rounded-[14px] px-3.5 py-2.5"
+          className="rounded-card-lg mx-[18px] mt-2.5 flex items-center gap-2.5 px-3.5 py-2.5"
           style={{ background: "#F1E9FC" }}
         >
-          <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-surface)]">
+          <span className="rounded-chip grid size-7 shrink-0 place-items-center bg-[var(--d-surface)]">
             <Home className="size-3.5" style={{ color: VIOLET }} />
           </span>
           <span className="min-w-0">
-            <b className="block text-[11.5px]" style={{ color: VIOLET }}>
+            <b className="text-caption-lg block" style={{ color: VIOLET }}>
               {tr("Filtre actif · vers", "فلتر نشط · نحو")}{" "}
               {homeDir.addr ?? tr("votre domicile", "منزلك")}
             </b>
-            <span className="text-[10px] text-[var(--d-muted)]">
+            <span className="text-micro text-[var(--d-muted)]">
               {demandes.length}{" "}
               {isAr
                 ? "مشوار في اتجاهك"
@@ -1035,7 +1035,7 @@ export function DRequests({
               ref={(el) => {
                 cardRefs.current[q.id] = el;
               }}
-              className={`drive-rise mb-2.5 overflow-hidden rounded-[16px] border bg-[var(--d-surface)] ${highlighted ? "drive-attn" : ""}`}
+              className={`drive-rise mb-2.5 overflow-hidden rounded-lg border bg-[var(--d-surface)] ${highlighted ? "drive-attn" : ""}`}
               style={{
                 borderColor: highlighted
                   ? VIOLET
@@ -1048,7 +1048,7 @@ export function DRequests({
               {/* Bandeau « course notifiée » : la demande ciblée par la push. */}
               {highlighted && (
                 <div
-                  className="drive-sora flex items-center justify-center gap-1 py-1 text-[10px] font-extrabold text-white"
+                  className="drive-sora text-micro flex items-center justify-center gap-1 py-1 font-extrabold text-white"
                   style={{ background: VIOLET }}
                 >
                   <Zap className="size-3" />{" "}
@@ -1061,7 +1061,7 @@ export function DRequests({
               {/* En-tête : avatar | nom · note · temps | km | prix */}
               <div className="flex items-center gap-2.5 px-3.5 pt-3">
                 <span
-                  className="drive-sora grid size-[34px] shrink-0 place-items-center rounded-full text-[13px] font-extrabold text-white"
+                  className="drive-sora text-body-sm grid size-[34px] shrink-0 place-items-center rounded-full font-extrabold text-white"
                   style={{
                     background: q.female_only
                       ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
@@ -1071,14 +1071,14 @@ export function DRequests({
                   {q.customer_name[0]?.toUpperCase()}
                 </span>
                 <div className="min-w-0 flex-1">
-                  <div className="drive-sora flex flex-wrap items-center gap-1.5 text-[12.5px] font-bold">
+                  <div className="drive-sora text-label-lg flex flex-wrap items-center gap-1.5 font-bold">
                     {q.customer_name}
                     {q.customer_rating != null && (
-                      <span className="text-[9.5px] text-[#E8B53C]">
+                      <span className="text-nano-lg text-[#E8B53C]">
                         ★ {String(q.customer_rating).replace(".", ",")}
                       </span>
                     )}
-                    <span className="text-[9px] font-medium text-[var(--d-muted)]">
+                    <span className="text-nano font-medium text-[var(--d-muted)]">
                       · {ago(q.created_at, isAr)}
                     </span>
                     {q.boost_amount_da > 0 && (
@@ -1125,14 +1125,14 @@ export function DRequests({
                     )}
                   </div>
                 </div>
-                <span className="drive-sora shrink-0 text-[11px] font-bold whitespace-nowrap text-[var(--d-muted)]">
+                <span className="drive-sora text-caption shrink-0 font-bold whitespace-nowrap text-[var(--d-muted)]">
                   {fmtkm(totalDist)}
                 </span>
                 <div className="shrink-0 text-end">
-                  <div className="drive-sora text-[22px] leading-none font-extrabold">
+                  <div className="drive-sora text-display leading-none font-extrabold">
                     {propPrice ?? client}
                   </div>
-                  <div className="text-[9.5px] font-semibold text-[var(--d-muted)]">
+                  <div className="text-nano-lg font-semibold text-[var(--d-muted)]">
                     {tab === "proposed"
                       ? tr("DA proposé", "دج معروض")
                       : tr("DA", "دج")}
@@ -1152,10 +1152,10 @@ export function DRequests({
                     <span className="w-9 shrink-0 text-[7.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase opacity-70">
                       {tr("Départ", "الانطلاق")}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">
+                    <span className="text-caption min-w-0 flex-1 truncate font-semibold">
                       {q.pickup_text ?? "—"}
                     </span>
-                    <span className="drive-sora shrink-0 text-[9.5px] font-bold text-[var(--d-muted)]">
+                    <span className="drive-sora text-nano-lg shrink-0 font-bold text-[var(--d-muted)]">
                       {fmtkm(q.pickup_dist_km)}
                     </span>
                   </div>
@@ -1163,10 +1163,10 @@ export function DRequests({
                     <span className="w-9 shrink-0 text-[7.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase opacity-70">
                       {tr("Arrivée", "الوصول")}
                     </span>
-                    <span className="min-w-0 flex-1 truncate text-[11px] font-semibold">
+                    <span className="text-caption min-w-0 flex-1 truncate font-semibold">
                       {q.dest_text ?? "—"}
                     </span>
-                    <span className="drive-sora shrink-0 text-[9.5px] font-bold text-[var(--d-muted)]">
+                    <span className="drive-sora text-nano-lg shrink-0 font-bold text-[var(--d-muted)]">
                       {fmtkm(q.distance_km)}
                     </span>
                   </div>
@@ -1175,7 +1175,7 @@ export function DRequests({
 
               {tab === "proposed" ? (
                 <>
-                  <div className="flex items-center gap-1.5 px-3.5 pt-2 text-[11px] font-semibold text-[var(--d-muted)]">
+                  <div className="text-caption flex items-center gap-1.5 px-3.5 pt-2 font-semibold text-[var(--d-muted)]">
                     <span
                       className="size-1.5 animate-pulse rounded-full"
                       style={{ background: "var(--d-muted)" }}
@@ -1184,7 +1184,7 @@ export function DRequests({
                   </div>
                   <div className="flex flex-col gap-1.5 px-3.5 pt-2.5 pb-3">
                     <div
-                      className="flex h-10 items-center justify-center gap-1.5 rounded-[10px] text-[12px] font-bold"
+                      className="rounded-control text-label flex h-10 items-center justify-center gap-1.5 font-bold"
                       style={{
                         background: "var(--d-soft)",
                         color: "var(--d-muted)",
@@ -1196,7 +1196,7 @@ export function DRequests({
                     <button
                       type="button"
                       onClick={() => void decline(q)}
-                      className="flex h-[34px] w-full items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[11.5px] font-semibold text-[var(--d-muted)]"
+                      className="rounded-control text-caption-lg flex h-[34px] w-full items-center justify-center gap-1.5 border border-[var(--d-line)] font-semibold text-[var(--d-muted)]"
                     >
                       <X className="size-3.5" /> {tr("Annuler", "إلغاء")}
                     </button>
@@ -1209,7 +1209,7 @@ export function DRequests({
                       <button
                         type="button"
                         onClick={() => setMapReq(q)}
-                        className="relative mx-3.5 mt-2 block h-[72px] w-[calc(100%-28px)] overflow-hidden rounded-[10px] border border-[var(--d-line)]"
+                        className="rounded-control relative mx-3.5 mt-2 block h-[72px] w-[calc(100%-28px)] overflow-hidden border border-[var(--d-line)]"
                       >
                         <MiniMap
                           seed={
@@ -1217,11 +1217,11 @@ export function DRequests({
                             Math.round(q.distance_km)
                           }
                         />
-                        <span className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded-[8px] border border-white/60 bg-[var(--d-surface)]/80 backdrop-blur">
+                        <span className="absolute top-1.5 right-1.5 grid size-7 place-items-center rounded-sm border border-white/60 bg-[var(--d-surface)]/80 backdrop-blur">
                           <Maximize2 className="size-3.5" />
                         </span>
                       </button>
-                      <div className="flex items-center gap-1.5 px-3.5 pt-2 text-[9.5px] font-medium text-[var(--d-muted)]">
+                      <div className="text-nano-lg flex items-center gap-1.5 px-3.5 pt-2 font-medium text-[var(--d-muted)]">
                         {tr("Client", "الزبون")}{" "}
                         <b className="text-[var(--d-ink)]">
                           {client} {tr("DA", "دج")}
@@ -1246,23 +1246,23 @@ export function DRequests({
                     <button
                       type="button"
                       onClick={() => adjust(q, -1)}
-                      className="drive-sora grid size-[34px] shrink-0 place-items-center rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] text-[16px] font-extrabold active:border-[color:var(--d-muted)]"
+                      className="drive-sora rounded-control text-title grid size-[34px] shrink-0 place-items-center border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] font-extrabold active:border-[color:var(--d-muted)]"
                     >
                       −
                     </button>
                     <div
-                      className="drive-sora flex-1 text-center text-[22px] font-extrabold tracking-[-0.5px]"
+                      className="drive-sora text-display flex-1 text-center font-extrabold tracking-[-0.5px]"
                       style={{ color: priceColor }}
                     >
                       {myPrice}{" "}
-                      <span className="text-[12px] font-bold text-[var(--d-muted)]">
+                      <span className="text-label font-bold text-[var(--d-muted)]">
                         {tr("DA", "دج")}
                       </span>
                     </div>
                     <button
                       type="button"
                       onClick={() => adjust(q, 1)}
-                      className="drive-sora grid size-[34px] shrink-0 place-items-center rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] text-[16px] font-extrabold"
+                      className="drive-sora rounded-control text-title grid size-[34px] shrink-0 place-items-center border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] font-extrabold"
                     >
                       +
                     </button>
@@ -1270,7 +1270,7 @@ export function DRequests({
 
                   {errors[q.id] && (
                     <p
-                      className="px-3.5 pt-2 text-center text-[11px] font-bold"
+                      className="text-caption px-3.5 pt-2 text-center font-bold"
                       style={{ color: RED }}
                     >
                       {errors[q.id]}
@@ -1283,7 +1283,7 @@ export function DRequests({
                       <button
                         type="button"
                         onClick={() => void propose(q, myPrice)}
-                        className="drive-sora flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[13px] font-bold"
+                        className="drive-sora text-body-sm flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] font-bold"
                       >
                         <Send className="size-3.5 rtl:-scale-x-100" />{" "}
                         {tr("Proposer", "اقترح")} {myPrice}
@@ -1291,7 +1291,7 @@ export function DRequests({
                       <button
                         type="button"
                         onClick={() => void propose(q, client)}
-                        className="drive-shine drive-sora flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[12px] text-[14px] font-extrabold text-white"
+                        className="drive-shine drive-sora text-body-lg flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-md font-extrabold text-white"
                         style={{
                           background: GO,
                           boxShadow: `0 8px 22px -8px ${GO}`,
@@ -1303,7 +1303,7 @@ export function DRequests({
                     <button
                       type="button"
                       onClick={() => void decline(q)}
-                      className="flex h-[34px] w-full items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[11.5px] font-semibold text-[var(--d-muted)]"
+                      className="rounded-control text-caption-lg flex h-[34px] w-full items-center justify-center gap-1.5 border border-[var(--d-line)] font-semibold text-[var(--d-muted)]"
                     >
                       <X className="size-3.5" />{" "}
                       {tr("Refuser cette course", "رفض هذا المشوار")}

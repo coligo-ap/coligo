@@ -21,7 +21,7 @@ function Inner() {
     <button
       type="submit"
       disabled={pending}
-      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border text-sm font-semibold transition-colors disabled:opacity-70"
+      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border text-sm font-semibold transition-colors disabled:opacity-70"
     >
       {pending ? (
         <Loader2 className="size-4 animate-spin" />

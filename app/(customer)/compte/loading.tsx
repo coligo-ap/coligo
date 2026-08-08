@@ -21,17 +21,14 @@ export default function AccountLoading() {
 
       {/* Cartes soldes qui chevauchent le bas du hero. */}
       <div className="relative z-10 -mt-11 grid grid-cols-2 gap-3 px-4">
-        <div className="bg-surface-3 h-24 animate-pulse rounded-[18px]" />
-        <div className="bg-surface-3 h-24 animate-pulse rounded-[18px]" />
+        <div className="bg-surface-3 rounded-sheet-lg h-24 animate-pulse" />
+        <div className="bg-surface-3 rounded-sheet-lg h-24 animate-pulse" />
       </div>
 
       {/* Sections de menu. */}
       <div className="mt-6 space-y-5 px-4">
         {Array.from({ length: 3 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-20 animate-pulse rounded-[20px]"
-          />
+          <div key={i} className="bg-surface-3 h-20 animate-pulse rounded-xl" />
         ))}
       </div>
     </div>

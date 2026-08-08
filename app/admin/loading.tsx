@@ -10,7 +10,7 @@ export default function Loading() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="border-border bg-surface h-28 rounded-[16px] border"
+            className="border-border bg-surface h-28 rounded-lg border"
           />
         ))}
       </div>

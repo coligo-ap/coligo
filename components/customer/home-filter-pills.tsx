@@ -173,7 +173,7 @@ function Pill({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        "inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 text-[13px] font-bold transition-colors",
+        "text-body-sm inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3.5 py-2 font-bold transition-colors",
         active
           ? ACCENT_ACTIVE[accent]
           : "border-border bg-surface text-foreground hover:bg-surface-2"

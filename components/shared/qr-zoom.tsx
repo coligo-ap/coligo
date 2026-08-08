@@ -59,7 +59,7 @@ export function QrZoom({
 
           <div onClick={(e) => e.stopPropagation()} className="text-center">
             <div
-              className="inline-block rounded-[20px] border border-[var(--color-border)] p-4 shadow-xl"
+              className="inline-block rounded-xl border border-[var(--color-border)] p-4 shadow-xl"
               // Cadre TOUJOURS blanc (cf. OrderQr) — pas la classe `bg-white`
               // qui est remappée en sombre côté client.
               style={{ backgroundColor: "#ffffff" }}

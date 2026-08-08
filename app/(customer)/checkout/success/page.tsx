@@ -147,7 +147,7 @@ function Paid({
       </p>
       <Link
         href={`/commandes/${orderId}`}
-        className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex rounded-[12px] px-5 py-2.5 text-sm font-medium text-white"
+        className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex rounded-md px-5 py-2.5 text-sm font-medium text-white"
       >
         {t("viewOrderDetail")}
       </Link>
@@ -203,7 +203,7 @@ async function SuccessFallback() {
         <div className="mt-6 flex flex-col gap-2">
           <Link
             href="/commandes"
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-md px-5 text-sm font-semibold text-white"
           >
             {t("viewMyOrders")}
           </Link>

@@ -6,7 +6,7 @@ export default function OrderDetailLoading() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-4 lg:px-6 lg:py-8">
       <div className="bg-surface-3 mb-4 h-4 w-28 animate-pulse rounded" />
-      <div className="bg-surface-3 h-32 animate-pulse rounded-[18px]" />
+      <div className="bg-surface-3 rounded-sheet-lg h-32 animate-pulse" />
       <div className="mt-4 space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3">
@@ -20,10 +20,10 @@ export default function OrderDetailLoading() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="bg-surface-3 h-14 animate-pulse rounded-[14px]"
+            className="bg-surface-3 rounded-card-lg h-14 animate-pulse"
           />
         ))}
-        <div className="bg-surface-3 mt-2 h-16 animate-pulse rounded-[16px]" />
+        <div className="bg-surface-3 mt-2 h-16 animate-pulse rounded-lg" />
       </div>
     </div>
   );

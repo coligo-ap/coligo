@@ -52,19 +52,19 @@ export function OnboardingScreen({
             {icon}
           </span>
           {step != null && stepCount != null && (
-            <p className="text-[11px] font-bold tracking-[2px] text-[var(--muted)] uppercase">
+            <p className="text-caption font-bold tracking-[2px] text-[var(--muted)] uppercase">
               {isAr
                 ? `الخطوة ${step} من ${stepCount}`
                 : `Étape ${step} sur ${stepCount}`}
             </p>
           )}
           <h1
-            className="mt-1 text-[22px] leading-tight font-extrabold text-[var(--ink)]"
+            className="text-display mt-1 leading-tight font-extrabold text-[var(--ink)]"
             style={{ fontFamily: SORA }}
           >
             {title}
           </h1>
-          <p className="mx-auto mt-2 flex max-w-[330px] items-center justify-center gap-1.5 text-[13px] leading-relaxed text-[var(--muted)]">
+          <p className="text-body-sm mx-auto mt-2 flex max-w-[330px] items-center justify-center gap-1.5 leading-relaxed text-[var(--muted)]">
             {subtitle}
             {info}
           </p>

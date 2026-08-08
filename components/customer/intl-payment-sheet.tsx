@@ -103,16 +103,16 @@ export function IntlPaymentSheet({
           }}
           className="absolute inset-0 bg-black/55"
         />
-        <div className="bg-surface relative animate-[intlSheetUp_.32s_cubic-bezier(.16,1,.3,1)] rounded-t-[24px] shadow-[0_-8px_30px_rgba(0,0,0,.35)]">
+        <div className="bg-surface rounded-t-panel relative animate-[intlSheetUp_.32s_cubic-bezier(.16,1,.3,1)] shadow-[0_-8px_30px_rgba(0,0,0,.35)]">
           <style>{`@keyframes intlSheetUp{from{transform:translateY(100%)}to{transform:none}}`}</style>
           <span className="bg-border mx-auto mt-2 block h-1 w-10 rounded-full" />
 
           <div className="flex items-start justify-between gap-3 px-5 pt-3">
             <div>
-              <p className="text-foreground text-[17px] font-extrabold">
+              <p className="text-foreground text-title-lg font-extrabold">
                 {t("intlSheetTitle")}
               </p>
-              <p className="text-muted mt-0.5 text-[12px] font-semibold">
+              <p className="text-muted text-label mt-0.5 font-semibold">
                 {t("intlSheetSub")}
               </p>
             </div>
@@ -131,16 +131,16 @@ export function IntlPaymentSheet({
 
           {/* RÉCAP PRIX — le client voit ce qu'il va payer AVANT de payer :
               montant € en gros + total DA couvert en référence. */}
-          <div className="bg-surface-2 mx-5 mt-3 flex items-center justify-between rounded-[14px] px-4 py-3">
-            <span className="text-muted text-[12px] font-bold">
+          <div className="bg-surface-2 rounded-card-lg mx-5 mt-3 flex items-center justify-between px-4 py-3">
+            <span className="text-muted text-label font-bold">
               {t("intlSheetTotal")}
             </span>
             <span className="text-end">
-              <b className="text-foreground block text-[20px] leading-6 font-extrabold tabular-nums">
+              <b className="text-foreground text-heading-lg block leading-6 font-extrabold tabular-nums">
                 {eurLabel(intent.eur_cents)}
               </b>
               {intent.total_da != null && (
-                <span className="text-muted block text-[11px] font-semibold tabular-nums">
+                <span className="text-muted text-caption block font-semibold tabular-nums">
                   {t("intlSheetDaRef", { amount: formatDA(intent.total_da) })}
                 </span>
               )}
@@ -153,7 +153,7 @@ export function IntlPaymentSheet({
             <div className="grid place-items-center gap-3 px-5 py-8 pb-[calc(env(safe-area-inset-bottom)+2rem)]">
               {nativeFailed ? (
                 <>
-                  <p className="text-danger-800 text-center text-[13px] font-bold">
+                  <p className="text-danger-800 text-body-sm text-center font-bold">
                     {t("intlPayError")}
                   </p>
                   <button
@@ -162,7 +162,7 @@ export function IntlPaymentSheet({
                       setNativeFailed(false);
                       void launchNative();
                     }}
-                    className="bg-primary-600 inline-flex h-11 items-center gap-2 rounded-full px-5 text-[13.5px] font-extrabold text-white"
+                    className="bg-primary-600 text-body inline-flex h-11 items-center gap-2 rounded-full px-5 font-extrabold text-white"
                   >
                     <RefreshCcw className="size-4" />
                     {t("retryPayment")}
@@ -171,7 +171,7 @@ export function IntlPaymentSheet({
               ) : (
                 <>
                   <Loader2 className="text-primary-600 size-6 animate-spin" />
-                  <p className="text-muted text-[12.5px] font-semibold">
+                  <p className="text-muted text-label-lg font-semibold">
                     {t("intlSheetSub")}
                   </p>
                 </>
@@ -305,7 +305,7 @@ function PayForm({
           />
           <div className="my-4 flex items-center gap-3">
             <span className="bg-border h-px flex-1" />
-            <span className="text-subtle text-[11px] font-extrabold tracking-wide uppercase">
+            <span className="text-subtle text-caption font-extrabold tracking-wide uppercase">
               {t("intlOrCard")}
             </span>
             <span className="bg-border h-px flex-1" />
@@ -323,7 +323,7 @@ function PayForm({
         />
 
         {error && (
-          <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[12px] border px-3.5 py-2.5 text-[12.5px] font-bold">
+          <p className="border-danger-200 bg-danger-50 text-danger-800 text-label-lg mt-3 rounded-md border px-3.5 py-2.5 font-bold">
             {error}
           </p>
         )}
@@ -333,7 +333,7 @@ function PayForm({
           onClick={() => void pay()}
           disabled={!stripe || paying || succeeded}
           className={cn(
-            "mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-full text-[15px] font-extrabold text-white transition active:scale-[0.99]",
+            "text-title-sm mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-full font-extrabold text-white transition active:scale-[0.99]",
             succeeded
               ? "bg-success-600"
               : "bg-primary-600 hover:bg-primary-700 disabled:opacity-60"
@@ -349,7 +349,7 @@ function PayForm({
           )}
         </button>
 
-        <p className="text-subtle mt-2.5 flex items-center justify-center gap-1.5 text-center text-[11px] font-semibold">
+        <p className="text-subtle text-caption mt-2.5 flex items-center justify-center gap-1.5 text-center font-semibold">
           <Lock className="size-3" />
           {t("intlSecureNote")}
         </p>

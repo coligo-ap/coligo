@@ -80,11 +80,11 @@ export function WheelManager({
 
 function Kpi({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border bg-surface rounded-[14px] border p-3">
+    <div className="border-border bg-surface rounded-card-lg border p-3">
       <p className="text-foreground text-lg font-black tracking-tight tabular-nums">
         {value}
       </p>
-      <p className="text-muted text-[11px] font-bold">{label}</p>
+      <p className="text-muted text-caption font-bold">{label}</p>
     </div>
   );
 }
@@ -104,7 +104,7 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4">
+    <div className="border-border bg-surface rounded-lg border p-4">
       <label className="flex items-center justify-between gap-3">
         <span>
           <span className="text-foreground block text-sm font-extrabold">
@@ -139,7 +139,7 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
                 streak_target: Number(e.target.value) || 7,
               }))
             }
-            className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground rounded-control-lg w-full border px-3 py-2 text-sm font-semibold outline-none"
           />
         </label>
         <label className="block">
@@ -156,7 +156,7 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
                 streak_multiplier: Number(e.target.value) || 2,
               }))
             }
-            className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground rounded-control-lg w-full border px-3 py-2 text-sm font-semibold outline-none"
           />
         </label>
         <label className="block">
@@ -174,7 +174,7 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
                 free_delivery_valid_days: Number(e.target.value) || 7,
               }))
             }
-            className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground rounded-control-lg w-full border px-3 py-2 text-sm font-semibold outline-none"
           />
         </label>
         <label className="block">
@@ -192,7 +192,7 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
                 free_delivery_max_fee_da: Number(e.target.value) || 250,
               }))
             }
-            className="border-border bg-surface text-foreground w-full rounded-[11px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground rounded-control-lg w-full border px-3 py-2 text-sm font-semibold outline-none"
           />
         </label>
       </div>
@@ -221,7 +221,7 @@ function SettingsCard({ settings }: { settings: AdminWheelSettings | null }) {
             if (res.ok) router.refresh();
           });
         }}
-        className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-sm font-extrabold text-white transition-colors disabled:opacity-60"
+        className="bg-primary-600 hover:bg-primary-700 rounded-control-lg mt-3 inline-flex items-center gap-2 px-4 py-2.5 text-sm font-extrabold text-white transition-colors disabled:opacity-60"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />
@@ -244,15 +244,15 @@ function PrizesCard({
   const [adding, setAdding] = useState(false);
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4">
+    <div className="border-border bg-surface rounded-lg border p-4">
       <div className="mb-2 flex items-center justify-between">
-        <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
           Lots ({prizes.length}) — probabilité = poids / total
         </p>
         <button
           type="button"
           onClick={() => setAdding((v) => !v)}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-xs font-extrabold text-white transition-colors"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-extrabold text-white transition-colors"
         >
           <Plus className="size-3.5" />
           Ajouter un lot
@@ -283,7 +283,7 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
   });
 
   return (
-    <div className="border-border bg-surface-2 mb-2 rounded-[13px] border p-3">
+    <div className="border-border bg-surface-2 rounded-card mb-2 border p-3">
       <div className="grid grid-cols-2 gap-2">
         <label className="text-muted col-span-2 text-xs font-bold">
           Type de lot
@@ -295,7 +295,7 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
                 kind: e.target.value as typeof form.kind,
               }))
             }
-            className="border-border bg-surface text-foreground mt-1 w-full rounded-[10px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground rounded-control mt-1 w-full border px-3 py-2 text-sm font-semibold outline-none"
           >
             <option value="voucher">Bon d&apos;achat (DA)</option>
             <option value="free_delivery">
@@ -308,14 +308,14 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
           placeholder="Libellé FR (ex : 100 DA offerts)"
           value={form.label_fr}
           onChange={(e) => setForm((f) => ({ ...f, label_fr: e.target.value }))}
-          className="border-border bg-surface text-foreground col-span-2 rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border bg-surface text-foreground rounded-control col-span-2 border px-3 py-2 text-sm outline-none"
         />
         <input
           placeholder="Libellé AR (optionnel)"
           dir="rtl"
           value={form.label_ar}
           onChange={(e) => setForm((f) => ({ ...f, label_ar: e.target.value }))}
-          className="border-border bg-surface text-foreground col-span-2 rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border bg-surface text-foreground rounded-control col-span-2 border px-3 py-2 text-sm outline-none"
         />
         <label className="text-muted text-xs font-bold">
           Montant DA (bons d&apos;achat uniquement)
@@ -327,7 +327,7 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
             onChange={(e) =>
               setForm((f) => ({ ...f, amount_da: Number(e.target.value) || 0 }))
             }
-            className="border-border bg-surface text-foreground mt-1 w-full rounded-[10px] border px-3 py-2 text-sm font-semibold outline-none disabled:opacity-50"
+            className="border-border bg-surface text-foreground rounded-control mt-1 w-full border px-3 py-2 text-sm font-semibold outline-none disabled:opacity-50"
           />
         </label>
         <label className="text-muted text-xs font-bold">
@@ -339,7 +339,7 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
             onChange={(e) =>
               setForm((f) => ({ ...f, weight: Number(e.target.value) || 1 }))
             }
-            className="border-border bg-surface text-foreground mt-1 w-full rounded-[10px] border px-3 py-2 text-sm font-semibold outline-none"
+            className="border-border bg-surface text-foreground rounded-control mt-1 w-full border px-3 py-2 text-sm font-semibold outline-none"
           />
         </label>
       </div>
@@ -358,7 +358,7 @@ function PrizeForm({ onDone }: { onDone: () => void }) {
             }
           });
         }}
-        className="bg-primary-600 hover:bg-primary-700 mt-2 inline-flex items-center gap-2 rounded-[10px] px-3.5 py-2 text-xs font-extrabold text-white disabled:opacity-60"
+        className="bg-primary-600 hover:bg-primary-700 rounded-control mt-2 inline-flex items-center gap-2 px-3.5 py-2 text-xs font-extrabold text-white disabled:opacity-60"
       >
         {pending ? <Loader2 className="size-3.5 animate-spin" /> : "Ajouter"}
       </button>
@@ -409,13 +409,13 @@ function PrizeRow({
           value={form.label_fr}
           onChange={(e) => setForm((f) => ({ ...f, label_fr: e.target.value }))}
           onBlur={() => save()}
-          className="border-border bg-surface text-foreground min-w-0 flex-1 rounded-[10px] border px-2.5 py-1.5 text-sm font-bold outline-none"
+          className="border-border bg-surface text-foreground rounded-control min-w-0 flex-1 border px-2.5 py-1.5 text-sm font-bold outline-none"
         />
         {/* Type figé à l'édition (créer un nouveau lot pour changer) — badge
             lisible pour distinguer bon d'achat / livraison offerte / retente. */}
         <span
           className={cn(
-            "shrink-0 rounded-full px-2 py-1 text-[10px] font-extrabold",
+            "text-micro shrink-0 rounded-full px-2 py-1 font-extrabold",
             prize.kind === "free_delivery"
               ? "bg-primary-50 text-primary-700"
               : prize.kind === "voucher"
@@ -439,7 +439,7 @@ function PrizeRow({
           }
           onBlur={() => save()}
           title="Montant (DA)"
-          className="border-border bg-surface text-foreground w-20 rounded-[10px] border px-2 py-1.5 text-sm font-semibold outline-none disabled:opacity-50"
+          className="border-border bg-surface text-foreground rounded-control w-20 border px-2 py-1.5 text-sm font-semibold outline-none disabled:opacity-50"
         />
         <input
           type="number"
@@ -450,7 +450,7 @@ function PrizeRow({
           }
           onBlur={() => save()}
           title="Poids"
-          className="border-border bg-surface text-foreground w-16 rounded-[10px] border px-2 py-1.5 text-sm font-semibold outline-none"
+          className="border-border bg-surface text-foreground rounded-control w-16 border px-2 py-1.5 text-sm font-semibold outline-none"
         />
         <span className="text-muted w-12 text-end text-xs font-black tabular-nums">
           {pct} %
@@ -460,7 +460,7 @@ function PrizeRow({
           disabled={pending}
           onClick={() => save({ active: !form.active })}
           className={cn(
-            "rounded-full px-2.5 py-1 text-[11px] font-extrabold transition-colors disabled:opacity-60",
+            "text-caption rounded-full px-2.5 py-1 font-extrabold transition-colors disabled:opacity-60",
             form.active
               ? "bg-success-50 text-success-700"
               : "bg-surface-2 text-subtle"

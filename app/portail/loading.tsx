@@ -13,9 +13,9 @@ export default function Loading() {
           <span className="mt-2 block h-4 w-56 animate-pulse rounded-lg bg-slate-800/70" />
         </div>
         <div className="space-y-4 rounded-2xl border border-slate-800 bg-slate-900/70 p-6">
-          <span className="block h-11 w-full animate-pulse rounded-[12px] bg-slate-800" />
-          <span className="block h-11 w-full animate-pulse rounded-[12px] bg-slate-800" />
-          <span className="bg-primary-600/40 block h-11 w-full animate-pulse rounded-[12px]" />
+          <span className="block h-11 w-full animate-pulse rounded-md bg-slate-800" />
+          <span className="block h-11 w-full animate-pulse rounded-md bg-slate-800" />
+          <span className="bg-primary-600/40 block h-11 w-full animate-pulse rounded-md" />
         </div>
       </div>
     </div>

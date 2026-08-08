@@ -203,7 +203,7 @@ export function ProductDetailSheet({
       role="dialog"
       aria-modal
     >
-      <div className="flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden rounded-t-[24px] bg-white pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]">
+      <div className="rounded-t-panel sm:rounded-panel flex max-h-[92vh] w-full max-w-md flex-col overflow-hidden bg-white pb-[env(safe-area-inset-bottom)] shadow-xl">
         {/* Image TRÈS grande sur fond blanc pur, sans filet (capture Bolt) ;
             X = cercle GRIS clair en haut à droite. */}
         <div className="relative aspect-[4/3] w-full shrink-0 overflow-hidden bg-white">
@@ -230,7 +230,7 @@ export function ProductDetailSheet({
         </div>
 
         <div className="flex-1 overflow-y-auto px-5 pb-5">
-          <h2 className="text-foreground text-[22px] leading-tight font-extrabold tracking-tight">
+          <h2 className="text-foreground text-display leading-tight font-extrabold tracking-tight">
             {product.name_fr}
           </h2>
           {product.name_ar && (
@@ -254,13 +254,13 @@ export function ProductDetailSheet({
               {formatDA(basePrice)}
             </span>
             {hasPromo && (
-              <span className="text-subtle text-[15px] tabular-nums line-through">
+              <span className="text-subtle text-title-sm tabular-nums line-through">
                 {formatDA(product.price_da)}
               </span>
             )}
           </div>
           {product.unit && product.unit !== "piece" && (
-            <p className="text-muted mt-1 text-[13px] font-medium tabular-nums">
+            <p className="text-muted text-body-sm mt-1 font-medium tabular-nums">
               {formatDA(basePrice)} /{" "}
               {formatQty(1, product.unit, locale).replace(/^1\s*/, "")}
             </p>
@@ -302,7 +302,7 @@ export function ProductDetailSheet({
                       </div>
                       <span
                         className={cn(
-                          "shrink-0 text-[11px] font-bold",
+                          "text-caption shrink-0 font-bold",
                           g.min_select >= 1 ? "text-accent-600" : "text-subtle"
                         )}
                       >
@@ -320,7 +320,7 @@ export function ProductDetailSheet({
                           <label
                             key={o.id}
                             className={cn(
-                              "flex cursor-pointer items-center gap-3 rounded-[12px] border px-3 py-2.5",
+                              "flex cursor-pointer items-center gap-3 rounded-md border px-3 py-2.5",
                               checked
                                 ? "border-primary-400 bg-primary-50"
                                 : "border-border"
@@ -397,7 +397,7 @@ export function ProductDetailSheet({
             </button>
             <span
               className={cn(
-                "text-foreground text-center text-[17px] font-bold tabular-nums",
+                "text-foreground text-title-lg text-center font-bold tabular-nums",
                 fractional ? "min-w-[5ch]" : "min-w-[2ch]"
               )}
             >
@@ -419,15 +419,15 @@ export function ProductDetailSheet({
             className="bg-primary-600 hover:bg-primary-700 flex h-14 min-w-0 flex-1 flex-col items-center justify-center rounded-full px-4 leading-tight text-white transition-colors disabled:opacity-50"
           >
             {!canAdd ? (
-              <span className="truncate text-[14px] font-extrabold">
+              <span className="text-body-lg truncate font-extrabold">
                 {t("chooseRequired", { name: missing[0].name_fr })}
               </span>
             ) : (
               <>
-                <span className="truncate text-[15px] font-extrabold">
+                <span className="text-title-sm truncate font-extrabold">
                   {inCart ? t("update") : t("add")}
                 </span>
-                <span className="text-[13px] font-semibold tabular-nums opacity-95">
+                <span className="text-body-sm font-semibold tabular-nums opacity-95">
                   {formatDA(lineTotal)}
                 </span>
               </>

@@ -47,13 +47,13 @@ export function AuthPageSkeleton() {
             <div className="mb-8 flex justify-center lg:hidden">
               <Bar className="h-10 w-32" />
             </div>
-            <div className="border-border rounded-[14px] border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
+            <div className="border-border rounded-card-lg border bg-white p-6 shadow-sm lg:rounded-none lg:border-0 lg:bg-transparent lg:p-0 lg:shadow-none">
               <Bar className="mb-2 h-8 w-56" />
               <Bar className="mb-6 h-4 w-64" />
               <div className="space-y-3">
-                <Bar className="h-12 w-full !rounded-[12px]" />
-                <Bar className="h-12 w-full !rounded-[12px]" />
-                <Bar className="h-12 w-full !rounded-[12px]" />
+                <Bar className="h-12 w-full !rounded-md" />
+                <Bar className="h-12 w-full !rounded-md" />
+                <Bar className="h-12 w-full !rounded-md" />
               </div>
             </div>
           </div>
@@ -73,13 +73,13 @@ export function AuthPageSkeleton() {
 export function CenteredCardSkeleton() {
   return (
     <div className="bg-surface-2 flex min-h-screen items-center justify-center p-4">
-      <div className="border-border w-full max-w-md rounded-[16px] border bg-white p-6 shadow-sm">
+      <div className="border-border w-full max-w-md rounded-lg border bg-white p-6 shadow-sm">
         <Bar className="mb-2 h-7 w-52" />
         <Bar className="mb-6 h-4 w-full max-w-[18rem]" />
         <div className="space-y-3">
-          <Bar className="h-12 w-full !rounded-[12px]" />
-          <Bar className="h-12 w-full !rounded-[12px]" />
-          <Bar className="h-11 w-full !rounded-[12px]" />
+          <Bar className="h-12 w-full !rounded-md" />
+          <Bar className="h-12 w-full !rounded-md" />
+          <Bar className="h-11 w-full !rounded-md" />
         </div>
       </div>
     </div>
@@ -94,15 +94,15 @@ export function DownloadPageSkeleton() {
   return (
     <div className="mx-auto max-w-[820px] p-4 lg:p-6 lg:px-8">
       <Bar className="mb-3 h-5 w-20" />
-      <div className="border-border rounded-[16px] border p-6">
+      <div className="border-border rounded-lg border p-6">
         <div className="flex items-center gap-4">
-          <Bar className="size-16 !rounded-[18px]" />
+          <Bar className="!rounded-sheet-lg size-16" />
           <div className="flex-1 space-y-2">
             <Bar className="h-6 w-48" />
             <Bar className="h-4 w-64" />
           </div>
         </div>
-        <Bar className="mt-6 h-12 w-full !rounded-[12px]" />
+        <Bar className="mt-6 h-12 w-full !rounded-md" />
         <div className="mt-6 space-y-3">
           <Bar className="h-4 w-3/4" />
           <Bar className="h-4 w-2/3" />

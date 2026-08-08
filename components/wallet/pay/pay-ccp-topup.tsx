@@ -99,18 +99,18 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
   if (sent) {
     return (
       <section dir={dir} className="mx-auto w-full max-w-[560px]">
-        <div className="rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] px-5 py-10 text-center">
+        <div className="rounded-sheet-xl border border-[var(--d-line)] bg-[var(--d-surface)] px-5 py-10 text-center">
           <CheckCircle2
             className="mx-auto size-12"
             style={{ color: BRAND_GO }}
           />
           <p
-            className="mt-4 text-[18px] font-extrabold text-[var(--d-ink)]"
+            className="text-heading-sm mt-4 font-extrabold text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
             {t.sentTitle}
           </p>
-          <p className="mt-1 text-[12.5px] leading-snug font-medium text-[var(--d-muted)]">
+          <p className="text-label-lg mt-1 leading-snug font-medium text-[var(--d-muted)]">
             {t.sentSub}
           </p>
           <div className="mt-5 space-y-2">
@@ -135,7 +135,7 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
 
       {/* Délai de traitement — l'info à connaître AVANT de commencer */}
       <div
-        className="mb-3 flex items-start gap-2.5 rounded-[16px] p-3.5"
+        className="mb-3 flex items-start gap-2.5 rounded-lg p-3.5"
         style={{ background: "var(--d-accent)" }}
       >
         <Clock3
@@ -143,10 +143,10 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
           style={{ color: "var(--d-violet)" }}
         />
         <div className="min-w-0">
-          <p className="text-[12.5px] font-extrabold text-[var(--d-ink)]">
+          <p className="text-label-lg font-extrabold text-[var(--d-ink)]">
             {t.delayTitle}
           </p>
-          <p className="text-[11.5px] leading-snug font-medium text-[var(--d-muted)]">
+          <p className="text-caption-lg leading-snug font-medium text-[var(--d-muted)]">
             {t.delaySub}
           </p>
         </div>
@@ -154,14 +154,14 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
 
       {/* Étapes à suivre */}
       <PayCard className="p-3.5">
-        <p className="mb-2.5 text-[12.5px] font-bold text-[var(--d-muted)]">
+        <p className="text-label-lg mb-2.5 font-bold text-[var(--d-muted)]">
           {t.stepsTitle}
         </p>
         <ol className="space-y-2.5">
           {steps.map((s, i) => (
             <li key={i} className="flex items-start gap-2.5">
               <span
-                className="grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-extrabold"
+                className="text-caption grid size-6 shrink-0 place-items-center rounded-full font-extrabold"
                 style={{
                   background: "var(--d-accent)",
                   color: "var(--d-violet)",
@@ -169,7 +169,7 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
               >
                 {i + 1}
               </span>
-              <span className="text-[12.5px] leading-snug font-semibold text-[var(--d-ink)]">
+              <span className="text-label-lg leading-snug font-semibold text-[var(--d-ink)]">
                 {s}
               </span>
             </li>
@@ -181,18 +181,18 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
       <PayCard className="mt-3 p-3.5">
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-[11.5px] font-bold text-[var(--d-muted)]">
+            <p className="text-caption-lg font-bold text-[var(--d-muted)]">
               {config?.ccpName || "Coligo"}
             </p>
             <p
-              className="truncate text-[15px] font-extrabold text-[var(--d-ink)]"
+              className="text-title-sm truncate font-extrabold text-[var(--d-ink)]"
               style={{ fontFamily: SORA }}
             >
               {config?.ccpNumber
                 ? `${config.ccpNumber}${config.ccpKey ? ` · ${lang === "ar" ? "مفتاح" : "clé"} ${config.ccpKey}` : ""}`
                 : tr.ccpUnset}
             </p>
-            <p className="text-[11px] font-medium text-[var(--d-muted)]">
+            <p className="text-caption font-medium text-[var(--d-muted)]">
               {tr.ccpRef}
             </p>
           </div>
@@ -206,7 +206,7 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
                   `${config.ccpNumber}${config.ccpKey ? ` clé ${config.ccpKey}` : ""}`
                 )
               }
-              className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)]"
+              className="grid size-10 shrink-0 place-items-center rounded-md border border-[var(--d-line)]"
               style={{ color: copied === "ccp" ? BRAND_GO : "var(--d-violet)" }}
             >
               {copied === "ccp" ? (
@@ -220,17 +220,17 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
         {config?.bankRib && (
           <div className="mt-3 flex items-center gap-3 border-t border-[var(--d-line)] pt-3">
             <div className="min-w-0 flex-1">
-              <p className="text-[11.5px] font-bold text-[var(--d-muted)]">
+              <p className="text-caption-lg font-bold text-[var(--d-muted)]">
                 {tr.bankLabel}
                 {config.bankName ? ` · ${config.bankName}` : ""}
               </p>
               <p
-                className="truncate text-[14px] font-extrabold text-[var(--d-ink)]"
+                className="text-body-lg truncate font-extrabold text-[var(--d-ink)]"
                 style={{ fontFamily: SORA }}
               >
                 {config.bankRib}
               </p>
-              <p className="text-[11px] font-medium text-[var(--d-muted)]">
+              <p className="text-caption font-medium text-[var(--d-muted)]">
                 {tr.bankRibRef}
               </p>
             </div>
@@ -238,7 +238,7 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
               type="button"
               aria-label={tr.copied}
               onClick={() => void copyVal("rib", config.bankRib ?? "")}
-              className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)]"
+              className="grid size-10 shrink-0 place-items-center rounded-md border border-[var(--d-line)]"
               style={{ color: copied === "rib" ? BRAND_GO : "var(--d-violet)" }}
             >
               {copied === "rib" ? (
@@ -254,7 +254,7 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
       {/* Montant + preuve + envoi */}
       <PayCard className="mt-3 p-3.5">
         <input
-          className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 text-[13.5px] font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          className="text-body w-full rounded-md border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
           inputMode="numeric"
@@ -270,7 +270,7 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="mt-2.5 flex w-full flex-col items-center gap-1 rounded-[14px] border-2 border-dashed px-4 py-4 text-center"
+          className="rounded-card-lg mt-2.5 flex w-full flex-col items-center gap-1 border-2 border-dashed px-4 py-4 text-center"
           style={{
             borderColor: file ? BRAND_GO : "var(--d-line)",
             background: file ? "rgba(22,179,100,.06)" : "var(--d-surface)",
@@ -283,10 +283,10 @@ export function PayCcpTopup({ base }: { base: PayBase }) {
               <ImagePlus className="size-5" />
             )}
           </span>
-          <span className="text-[13px] font-extrabold text-[var(--d-ink)]">
+          <span className="text-body-sm font-extrabold text-[var(--d-ink)]">
             {file ? tr.proofAdded : tr.addProof}
           </span>
-          <span className="text-[11.5px] font-medium text-[var(--d-muted)]">
+          <span className="text-caption-lg font-medium text-[var(--d-muted)]">
             {file ? `${file.name} ${tr.proofReplace}` : tr.proofHint}
           </span>
         </button>

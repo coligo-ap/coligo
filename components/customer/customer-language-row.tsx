@@ -47,10 +47,10 @@ export function CustomerLanguageRow({ title }: { title: string }) {
         <span className="bg-primary-50 text-primary-600 grid size-10 shrink-0 place-items-center rounded-xl">
           <Globe className="size-[19px]" />
         </span>
-        <span className="text-foreground min-w-0 flex-1 text-[15px] font-extrabold tracking-tight">
+        <span className="text-foreground text-title-sm min-w-0 flex-1 font-extrabold tracking-tight">
           {title}
         </span>
-        <span className="text-muted inline-flex shrink-0 items-center gap-1.5 text-[13px] font-semibold">
+        <span className="text-muted text-body-sm inline-flex shrink-0 items-center gap-1.5 font-semibold">
           <LocaleFlag locale={active} className="w-5" />
           {LOCALE_LABELS[active]}
           <ChevronDown
@@ -70,7 +70,7 @@ export function CustomerLanguageRow({ title }: { title: string }) {
                 onClick={() => choose(loc)}
                 disabled={pending}
                 className={cn(
-                  "flex w-full items-center gap-2.5 py-2.5 ps-[68px] pe-4 text-start text-[14px] transition-colors disabled:opacity-60",
+                  "text-body-lg flex w-full items-center gap-2.5 py-2.5 ps-[68px] pe-4 text-start transition-colors disabled:opacity-60",
                   active === loc
                     ? "text-foreground font-bold"
                     : "text-muted hover:text-foreground hover:bg-surface-2"

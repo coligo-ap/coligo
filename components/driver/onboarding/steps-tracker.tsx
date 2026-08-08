@@ -51,12 +51,12 @@ export function StepsTracker({ steps }: { steps: TrackerStep[] }) {
           </div>
           <div className="pb-5 text-start">
             <b
-              className="block text-[13.5px] font-bold text-[var(--ink)]"
+              className="text-body block font-bold text-[var(--ink)]"
               style={{ fontFamily: SORA }}
             >
               {s.title}
             </b>
-            <small className="mt-0.5 block text-[11.5px] font-medium text-[var(--muted)]">
+            <small className="text-caption-lg mt-0.5 block font-medium text-[var(--muted)]">
               {s.sub}
             </small>
           </div>

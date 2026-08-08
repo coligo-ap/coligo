@@ -362,7 +362,7 @@ export default async function CentreAidePage() {
                 {section.icon}
                 {section.title}
               </h2>
-              <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+              <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-lg border">
                 {section.items.map((item) => (
                   <details key={item.q} className="group">
                     <summary className="hover:bg-surface-2 flex cursor-pointer list-none items-center justify-between gap-3 px-5 py-4 text-sm font-medium transition-colors">
@@ -379,7 +379,7 @@ export default async function CentreAidePage() {
           ))}
         </div>
 
-        <section className="border-primary-200 bg-primary-50 mt-8 rounded-[16px] border p-5 text-center">
+        <section className="border-primary-200 bg-primary-50 mt-8 rounded-lg border p-5 text-center">
           <p className="text-foreground text-base font-semibold">
             Vous n&apos;avez pas trouvé votre réponse ?
           </p>

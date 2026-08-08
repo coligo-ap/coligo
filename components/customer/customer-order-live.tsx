@@ -178,7 +178,7 @@ export function CustomerOrderLive({
       onClick={() => setPopup(null)}
     >
       <div
-        className="w-full max-w-sm rounded-[20px] bg-white p-6 text-center shadow-xl"
+        className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div
@@ -201,7 +201,7 @@ export function CustomerOrderLive({
           type="button"
           onClick={() => setPopup(null)}
           className={
-            "mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-4 text-sm font-semibold text-white " +
+            "mt-5 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white " +
             (isOk
               ? "bg-success-600 hover:bg-success-700"
               : "bg-primary-600 hover:bg-primary-700")

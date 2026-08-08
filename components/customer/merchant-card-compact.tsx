@@ -83,13 +83,13 @@ function MerchantCardCompactImpl({
     <Link
       href={`/m/${merchant.slug}`}
       className={cn(
-        "group border-border bg-surface isolate flex gap-3 rounded-[12px] border p-2.5 shadow-[0_1px_3px_rgba(20,20,50,0.05)] transition-transform active:scale-[.985]",
+        "group border-border bg-surface isolate flex gap-3 rounded-md border p-2.5 shadow-[0_1px_3px_rgba(20,20,50,0.05)] transition-transform active:scale-[.985]",
         open === false && "opacity-60"
       )}
     >
       {/* ─── Vignette photo (jamais vide) ─── */}
       <div
-        className="border-border bg-surface-2 relative size-[100px] shrink-0 overflow-hidden rounded-[8px] border"
+        className="border-border bg-surface-2 relative size-[100px] shrink-0 overflow-hidden rounded-sm border"
         style={
           thumb
             ? {
@@ -114,7 +114,7 @@ function MerchantCardCompactImpl({
 
         {/* Badge promo sur la photo (bas-gauche, rose) */}
         {showPromo && (
-          <span className="from-accent-500 to-accent-600 absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 rounded-[9px] bg-gradient-to-br px-2 py-1 text-[11px] font-black text-white shadow-[0_4px_10px_rgba(230,0,122,.5)]">
+          <span className="from-accent-500 to-accent-600 rounded-chip text-caption absolute bottom-1.5 left-1.5 z-10 inline-flex items-center gap-1 bg-gradient-to-br px-2 py-1 font-black text-white shadow-[0_4px_10px_rgba(230,0,122,.5)]">
             <PromoIcon className="size-3" strokeWidth={2.5} />
             {showPromo.text}
           </span>
@@ -138,7 +138,7 @@ function MerchantCardCompactImpl({
             {merchant.name}
           </h3>
           {/* Note : 5,0 par DÉFAUT tant qu'aucun avis. */}
-          <span className="bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-extrabold">
+          <span className="bg-surface-2 text-foreground text-label inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 font-extrabold">
             <Star className="size-3 fill-amber-400 text-amber-500" />
             {(merchant.rating_count > 0 ? merchant.rating_avg : 5).toFixed(1)}
           </span>
@@ -146,19 +146,19 @@ function MerchantCardCompactImpl({
 
         {/* Ligne promo (rose) OU modes (sans promo) */}
         {showPromo ? (
-          <span className="bg-accent-50 text-accent-700 mt-1.5 inline-flex max-w-full items-center gap-1.5 self-start rounded-[9px] px-2.5 py-1.5 text-[11.5px] font-extrabold">
+          <span className="bg-accent-50 text-accent-700 rounded-chip text-caption-lg mt-1.5 inline-flex max-w-full items-center gap-1.5 self-start px-2.5 py-1.5 font-extrabold">
             <PromoIcon className="text-accent-500 size-3.5 shrink-0" />
             <span className="truncate">{showPromo.text}</span>
           </span>
         ) : (
           <div className="mt-1.5 flex flex-wrap gap-1.5">
             {merchant.delivery_enabled && (
-              <span className="bg-primary-50 text-primary-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
+              <span className="bg-primary-50 text-primary-700 text-caption inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold">
                 <Bike className="size-3" />
                 {t("delivery")}
               </span>
             )}
-            <span className="bg-surface-2 text-muted inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-bold">
+            <span className="bg-surface-2 text-muted text-caption inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold">
               <MapPin className="size-3" />
               {t("pickup")}
             </span>
@@ -166,7 +166,7 @@ function MerchantCardCompactImpl({
         )}
 
         {/* Meta : ouvert/fermé · ETA · retrait gratuit / distance */}
-        <div className="text-muted mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-1 pt-2 text-[12px] font-bold">
+        <div className="text-muted text-label mt-auto flex flex-wrap items-center gap-x-1.5 gap-y-1 pt-2 font-bold">
           {/* Badge rendu UNIQUEMENT une fois l'état réel connu (post-montage). */}
           {open != null && (
             <span

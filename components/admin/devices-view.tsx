@@ -87,7 +87,7 @@ export function DevicesView({ initial }: { initial: DevicesData }) {
       {shared.length > 0 && (
         <section
           data-alert-focus="shared_ip_devices"
-          className="border-warning-300 bg-warning-50 mb-6 rounded-[14px] border p-4"
+          className="border-warning-300 bg-warning-50 rounded-card-lg mb-6 border p-4"
         >
           <h2 className="text-warning-800 mb-2 flex items-center gap-1.5 text-sm font-bold">
             <AlertTriangle className="size-4" />
@@ -97,7 +97,7 @@ export function DevicesView({ initial }: { initial: DevicesData }) {
             {shared.map((s) => (
               <div
                 key={s.ip}
-                className="border-warning-200 rounded-[10px] border bg-white p-2.5 text-xs"
+                className="border-warning-200 rounded-control border bg-white p-2.5 text-xs"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <button
@@ -146,7 +146,7 @@ export function DevicesView({ initial }: { initial: DevicesData }) {
             value={q}
             onChange={(e) => setQ(e.target.value)}
             placeholder="Rechercher : email, IP, ville, pays (ex. DZ)…"
-            className="border-border focus:border-primary-400 h-10 w-full rounded-[10px] border bg-white pr-3 pl-9 text-sm outline-none"
+            className="border-border focus:border-primary-400 rounded-control h-10 w-full border bg-white pr-3 pl-9 text-sm outline-none"
           />
         </div>
       </div>
@@ -159,7 +159,7 @@ export function DevicesView({ initial }: { initial: DevicesData }) {
             : "Aucun appareil tracé pour l'instant — les données arrivent au fil des connexions."}
         </p>
       ) : (
-        <div className="border-border overflow-x-auto rounded-[14px] border bg-white">
+        <div className="border-border rounded-card-lg overflow-x-auto border bg-white">
           <table className="w-full text-left text-xs">
             <thead className="border-border text-muted border-b uppercase">
               <tr>

@@ -24,7 +24,7 @@ export function CustomerSupportRow({
         <LifeBuoy className="size-[19px]" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block text-[15px] font-extrabold tracking-tight">
+        <span className="text-foreground text-title-sm block font-extrabold tracking-tight">
           {title}
         </span>
         <span className="text-muted block truncate text-xs font-medium">

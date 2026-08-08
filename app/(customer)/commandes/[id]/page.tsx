@@ -503,18 +503,18 @@ export default async function CustomerOrderDetailPage({
                 ? { Livreur: driverContact.first_name }
                 : {}),
             }}
-            className="border-border bg-surface text-foreground hover:bg-surface-2 inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold shadow-sm transition-colors"
+            className="border-border bg-surface text-foreground hover:bg-surface-2 text-label-lg inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 font-bold shadow-sm transition-colors"
           />
         </div>
 
         {/* ═══ BLOC PRINCIPAL UNIQUE : statut + suivi horizontal + montant ═══ */}
-        <div className="border-border bg-surface rounded-[20px] border p-4 shadow-sm">
+        <div className="border-border bg-surface rounded-xl border p-4 shadow-sm">
           {/* ligne 1 : statut (pastille) + libellé + sous-texte + n° */}
           <div className="flex items-center justify-between gap-3">
             <div className="flex min-w-0 items-center gap-2.5">
               <span
                 className={cn(
-                  "relative grid size-12 shrink-0 place-items-center overflow-hidden rounded-[13px] text-base",
+                  "rounded-card relative grid size-12 shrink-0 place-items-center overflow-hidden text-base",
                   stateTone === "green" && "bg-success-50 text-success-700",
                   stateTone === "red" && "bg-danger-50 text-danger-700",
                   stateTone === "violet" && "bg-primary-50 text-primary-700"
@@ -537,17 +537,17 @@ export default async function CustomerOrderDetailPage({
                 <b className="text-foreground block truncate text-base leading-tight font-extrabold tracking-tight">
                   {stateTitle}
                 </b>
-                <small className="text-muted text-[11.5px] font-semibold">
+                <small className="text-muted text-caption-lg font-semibold">
                   {stateSub}
                 </small>
               </div>
             </div>
             {orderNumber && (
               <span className="shrink-0 text-end">
-                <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
+                <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
                   {t("orderNumberShort")}
                 </small>
-                <b className="text-foreground text-[17px] leading-tight font-black tracking-wide">
+                <b className="text-foreground text-title-lg leading-tight font-black tracking-wide">
                   #{orderNumber}
                 </b>
               </span>
@@ -567,7 +567,7 @@ export default async function CustomerOrderDetailPage({
           {!isCancelled && (
             <div className="border-border mt-3.5 flex items-center justify-between gap-3 border-t pt-3">
               {delai ? (
-                <div className="text-foreground flex items-center gap-1.5 text-[12.5px] font-semibold">
+                <div className="text-foreground text-label-lg flex items-center gap-1.5 font-semibold">
                   <delai.Icon className="text-primary-600 size-3.5" />
                   <span>
                     {delai.label}
@@ -587,16 +587,16 @@ export default async function CustomerOrderDetailPage({
               <div className="text-end">
                 {isCash ? (
                   <>
-                    <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
+                    <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
                       {t("toPayCash")}
                     </small>
-                    <b className="text-foreground text-[18px] font-black tracking-tight">
+                    <b className="text-foreground text-heading-sm font-black tracking-tight">
                       {formatDA(order.total_da)}
                     </b>
                   </>
                 ) : (
                   <>
-                    <small className="text-muted block text-[9.5px] font-bold tracking-wide uppercase">
+                    <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
                       {t("total")}
                     </small>
                     <b className="text-success-700 text-sm font-black tracking-tight">
@@ -652,24 +652,24 @@ export default async function CustomerOrderDetailPage({
             Le livreur a déposé la commande à l'adresse après votre absence
             (commande déjà payée en ligne). Photo + commentaire du livreur. */}
         {noShowProof?.url && (
-          <div className="border-warning-200 bg-warning-50 mt-2.5 rounded-[16px] border p-3.5">
+          <div className="border-warning-200 bg-warning-50 mt-2.5 rounded-lg border p-3.5">
             <div className="mb-2 flex items-center gap-2">
               <PackageCheck className="text-warning-700 size-4 shrink-0" />
-              <b className="text-warning-800 text-[13.5px] font-extrabold">
+              <b className="text-warning-800 text-body font-extrabold">
                 {t("noShowLeftTitle")}
               </b>
             </div>
-            <p className="text-warning-800/90 mb-2.5 text-[12px] leading-relaxed font-medium">
+            <p className="text-warning-800/90 text-label mb-2.5 leading-relaxed font-medium">
               {t("noShowLeftBody")}
             </p>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={noShowProof.url}
               alt={t("noShowLeftTitle")}
-              className="border-warning-200 max-h-72 w-full rounded-[12px] border object-cover"
+              className="border-warning-200 max-h-72 w-full rounded-md border object-cover"
             />
             {noShowProof.note && (
-              <p className="text-foreground mt-2.5 rounded-[10px] bg-white/60 px-3 py-2 text-[12.5px] font-medium italic">
+              <p className="text-foreground rounded-control text-label-lg mt-2.5 bg-white/60 px-3 py-2 font-medium italic">
                 « {noShowProof.note} »
               </p>
             )}
@@ -680,9 +680,9 @@ export default async function CustomerOrderDetailPage({
             Le client le montre/à scanner par le livreur (livraison) ou le
             commerçant (retrait) pour valider. PIN visible client uniquement. */}
         {needsCode && !isCancelled && order.pickup_code && (
-          <div className="border-primary-100 bg-primary-50 mt-2.5 rounded-[16px] border p-3.5">
+          <div className="border-primary-100 bg-primary-50 mt-2.5 rounded-lg border p-3.5">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-primary-800 text-[12.5px] font-extrabold">
+              <span className="text-primary-800 text-label-lg font-extrabold">
                 🔑{" "}
                 {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
               </span>
@@ -701,11 +701,11 @@ export default async function CustomerOrderDetailPage({
                     : t("codeScanHintMerchant")
                 }
               />
-              <p className="text-primary-700/90 text-[12px] font-semibold">
+              <p className="text-primary-700/90 text-label font-semibold">
                 {isDelivery
                   ? t("codeScanHintDriver")
                   : t("codeScanHintMerchant")}
-                <span className="mt-1 block text-[11px] font-bold opacity-80">
+                <span className="text-caption mt-1 block font-bold opacity-80">
                   {t("tapToEnlarge")}
                 </span>
               </p>
@@ -759,10 +759,10 @@ export default async function CustomerOrderDetailPage({
         )}
 
         {/* ═══ DÉTAIL DE LA COMMANDE ═══ */}
-        <div className="border-border bg-surface mt-3 rounded-[18px] border p-4 shadow-sm">
-          <h3 className="mb-2.5 flex items-center justify-between text-[13px] font-extrabold">
+        <div className="border-border bg-surface rounded-sheet-lg mt-3 border p-4 shadow-sm">
+          <h3 className="text-body-sm mb-2.5 flex items-center justify-between font-extrabold">
             <span>{t("detailTitle")}</span>
-            <span className="text-muted text-[11px] font-semibold">
+            <span className="text-muted text-caption font-semibold">
               {t("itemsCount", { count: items.length })}
             </span>
           </h3>
@@ -784,12 +784,12 @@ export default async function CustomerOrderDetailPage({
           ))}
 
           <hr className="border-border my-2" />
-          <div className="text-muted flex items-baseline justify-between py-1 text-[13px] font-semibold">
+          <div className="text-muted text-body-sm flex items-baseline justify-between py-1 font-semibold">
             <span>{t("subtotal")}</span>
             <span className="tabular-nums">{formatDA(order.subtotal_da)}</span>
           </div>
           {order.discount_da > 0 && (
-            <div className="text-success-700 flex items-baseline justify-between py-1 text-[13px] font-semibold">
+            <div className="text-success-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
               <span>{t("promo")}</span>
               <span className="tabular-nums">
                 − {formatDA(order.discount_da)}
@@ -797,7 +797,7 @@ export default async function CustomerOrderDetailPage({
             </div>
           )}
           {isDelivery && order.delivery_fee_da > 0 && (
-            <div className="text-muted flex items-baseline justify-between py-1 text-[13px] font-semibold">
+            <div className="text-muted text-body-sm flex items-baseline justify-between py-1 font-semibold">
               <span>{t("delivery")}</span>
               <span className="tabular-nums">
                 {formatDA(order.delivery_fee_da)}
@@ -805,14 +805,14 @@ export default async function CustomerOrderDetailPage({
             </div>
           )}
           {order.cashback_estimate_da > 0 && (
-            <div className="text-primary-700 flex items-baseline justify-between py-1 text-[13px] font-semibold">
+            <div className="text-primary-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
               <span>{t("cashbackEstimated")}</span>
               <span className="tabular-nums">
                 + {formatDA(order.cashback_estimate_da)}
               </span>
             </div>
           )}
-          <div className="text-foreground mt-1 flex items-baseline justify-between border-t border-[var(--color-border)] pt-2 text-[15px] font-black">
+          <div className="text-foreground text-title-sm mt-1 flex items-baseline justify-between border-t border-[var(--color-border)] pt-2 font-black">
             <span>{isCash ? t("total") : t("totalPaid")}</span>
             <span className="tabular-nums">{formatDA(order.total_da)}</span>
           </div>
@@ -837,7 +837,7 @@ export default async function CustomerOrderDetailPage({
         </div>
 
         {/* ═══ BOUTIQUE ═══ */}
-        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-[16px] border px-4 py-3 shadow-sm">
+        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-lg border px-4 py-3 shadow-sm">
           {merchant.logo_url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -872,7 +872,7 @@ export default async function CustomerOrderDetailPage({
           </div>
           <Link
             href={`/m/${merchant.slug}`}
-            className="text-primary-600 shrink-0 text-[13px] font-bold hover:underline"
+            className="text-primary-600 text-body-sm shrink-0 font-bold hover:underline"
           >
             {t("see")} ›
           </Link>
@@ -880,7 +880,7 @@ export default async function CustomerOrderDetailPage({
 
         {/* ═══ INFOS PRATIQUES (créneau / adresse + note) — secondaire ═══ */}
         {!isCancelled && (
-          <div className="border-border bg-surface mt-3 rounded-[16px] border p-4">
+          <div className="border-border bg-surface mt-3 rounded-lg border p-4">
             <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-semibold">
               {isDelivery ? (
                 <MapPin className="size-3.5" />

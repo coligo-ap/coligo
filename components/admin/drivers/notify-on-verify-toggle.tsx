@@ -33,7 +33,7 @@ export function NotifyOnVerifyToggle({ enabled }: { enabled: boolean }) {
   };
 
   return (
-    <div className="border-border bg-surface rounded-[12px] border p-4">
+    <div className="border-border bg-surface rounded-md border p-4">
       <button
         type="button"
         role="switch"
@@ -42,7 +42,7 @@ export function NotifyOnVerifyToggle({ enabled }: { enabled: boolean }) {
         disabled={pending}
         className="flex w-full items-center gap-3 text-left disabled:opacity-60"
       >
-        <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-[10px]">
+        <span className="bg-primary-50 text-primary-600 rounded-control grid size-9 shrink-0 place-items-center">
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
           ) : (

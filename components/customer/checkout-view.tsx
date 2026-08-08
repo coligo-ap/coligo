@@ -510,7 +510,7 @@ export function CheckoutView({
         </h1>
         <Link
           href="/"
-          className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex rounded-[10px] px-4 py-2 text-sm font-medium text-white"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control mt-6 inline-flex px-4 py-2 text-sm font-medium text-white"
         >
           {tc("seeMerchants")}
         </Link>
@@ -527,7 +527,7 @@ export function CheckoutView({
   if (ctx.error) {
     return (
       <div className="mx-auto max-w-xl px-4 py-12">
-        <div className="border-danger-200 bg-danger-50 text-danger-800 rounded-[14px] border p-4 text-sm">
+        <div className="border-danger-200 bg-danger-50 text-danger-800 rounded-card-lg border p-4 text-sm">
           {ctx.error}
         </div>
         <Link
@@ -945,7 +945,7 @@ export function CheckoutView({
           >
             <ArrowLeft className="size-[18px]" />
           </button>
-          <h1 className="text-foreground text-[20px] font-extrabold tracking-tight">
+          <h1 className="text-foreground text-heading-lg font-extrabold tracking-tight">
             {t("title")}
           </h1>
         </div>
@@ -953,23 +953,23 @@ export function CheckoutView({
         {/* Bloc boutique — logo dégradé sombre + eyebrow violet. */}
         <Block delay={0.02}>
           <div className="flex items-center gap-3 p-4">
-            <span className="grid size-[46px] shrink-0 place-items-center rounded-[13px] bg-gradient-to-br from-[#26262e] to-[#0b0b0f] text-white shadow-[0_6px_14px_-4px_rgba(0,0,0,0.4)]">
+            <span className="rounded-card grid size-[46px] shrink-0 place-items-center bg-gradient-to-br from-[#26262e] to-[#0b0b0f] text-white shadow-[0_6px_14px_-4px_rgba(0,0,0,0.4)]">
               <Store className="size-5" />
             </span>
             <div className="min-w-0 flex-1">
-              <p className="text-primary-600 text-[10px] font-extrabold tracking-wider uppercase">
+              <p className="text-primary-600 text-micro font-extrabold tracking-wider uppercase">
                 {t("myOrder")}
               </p>
-              <p className="text-foreground truncate text-[16px] font-extrabold">
+              <p className="text-foreground text-title truncate font-extrabold">
                 {ctx.merchant.name}
               </p>
-              <p className="text-muted text-[12px] font-semibold">
+              <p className="text-muted text-label font-semibold">
                 {t("itemsInCart", { count: totalUnits })}
               </p>
             </div>
             <Link
               href="/cart"
-              className="text-primary-700 shrink-0 text-[13px] font-extrabold transition active:scale-90"
+              className="text-primary-700 text-body-sm shrink-0 font-extrabold transition active:scale-90"
             >
               {t("edit")}
             </Link>
@@ -994,12 +994,12 @@ export function CheckoutView({
         {!isDelivery && (
           <Block className="mt-3" delay={0.07}>
             <div className="space-y-2.5 p-4">
-              <p className="text-muted text-[11px] font-extrabold tracking-wider uppercase">
+              <p className="text-muted text-caption font-extrabold tracking-wider uppercase">
                 {t("pickupWhen")}
               </p>
 
               {!openNow && (
-                <div className="border-warning-100 bg-warning-50 text-warning-800 rounded-[10px] border px-3 py-2 text-xs">
+                <div className="border-warning-100 bg-warning-50 text-warning-800 rounded-control border px-3 py-2 text-xs">
                   {t("closedPickSlot")}
                 </div>
               )}
@@ -1054,7 +1054,7 @@ export function CheckoutView({
                           setChosenSlotIdx(null);
                         }}
                         className={cn(
-                          "flex w-[60px] shrink-0 snap-start flex-col items-center rounded-[12px] border py-1.5 transition active:scale-[0.96]",
+                          "flex w-[60px] shrink-0 snap-start flex-col items-center rounded-md border py-1.5 transition active:scale-[0.96]",
                           active
                             ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-6px_rgba(108,43,217,0.55)]"
                             : "border-border bg-surface hover:border-primary-300"
@@ -1062,13 +1062,13 @@ export function CheckoutView({
                       >
                         <span
                           className={cn(
-                            "text-[10.5px] font-bold capitalize",
+                            "text-micro-lg font-bold capitalize",
                             active ? "text-white/85" : "text-muted"
                           )}
                         >
                           {top}
                         </span>
-                        <span className="text-[17px] leading-tight font-black tabular-nums">
+                        <span className="text-title-lg leading-tight font-black tabular-nums">
                           {num}
                         </span>
                       </button>
@@ -1092,7 +1092,7 @@ export function CheckoutView({
                         type="button"
                         onClick={() => setChosenSlotIdx(i)}
                         className={cn(
-                          "shrink-0 snap-center rounded-full border px-3.5 py-2 text-[13px] font-bold tabular-nums transition active:scale-[0.95]",
+                          "text-body-sm shrink-0 snap-center rounded-full border px-3.5 py-2 font-bold tabular-nums transition active:scale-[0.95]",
                           active
                             ? "border-primary-600 bg-primary-600 text-white shadow-[0_6px_16px_-6px_rgba(108,43,217,0.55)]"
                             : "border-border bg-surface hover:border-primary-300"
@@ -1107,7 +1107,7 @@ export function CheckoutView({
                 {/* Confirmation du créneau choisi — phrase complète (plage),
                     zéro ambiguïté sur ce qui vient d'être sélectionné. */}
                 {chosenSlotIdx != null && slots[chosenSlotIdx] && (
-                  <p className="bg-success-50 text-success-700 flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-[12.5px] font-bold">
+                  <p className="bg-success-50 text-success-700 rounded-control text-label-lg flex items-center gap-1.5 px-3 py-2 font-bold">
                     <Check className="size-4 shrink-0" />
                     {formatSlotRange(
                       slots[chosenSlotIdx].start,
@@ -1246,16 +1246,16 @@ export function CheckoutView({
           {onlineVisible &&
             onlineUsable &&
             ctx.intl_payment.capacity_blocked && (
-              <div className="border-border bg-surface-2 mx-4 mb-4 rounded-[13px] border px-3.5 py-3">
-                <p className="text-foreground flex items-center gap-2 text-[12.5px] font-bold">
+              <div className="border-border bg-surface-2 rounded-card mx-4 mb-4 border px-3.5 py-3">
+                <p className="text-foreground text-label-lg flex items-center gap-2 font-bold">
                   <Globe className="text-muted size-4 shrink-0" />
                   {t("intlCapacityTitle")}
                 </p>
-                <p className="text-muted mt-1 text-[11.5px] font-medium">
+                <p className="text-muted text-caption-lg mt-1 font-medium">
                   {t("intlCapacityBody")}
                 </p>
                 {waitlistState === "done" ? (
-                  <p className="text-success-600 mt-2 inline-flex items-center gap-1.5 text-[12px] font-extrabold">
+                  <p className="text-success-600 text-label mt-2 inline-flex items-center gap-1.5 font-extrabold">
                     <Check className="size-3.5" />
                     {t("intlNotifyDone")}
                   </p>
@@ -1269,7 +1269,7 @@ export function CheckoutView({
                         setWaitlistState(r.ok ? "done" : "idle")
                       );
                     }}
-                    className="border-border text-foreground mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-extrabold disabled:opacity-60"
+                    className="border-border text-foreground text-label mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 font-extrabold disabled:opacity-60"
                   >
                     {waitlistState === "pending" && (
                       <Loader2 className="size-3.5 animate-spin" />
@@ -1289,12 +1289,12 @@ export function CheckoutView({
               <button
                 type="button"
                 onClick={() => setPayment("online")}
-                className="bg-primary-50 mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2.5 rounded-[13px] px-3.5 py-3 text-start transition active:scale-[0.99]"
+                className="bg-primary-50 rounded-card mx-4 mb-4 flex w-[calc(100%-2rem)] items-center gap-2.5 px-3.5 py-3 text-start transition active:scale-[0.99]"
               >
-                <span className="text-primary-600 grid size-8 shrink-0 place-items-center rounded-[9px] bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]">
+                <span className="text-primary-600 rounded-chip grid size-8 shrink-0 place-items-center bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]">
                   <Gift className="size-4" />
                 </span>
-                <span className="text-primary-800 flex-1 text-[12.5px] leading-snug font-bold">
+                <span className="text-primary-800 text-label-lg flex-1 leading-snug font-bold">
                   {t.rich("cashbackOnlineExtra", {
                     amount: formatDA(onlineCashbackExtra),
                     strong: (chunks) => (
@@ -1307,7 +1307,7 @@ export function CheckoutView({
             )}
 
           {onlineTooLow && (
-            <div className="border-danger-200 bg-danger-50 text-danger-800 mx-4 mt-3 mb-1 rounded-[10px] border px-3 py-2 text-xs">
+            <div className="border-danger-200 bg-danger-50 text-danger-800 rounded-control mx-4 mt-3 mb-1 border px-3 py-2 text-xs">
               {t.rich("onlineTooLow", {
                 min: formatDA(CHARGILY_MIN_AMOUNT_DA),
                 remaining: formatDA(totalAfterWallets),
@@ -1316,7 +1316,7 @@ export function CheckoutView({
             </div>
           )}
           {onlineFullyCovered && (
-            <div className="border-success-200 bg-success-50 text-success-800 mx-4 mt-3 mb-1 flex items-center gap-2 rounded-[10px] border px-3 py-2 text-xs">
+            <div className="border-success-200 bg-success-50 text-success-800 rounded-control mx-4 mt-3 mb-1 flex items-center gap-2 border px-3 py-2 text-xs">
               <Check className="size-4 shrink-0" />
               <span>
                 {t.rich("onlineFullyCovered", {
@@ -1364,7 +1364,7 @@ export function CheckoutView({
         <Block className="mt-3" delay={0.17}>
           {appliedPromo ? (
             <div className="flex items-center gap-3 p-4">
-              <span className="bg-success-50 text-success-700 grid size-[34px] shrink-0 place-items-center rounded-[10px]">
+              <span className="bg-success-50 text-success-700 rounded-control grid size-[34px] shrink-0 place-items-center">
                 <Tag className="size-[17px]" />
               </span>
               <span className="text-success-800 flex-1 text-sm font-extrabold">
@@ -1399,13 +1399,13 @@ export function CheckoutView({
                     }
                   }}
                   placeholder={t("promoPlaceholder")}
-                  className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-3 py-2.5 text-sm uppercase focus-visible:ring-2 focus-visible:outline-none"
+                  className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-md border px-3 py-2.5 text-sm uppercase focus-visible:ring-2 focus-visible:outline-none"
                 />
                 <button
                   type="button"
                   onClick={applyPromo}
                   disabled={promoChecking || promoInput.trim() === ""}
-                  className="bg-foreground text-background shrink-0 rounded-[12px] px-4 text-sm font-extrabold transition disabled:opacity-40"
+                  className="bg-foreground text-background shrink-0 rounded-md px-4 text-sm font-extrabold transition disabled:opacity-40"
                 >
                   {promoChecking ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -1431,7 +1431,7 @@ export function CheckoutView({
           <div className="border-border border-t">
             {noteOpen || note.trim() !== "" ? (
               <div className="p-4">
-                <p className="text-muted mb-2 flex items-center gap-2 text-[11px] font-extrabold tracking-wider uppercase">
+                <p className="text-muted text-caption mb-2 flex items-center gap-2 font-extrabold tracking-wider uppercase">
                   <Sparkles className="text-foreground size-[14px]" />
                   {t("noteToMerchant")}
                 </p>
@@ -1442,7 +1442,7 @@ export function CheckoutView({
                   rows={2}
                   maxLength={300}
                   placeholder={t("notePlaceholder")}
-                  className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full resize-none rounded-[12px] border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none"
+                  className="border-border bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full resize-none rounded-md border px-3 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none"
                 />
               </div>
             ) : (
@@ -1463,8 +1463,8 @@ export function CheckoutView({
               {t("recap")}
             </SectionTitle>
             {serviceFeeDa > 0 && serviceFeeFreeInDa != null && (
-              <div className="bg-primary-50 text-primary-700 relative mb-3.5 flex items-center gap-2.5 overflow-hidden rounded-[13px] px-3.5 py-3 text-[12.5px] font-bold">
-                <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-[8px] bg-white shadow-[0_2px_6px_-1px_rgba(91,91,230,0.4)]">
+              <div className="bg-primary-50 text-primary-700 rounded-card text-label-lg relative mb-3.5 flex items-center gap-2.5 overflow-hidden px-3.5 py-3 font-bold">
+                <span className="text-primary-600 grid size-7 shrink-0 place-items-center rounded-sm bg-white shadow-[0_2px_6px_-1px_rgba(91,91,230,0.4)]">
                   <Zap className="size-3.5" />
                 </span>
                 <span>
@@ -1539,7 +1539,7 @@ export function CheckoutView({
               )}
               {/* Livraison offerte gagnée à la Roue Coligo (mig 0421). */}
               {wheelCreditDa > 0 && (
-                <div className="flex items-center justify-between px-1 text-[13px]">
+                <div className="text-body-sm flex items-center justify-between px-1">
                   <dt className="text-success-700 font-bold">
                     {t("wheelFreeDelivery")}
                   </dt>
@@ -1554,7 +1554,7 @@ export function CheckoutView({
                 delivery.mode === "tour" &&
                 ctx.delivery.free_delivery != null &&
                 !freeDeliveryApplies && (
-                  <p className="text-accent-700 px-1 text-[12px] font-semibold">
+                  <p className="text-accent-700 text-label px-1 font-semibold">
                     {t("freeDeliveryHint", {
                       amount: formatDA(
                         Math.max(
@@ -1628,11 +1628,11 @@ export function CheckoutView({
         {/* Cashback GAGNÉ = gain futur (jamais un frais). Encadré vert séparé.
             Montant RÉEL du mode sélectionné (taux marchand ?? plateforme). */}
         {cashbackOn && cashbackEarnSelected > 0 && ctx.cart.totalDa > 0 && (
-          <div className="bg-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-[16px] p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
-            <span className="text-success-700 z-[2] grid size-9 shrink-0 place-items-center rounded-[11px] bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
+          <div className="bg-success-50 co-rise relative mt-3 flex items-center gap-3 overflow-hidden rounded-lg p-3.5 shadow-[0_6px_18px_-10px_rgba(21,145,90,0.4)]">
+            <span className="text-success-700 rounded-control-lg z-[2] grid size-9 shrink-0 place-items-center bg-white shadow-[0_3px_8px_-2px_rgba(21,145,90,0.35)]">
               <Gift className="size-[18px]" />
             </span>
-            <p className="text-success-700 z-[2] text-[12.5px] leading-snug font-bold">
+            <p className="text-success-700 text-label-lg z-[2] leading-snug font-bold">
               {t.rich("cashbackEarn", {
                 amount: formatDA(cashbackEarnSelected),
                 strong: (chunks) => (
@@ -1649,7 +1649,7 @@ export function CheckoutView({
       <div className="border-border fixed inset-x-0 bottom-[calc(3.5rem+env(safe-area-inset-bottom,0px))] z-40 border-t bg-white/95 px-4 pt-3 pb-3 shadow-[0_-8px_30px_rgba(40,35,90,0.1)] backdrop-blur-md lg:bottom-0">
         <div className="mx-auto max-w-[560px]">
           <div className="mb-2.5 flex items-center justify-between gap-3">
-            <span className="text-muted text-[12.5px] font-semibold">
+            <span className="text-muted text-label-lg font-semibold">
               {barLabel}
             </span>
             <span
@@ -1664,7 +1664,7 @@ export function CheckoutView({
             onClick={submit}
             disabled={!canSubmit}
             className={cn(
-              "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-[10px] text-base font-extrabold transition-all",
+              "rounded-control relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden text-base font-extrabold transition-all",
               canSubmit
                 ? "from-primary-400 to-primary-700 co-shine bg-gradient-to-br text-white shadow-[0_10px_26px_-8px_rgba(91,91,230,0.55)] active:scale-[0.98]"
                 : "bg-foreground/90 cursor-not-allowed text-white opacity-50"
@@ -1682,7 +1682,7 @@ export function CheckoutView({
                   totalAfterWallets > 0 && (
                     <IntlApproxTag
                       totalDa={totalAfterWallets}
-                      className="text-[12px] font-bold tabular-nums opacity-90"
+                      className="text-label font-bold tabular-nums opacity-90"
                     />
                   )}
                 <ChevronRight className="size-[18px]" />
@@ -1690,14 +1690,14 @@ export function CheckoutView({
             )}
           </button>
           {blockReason && (
-            <p className="text-warning-700 mt-2 flex items-center justify-center gap-1.5 text-center text-[11px] font-bold">
+            <p className="text-warning-700 text-caption mt-2 flex items-center justify-center gap-1.5 text-center font-bold">
               <AlertTriangle className="size-3.5" />
               {blockReason}
             </p>
           )}
           {/* Erreur de création de commande (stock, prix, etc.) — EN LIGNE. */}
           {submitError && (
-            <p className="text-danger-600 mt-2 flex items-center justify-center gap-1.5 text-center text-[12px] font-bold">
+            <p className="text-danger-600 text-label mt-2 flex items-center justify-center gap-1.5 text-center font-bold">
               <AlertTriangle className="size-3.5" />
               {submitError}
             </p>

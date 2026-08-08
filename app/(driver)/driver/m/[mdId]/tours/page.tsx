@@ -60,7 +60,7 @@ export default async function DriverToursPage({
         />
         <div className="space-y-4">
           <div
-            className="rounded-[14px] px-4 py-3 text-sm font-medium"
+            className="rounded-card-lg px-4 py-3 text-sm font-medium"
             style={{ background: "rgba(245,158,11,.12)", color: "#c2790a" }}
           >
             {link.status === "pending"
@@ -83,7 +83,7 @@ export default async function DriverToursPage({
           {ongoing && (
             <Link
               href={`/driver/m/${mdId}/tours/${ongoing.id}`}
-              className="flex h-[52px] items-center justify-center rounded-[16px] text-[15px] font-bold text-white active:scale-[0.99]"
+              className="text-title-sm flex h-[52px] items-center justify-center rounded-lg font-bold text-white active:scale-[0.99]"
               style={{
                 background: "#6c2bd9",
                 boxShadow: "0 14px 28px -12px rgba(108,43,217,.6)",

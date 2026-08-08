@@ -84,7 +84,7 @@ export function ResetPasswordForm() {
 
   if (sessionError) {
     return (
-      <div className="border-danger-200 bg-danger-50 text-danger-700 rounded-[12px] border p-4 text-sm">
+      <div className="border-danger-200 bg-danger-50 text-danger-700 rounded-md border p-4 text-sm">
         {sessionError}
       </div>
     );

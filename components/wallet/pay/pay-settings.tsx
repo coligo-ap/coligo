@@ -53,13 +53,13 @@ export function PaySettings({ base }: { base: PayBase }) {
       <PayCard className="p-3.5">
         <div className="flex items-center gap-3">
           <span
-            className="grid size-10 shrink-0 place-items-center rounded-[13px]"
+            className="rounded-card grid size-10 shrink-0 place-items-center"
             style={{ background: "var(--d-accent)", color: "var(--d-violet)" }}
           >
             <Wallet className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-[13.5px] font-extrabold text-[var(--d-ink)]">
+            <p className="text-body font-extrabold text-[var(--d-ink)]">
               Coligo Pay · {OWNER_BADGE[lang][owner]}
             </p>
           </div>
@@ -69,7 +69,7 @@ export function PaySettings({ base }: { base: PayBase }) {
             </PartnerStatusChip>
           )}
         </div>
-        <p className="mt-2.5 text-[11.5px] leading-snug font-medium text-[var(--d-muted)]">
+        <p className="text-caption-lg mt-2.5 leading-snug font-medium text-[var(--d-muted)]">
           {OWNER_CTX[lang][owner]}
         </p>
       </PayCard>

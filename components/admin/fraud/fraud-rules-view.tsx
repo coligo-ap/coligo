@@ -68,9 +68,9 @@ function RuleCard({ rule }: { rule: FraudRuleRow }) {
     >
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm font-bold">{rule.label}</span>
-        <span className="text-muted text-[11px]">{rule.code}</span>
+        <span className="text-muted text-caption">{rule.code}</span>
         <SeverityBadge severity={rule.severity} />
-        <span className="text-muted ms-auto text-[11px] tabular-nums">
+        <span className="text-muted text-caption ms-auto tabular-nums">
           {rule.hits} déclenchements
           {precision != null ? ` · précision ${precision} %` : ""}
         </span>
@@ -93,7 +93,7 @@ function RuleCard({ rule }: { rule: FraudRuleRow }) {
       </div>
       <p className="text-muted mt-1 text-xs leading-snug">{rule.description}</p>
       <div className="mt-2 flex flex-wrap items-end gap-2">
-        <label className="text-muted text-[11px] font-semibold">
+        <label className="text-muted text-caption font-semibold">
           Poids
           <input
             value={weight}
@@ -102,7 +102,7 @@ function RuleCard({ rule }: { rule: FraudRuleRow }) {
             className="border-border mt-0.5 block w-20 rounded-lg border bg-white px-2 py-1.5 text-sm font-semibold tabular-nums outline-none focus:border-slate-400"
           />
         </label>
-        <label className="text-muted min-w-0 flex-1 text-[11px] font-semibold">
+        <label className="text-muted text-caption min-w-0 flex-1 font-semibold">
           Seuils (JSON)
           <input
             value={params}
@@ -170,7 +170,7 @@ function SettingRow({ setting }: { setting: FraudSettingRow }) {
     <li className="flex flex-wrap items-center gap-2 py-2">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-semibold">{setting.label || setting.key}</p>
-        <p className="text-muted font-mono text-[11px]">{setting.key}</p>
+        <p className="text-muted text-caption font-mono">{setting.key}</p>
         {msg && (
           <p
             className={`text-xs font-medium ${

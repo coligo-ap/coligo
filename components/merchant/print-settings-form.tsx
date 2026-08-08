@@ -194,7 +194,7 @@ export function PrintSettingsForm({ initial, merchantName }: Props) {
         <button
           type="button"
           onClick={() => setPreviewCash((v) => !v)}
-          className="text-muted hover:bg-surface-2 ml-auto inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-xs"
+          className="text-muted hover:bg-surface-2 rounded-control ml-auto inline-flex h-9 items-center gap-1.5 px-3 text-xs"
           title="Bascule le mode paiement du ticket de test"
         >
           <Wand2 className="size-3.5" />
@@ -235,7 +235,7 @@ function SettingRow({
   children: React.ReactNode;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[12px] border p-3.5">
+    <div className="border-border bg-surface rounded-md border p-3.5">
       <div className="flex items-center gap-2.5">
         <Icon className="text-primary-500 size-4 shrink-0" />
         <span className="text-foreground text-sm font-semibold">{label}</span>
@@ -290,7 +290,7 @@ function SegmentedSelect<T extends string | number>({
   return (
     <div
       className={cn(
-        "bg-surface border-border-strong inline-flex gap-1 rounded-[10px] border p-1",
+        "bg-surface border-border-strong rounded-control inline-flex gap-1 border p-1",
         block && "w-full"
       )}
     >
@@ -302,7 +302,7 @@ function SegmentedSelect<T extends string | number>({
             type="button"
             onClick={() => onChange(opt.value)}
             className={cn(
-              "inline-flex items-center justify-center gap-1.5 rounded-[8px] px-3 py-1.5 text-xs font-medium transition-colors",
+              "inline-flex items-center justify-center gap-1.5 rounded-sm px-3 py-1.5 text-xs font-medium transition-colors",
               block && "flex-1",
               active
                 ? "bg-primary-600 text-white"

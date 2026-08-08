@@ -132,7 +132,7 @@ export function GainsReleveView({
       ) : (
         <>
           <h1
-            className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+            className="text-display-sm mb-3 font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
             {tr("Gains et Relevés", "الأرباح والكشوف")}
@@ -145,14 +145,14 @@ export function GainsReleveView({
       {/* Filtres (période + moyen de paiement) — au-dessus du bloc unique. */}
       {periodPicker}
 
-      <div className="mb-3 flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
+      <div className="rounded-card-lg mb-3 flex gap-[3px] bg-[var(--d-soft)] p-1">
         {filters.map((f) => (
           <button
             key={f.id}
             type="button"
             onClick={() => setFilter(f.id)}
             aria-pressed={filter === f.id}
-            className="flex-1 rounded-[11px] p-2 text-center text-[12.5px] font-bold transition-colors"
+            className="rounded-control-lg text-label-lg flex-1 p-2 text-center font-bold transition-colors"
             style={
               filter === f.id
                 ? {
@@ -171,10 +171,10 @@ export function GainsReleveView({
 
       {/* UN SEUL BLOC — relevé simple, aucun fond coloré, tout en lignes
           claires. Se lit d'un coup d'œil, de haut en bas. */}
-      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]">
         {/* Net — le chiffre principal. */}
         <div className="px-4 pt-4 pb-3.5">
-          <div className="text-[12px] font-medium text-[var(--d-muted)] capitalize">
+          <div className="text-label font-medium text-[var(--d-muted)] capitalize">
             {periodLabel}
           </div>
           <div
@@ -183,7 +183,7 @@ export function GainsReleveView({
           >
             {grp(s.netDa)} {DA}
           </div>
-          <div className="mt-1.5 text-[12.5px] text-[var(--d-muted)]">
+          <div className="text-label-lg mt-1.5 text-[var(--d-muted)]">
             {s.count} {tr(s.count > 1 ? "courses" : "course", "توصيلة")}
             {filter === "cash"
               ? ` ${tr("en espèces", "نقداً")}`
@@ -209,12 +209,12 @@ export function GainsReleveView({
         {/* Verdict de versement — même bloc, ligne mise en avant. */}
         <div className="border-t border-[var(--d-line)] px-4 py-3.5">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-[14px] font-bold text-[var(--d-ink)]">
+            <span className="text-body-lg font-bold text-[var(--d-ink)]">
               {verdictLabel}
             </span>
             {verdict.direction !== "settled" && (
               <span
-                className="shrink-0 text-[17px] font-extrabold text-[var(--d-ink)]"
+                className="text-title-lg shrink-0 font-extrabold text-[var(--d-ink)]"
                 style={{ fontFamily: SORA }}
               >
                 {grp(verdict.amountDa)} {DA}
@@ -222,7 +222,7 @@ export function GainsReleveView({
             )}
           </div>
           {verdict.direction === "settled" ? (
-            <p className="mt-1 text-[12px] text-[var(--d-muted)]">
+            <p className="text-label mt-1 text-[var(--d-muted)]">
               {tr("Rien à régler.", "لا شيء للتسوية.")}
             </p>
           ) : (
@@ -232,7 +232,7 @@ export function GainsReleveView({
               .map((part) => part.trim())
               .filter(Boolean)
               .map((part, i) => (
-                <p key={i} className="mt-1 text-[12px] text-[var(--d-muted)]">
+                <p key={i} className="text-label mt-1 text-[var(--d-muted)]">
                   {part}
                 </p>
               ))
@@ -244,7 +244,7 @@ export function GainsReleveView({
           type="button"
           onClick={() => void downloadReleve()}
           disabled={pdfBusy}
-          className="flex w-full items-center justify-center gap-2 border-t border-[var(--d-line)] py-3.5 text-[13.5px] font-bold text-[var(--d-ink)] disabled:opacity-60"
+          className="text-body flex w-full items-center justify-center gap-2 border-t border-[var(--d-line)] py-3.5 font-bold text-[var(--d-ink)] disabled:opacity-60"
         >
           {pdfBusy ? (
             <Loader2 className="size-4 animate-spin" />
@@ -263,7 +263,7 @@ export function GainsReleveView({
 /** Ligne de relevé (libellé à gauche, montant à droite) — neutre, sans fond. */
 function Row({ k, v }: { k: string; v: string }) {
   return (
-    <div className="flex items-center justify-between gap-3 border-t border-[var(--d-line)] px-4 py-3 text-[13.5px]">
+    <div className="text-body flex items-center justify-between gap-3 border-t border-[var(--d-line)] px-4 py-3">
       <span className="text-[var(--d-muted)]">{k}</span>
       <span
         className="shrink-0 font-semibold text-[var(--d-ink)]"

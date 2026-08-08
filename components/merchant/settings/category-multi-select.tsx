@@ -70,7 +70,7 @@ export function CategoryMultiSelect({
         type="button"
         disabled={disabled}
         onClick={() => setOpen((v) => !v)}
-        className="border-border-strong bg-surface flex min-h-11 w-full flex-wrap items-center gap-1.5 rounded-[10px] border px-3 py-2 text-left text-sm disabled:opacity-50"
+        className="border-border-strong bg-surface rounded-control flex min-h-11 w-full flex-wrap items-center gap-1.5 border px-3 py-2 text-left text-sm disabled:opacity-50"
       >
         {value.length === 0 ? (
           <span className="text-muted">
@@ -106,7 +106,7 @@ export function CategoryMultiSelect({
       </button>
 
       {open && (
-        <div className="border-border bg-surface absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-[12px] border shadow-lg">
+        <div className="border-border bg-surface absolute z-30 mt-1 max-h-72 w-full overflow-auto rounded-md border shadow-lg">
           <div className="border-border sticky top-0 border-b bg-inherit p-2">
             <div className="relative">
               <Search className="text-muted absolute top-1/2 left-2.5 size-4 -translate-y-1/2" />
@@ -115,7 +115,7 @@ export function CategoryMultiSelect({
                 value={q}
                 onChange={(e) => setQ(e.target.value)}
                 placeholder="Chercher un type (pizza, boulangerie…)"
-                className="border-border bg-surface-2 h-9 w-full rounded-[8px] border pl-8 text-sm outline-none"
+                className="border-border bg-surface-2 h-9 w-full rounded-sm border pl-8 text-sm outline-none"
               />
             </div>
           </div>
@@ -155,7 +155,7 @@ export function CategoryMultiSelect({
             <button
               type="button"
               onClick={() => setOpen(false)}
-              className="bg-primary-600 w-full rounded-[8px] py-2 text-xs font-bold text-white"
+              className="bg-primary-600 w-full rounded-sm py-2 text-xs font-bold text-white"
             >
               Terminé{value.length > 0 ? ` (${value.length})` : ""}
             </button>

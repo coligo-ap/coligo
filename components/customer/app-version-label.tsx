@@ -29,7 +29,7 @@ export function AppVersionLabel() {
   if (!v) return null;
 
   return (
-    <p className="text-subtle pt-3 text-center text-[11px] font-medium">
+    <p className="text-subtle text-caption pt-3 text-center font-medium">
       Coligo v{v.version} ({v.build})
     </p>
   );

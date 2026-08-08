@@ -55,7 +55,7 @@ export function FeatureFlagCard({
   return (
     <form
       action={formAction}
-      className="border-border bg-surface space-y-3 rounded-[16px] border p-4"
+      className="border-border bg-surface space-y-3 rounded-lg border p-4"
     >
       <input type="hidden" name="key" value={flag.key} />
       <div className="flex items-start justify-between gap-3">

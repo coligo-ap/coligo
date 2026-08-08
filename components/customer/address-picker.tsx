@@ -112,7 +112,7 @@ export function AddressPicker({
   return (
     <div className={"space-y-2 " + (className ?? "")}>
       <div
-        className="bg-surface-2 relative w-full overflow-hidden rounded-[12px]"
+        className="bg-surface-2 relative w-full overflow-hidden rounded-md"
         style={{ height: 300 }}
       >
         {/* h-full/w-full et NON `absolute inset-0` : la classe `maplibregl-map`
@@ -145,7 +145,7 @@ export function AddressPicker({
         </button>
       </div>
       {geoErr && (
-        <p className="text-danger-600 text-center text-[12px] font-semibold">
+        <p className="text-danger-600 text-label text-center font-semibold">
           {geoErr}
         </p>
       )}

@@ -63,7 +63,7 @@ export function PullToRefresh({ children }: { children: ReactNode }) {
     >
       {/* Indicateur de tirage. */}
       <div
-        className="pointer-events-none flex items-center justify-center overflow-hidden text-[#6c2bd9]"
+        className="pointer-events-none flex items-center justify-center overflow-hidden text-[var(--color-primary-600)]"
         style={{
           height: pull,
           transition: startY.current == null ? "height .2s ease" : "none",

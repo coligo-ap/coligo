@@ -22,7 +22,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
   const t = useTranslations("wallet");
   if (entries.length === 0) {
     return (
-      <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
+      <div className="border-border bg-surface text-muted rounded-lg border px-6 py-12 text-center text-sm">
         <Gift className="text-subtle mx-auto mb-2 size-6" />
         {t("noEntries")}
         <p className="mt-3">
@@ -37,7 +37,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
     );
   }
   return (
-    <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[20px] border shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+    <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-xl border shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
       {entries.map((entry) => {
         const credit = entry.amount_da > 0;
         const meta = describe(entry.type, t);
@@ -45,7 +45,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
           <li key={entry.id} className="flex items-center gap-3 px-4 py-3.5">
             <div
               className={cn(
-                "flex size-[42px] shrink-0 items-center justify-center rounded-[13px]",
+                "rounded-card flex size-[42px] shrink-0 items-center justify-center",
                 credit
                   ? "bg-success-50 text-success-700"
                   : "bg-danger-50 text-danger-700"
@@ -93,7 +93,7 @@ export function WalletEntryList({ entries, emptyHint }: Props) {
             </div>
             <span
               className={cn(
-                "shrink-0 text-[15px] font-black tabular-nums",
+                "text-title-sm shrink-0 font-black tabular-nums",
                 credit ? "text-success-700" : "text-danger-700"
               )}
             >

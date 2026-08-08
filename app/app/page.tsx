@@ -71,7 +71,7 @@ export default async function TelechargerPage({
           l'en-tête n'aurait pas identifié). Sans effet sur un vrai ordinateur. */}
       {!sp.stay && <StoreAutoRedirect />}
 
-      <div className="bg-surface w-full max-w-md rounded-[24px] p-7 text-center shadow-[0_20px_50px_-24px_rgba(40,35,90,.35)]">
+      <div className="bg-surface rounded-panel w-full max-w-md p-7 text-center shadow-[0_20px_50px_-24px_rgba(40,35,90,.35)]">
         <div className="flex justify-center">
           <Logo size="lg" />
         </div>
@@ -82,7 +82,7 @@ export default async function TelechargerPage({
 
         <StoreBadges className="mt-6 justify-center" />
 
-        <p className="text-subtle mt-6 flex items-center justify-center gap-1.5 text-[12px] font-semibold">
+        <p className="text-subtle text-label mt-6 flex items-center justify-center gap-1.5 font-semibold">
           <Smartphone className="size-3.5 shrink-0" />
           {t("hint")}
         </p>

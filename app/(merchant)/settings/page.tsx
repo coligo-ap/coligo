@@ -312,7 +312,7 @@ export default async function SettingsPage() {
         {/* Portefeuille & recharge (solde, carte/CCP, points proches) */}
         <Link
           href="/recharger"
-          className="border-border hover:bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border bg-white p-4 text-start transition-colors"
+          className="border-border hover:bg-surface-2 rounded-card-lg flex w-full items-center gap-3 border bg-white p-4 text-start transition-colors"
         >
           <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
             <Wallet className="size-5" />
@@ -331,7 +331,7 @@ export default async function SettingsPage() {
         {/* Télécharger l'APK Android (impression thermique Sunmi) */}
         <Link
           href="/telecharger"
-          className="border-border hover:bg-surface-2 flex w-full items-center gap-3 rounded-[14px] border bg-white p-4 text-start transition-colors"
+          className="border-border hover:bg-surface-2 rounded-card-lg flex w-full items-center gap-3 border bg-white p-4 text-start transition-colors"
         >
           <span className="bg-primary-50 text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
             <Smartphone className="size-5" />

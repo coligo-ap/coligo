@@ -155,7 +155,7 @@ export function AdminMerchantsView({
       {pendingCount > 0 && (
         <Link
           href="/admin/merchants/inscriptions"
-          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium transition-colors"
         >
           <Clock className="size-4" />
           {pendingCount} inscription{pendingCount > 1 ? "s" : ""} en attente de
@@ -195,7 +195,7 @@ export function AdminMerchantsView({
               <button
                 type="button"
                 onClick={() => setManaging(m)}
-                className="border-border text-foreground hover:bg-surface-2 mt-2 flex w-full items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-bold transition-colors"
+                className="border-border text-foreground hover:bg-surface-2 rounded-control mt-2 flex w-full items-center justify-center gap-1.5 border px-3 py-2 text-xs font-bold transition-colors"
               >
                 <SlidersHorizontal className="size-3.5" />
                 Gérer la fiche
@@ -220,7 +220,7 @@ export function AdminMerchantsView({
           type="button"
           disabled={busy}
           onClick={() => void load(query, rows.length)}
-          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
         >
           {busy
             ? "Chargement…"
@@ -293,7 +293,7 @@ function MerchantRow({
   }
 
   return (
-    <li className="border-border bg-surface rounded-[16px] border p-5">
+    <li className="border-border bg-surface rounded-lg border p-5">
       <div className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -316,7 +316,7 @@ function MerchantRow({
                 {merchant.phone}
               </p>
             )}
-            <p className="text-subtle font-mono text-[10px]">
+            <p className="text-subtle text-micro font-mono">
               id&nbsp;{merchant.id}
               {merchant.slug ? ` · ${merchant.slug}` : ""}
             </p>
@@ -337,7 +337,7 @@ function MerchantRow({
             onClick={onToggleFreeze}
             disabled={pending}
             className={cn(
-              "mt-1 inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1 text-xs font-medium",
+              "rounded-control mt-1 inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-medium",
               merchant.is_frozen
                 ? "text-success-700 hover:bg-success-50"
                 : "text-danger-600 hover:bg-danger-50"
@@ -369,7 +369,7 @@ function MerchantRow({
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             {OVERRIDE_FIELDS.map((f) => (
               <div key={f.name} className="space-y-1">
-                <label className="text-muted text-[11px] font-medium">
+                <label className="text-muted text-caption font-medium">
                   {f.label} (%)
                 </label>
                 <Input
@@ -401,7 +401,7 @@ function MerchantRow({
               merchant.commission_online ?? settings?.commission_online ?? 0;
             if (chargily <= 0 || effOnline >= chargily) return null;
             return (
-              <p className="text-danger-700 bg-danger-50 border-danger-200 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+              <p className="text-danger-700 bg-danger-50 border-danger-200 rounded-control flex items-start gap-2 border px-3 py-2 text-xs">
                 <AlertTriangle className="mt-0.5 size-4 shrink-0" />
                 <span>
                   Commission online ({rateToPct(effOnline)} %) sous le seuil
@@ -451,7 +451,7 @@ function MerchantRow({
                 type="button"
                 onClick={onSeedCatalog}
                 disabled={seeding}
-                className="bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex items-center gap-2 rounded-[10px] px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+                className="bg-primary-50 text-primary-700 hover:bg-primary-100 rounded-control inline-flex items-center gap-2 px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
               >
                 {seeding ? (
                   <Loader2 className="size-4 animate-spin" />

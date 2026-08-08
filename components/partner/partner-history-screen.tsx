@@ -67,7 +67,7 @@ export function PartnerHistoryScreen() {
         ))}
       </div>
 
-      <div className="border-border bg-surface rounded-[16px] border p-4">
+      <div className="border-border bg-surface rounded-lg border p-4">
         {entries === null ? (
           <p className="text-muted text-sm">Chargement…</p>
         ) : shown.length === 0 ? (

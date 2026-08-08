@@ -10,6 +10,8 @@
  * (le client ne dispose pas toujours de l'ancienneté exacte). 5 niveaux, chacun
  * sa couleur, son emoji et son accroche.
  */
+import { BADGE_TIERS } from "@/lib/design/tokens";
+
 export type DriverBadgeTier = "recrue" | "bronze" | "argent" | "or" | "diamant";
 
 export type DriverBadge = {
@@ -28,49 +30,53 @@ export type DriverBadge = {
   emoji: string;
 };
 
+/** Dégradé 135° d'un palier — même écriture qu'avant, valeurs des tokens. */
+const grad = (t: (typeof BADGE_TIERS)[DriverBadgeTier]) =>
+  `linear-gradient(135deg,${t.from},${t.to})`;
+
 const RECRUE: DriverBadge = {
   tier: "recrue",
   label: "Recrue",
   title: "Nouveau chauffeur",
-  gradient: "linear-gradient(135deg,#94A3B8,#64748B)",
-  solid: "#64748B",
-  text: "#FFFFFF",
+  gradient: grad(BADGE_TIERS.recrue),
+  solid: BADGE_TIERS.recrue.solid,
+  text: BADGE_TIERS.recrue.text,
   emoji: "🌱",
 };
 const BRONZE: DriverBadge = {
   tier: "bronze",
   label: "Bronze",
   title: "Chauffeur confirmé",
-  gradient: "linear-gradient(135deg,#D8A36B,#A66A2E)",
-  solid: "#B4732E",
-  text: "#FFFFFF",
+  gradient: grad(BADGE_TIERS.bronze),
+  solid: BADGE_TIERS.bronze.solid,
+  text: BADGE_TIERS.bronze.text,
   emoji: "🥉",
 };
 const ARGENT: DriverBadge = {
   tier: "argent",
   label: "Argent",
   title: "Chauffeur de confiance",
-  gradient: "linear-gradient(135deg,#E2E8F0,#94A3B8)",
-  solid: "#8A93A3",
-  text: "#1F2937",
+  gradient: grad(BADGE_TIERS.argent),
+  solid: BADGE_TIERS.argent.solid,
+  text: BADGE_TIERS.argent.text,
   emoji: "🥈",
 };
 const OR: DriverBadge = {
   tier: "or",
   label: "Or",
   title: "Chauffeur d'exception",
-  gradient: "linear-gradient(135deg,#F7D661,#E0A815)",
-  solid: "#E0A815",
-  text: "#3A2C00",
+  gradient: grad(BADGE_TIERS.or),
+  solid: BADGE_TIERS.or.solid,
+  text: BADGE_TIERS.or.text,
   emoji: "🥇",
 };
 const DIAMANT: DriverBadge = {
   tier: "diamant",
   label: "Diamant",
   title: "Chauffeur d'élite",
-  gradient: "linear-gradient(135deg,#67E8F9,#7C3AED)",
-  solid: "#7C3AED",
-  text: "#FFFFFF",
+  gradient: grad(BADGE_TIERS.diamant),
+  solid: BADGE_TIERS.diamant.solid,
+  text: BADGE_TIERS.diamant.text,
   emoji: "💎",
 };
 

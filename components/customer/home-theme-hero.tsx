@@ -45,8 +45,8 @@ export function HomeThemeHero({
     <div
       className={
         extended
-          ? "relative -mb-[168px] overflow-hidden rounded-b-[28px] pb-[180px] text-white"
-          : "relative -mb-[72px] overflow-hidden rounded-b-[28px] pb-[84px] text-white"
+          ? "relative -mb-[168px] overflow-hidden rounded-b-2xl pb-[180px] text-white"
+          : "relative -mb-[72px] overflow-hidden rounded-b-2xl pb-[84px] text-white"
       }
       style={{ backgroundImage: themeGradientVertical(t) }}
     >
@@ -56,7 +56,7 @@ export function HomeThemeHero({
           <Icon className="size-5 drop-shadow-sm" />
         </div>
         <div className="min-w-0">
-          <p className="text-[17px] leading-tight font-bold drop-shadow-sm">
+          <p className="text-title-lg leading-tight font-bold drop-shadow-sm">
             {t.home[lang]}
           </p>
           <p className="mt-0.5 text-xs leading-snug text-white/85">

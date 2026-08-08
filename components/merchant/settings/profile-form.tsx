@@ -125,7 +125,7 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
             carte + adresse enregistrée. C'est ICI qu'on regarde le commerce
             exactement : on affiche l'adresse réelle enregistrée, pas seulement
             le repère par défaut. */}
-        <div className="border-border bg-surface-2/40 space-y-3 rounded-[14px] border p-4">
+        <div className="border-border bg-surface-2/40 rounded-card-lg space-y-3 border p-4">
           <div className="flex items-center gap-2">
             <MapPin className="text-primary-600 size-4" />
             <h3 className="text-foreground text-sm font-semibold">
@@ -167,7 +167,7 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
               rows={4}
               maxLength={800}
               disabled={pending}
-              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-md border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
             />
           </Field>
           <Field label="Description (arabe)">
@@ -179,7 +179,7 @@ export function ProfileForm({ merchant }: { merchant: MerchantSettings }) {
                 maxLength={800}
                 dir="rtl"
                 disabled={pending}
-                className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+                className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-md border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
               />
               <TranslateArButton
                 sourceField="description_fr"

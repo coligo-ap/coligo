@@ -112,7 +112,7 @@ export function TourDispatchMount() {
 
   return (
     <div className="fixed inset-x-0 top-0 z-[80] flex justify-center px-3 pt-[calc(12px+env(safe-area-inset-top))]">
-      <div className="partner-sheet-in flex w-full max-w-md items-center gap-3 rounded-[16px] border border-[var(--line)] bg-[var(--surface)] p-3 shadow-xl">
+      <div className="partner-sheet-in flex w-full max-w-md items-center gap-3 rounded-lg border border-[var(--line)] bg-[var(--surface)] p-3 shadow-xl">
         <button
           type="button"
           onClick={() => {
@@ -121,11 +121,11 @@ export function TourDispatchMount() {
           }}
           className="flex min-w-0 flex-1 items-center gap-3 text-start"
         >
-          <span className="grid size-11 shrink-0 place-items-center rounded-[13px] bg-[var(--violet-soft)] text-[var(--violet)]">
+          <span className="rounded-card grid size-11 shrink-0 place-items-center bg-[var(--violet-soft)] text-[var(--violet)]">
             <CalendarDays className="size-5" />
           </span>
           <span className="min-w-0 flex-1">
-            <span className="mb-1 inline-block rounded-full bg-[var(--violet)] px-2 py-0.5 text-[10px] font-extrabold tracking-wide text-white uppercase">
+            <span className="text-micro mb-1 inline-block rounded-full bg-[var(--violet)] px-2 py-0.5 font-extrabold tracking-wide text-white uppercase">
               📅 {tr("Tournée", "جولة")}
             </span>
             <span className="block truncate text-sm font-bold text-[var(--ink)]">

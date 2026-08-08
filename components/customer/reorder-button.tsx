@@ -66,13 +66,13 @@ export function ReorderButton({ orderId }: { orderId: string }) {
 
   if (done) {
     return (
-      <div className="border-success-100 bg-success-50 mt-2.5 rounded-[16px] border p-3.5">
-        <p className="text-success-800 text-[13px] font-bold">
+      <div className="border-success-100 bg-success-50 mt-2.5 rounded-lg border p-3.5">
+        <p className="text-success-800 text-body-sm font-bold">
           ✓ {done.count} article{done.count > 1 ? "s" : ""} ajouté
           {done.count > 1 ? "s" : ""} à votre panier
         </p>
         {done.missing.length > 0 && (
-          <p className="text-muted mt-1 text-[12px] font-medium">
+          <p className="text-muted text-label mt-1 font-medium">
             Non disponible{done.missing.length > 1 ? "s" : ""} aujourd&apos;hui
             : {done.missing.join(", ")}
           </p>
@@ -80,7 +80,7 @@ export function ReorderButton({ orderId }: { orderId: string }) {
         <button
           type="button"
           onClick={() => router.push(`/m/${done.slug}`)}
-          className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[12px] px-4 text-sm font-bold text-white transition-colors"
+          className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md px-4 text-sm font-bold text-white transition-colors"
         >
           Voir le panier
           <ArrowRight className="size-4 rtl:-scale-x-100" />
@@ -95,7 +95,7 @@ export function ReorderButton({ orderId }: { orderId: string }) {
         type="button"
         onClick={handleReorder}
         disabled={pending}
-        className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] bg-white px-4 text-sm font-bold transition-colors disabled:opacity-60"
+        className="border-primary-200 text-primary-700 hover:bg-primary-50 rounded-card-lg inline-flex h-11 w-full items-center justify-center gap-2 border-[1.5px] bg-white px-4 text-sm font-bold transition-colors disabled:opacity-60"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />
@@ -105,7 +105,7 @@ export function ReorderButton({ orderId }: { orderId: string }) {
         Commander à nouveau
       </button>
       {error && (
-        <p className="text-danger-600 mt-2 text-center text-[12.5px] font-semibold">
+        <p className="text-danger-600 text-label-lg mt-2 text-center font-semibold">
           {error}
         </p>
       )}

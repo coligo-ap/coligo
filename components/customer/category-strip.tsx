@@ -193,7 +193,7 @@ function Tile({
       </span>
       <span
         className={cn(
-          "max-w-[62px] truncate text-[11px] leading-tight",
+          "text-caption max-w-[62px] truncate leading-tight",
           active
             ? onHero
               ? "font-extrabold text-white"

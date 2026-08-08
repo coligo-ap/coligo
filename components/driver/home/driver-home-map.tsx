@@ -16,6 +16,7 @@ import {
   type DemandZone,
 } from "@/lib/delivery/zones";
 import { useWorkZone, zoneCircleGeoJSON } from "@/lib/driver/work-zone";
+import { INK, MAP, withAlpha } from "@/lib/design/tokens";
 
 /**
  * Carte plein écran de l'accueil livreur (style Uber Eats Driver). Centrée sur
@@ -105,7 +106,7 @@ export function DriverHomeMap({
               type: "fill",
               source: "work-zone",
               paint: {
-                "fill-color": "#6c2bd9",
+                "fill-color": MAP.zoneLine,
                 "fill-opacity": 0.1,
               } as never,
             });
@@ -114,7 +115,7 @@ export function DriverHomeMap({
               type: "line",
               source: "work-zone",
               paint: {
-                "line-color": "#6c2bd9",
+                "line-color": MAP.zoneLine,
                 "line-width": 2,
                 "line-dasharray": [2, 1.5],
                 "line-opacity": 0.7,
@@ -164,7 +165,7 @@ export function DriverHomeMap({
               "circle-color": ["get", "color"],
               "circle-opacity": 0.9,
               "circle-radius": 13,
-              "circle-stroke-color": "#fff",
+              "circle-stroke-color": INK.white,
               "circle-stroke-width": 2,
             } as never,
           });
@@ -178,7 +179,7 @@ export function DriverHomeMap({
               "text-font": ["Open Sans Bold", "Noto Sans Bold"],
               "text-allow-overlap": true,
             } as never,
-            paint: { "text-color": "#fff" } as never,
+            paint: { "text-color": INK.white } as never,
           });
           zonesLayerReady.current = true;
         } catch {
@@ -191,7 +192,7 @@ export function DriverHomeMap({
       // Pins commerçants — goutte noire avec 🏪.
       for (const m of merchants) {
         const el = document.createElement("div");
-        el.innerHTML = `<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:#000;transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.3)"><span style="transform:rotate(45deg);font-size:14px">🏪</span></div>`;
+        el.innerHTML = `<div style="width:34px;height:34px;border-radius:50% 50% 50% 0;background:${INK.black};transform:rotate(-45deg);display:grid;place-items:center;box-shadow:0 6px 14px rgba(0,0,0,.3)"><span style="transform:rotate(45deg);font-size:14px">🏪</span></div>`;
         new Marker({ element: el, anchor: "bottom" })
           .setLngLat([m.lng, m.lat])
           .addTo(map);
@@ -239,11 +240,11 @@ export function DriverHomeMap({
         // négatives) → l'onde reste bien concentrique au point. Les vagues
         // RADAR (data-radar) ne s'affichent qu'EN LIGNE (cf. effet dédié).
         const wave = (delay: string) =>
-          `<div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(108,43,217,.28);animation:me-radar-wave 2.4s ease-out ${delay} infinite"></div>`;
+          `<div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:${withAlpha(MAP.me, 0.28)};animation:me-radar-wave 2.4s ease-out ${delay} infinite"></div>`;
         el.innerHTML = `
           <div data-radar style="display:${onlineRef.current ? "block" : "none"}">${wave("0s")}${wave(".8s")}${wave("1.6s")}</div>
-          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.25);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 0 0 2px rgba(108,43,217,.6),0 4px 12px rgba(0,0,0,.3)"></div>`;
+          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:${withAlpha(MAP.me, 0.25)};animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:18px;height:18px;margin:-9px 0 0 -9px;border-radius:50%;background:${MAP.me};border:3px solid ${INK.white};box-shadow:0 0 0 2px ${withAlpha(MAP.me, 0.6)},0 4px 12px rgba(0,0,0,.3)"></div>`;
         el.addEventListener("click", (e) => {
           e.stopPropagation();
           flyToMe(16);
@@ -329,7 +330,7 @@ export function DriverHomeMap({
       if (zone) {
         if (!zoneCenterMarkerRef.current) {
           const el = document.createElement("div");
-          el.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`;
+          el.innerHTML = `<div style="width:14px;height:14px;border-radius:50%;background:${MAP.zoneLine};border:3px solid ${INK.white};box-shadow:0 2px 8px rgba(0,0,0,.35)"></div>`;
           zoneCenterMarkerRef.current = new Marker({
             element: el,
             anchor: "center",
@@ -404,8 +405,8 @@ export function DriverHomeMap({
       {/* Légende des zones de forte demande — sous le bandeau haut (menu /
           revenu / GPS), visible uniquement s'il y en a. Tokens = dark-safe. */}
       {hasZones && (
-        <div className="absolute top-[max(66px,calc(env(safe-area-inset-top)+64px))] left-3.5 z-[45] rounded-[14px] border border-[var(--line)] bg-[var(--surface)]/95 px-3 py-2.5 shadow-[0_6px_16px_rgba(0,0,0,.15)] backdrop-blur">
-          <p className="mb-1.5 flex items-center gap-1.5 text-[11px] font-extrabold tracking-wide text-[var(--ink)] uppercase">
+        <div className="rounded-card-lg absolute top-[max(66px,calc(env(safe-area-inset-top)+64px))] left-3.5 z-[45] border border-[var(--line)] bg-[var(--surface)]/95 px-3 py-2.5 shadow-[0_6px_16px_rgba(0,0,0,.15)] backdrop-blur">
+          <p className="text-caption mb-1.5 flex items-center gap-1.5 font-extrabold tracking-wide text-[var(--ink)] uppercase">
             <Flame className="size-3.5 text-[#f97316]" />
             Zones de forte demande
           </p>
@@ -413,7 +414,7 @@ export function DriverHomeMap({
             {(["very_high", "high", "medium"] as DemandLevel[]).map((lvl) => (
               <span
                 key={lvl}
-                className="flex items-center gap-2 text-[11px] font-semibold text-[var(--ink)]"
+                className="text-caption flex items-center gap-2 font-semibold text-[var(--ink)]"
               >
                 <span
                   className="size-2.5 rounded-full"

@@ -13,7 +13,7 @@ interface LogoProps {
 }
 
 const sizes = {
-  sm: { box: "size-8 p-1.5", mark: "h-5", subtitle: "text-[10px]" },
+  sm: { box: "size-8 p-1.5", mark: "h-5", subtitle: "text-micro" },
   md: { box: "size-10 p-2", mark: "h-6", subtitle: "text-xs" },
   lg: { box: "size-12 p-2.5", mark: "h-8", subtitle: "text-xs" },
   xl: { box: "size-14 p-3", mark: "h-10", subtitle: "text-sm" },
@@ -37,7 +37,7 @@ export function Logo({
     return (
       <div
         className={cn(
-          "flex items-center justify-center rounded-xl bg-[#6C2BD9] shadow-sm",
+          "bg-primary-600 flex items-center justify-center rounded-xl shadow-sm",
           s.box,
           className
         )}

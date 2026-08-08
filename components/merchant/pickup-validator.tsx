@@ -202,7 +202,7 @@ export function PickupValidator() {
   return (
     <div className="mx-auto max-w-md">
       {/* Onglets */}
-      <div className="bg-surface-3 mb-6 grid grid-cols-2 gap-1 rounded-[12px] p-1">
+      <div className="bg-surface-3 mb-6 grid grid-cols-2 gap-1 rounded-md p-1">
         <TabButton active={tab === "code"} onClick={() => setTab("code")}>
           <Hash className="size-4" />
           Code
@@ -293,7 +293,7 @@ function ReadyPromptModal({
             type="button"
             disabled={pending}
             onClick={onMarkReady}
-            className="bg-warning-500 hover:bg-warning-600 flex min-h-12 items-center justify-center rounded-[12px] px-2 text-center text-[13px] leading-tight font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
+            className="bg-warning-500 hover:bg-warning-600 text-body-sm flex min-h-12 items-center justify-center rounded-md px-2 text-center leading-tight font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
           >
             Marquer prête
             <br />
@@ -303,7 +303,7 @@ function ReadyPromptModal({
             type="button"
             disabled={pending}
             onClick={onMarkReadyAndComplete}
-            className="bg-success-600 hover:bg-success-700 flex min-h-12 items-center justify-center rounded-[12px] px-2 text-center text-[13px] leading-tight font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
+            className="bg-success-600 hover:bg-success-700 text-body-sm flex min-h-12 items-center justify-center rounded-md px-2 text-center leading-tight font-bold text-white transition active:scale-[0.98] disabled:opacity-60"
           >
             Prête + valider
             <br />
@@ -371,7 +371,7 @@ function TabButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex h-10 items-center justify-center gap-2 rounded-[9px] text-sm font-medium transition-colors",
+        "rounded-chip flex h-10 items-center justify-center gap-2 text-sm font-medium transition-colors",
         active
           ? "text-primary-700 bg-white shadow-sm"
           : "text-muted hover:text-foreground"
@@ -427,7 +427,7 @@ function CodeTab({
   const complete = code.length === 4;
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-5">
+    <div className="border-border bg-surface rounded-lg border p-5">
       <p className="text-muted mb-4 text-center text-sm">
         Saisissez le code à 4 chiffres présenté par le client.
       </p>
@@ -447,7 +447,7 @@ function CodeTab({
             autoFocus={i === 0}
             disabled={pending}
             aria-label={`Chiffre ${i + 1}`}
-            className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 size-12 rounded-[12px] border text-center text-xl font-semibold tabular-nums focus:ring-2 focus:outline-none disabled:opacity-50"
+            className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 size-12 rounded-md border text-center text-xl font-semibold tabular-nums focus:ring-2 focus:outline-none disabled:opacity-50"
           />
         ))}
       </div>
@@ -500,7 +500,7 @@ function QrTab({
   );
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-5">
+    <div className="border-border bg-surface rounded-lg border p-5">
       <p className="text-muted mb-4 text-center text-sm">
         Scannez le QR du client ou celui du ticket imprimé.
       </p>
@@ -508,7 +508,7 @@ function QrTab({
       <div className="relative">
         <QrScanner onScan={handleScan} oneShot className="max-w-[280px]" />
         {pending && (
-          <div className="absolute inset-0 flex items-center justify-center rounded-[16px] bg-black/50">
+          <div className="absolute inset-0 flex items-center justify-center rounded-lg bg-black/50">
             <Loader2 className="size-6 animate-spin text-white" />
           </div>
         )}
@@ -551,7 +551,7 @@ function SuccessPanel({
   return (
     <div
       className={cn(
-        "rounded-[16px] border p-6 text-center",
+        "rounded-lg border p-6 text-center",
         isWarn
           ? "border-warning-200 bg-warning-50"
           : "border-success-200 bg-success-50"

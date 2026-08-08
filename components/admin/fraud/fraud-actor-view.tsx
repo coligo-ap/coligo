@@ -82,7 +82,7 @@ function RiskSparkline({ history }: { history: FraudActorDetail["history"] }) {
           </circle>
         ))}
       </svg>
-      <div className="text-muted flex justify-between text-[10px]">
+      <div className="text-muted text-micro flex justify-between">
         <span>{fmtDateTime(history[0].at)}</span>
         <span>{fmtDateTime(history[history.length - 1].at)}</span>
       </div>
@@ -106,7 +106,7 @@ function MetaChips({ meta }: { meta: Record<string, unknown> }) {
       {chips.map((c) => (
         <span
           key={c}
-          className={`rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${
+          className={`text-micro rounded-full px-1.5 py-0.5 font-semibold ${
             c.startsWith("⚠")
               ? "bg-red-50 text-red-700"
               : "text-muted bg-slate-100"
@@ -221,13 +221,13 @@ export function FraudActorView({
           <KindBadge kind={kind} />
           <SeverityBadge severity={score.risk_level} />
           {score.suspicious_count > 0 && (
-            <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+            <span className="text-micro rounded-full bg-red-50 px-2 py-0.5 font-bold text-red-700">
               {score.suspicious_count} situation
               {score.suspicious_count > 1 ? "s" : ""} suspecte
               {score.suspicious_count > 1 ? "s" : ""}
             </span>
           )}
-          <span className="text-muted ms-auto text-[11px]">
+          <span className="text-muted text-caption ms-auto">
             Évalué {fmtDateTime(score.evaluated_at)}
           </span>
         </div>
@@ -277,7 +277,7 @@ export function FraudActorView({
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold">
                     {FRAUD_ACTION_LABEL[a.action]}{" "}
-                    <span className="text-muted text-[11px] font-normal">
+                    <span className="text-muted text-caption font-normal">
                       {a.source === "auto"
                         ? "· automatique"
                         : `· ${a.admin_email}`}
@@ -318,7 +318,7 @@ export function FraudActorView({
           <div className="mt-2 overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead>
-                <tr className="text-muted border-border border-b text-[11px]">
+                <tr className="text-muted border-border text-caption border-b">
                   <th className="py-1.5 text-start font-semibold">Règle</th>
                   <th className="text-end font-semibold">Mesuré</th>
                   <th className="text-end font-semibold">Seuil</th>
@@ -336,7 +336,9 @@ export function FraudActorView({
                     >
                       <td className="py-2 pe-2">
                         <span className="font-medium">{c.label}</span>{" "}
-                        <span className="text-muted text-[11px]">{c.rule}</span>
+                        <span className="text-muted text-caption">
+                          {c.rule}
+                        </span>
                       </td>
                       <td className="text-end tabular-nums">{c.value}</td>
                       <td className="text-muted text-end tabular-nums">
@@ -390,7 +392,7 @@ export function FraudActorView({
                   <span className="min-w-0 flex-1 truncate text-sm">
                     {a.title}
                   </span>
-                  <span className="text-muted shrink-0 text-[11px]">
+                  <span className="text-muted text-caption shrink-0">
                     {FRAUD_ALERT_STATUS_LABEL[a.status]}
                   </span>
                 </li>
@@ -412,12 +414,12 @@ export function FraudActorView({
                     <span className="font-semibold">
                       {FRAUD_ACTION_LABEL[a.action]}
                     </span>
-                    <span className="text-muted text-[11px]">
+                    <span className="text-muted text-caption">
                       {a.source === "auto" ? "auto" : a.admin_email} ·{" "}
                       {fmtDateTime(a.created_at)}
                     </span>
                     {a.revoked_at && (
-                      <span className="rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-bold text-emerald-700">
+                      <span className="text-micro rounded-full bg-emerald-50 px-1.5 py-0.5 font-bold text-emerald-700">
                         révoquée
                       </span>
                     )}
@@ -441,7 +443,7 @@ export function FraudActorView({
           <ul className="divide-border mt-1 divide-y">
             {detail.events.map((e) => (
               <li key={e.id} className="flex flex-wrap items-center gap-2 py-2">
-                <span className="text-muted w-24 shrink-0 text-[11px] tabular-nums">
+                <span className="text-muted text-caption w-24 shrink-0 tabular-nums">
                   {fmtDateTime(e.created_at)}
                 </span>
                 <span className="text-sm font-semibold">
@@ -451,7 +453,7 @@ export function FraudActorView({
                 {e.order_id && (
                   <Link
                     href={`/admin/orders?focus=${e.order_id}`}
-                    className="text-accent text-[11px] font-semibold hover:underline"
+                    className="text-accent text-caption font-semibold hover:underline"
                   >
                     commande
                   </Link>
@@ -459,13 +461,13 @@ export function FraudActorView({
                 {e.ride_id && (
                   <Link
                     href={`/admin/chauffeurs/courses?focus=${e.ride_id}`}
-                    className="text-accent text-[11px] font-semibold hover:underline"
+                    className="text-accent text-caption font-semibold hover:underline"
                   >
                     course
                   </Link>
                 )}
                 {e.lat != null && (
-                  <span className="text-muted inline-flex items-center gap-0.5 text-[11px]">
+                  <span className="text-muted text-caption inline-flex items-center gap-0.5">
                     <MapPin className="size-3" />
                     {e.lat.toFixed(4)}, {e.lng?.toFixed(4)}
                   </span>
@@ -491,7 +493,7 @@ export function FraudActorView({
                   <span className="font-mono text-xs font-semibold">
                     {d.ip}
                   </span>
-                  <span className="text-muted ms-2 text-[11px]">
+                  <span className="text-muted text-caption ms-2">
                     {[d.platform, d.city, d.country]
                       .filter(Boolean)
                       .join(" · ")}
@@ -516,7 +518,7 @@ export function FraudActorView({
               {detail.linked_accounts.map((l, i) => (
                 <li key={i} className="py-2 text-sm">
                   <span className="font-semibold">{l.email ?? l.user_id}</span>
-                  <span className="text-muted ms-2 text-[11px]">
+                  <span className="text-muted text-caption ms-2">
                     {l.role ?? "?"} · {l.ip} · {fmtDateTime(l.last_seen_at)}
                   </span>
                 </li>
@@ -526,7 +528,7 @@ export function FraudActorView({
         </section>
       </div>
 
-      <p className="text-muted text-center text-[11px]">
+      <p className="text-muted text-caption text-center">
         {FRAUD_KIND_LABEL[kind]} · toutes les mesures sont réversibles et
         journalisées (audit complet).
       </p>

@@ -97,10 +97,10 @@ export default async function SharedCartCataloguePage({
               <ArrowLeft className="size-4.5 rtl:-scale-x-100" />
             </Link>
             <div className="min-w-0">
-              <p className="text-foreground truncate text-[15px] font-extrabold">
+              <p className="text-foreground text-title-sm truncate font-extrabold">
                 {view.merchant.name}
               </p>
-              <p className="text-muted text-[11px] font-semibold">
+              <p className="text-muted text-caption font-semibold">
                 {t("catalogueSubtitle")}
               </p>
             </div>
@@ -129,7 +129,7 @@ export default async function SharedCartCataloguePage({
           <div className="mx-auto max-w-2xl">
             <Link
               href={`/p/${token}`}
-              className="bg-primary-600 hover:bg-primary-700 block rounded-[14px] px-4 py-3.5 text-center text-sm font-extrabold text-white shadow-lg transition active:scale-[0.98]"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg block px-4 py-3.5 text-center text-sm font-extrabold text-white shadow-lg transition active:scale-[0.98]"
             >
               {t("backToCart")}
             </Link>

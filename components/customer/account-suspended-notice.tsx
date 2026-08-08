@@ -68,7 +68,7 @@ export function AccountSuspendedNotice({
 
         <Link
           href={isIdv ? "/idv" : "/centre-aide"}
-          className="bg-primary-600 hover:bg-primary-700 mt-6 block rounded-[14px] px-4 py-3.5 text-sm font-extrabold text-white transition-colors"
+          className="bg-primary-600 hover:bg-primary-700 rounded-card-lg mt-6 block px-4 py-3.5 text-sm font-extrabold text-white transition-colors"
         >
           {isIdv ? "Vérifier mon identité" : "Contacter le support"}
         </Link>
@@ -85,7 +85,7 @@ export function AccountSuspendedNotice({
         <form action={customerLogout} className="mt-6">
           <button
             type="submit"
-            className="border-border text-muted hover:text-foreground w-full rounded-[14px] border px-4 py-3 text-sm font-semibold transition-colors"
+            className="border-border text-muted hover:text-foreground rounded-card-lg w-full border px-4 py-3 text-sm font-semibold transition-colors"
           >
             Se déconnecter
           </button>

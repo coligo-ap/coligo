@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { cookies } from "next/headers";
-import { Sora, Plus_Jakarta_Sans, Noto_Sans_Arabic } from "next/font/google";
+import { ROOT_FONT_VARS } from "@/lib/fonts";
 import { NextIntlClientProvider } from "next-intl";
 import { getLocale } from "next-intl/server";
 import { dirFor, type Locale } from "@/i18n/locale";
@@ -21,31 +21,6 @@ import { GoogleAnalytics } from "@/components/analytics/google-analytics";
 import { IntroSplash } from "@/components/brand/intro-splash";
 import { Suspense } from "react";
 import "./globals.css";
-
-// Typo storefront (prompt 20 redesign) :
-//   - Sora pour les titres (600-800)
-//   - Plus Jakarta Sans pour le corps et l'UI (400-700)
-// Variables CSS exposées via next/font, lues par @theme dans globals.css.
-const fontDisplay = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-display",
-  weight: ["600", "700", "800"],
-});
-const fontBody = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sans-body",
-  weight: ["400", "500", "600", "700"],
-});
-// Police arabe : Plus Jakarta / Sora ne couvrent pas les glyphes arabes. On
-// expose une variable appliquée au body en mode RTL (cf. globals.css).
-const fontArabic = Noto_Sans_Arabic({
-  subsets: ["arabic"],
-  display: "swap",
-  variable: "--font-arabic",
-  weight: ["400", "500", "600", "700"],
-});
 
 // Splash screens iOS + manifest/icônes PWA : centralisés dans lib/config/pwa.ts
 // (chaque espace — client, livreur, Drive, commerçant — installe « son » app
@@ -194,12 +169,7 @@ export default async function RootLayout({
       data-app={isNativeApp ? "native" : undefined}
       data-theme-model={appTheme.model}
       style={appThemeCssVars(appTheme.theme) as React.CSSProperties}
-      className={[
-        fontDisplay.variable,
-        fontBody.variable,
-        fontArabic.variable,
-        isDark ? "theme-dark" : "",
-      ]
+      className={[ROOT_FONT_VARS, isDark ? "theme-dark" : ""]
         .filter(Boolean)
         .join(" ")}
       suppressHydrationWarning

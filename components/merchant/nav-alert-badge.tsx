@@ -60,7 +60,7 @@ export function NavAlertBadge({
   return (
     <span
       className={cn(
-        "bg-danger-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 py-0.5 text-[10px] leading-none font-extrabold text-white tabular-nums",
+        "bg-danger-500 text-micro inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 py-0.5 leading-none font-extrabold text-white tabular-nums",
         className
       )}
     >

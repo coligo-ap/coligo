@@ -86,7 +86,7 @@ export function AdminShell({
           onClick={toggle}
           aria-label={open ? "Replier le menu" : "Déplier le menu"}
           className={cn(
-            "text-muted hover:bg-surface-2 hover:text-foreground mb-1 flex items-center gap-2.5 rounded-[10px] px-3 py-2 text-sm font-medium",
+            "text-muted hover:bg-surface-2 hover:text-foreground rounded-control mb-1 flex items-center gap-2.5 px-3 py-2 text-sm font-medium",
             !open && "justify-center px-0"
           )}
         >
@@ -136,7 +136,7 @@ function SidebarGroup({
     <div>
       <div
         className={cn(
-          "relative flex items-center rounded-[10px] transition-colors",
+          "rounded-control relative flex items-center transition-colors",
           active
             ? critical
               ? "bg-danger-50 text-danger-700"
@@ -181,7 +181,7 @@ function SidebarGroup({
           {d.sections.map((section, i) => (
             <div key={section.label ?? i} className="py-0.5">
               {section.label && (
-                <p className="text-muted px-2 pt-1.5 pb-0.5 text-[10px] font-bold tracking-wide uppercase">
+                <p className="text-muted text-micro px-2 pt-1.5 pb-0.5 font-bold tracking-wide uppercase">
                   {section.label}
                 </p>
               )}
@@ -196,7 +196,7 @@ function SidebarGroup({
                     <Link
                       href={page.href}
                       className={cn(
-                        "flex items-center gap-2 rounded-[8px] px-2 py-1.5 text-[13px] transition-colors",
+                        "text-body-sm flex items-center gap-2 rounded-sm px-2 py-1.5 transition-colors",
                         on
                           ? "text-primary-700 bg-primary-50/70 font-semibold"
                           : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -216,7 +216,7 @@ function SidebarGroup({
                             key={child.href}
                             href={child.href}
                             className={cn(
-                              "ml-3.5 flex items-center gap-2 rounded-[8px] px-2 py-1.5 text-[12.5px] transition-colors",
+                              "text-label-lg ml-3.5 flex items-center gap-2 rounded-sm px-2 py-1.5 transition-colors",
                               childOn
                                 ? "text-primary-700 bg-primary-50/70 font-semibold"
                                 : "text-muted hover:bg-surface-2 hover:text-foreground"

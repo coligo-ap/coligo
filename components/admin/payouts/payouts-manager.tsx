@@ -105,7 +105,7 @@ function Stat({
   return (
     <div
       className={cn(
-        "rounded-[14px] border p-4",
+        "rounded-card-lg border p-4",
         tone === "warning"
           ? "border-warning-100 bg-warning-50"
           : "border-border bg-surface"
@@ -135,21 +135,21 @@ export function MerchantPayouts({ payouts }: { payouts: MerchantPayout[] }) {
   return (
     <section
       data-alert-focus="payouts_pending"
-      className="border-border bg-surface rounded-[16px] border"
+      className="border-border bg-surface rounded-lg border"
     >
       <header className="border-border flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4">
         <h2 className="flex items-center gap-2 text-base font-semibold">
           <Banknote className="text-primary-500 size-4" />
           Demandes des commerçants
         </h2>
-        <div className="bg-surface-2 inline-flex rounded-[10px] p-0.5 text-xs font-semibold">
+        <div className="bg-surface-2 rounded-control inline-flex p-0.5 text-xs font-semibold">
           {(["pending", "all"] as const).map((t) => (
             <button
               key={t}
               type="button"
               onClick={() => setTab(t)}
               className={cn(
-                "rounded-[8px] px-3 py-1.5 transition-colors",
+                "rounded-sm px-3 py-1.5 transition-colors",
                 tab === t
                   ? "bg-surface text-foreground shadow-sm"
                   : "text-muted hover:text-foreground"
@@ -289,7 +289,7 @@ function MerchantRow({ payout }: { payout: MerchantPayout }) {
 
 function PartnerPayouts({ partners }: { partners: PartnerPayable[] }) {
   return (
-    <section className="border-border bg-surface rounded-[16px] border">
+    <section className="border-border bg-surface rounded-lg border">
       <header className="border-border border-b px-5 py-4">
         <h2 className="flex items-center gap-2 text-base font-semibold">
           <HandCoins className="text-primary-500 size-4" />
@@ -362,7 +362,7 @@ function PartnerRow({ partner }: { partner: PartnerPayable }) {
           </p>
         </div>
         <div className="text-right">
-          <p className="text-subtle text-[11px]">Solde</p>
+          <p className="text-subtle text-caption">Solde</p>
           <p
             className={cn(
               "text-base font-extrabold tabular-nums",
@@ -385,7 +385,7 @@ function PartnerRow({ partner }: { partner: PartnerPayable }) {
       </div>
 
       {open && (
-        <div className="bg-surface-2 mt-3 grid gap-3 rounded-[12px] p-3 sm:grid-cols-[140px_1fr_auto] sm:items-end">
+        <div className="bg-surface-2 mt-3 grid gap-3 rounded-md p-3 sm:grid-cols-[140px_1fr_auto] sm:items-end">
           <div className="space-y-1">
             <label className="text-muted text-xs font-medium">
               Montant (DA)

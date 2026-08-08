@@ -43,12 +43,12 @@ export function InfoNote({
             onClick={() => setOpen(false)}
           >
             <div
-              className="w-full max-w-md rounded-t-[22px] bg-[var(--surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-start sm:rounded-[22px] sm:pb-5"
+              className="rounded-t-sheet-xl sm:rounded-sheet-xl w-full max-w-md bg-[var(--surface)] p-5 pb-[calc(env(safe-area-inset-bottom)+20px)] text-start sm:pb-5"
               style={{ animation: "driver-rise .28s ease-out both" }}
               onClick={(e) => e.stopPropagation()}
             >
               <div className="mb-2 flex items-start justify-between gap-3">
-                <p className="text-[15px] font-bold text-[var(--ink)]">
+                <p className="text-title-sm font-bold text-[var(--ink)]">
                   {title}
                 </p>
                 <button
@@ -60,7 +60,7 @@ export function InfoNote({
                   <X className="size-4" />
                 </button>
               </div>
-              <div className="text-[13px] leading-relaxed text-[var(--muted)]">
+              <div className="text-body-sm leading-relaxed text-[var(--muted)]">
                 {children}
               </div>
             </div>

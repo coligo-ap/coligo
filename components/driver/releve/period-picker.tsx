@@ -115,15 +115,15 @@ export function RelevePeriodPicker({
   };
 
   return (
-    <div className="mb-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3">
-      <label className="mb-1.5 flex items-center gap-1.5 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+    <div className="mb-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-3">
+      <label className="text-caption mb-1.5 flex items-center gap-1.5 font-bold tracking-wide text-[var(--d-muted)] uppercase">
         <CalendarDays className="size-3.5" />
         {tr("Période", "الفترة")}
       </label>
       <select
         value={value}
         onChange={(e) => onSelect(e.target.value)}
-        className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[13.5px] font-semibold text-[var(--d-ink)] outline-none"
+        className="text-body w-full rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 font-semibold text-[var(--d-ink)] outline-none"
         style={{ fontFamily: SORA }}
       >
         <option value="current">{shownCurrentLabel}</option>
@@ -146,29 +146,29 @@ export function RelevePeriodPicker({
 
       {showCustom && (
         <div className="mt-2.5 flex items-end gap-2">
-          <label className="min-w-0 flex-1 text-[11px] font-semibold text-[var(--d-muted)]">
+          <label className="text-caption min-w-0 flex-1 font-semibold text-[var(--d-muted)]">
             {tr("Du", "من")}
             <input
               type="date"
               value={from}
               onChange={(e) => setFrom(e.target.value)}
-              className="mt-1 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-2.5 py-2 text-[13px] text-[var(--d-ink)] outline-none"
+              className="text-body-sm mt-1 w-full rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-2.5 py-2 text-[var(--d-ink)] outline-none"
             />
           </label>
-          <label className="min-w-0 flex-1 text-[11px] font-semibold text-[var(--d-muted)]">
+          <label className="text-caption min-w-0 flex-1 font-semibold text-[var(--d-muted)]">
             {tr("Au", "إلى")}
             <input
               type="date"
               value={to}
               onChange={(e) => setTo(e.target.value)}
-              className="mt-1 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-2.5 py-2 text-[13px] text-[var(--d-ink)] outline-none"
+              className="text-body-sm mt-1 w-full rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-2.5 py-2 text-[var(--d-ink)] outline-none"
             />
           </label>
           <button
             type="button"
             disabled={!from || !to || from > to}
             onClick={() => router.push(`${basePath}?from=${from}&to=${to}`)}
-            className="h-[38px] shrink-0 rounded-[12px] px-3.5 text-[12.5px] font-bold text-white disabled:opacity-50"
+            className="text-label-lg h-[38px] shrink-0 rounded-md px-3.5 font-bold text-white disabled:opacity-50"
             style={{ fontFamily: SORA, background: BRAND_VIOLET }}
           >
             {tr("Afficher", "عرض")}

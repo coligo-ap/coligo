@@ -27,7 +27,7 @@ import {
 import { getPosition } from "@/lib/native/geolocation";
 
 const SELECT_CLASS =
-  "appearance-none flex h-11 w-full rounded-[12px] border border-border-strong bg-white pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
+  "appearance-none flex h-11 w-full rounded-md border border-border-strong bg-white pl-9 pr-8 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
 
 export type ShopLocationNames = {
   wilaya: string;
@@ -275,7 +275,7 @@ export function ShopLocationPicker({
             type="button"
             onClick={useMyPosition}
             disabled={disabled || gpsBusy}
-            className="border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border text-sm font-semibold disabled:opacity-50"
+            className="border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border text-sm font-semibold disabled:opacity-50"
           >
             {gpsBusy ? (
               <Loader2 className="size-4 animate-spin" />
@@ -388,7 +388,7 @@ export function ShopLocationPicker({
 
         <div
           className={cn(
-            "overflow-hidden rounded-[14px] border-2 transition-colors",
+            "rounded-card-lg overflow-hidden border-2 transition-colors",
             confirmed && coords ? "border-success-400" : "border-border-strong"
           )}
         >
@@ -429,7 +429,7 @@ export function ShopLocationPicker({
 
         {/* État + confirmation */}
         {confirmed && coords ? (
-          <div className="border-success-200 bg-success-50 flex items-start gap-2 rounded-[12px] border p-3">
+          <div className="border-success-200 bg-success-50 flex items-start gap-2 rounded-md border p-3">
             <Check className="text-success-700 mt-0.5 size-4 shrink-0" />
             <div className="min-w-0 text-sm">
               <p className="text-success-800 font-semibold">
@@ -440,7 +440,7 @@ export function ShopLocationPicker({
                   {detected ?? address}
                 </p>
               )}
-              <p className="text-success-700/70 mt-0.5 font-mono text-[11px]">
+              <p className="text-success-700/70 text-caption mt-0.5 font-mono">
                 {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}
               </p>
             </div>
@@ -448,7 +448,7 @@ export function ShopLocationPicker({
               type="button"
               onClick={() => setConfirmed(false)}
               disabled={disabled}
-              className="text-success-700 hover:bg-success-100 ml-auto inline-flex shrink-0 items-center gap-1 rounded-[8px] px-2 py-1 text-xs font-medium"
+              className="text-success-700 hover:bg-success-100 ml-auto inline-flex shrink-0 items-center gap-1 rounded-sm px-2 py-1 text-xs font-medium"
             >
               <PencilLine className="size-3.5" />
               {tr("Modifier", "تعديل")}
@@ -459,7 +459,7 @@ export function ShopLocationPicker({
             type="button"
             onClick={confirmPosition}
             disabled={disabled || !coords}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-50"
           >
             {geoLoading ? (
               <Loader2 className="size-4 animate-spin" />

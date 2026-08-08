@@ -27,7 +27,7 @@ export function DBack({ className }: { className?: string }) {
       aria-label={isAr ? "رجوع" : "Retour"}
       className={
         className ??
-        "grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
+        "rounded-card-lg grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
       }
     >
       <ChevronLeft className="size-5 rtl:rotate-180" />
@@ -86,7 +86,7 @@ export function PlanIcon({ plan }: { plan: "free" | "pro" | "premium" }) {
   // Free : icône NEUTRE (pas de taux en dur — au lancement la commission est 0 %).
   return (
     <span
-      className={`grid size-9 shrink-0 place-items-center rounded-[11px] text-[15px] font-extrabold ${
+      className={`rounded-control-lg text-title-sm grid size-9 shrink-0 place-items-center font-extrabold ${
         free
           ? "bg-[var(--d-soft)] text-[var(--d-ink)]"
           : "bg-[#E8B53C] text-[#3a2c00]"

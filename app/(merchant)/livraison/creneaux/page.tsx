@@ -80,7 +80,7 @@ export default async function MerchantSlotsPage() {
       </header>
 
       {!merchant.tours_enabled && (
-        <div className="border-warning-200 bg-warning-50 text-warning-700 mb-4 rounded-[12px] border px-4 py-3 text-sm">
+        <div className="border-warning-200 bg-warning-50 text-warning-700 mb-4 rounded-md border px-4 py-3 text-sm">
           Active d&apos;abord le mode Tournée dans{" "}
           <a className="underline" href="/settings">
             Paramètres
@@ -113,7 +113,7 @@ export default async function MerchantSlotsPage() {
                 <li
                   key={s.id}
                   className={
-                    "flex items-center justify-between rounded-[10px] border px-3 py-2 text-sm " +
+                    "rounded-control flex items-center justify-between border px-3 py-2 text-sm " +
                     (full
                       ? "border-warning-200 bg-warning-50"
                       : "border-border bg-surface")

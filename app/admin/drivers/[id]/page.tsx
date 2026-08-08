@@ -387,7 +387,7 @@ export default async function AdminDriverDetailPage({
 
         {/* Dossier refusé : le motif communiqué au livreur reste visible ici. */}
         {driver.rejected_at && driver.rejection_reason && (
-          <p className="border-warning-200 bg-warning-50 text-warning-800 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
+          <p className="border-warning-200 bg-warning-50 text-warning-800 mt-3 rounded-md border px-4 py-2.5 text-xs">
             Dossier <strong>refusé</strong> le{" "}
             {new Date(driver.rejected_at).toLocaleDateString("fr-FR")} — motif
             communiqué : <em>{driver.rejection_reason}</em>. Le livreur peut
@@ -395,7 +395,7 @@ export default async function AdminDriverDetailPage({
           </p>
         )}
         {driver.is_blocked ? (
-          <p className="border-danger-200 bg-danger-50 text-danger-700 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
+          <p className="border-danger-200 bg-danger-50 text-danger-700 mt-3 rounded-md border px-4 py-2.5 text-xs">
             Ce livreur est <strong>bloqué</strong> (sanction dure) : aucun accès
             à ses pages — il ne voit qu&apos;un message de blocage.
             {driver.block_reason ? (
@@ -406,7 +406,7 @@ export default async function AdminDriverDetailPage({
             ) : null}
           </p>
         ) : driver.is_frozen ? (
-          <p className="border-warning-200 bg-warning-50 text-warning-800 mt-3 rounded-[12px] border px-4 py-2.5 text-xs">
+          <p className="border-warning-200 bg-warning-50 text-warning-800 mt-3 rounded-md border px-4 py-2.5 text-xs">
             Ce livreur est <strong>gelé</strong> : il peut consulter son compte
             mais ne peut{" "}
             <strong>ni passer en ligne ni recevoir de course</strong>.
@@ -468,7 +468,7 @@ export default async function AdminDriverDetailPage({
         defaultOpen
       >
         <div className="mt-3 mb-4 flex flex-wrap items-center justify-between gap-2">
-          <div className="bg-surface-2 flex gap-1 rounded-[10px] p-1 text-xs font-semibold">
+          <div className="bg-surface-2 rounded-control flex gap-1 p-1 text-xs font-semibold">
             {(
               [
                 ["week", "Semaine"],
@@ -480,7 +480,7 @@ export default async function AdminDriverDetailPage({
                 key={v}
                 href={`/admin/drivers/${id}?period=${v}`}
                 className={
-                  "rounded-[8px] px-3 py-1.5 " +
+                  "rounded-sm px-3 py-1.5 " +
                   (period === v
                     ? "bg-surface text-foreground shadow-sm"
                     : "text-muted")
@@ -599,10 +599,7 @@ export default async function AdminDriverDetailPage({
           ) : (
             <ul className="space-y-3">
               {active.map((o) => (
-                <li
-                  key={o.id}
-                  className="border-border rounded-[12px] border p-3"
-                >
+                <li key={o.id} className="border-border rounded-md border p-3">
                   <div className="flex flex-wrap items-start justify-between gap-2 text-sm">
                     <div className="min-w-0">
                       <p className="font-semibold">
@@ -742,7 +739,7 @@ function Kpi({
     amber: "bg-warning-50 text-warning-700",
   };
   return (
-    <div className={"rounded-[12px] p-3 " + colors[tone]}>
+    <div className={"rounded-md p-3 " + colors[tone]}>
       <div className="flex items-center gap-1.5 text-xs font-medium opacity-80">
         {icon}
         {label}

@@ -265,5 +265,5 @@ export async function resizeImage(file: File): Promise<Blob> {
 }
 
 export const INPUT =
-  "h-10 w-full rounded-[10px] border border-border-strong bg-white px-3 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-400 focus:outline-none";
-export const LABEL = "text-foreground mb-1 block text-[12px] font-bold";
+  "h-10 w-full rounded-control border border-border-strong bg-white px-3 text-sm focus:border-primary-400 focus:ring-2 focus:ring-primary-400 focus:outline-none";
+export const LABEL = "text-foreground mb-1 block text-label font-bold";

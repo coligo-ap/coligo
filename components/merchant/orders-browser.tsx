@@ -239,7 +239,7 @@ export function OrdersBrowser({
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Rechercher (nom, n°, téléphone)…"
-          className="border-border bg-surface focus:border-primary-500 focus:ring-primary-100 h-11 w-full rounded-[12px] border ps-9 pe-10 text-sm outline-none focus:ring-2"
+          className="border-border bg-surface focus:border-primary-500 focus:ring-primary-100 h-11 w-full rounded-md border ps-9 pe-10 text-sm outline-none focus:ring-2"
         />
         {searching ? (
           <Loader2 className="text-subtle absolute end-3 top-1/2 size-4 -translate-y-1/2 animate-spin" />
@@ -275,7 +275,7 @@ export function OrdersBrowser({
               {f.label}
               <span
                 className={cn(
-                  "rounded-full px-1.5 text-[10px] tabular-nums",
+                  "text-micro rounded-full px-1.5 tabular-nums",
                   activeChip ? "bg-white/20" : "bg-surface-3 text-subtle"
                 )}
               >
@@ -303,7 +303,7 @@ export function OrdersBrowser({
                   : {}),
               })}
               className={cn(
-                "rounded-full px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors",
+                "text-caption rounded-full px-2.5 py-1 font-bold whitespace-nowrap transition-colors",
                 period === pOpt.key
                   ? "bg-primary-600 text-white"
                   : "text-muted hover:bg-surface-2"
@@ -323,7 +323,7 @@ export function OrdersBrowser({
               // BASCULE : re-taper la chip active revient à « tous les types ».
               href={hrefFor({ type: activeType ? "all" : tOpt.key })}
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-bold whitespace-nowrap transition-colors",
+                "text-caption inline-flex shrink-0 items-center gap-1 rounded-full border px-2.5 py-1 font-bold whitespace-nowrap transition-colors",
                 activeType
                   ? "border-primary-600 bg-primary-50 text-primary-700"
                   : "border-border text-muted hover:bg-surface-2 bg-white"
@@ -367,7 +367,7 @@ export function OrdersBrowser({
 
       {/* Liste groupée par jour */}
       {filtered.length === 0 ? (
-        <div className="border-border text-subtle flex flex-col items-center justify-center gap-2 rounded-[16px] border border-dashed py-16">
+        <div className="border-border text-subtle flex flex-col items-center justify-center gap-2 rounded-lg border border-dashed py-16">
           <Package className="size-6" />
           <p className="text-sm">
             {input.trim() || type !== "all" || period === "custom"
@@ -381,7 +381,7 @@ export function OrdersBrowser({
             <section key={g.label}>
               <h2
                 suppressHydrationWarning
-                className="text-muted mb-1.5 px-1 text-[11px] font-bold tracking-wide uppercase"
+                className="text-muted text-caption mb-1.5 px-1 font-bold tracking-wide uppercase"
               >
                 {g.label}
               </h2>
@@ -423,7 +423,7 @@ function OrderRow({ order: o }: { order: OrderWithItems }) {
     <li>
       <Link
         href={`/orders/${o.id}`}
-        className="border-border bg-surface hover:bg-surface-2 flex items-center gap-3 rounded-[14px] border px-3.5 py-3 transition-colors"
+        className="border-border bg-surface hover:bg-surface-2 rounded-card-lg flex items-center gap-3 border px-3.5 py-3 transition-colors"
       >
         <div className="min-w-0 flex-1">
           {/* Ligne 1 : réf + statut + type — total à droite */}
@@ -433,7 +433,7 @@ function OrderRow({ order: o }: { order: OrderWithItems }) {
             </span>
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-semibold",
+                "text-micro rounded-full px-2 py-0.5 font-semibold",
                 TONE_CLASSES[meta.tone]
               )}
             >
@@ -463,7 +463,7 @@ function OrderRow({ order: o }: { order: OrderWithItems }) {
             <span className="text-subtle">·</span>
             <span
               className={cn(
-                "inline-flex shrink-0 items-center gap-1 text-[11px] font-semibold",
+                "text-caption inline-flex shrink-0 items-center gap-1 font-semibold",
                 paidOnline ? "text-success-700" : "text-muted"
               )}
             >
@@ -502,8 +502,10 @@ function DayInput({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="border-border bg-surface focus-within:border-primary-500 flex h-10 flex-1 items-center gap-2 rounded-[12px] border px-3">
-      <span className="text-muted shrink-0 text-[11px] font-bold">{label}</span>
+    <label className="border-border bg-surface focus-within:border-primary-500 flex h-10 flex-1 items-center gap-2 rounded-md border px-3">
+      <span className="text-muted text-caption shrink-0 font-bold">
+        {label}
+      </span>
       <input
         type="date"
         value={value}

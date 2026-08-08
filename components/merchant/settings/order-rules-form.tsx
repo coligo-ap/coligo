@@ -61,7 +61,7 @@ export function OrderRulesForm({ merchant }: { merchant: MerchantSettings }) {
         </Field>
       </div>
 
-      <div className="border-border bg-surface-2 rounded-[12px] border p-4">
+      <div className="border-border bg-surface-2 rounded-md border p-4">
         <p className="text-foreground mb-3 text-sm font-semibold">
           Modes de paiement acceptés
         </p>
@@ -98,7 +98,7 @@ export function OrderRulesForm({ merchant }: { merchant: MerchantSettings }) {
               name="pickup_slot_minutes"
               defaultValue={merchant.pickup_slot_minutes}
               disabled={pending}
-              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-md border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
             >
               {SLOT_OPTIONS.map((m) => (
                 <option key={m} value={m}>
@@ -174,7 +174,7 @@ function Toggle({
   disabled?: boolean;
 }) {
   return (
-    <label className="hover:bg-surface flex cursor-pointer items-start gap-3 rounded-[10px] p-2 transition-colors">
+    <label className="hover:bg-surface rounded-control flex cursor-pointer items-start gap-3 p-2 transition-colors">
       <input
         type="checkbox"
         name={name}

@@ -75,7 +75,7 @@ export function MfaChallengeForm({ factorId, next }: Props) {
         autoFocus
         disabled={pending}
         placeholder="000000"
-        className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 block w-full rounded-[12px] border px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] tabular-nums focus:ring-2 focus:outline-none disabled:opacity-50"
+        className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 block w-full rounded-md border px-4 py-3 text-center text-2xl font-semibold tracking-[0.5em] tabular-nums focus:ring-2 focus:outline-none disabled:opacity-50"
       />
 
       {error && <p className="text-danger-600 mt-2 text-xs">{error}</p>}

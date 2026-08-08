@@ -219,7 +219,7 @@ export function DriveHomeScreen({
           DE CARTE EN FOND : l'écran s'ouvre instantanément, MapLibre n'est
           initialisé que sur les écrans choix-sur-carte / prix / course. */}
       <div
-        className="relative overflow-hidden rounded-b-[28px] pb-14 text-white"
+        className="relative overflow-hidden rounded-b-2xl pb-14 text-white"
         style={{
           backgroundImage:
             "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
@@ -228,7 +228,7 @@ export function DriveHomeScreen({
         <ThemeDecor />
         <header className="relative z-10 px-5 pt-[calc(env(safe-area-inset-top)+1rem)]">
           <div className="mx-auto flex w-full max-w-6xl items-center justify-between gap-2">
-            <p className="drive-sora flex items-center gap-1.5 text-[13.5px] font-extrabold tracking-[0.5px] uppercase drop-shadow-sm">
+            <p className="drive-sora text-body flex items-center gap-1.5 font-extrabold tracking-[0.5px] uppercase drop-shadow-sm">
               <Car className="size-[18px]" /> Coligo Drive
             </p>
             <div className="flex items-center gap-1.5">
@@ -276,7 +276,7 @@ export function DriveHomeScreen({
                 Interrupteur super-admin (Config Drive, mig 0420) : masquée si
                 désactivée — les actions serveur refusent aussi (bypass-proof). */}
             {ctx.aiEnabled && (
-              <div className="rounded-[12px]">
+              <div className="rounded-md">
                 <DriveAiBar
                   pickup={pickup ? { lat: pickup.lat, lng: pickup.lng } : null}
                   onResolved={applyAiDraft}
@@ -289,7 +289,7 @@ export function DriveHomeScreen({
               <>
                 {/* Carte formulaire de trajet (départ / arrivée). */}
                 <div
-                  className="mt-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
+                  className="mt-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
                   onTouchStart={onSheetTouchStart}
                   onTouchEnd={onSheetTouchEnd}
                 >
@@ -299,7 +299,7 @@ export function DriveHomeScreen({
                   {/* Onglet inter RETIRÉ si masqué par l'équipe Coligo ; grisé
                       (« Bientôt » / « Suspendu ») si coupé temporairement. */}
                   {!interHidden && (
-                    <div className="mb-3 flex gap-[3px] rounded-[12px] bg-[var(--d-soft)] p-1">
+                    <div className="mb-3 flex gap-[3px] rounded-md bg-[var(--d-soft)] p-1">
                       {(
                         [
                           ["ville", Building2, t("mode.city")],
@@ -317,7 +317,7 @@ export function DriveHomeScreen({
                             }}
                             aria-pressed={tripMode === m}
                             aria-disabled={locked || undefined}
-                            className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] p-2 text-[12.5px] font-bold transition-colors"
+                            className="rounded-control text-label-lg flex flex-1 items-center justify-center gap-1.5 p-2 font-bold transition-colors"
                             style={
                               tripMode === m
                                 ? {
@@ -333,7 +333,7 @@ export function DriveHomeScreen({
                             <Icon className="size-3.5" />
                             {label}
                             {locked && (
-                              <span className="rounded-full bg-[var(--d-surface)] px-1.5 py-0.5 text-[9px] font-extrabold text-[var(--d-muted)]">
+                              <span className="text-nano rounded-full bg-[var(--d-surface)] px-1.5 py-0.5 font-extrabold text-[var(--d-muted)]">
                                 {interFlag?.status === "coming_soon"
                                   ? t("mode.soon")
                                   : t("mode.suspended")}
@@ -350,7 +350,7 @@ export function DriveHomeScreen({
                           type="button"
                           onClick={() => setTripMode("covoit")}
                           aria-pressed={tripMode === "covoit"}
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] p-2 text-[12.5px] font-bold transition-colors"
+                          className="rounded-control text-label-lg flex flex-1 items-center justify-center gap-1.5 p-2 font-bold transition-colors"
                           style={
                             tripMode === "covoit"
                               ? {
@@ -381,19 +381,19 @@ export function DriveHomeScreen({
                       plus de cartes intermédiaires). Bandeau slim d'explication. */}
                       {tripMode === "inter" && (
                         <div
-                          className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-[12px] px-3.5 py-2.5 text-white"
+                          className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-md px-3.5 py-2.5 text-white"
                           style={{
                             backgroundImage: `linear-gradient(120deg, ${VIOLET} 0%, #4B1FA6 70%, #8E2F86 100%)`,
                           }}
                         >
-                          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15">
+                          <span className="rounded-control grid size-8 shrink-0 place-items-center bg-white/15">
                             <Route className="size-4" />
                           </span>
                           <span className="min-w-0 flex-1">
-                            <b className="drive-sora block text-[12.5px] font-extrabold">
+                            <b className="drive-sora text-label-lg block font-extrabold">
                               {t("mode.interTitle")}
                             </b>
-                            <span className="block truncate text-[10.5px] font-medium text-white/80">
+                            <span className="text-micro-lg block truncate font-medium text-white/80">
                               {t("mode.privateCardHint")}
                             </span>
                           </span>
@@ -404,17 +404,17 @@ export function DriveHomeScreen({
                           <button
                             type="button"
                             onClick={() => setDepOpen(true)}
-                            className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                            className="flex w-full items-center gap-3 rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                           >
                             <span
                               className="size-3 shrink-0 rounded-full"
                               style={{ background: VIOLET }}
                             />
                             <span className="min-w-0 flex-1">
-                              <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                              <span className="text-micro-lg block font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
                                 {t("departure")}
                               </span>
-                              <span className="block truncate text-[14.5px] font-bold">
+                              <span className="text-body-xl block truncate font-bold">
                                 {pickup?.gps
                                   ? t("myPosition")
                                   : (pickup?.text ?? t("home.locating"))}
@@ -422,14 +422,14 @@ export function DriveHomeScreen({
                               {/* Nom du lieu résolu (reverse geocode) : le client voit que
                     le départ correspond bien à l'endroit où il se trouve. */}
                               {pickup?.gps && (
-                                <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+                                <span className="text-caption-lg block truncate font-medium text-[var(--d-muted)]">
                                   {pickup.text ?? t("home.locating")}
                                 </span>
                               )}
                             </span>
                             {pickup?.gps && (
                               <span
-                                className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
+                                className="text-micro-lg flex items-center gap-1 rounded-full px-2 py-1 font-bold"
                                 style={{
                                   background: "var(--d-accent)",
                                   color: VIOLET,
@@ -452,16 +452,16 @@ export function DriveHomeScreen({
                               setMapPickFor("dest");
                               setScreen("mappick");
                             }}
-                            className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                            className="flex w-full items-center gap-3 rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                           >
                             <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
                             <span className="min-w-0 flex-1">
-                              <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                              <span className="text-micro-lg block font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
                                 {t("destination")}
                               </span>
                               <span
                                 className={cn(
-                                  "block truncate text-[14.5px] font-bold",
+                                  "text-body-xl block truncate font-bold",
                                   !dest && "font-semibold text-[var(--d-muted)]"
                                 )}
                               >
@@ -481,7 +481,7 @@ export function DriveHomeScreen({
                           disabled={!pickup && !dest}
                           aria-label={t("swap")}
                           title={t("swap")}
-                          className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] disabled:opacity-40"
+                          className="grid size-10 shrink-0 place-items-center rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] disabled:opacity-40"
                           style={{ color: VIOLET }}
                         >
                           <ArrowUpDown className="size-[18px]" />
@@ -492,7 +492,7 @@ export function DriveHomeScreen({
                       le client précise ensuite s'il veut, ou continue direct. */}
                       {tripMode === "inter" && !dest && (
                         <div className="mb-2 flex items-center gap-1.5 overflow-x-auto">
-                          <span className="shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                          <span className="text-nano-lg shrink-0 font-bold tracking-wide text-[var(--d-muted)] uppercase">
                             {t("mode.popularDest")}
                           </span>
                           {["16", "31", "25", "19", "06", "15", "09", "23"]
@@ -511,7 +511,7 @@ export function DriveHomeScreen({
                                       text: wilayaName(c, isAr),
                                     });
                                 }}
-                                className="drive-sora flex h-7 shrink-0 items-center rounded-full border border-[var(--d-line)] px-2.5 text-[10.5px] font-bold whitespace-nowrap text-[var(--d-muted)] active:bg-[var(--d-soft)]"
+                                className="drive-sora text-micro-lg flex h-7 shrink-0 items-center rounded-full border border-[var(--d-line)] px-2.5 font-bold whitespace-nowrap text-[var(--d-muted)] active:bg-[var(--d-soft)]"
                               >
                                 {wilayaName(c, isAr)}
                               </button>
@@ -523,7 +523,7 @@ export function DriveHomeScreen({
                       l'onglet) : badge de confirmation « Alger → Béjaïa ». */}
                       {inter && (
                         <span
-                          className="mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                          className="text-caption mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 font-extrabold"
                           style={{
                             background: "rgba(108,43,217,.10)",
                             color: VIOLET,
@@ -550,7 +550,7 @@ export function DriveHomeScreen({
                       AVANT le choix du prix, et « Continuer » est bloqué. */}
                       {pickup && dest && !zoneBlock && interBlockMsg && (
                         <p
-                          className="mt-1 mb-1 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
+                          className="text-label mt-1 mb-1 rounded-md px-3 py-2.5 font-semibold"
                           style={{
                             background: "rgba(108,43,217,.08)",
                             color: VIOLET,
@@ -581,7 +581,7 @@ export function DriveHomeScreen({
                     {visibleRecents.map((r) => (
                       <div
                         key={r.text}
-                        className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
+                        className="text-body flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left font-semibold last:border-b-0"
                       >
                         <button
                           type="button"
@@ -590,7 +590,7 @@ export function DriveHomeScreen({
                           }
                           className="flex min-w-0 flex-1 items-center gap-3 text-left"
                         >
-                          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                          <span className="rounded-control grid size-8 shrink-0 place-items-center bg-[var(--d-soft)]">
                             <Clock className="size-4" />
                           </span>
                           <span className="min-w-0 flex-1 truncate">
@@ -609,15 +609,15 @@ export function DriveHomeScreen({
                       </div>
                     ))}
                     {ctx.lastRide && (
-                      <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
-                        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                      <div className="text-body flex w-full items-center gap-3 px-0.5 py-2.5 text-left font-semibold">
+                        <span className="rounded-control grid size-8 shrink-0 place-items-center bg-[var(--d-soft)]">
                           <Car className="size-4" />
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="block truncate">
                             {ctx.lastRide.dest_text ?? "—"}
                           </span>
-                          <small className="block text-[11px] font-medium text-[var(--d-muted)]">
+                          <small className="text-caption block font-medium text-[var(--d-muted)]">
                             {[
                               ctx.lastRide.chauffeur_name,
                               ctx.lastRide.price_da
@@ -640,7 +640,7 @@ export function DriveHomeScreen({
                 <button
                   type="button"
                   onClick={() => router.push("/chauffeur")}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-3 text-[13.5px] font-bold"
+                  className="text-body mt-3 flex w-full items-center justify-center gap-2 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-3 font-bold"
                 >
                   <Car className="size-4" style={{ color: VIOLET }} />
                   {t("home.imDriver")}

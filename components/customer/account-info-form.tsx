@@ -60,7 +60,7 @@ export function AccountInfoForm({
   return (
     <>
       <div className="px-4 pt-2 pb-28">
-        <div className="divide-border divide-y rounded-[20px] bg-white px-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border divide-y rounded-xl bg-white px-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
           {/* Nom et prénom */}
           <Field label={t("fullName")} icon={<UserIcon className="size-4" />}>
             <input
@@ -132,7 +132,7 @@ export function AccountInfoForm({
           {saveMsg && (
             <p
               className={
-                "mb-2 text-center text-[12.5px] font-semibold " +
+                "text-label-lg mb-2 text-center font-semibold " +
                 (saveMsg.ok ? "text-success-600" : "text-danger-600")
               }
             >
@@ -150,7 +150,7 @@ export function AccountInfoForm({
                 else setSaveMsg({ ok: true, text: res.success ?? t("saved") });
               })
             }
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
+            className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -181,12 +181,12 @@ function Field({
 }) {
   return (
     <div className="border-border py-4">
-      <label className="text-muted mb-2.5 block text-[11.5px] font-extrabold tracking-wide uppercase">
+      <label className="text-muted text-caption-lg mb-2.5 block font-extrabold tracking-wide uppercase">
         {label}
       </label>
       <div
         className={
-          "bg-surface-2 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5 transition focus-within:ring-2 " +
+          "bg-surface-2 rounded-card flex items-center gap-2.5 border px-3.5 py-3.5 transition focus-within:ring-2 " +
           (invalid
             ? "border-danger-500 focus-within:border-danger-500 focus-within:ring-danger-500/15"
             : "border-border focus-within:border-primary-400 focus-within:ring-primary-100")
@@ -197,7 +197,7 @@ function Field({
         {trailing}
       </div>
       {footer && (
-        <p className="mt-1.5 px-0.5 text-[11.5px] font-medium">{footer}</p>
+        <p className="text-caption-lg mt-1.5 px-0.5 font-medium">{footer}</p>
       )}
     </div>
   );
@@ -216,13 +216,13 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
 
   return (
     <div className="border-border py-4">
-      <label className="text-muted mb-2.5 block text-[11.5px] font-extrabold tracking-wide uppercase">
+      <label className="text-muted text-caption-lg mb-2.5 block font-extrabold tracking-wide uppercase">
         {t("emailAddress")}
       </label>
 
       {step === "idle" && (
         <>
-          <div className="border-border bg-surface-2 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5">
+          <div className="border-border bg-surface-2 rounded-card flex items-center gap-2.5 border px-3.5 py-3.5">
             <Mail className="text-muted size-4 shrink-0" />
             <span className="text-foreground min-w-0 flex-1 truncate text-sm font-bold">
               {email}
@@ -235,17 +235,17 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
                 setOkMsg(null);
                 setStep("editing");
               }}
-              className="text-primary-700 shrink-0 text-[13px] font-extrabold"
+              className="text-primary-700 text-body-sm shrink-0 font-extrabold"
             >
               {t("edit")}
             </button>
           </div>
           {okMsg ? (
-            <p className="text-success-600 mt-2 px-0.5 text-[11.5px] font-semibold">
+            <p className="text-success-600 text-caption-lg mt-2 px-0.5 font-semibold">
               {okMsg}
             </p>
           ) : (
-            <p className="text-muted mt-2 px-0.5 text-[11.5px] font-medium">
+            <p className="text-muted text-caption-lg mt-2 px-0.5 font-medium">
               {t("emailReceiptsHint")}
             </p>
           )}
@@ -254,7 +254,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
 
       {step === "editing" && (
         <div className="space-y-2.5">
-          <div className="border-border bg-surface-2 focus-within:border-primary-400 focus-within:ring-primary-100 flex items-center gap-2.5 rounded-[13px] border px-3.5 py-3.5 transition focus-within:ring-2">
+          <div className="border-border bg-surface-2 focus-within:border-primary-400 focus-within:ring-primary-100 rounded-card flex items-center gap-2.5 border px-3.5 py-3.5 transition focus-within:ring-2">
             <Mail className="text-muted size-4 shrink-0" />
             <input
               type="email"
@@ -270,11 +270,11 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
           </div>
           {/* Erreur EN LIGNE (email déjà utilisé, etc.) */}
           {err ? (
-            <p className="text-danger-600 px-0.5 text-[11.5px] font-semibold">
+            <p className="text-danger-600 text-caption-lg px-0.5 font-semibold">
               {err}
             </p>
           ) : (
-            <p className="text-muted px-0.5 text-[11.5px] font-medium">
+            <p className="text-muted text-caption-lg px-0.5 font-medium">
               {t("confirmCodeWillBeSent")}
             </p>
           )}
@@ -282,7 +282,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
             <button
               type="button"
               onClick={() => setStep("idle")}
-              className="border-border text-muted h-11 flex-1 rounded-[12px] border text-sm font-semibold"
+              className="border-border text-muted h-11 flex-1 rounded-md border text-sm font-semibold"
             >
               {t("cancel")}
             </button>
@@ -300,7 +300,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
                   }
                 })
               }
-              className="bg-foreground text-background h-11 flex-1 rounded-[12px] text-sm font-extrabold disabled:opacity-40"
+              className="bg-foreground text-background h-11 flex-1 rounded-md text-sm font-extrabold disabled:opacity-40"
             >
               {pending ? (
                 <Loader2 className="mx-auto size-4 animate-spin" />
@@ -332,7 +332,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
             placeholder="Code à 6 chiffres"
             aria-invalid={!!err}
             className={
-              "bg-surface-2 w-full rounded-[13px] border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.3em] tabular-nums outline-none " +
+              "bg-surface-2 rounded-card w-full border px-3.5 py-3.5 text-center text-lg font-bold tracking-[0.3em] tabular-nums outline-none " +
               (err
                 ? "border-danger-500"
                 : "border-border focus:border-primary-400")
@@ -340,7 +340,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
           />
           {/* Erreur EN LIGNE sous le champ code (essais restants, blocage…) */}
           {err && (
-            <p className="text-danger-600 px-0.5 text-[11.5px] font-semibold">
+            <p className="text-danger-600 text-caption-lg px-0.5 font-semibold">
               {err}
             </p>
           )}
@@ -351,7 +351,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
                 setErr(null);
                 setStep("editing");
               }}
-              className="border-border text-muted h-11 flex-1 rounded-[12px] border text-sm font-semibold"
+              className="border-border text-muted h-11 flex-1 rounded-md border text-sm font-semibold"
             >
               {t("back")}
             </button>
@@ -374,7 +374,7 @@ function EmailField({ initialEmail }: { initialEmail: string }) {
                   }
                 })
               }
-              className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[12px] text-sm font-extrabold text-white disabled:opacity-40"
+              className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-md text-sm font-extrabold text-white disabled:opacity-40"
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" />

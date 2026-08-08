@@ -71,8 +71,8 @@ export function AnnouncementPopup({
       className={cn(
         "bg-surface w-full max-w-[420px] overflow-hidden shadow-2xl",
         preview
-          ? "rounded-[22px]"
-          : "animate-fade-in rounded-t-[26px] sm:rounded-[26px]"
+          ? "rounded-sheet-xl"
+          : "animate-fade-in rounded-t-panel-lg sm:rounded-panel-lg"
       )}
     >
       {announcement.image_url ? (
@@ -92,7 +92,7 @@ export function AnnouncementPopup({
 
       <div className="px-5 pt-4 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:pb-5">
         <div className="flex items-start gap-2">
-          <h2 className="text-foreground min-w-0 flex-1 text-[17px] leading-snug font-extrabold tracking-tight">
+          <h2 className="text-foreground text-title-lg min-w-0 flex-1 leading-snug font-extrabold tracking-tight">
             {title}
           </h2>
           {!announcement.blocking && (
@@ -106,7 +106,7 @@ export function AnnouncementPopup({
             </button>
           )}
         </div>
-        <p className="text-muted mt-1.5 text-[13.5px] leading-relaxed font-medium whitespace-pre-line">
+        <p className="text-muted text-body mt-1.5 leading-relaxed font-medium whitespace-pre-line">
           {body}
         </p>
 
@@ -121,7 +121,7 @@ export function AnnouncementPopup({
                   type="button"
                   onClick={() => onAction({ kind: "button", index: i })}
                   className={cn(
-                    "inline-flex w-full items-center justify-center gap-2 rounded-[13px] px-4 py-3 text-sm font-extrabold transition active:scale-[0.98]",
+                    "rounded-card inline-flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-extrabold transition active:scale-[0.98]",
                     ghost
                       ? "text-muted hover:text-foreground"
                       : "bg-primary-600 hover:bg-primary-700 text-white shadow-[0_8px_20px_-8px_rgba(91,46,255,0.5)]"

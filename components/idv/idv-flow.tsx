@@ -417,11 +417,11 @@ export function IdvFlow({
             <img
               src={frontUrl}
               alt={tr("Aperçu du recto", "معاينة الوجه الأمامي")}
-              className="w-full rounded-[14px] border"
+              className="rounded-card-lg w-full border"
               style={{ borderColor: "var(--idv-line)" }}
             />
             <figcaption
-              className="text-[11px]"
+              className="text-caption"
               style={{ color: "var(--idv-muted)" }}
             >
               {sideLabel(doc, "front", isAr)}
@@ -434,11 +434,11 @@ export function IdvFlow({
             <img
               src={backUrl}
               alt={tr("Aperçu du verso", "معاينة الوجه الخلفي")}
-              className="w-full rounded-[14px] border"
+              className="rounded-card-lg w-full border"
               style={{ borderColor: "var(--idv-line)" }}
             />
             <figcaption
-              className="text-[11px]"
+              className="text-caption"
               style={{ color: "var(--idv-muted)" }}
             >
               {tr("Verso", "الوجه الخلفي")}
@@ -449,7 +449,7 @@ export function IdvFlow({
 
       {state.error && !errorDismissed && (
         <p
-          className="rounded-[12px] px-3 py-2.5 text-sm"
+          className="rounded-md px-3 py-2.5 text-sm"
           style={{
             background: "rgba(239,68,68,.12)",
             color: "var(--idv-bad)",

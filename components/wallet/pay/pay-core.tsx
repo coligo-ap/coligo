@@ -482,7 +482,7 @@ export function PayCard({
 }) {
   return (
     <div
-      className={`rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] ${className}`}
+      className={`rounded-sheet-lg border border-[var(--d-line)] bg-[var(--d-surface)] ${className}`}
     >
       {children}
     </div>
@@ -541,10 +541,10 @@ export function PayEntryRow({
         <Icon className="size-4 rtl:-scale-x-100" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="block truncate text-[13px] font-bold text-[var(--d-ink)]">
+        <span className="text-body-sm block truncate font-bold text-[var(--d-ink)]">
           {entryLabel(entry, lang)}
         </span>
-        <span className="block text-[11px] font-medium text-[var(--d-muted)]">
+        <span className="text-caption block font-medium text-[var(--d-muted)]">
           {fmtDay(entry.createdAt, lang)}
         </span>
       </span>
@@ -566,7 +566,7 @@ export function PayPrimaryButton({
   href?: string;
 }) {
   const cls =
-    "flex w-full items-center justify-center gap-2 rounded-[14px] py-3.5 text-[14px] font-extrabold text-white disabled:opacity-60";
+    "flex w-full items-center justify-center gap-2 rounded-card-lg py-3.5 text-body-lg font-extrabold text-white disabled:opacity-60";
   const style = {
     background: BRAND_VIOLET,
     boxShadow: "0 10px 24px -10px rgba(108,43,217,.55)",
@@ -596,9 +596,11 @@ export function PayPrimaryButton({
 export function PaySkeleton({ hero = true }: { hero?: boolean }) {
   return (
     <div className="mx-auto w-full max-w-[560px] animate-pulse space-y-3">
-      {hero && <div className="h-[150px] rounded-[22px] bg-[var(--d-soft)]" />}
-      <div className="h-[74px] rounded-[18px] bg-[var(--d-soft)]" />
-      <div className="h-[160px] rounded-[18px] bg-[var(--d-soft)]" />
+      {hero && (
+        <div className="rounded-sheet-xl h-[150px] bg-[var(--d-soft)]" />
+      )}
+      <div className="rounded-sheet-lg h-[74px] bg-[var(--d-soft)]" />
+      <div className="rounded-sheet-lg h-[160px] bg-[var(--d-soft)]" />
     </div>
   );
 }
@@ -607,14 +609,14 @@ export function PaySkeleton({ hero = true }: { hero?: boolean }) {
 export function PayLoadError({ onRetry }: { onRetry: () => void }) {
   const { t } = usePayLang();
   return (
-    <div className="mx-auto w-full max-w-[560px] rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-5 py-8 text-center">
-      <p className="mb-4 text-[13.5px] font-bold text-[var(--d-ink)]">
+    <div className="rounded-sheet-lg mx-auto w-full max-w-[560px] border border-[var(--d-line)] bg-[var(--d-surface)] px-5 py-8 text-center">
+      <p className="text-body mb-4 font-bold text-[var(--d-ink)]">
         {t.loadFail}
       </p>
       <button
         type="button"
         onClick={onRetry}
-        className="rounded-[12px] px-5 py-2.5 text-[13px] font-extrabold text-white"
+        className="text-body-sm rounded-md px-5 py-2.5 font-extrabold text-white"
         style={{ background: BRAND_VIOLET }}
       >
         {t.retryLoad}

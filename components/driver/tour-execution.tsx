@@ -217,7 +217,7 @@ export function TourExecution({
 
       {/* Récap financier — carte dégradé violet (style net-card maquette). */}
       <div
-        className="rounded-[22px] p-5 text-white"
+        className="rounded-sheet-xl p-5 text-white"
         style={{
           background: `linear-gradient(135deg, ${BRAND_VIOLET}, #4b1fa6)`,
           boxShadow: "0 18px 40px -14px rgba(108,43,217,.45)",
@@ -225,7 +225,7 @@ export function TourExecution({
       >
         <div className="flex items-end justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-[12px] font-semibold opacity-85">
+            <p className="text-label font-semibold opacity-85">
               {tr("Tes gains · tournée", "أرباحك · الجولة")}
             </p>
             <p
@@ -236,18 +236,18 @@ export function TourExecution({
             </p>
           </div>
           <div className="text-right rtl:text-left">
-            <p className="text-[10.5px] font-semibold tracking-[0.4px] uppercase opacity-85">
+            <p className="text-micro-lg font-semibold tracking-[0.4px] uppercase opacity-85">
               {tr("À reverser au commerçant", "للتسديد للتاجر")}
             </p>
             <p
-              className="mt-1 text-[18px] font-extrabold"
+              className="text-heading-sm mt-1 font-extrabold"
               style={{ fontFamily: SORA }}
             >
               {formatDA(owedMerchant)}
             </p>
           </div>
         </div>
-        <div className="mt-3.5 flex items-center gap-2 rounded-[14px] bg-white/14 px-3 py-2.5 text-[11.5px] font-medium">
+        <div className="rounded-card-lg text-caption-lg mt-3.5 flex items-center gap-2 bg-white/14 px-3 py-2.5 font-medium">
           <Banknote className="size-4 shrink-0" />
           {tr("Cash à encaisser :", "نقد للتحصيل:")}{" "}
           <b style={{ fontFamily: SORA }}>{formatDA(cashToCollect)}</b>
@@ -258,8 +258,8 @@ export function TourExecution({
       </div>
 
       {/* Progression de la tournée */}
-      <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
-        <div className="mb-2 flex items-center justify-between text-[12.5px] font-bold">
+      <div className="rounded-sheet-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
+        <div className="text-label-lg mb-2 flex items-center justify-between font-bold">
           <span className="text-[var(--d-ink)]">
             {tr("Progression", "التقدّم")}
           </span>
@@ -281,7 +281,7 @@ export function TourExecution({
             type="button"
             onClick={onBulkPickup}
             disabled={pending}
-            className="flex h-[54px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold text-white active:scale-[0.99] disabled:opacity-60"
+            className="text-title-sm flex h-[54px] w-full items-center justify-center gap-2 rounded-lg font-bold text-white active:scale-[0.99] disabled:opacity-60"
             style={{
               fontFamily: SORA,
               background: BRAND_VIOLET,
@@ -300,7 +300,7 @@ export function TourExecution({
             type="button"
             onClick={onReorder}
             disabled={pending}
-            className="flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] text-[14px] font-bold text-[var(--d-ink)] active:scale-[0.99] disabled:opacity-60"
+            className="text-body-lg flex h-[50px] w-full items-center justify-center gap-2 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] font-bold text-[var(--d-ink)] active:scale-[0.99] disabled:opacity-60"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -312,7 +312,7 @@ export function TourExecution({
         )}
         {actionMsg && (
           <p
-            className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+            className="text-label rounded-md px-3 py-2 text-center font-bold"
             style={
               actionMsg.tone === "ok"
                 ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
@@ -333,7 +333,7 @@ export function TourExecution({
             <li
               key={s.stop_id}
               className={
-                "space-y-2 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 " +
+                "rounded-sheet-lg space-y-2 border border-[var(--d-line)] bg-[var(--d-surface)] p-4 " +
                 (done ? "opacity-60" : "")
               }
             >
@@ -343,7 +343,7 @@ export function TourExecution({
               >
                 <div className="flex min-w-0 items-center gap-3">
                   <span
-                    className="grid size-9 shrink-0 place-items-center rounded-full text-[13px] font-extrabold tabular-nums"
+                    className="text-body-sm grid size-9 shrink-0 place-items-center rounded-full font-extrabold tabular-nums"
                     style={
                       done
                         ? {
@@ -360,10 +360,10 @@ export function TourExecution({
                     {done ? <Check className="size-4" /> : s.stop_order}
                   </span>
                   <div className="min-w-0">
-                    <p className="truncate text-[14.5px] font-bold text-[var(--d-ink)]">
+                    <p className="text-body-xl truncate font-bold text-[var(--d-ink)]">
                       {s.customer_name ?? tr("Client", "زبون")}
                     </p>
-                    <p className="text-[12px] font-medium text-[var(--d-muted)]">
+                    <p className="text-label font-medium text-[var(--d-muted)]">
                       {s.payment_method === "online"
                         ? tr("Payé en ligne", "مدفوع عبر الإنترنت")
                         : tr("Espèces", "نقداً")}{" "}
@@ -386,7 +386,7 @@ export function TourExecution({
               {expanded && !done && (
                 <div className="space-y-2.5 pt-1">
                   {s.delivery_address_text && (
-                    <p className="flex items-start gap-1.5 text-[12.5px] font-medium text-[var(--d-muted)]">
+                    <p className="text-label-lg flex items-start gap-1.5 font-medium text-[var(--d-muted)]">
                       <MapPin className="mt-0.5 size-3.5 shrink-0" />
                       {s.delivery_address_text}
                     </p>
@@ -395,7 +395,7 @@ export function TourExecution({
                     <a
                       href={`tel:${s.delivery_phone ?? s.customer_phone}`}
                       onClick={() => void noteCallAttempt(s.order_id)}
-                      className="inline-flex items-center gap-1.5 text-[12.5px] font-bold"
+                      className="text-label-lg inline-flex items-center gap-1.5 font-bold"
                       style={{ color: BRAND_VIOLET }}
                     >
                       <Phone className="size-3.5" />
@@ -404,7 +404,7 @@ export function TourExecution({
                   )}
                   {s.delivery_note && (
                     <p
-                      className="flex items-start gap-1.5 rounded-[12px] px-3 py-2 text-[12px] font-medium"
+                      className="text-label flex items-start gap-1.5 rounded-md px-3 py-2 font-medium"
                       style={{
                         background: "rgba(245,158,11,.12)",
                         color: "#c2790a",
@@ -447,7 +447,7 @@ export function TourExecution({
                         type="button"
                         onClick={() => onArrived(s.stop_id, s.order_id)}
                         disabled={pending}
-                        className="flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-soft)] text-[14px] font-bold text-[var(--d-ink)] active:scale-[0.99] disabled:opacity-60"
+                        className="text-body-lg flex h-[50px] w-full items-center justify-center gap-2 rounded-lg border border-[var(--d-line)] bg-[var(--d-soft)] font-bold text-[var(--d-ink)] active:scale-[0.99] disabled:opacity-60"
                       >
                         {pending ? (
                           <Loader2 className="size-4 animate-spin" />
@@ -462,7 +462,7 @@ export function TourExecution({
                     )}
                   {stopErr[s.stop_id] ? (
                     <p
-                      className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+                      className="text-label rounded-md px-3 py-2 text-center font-bold"
                       style={{
                         background: "rgba(229,72,77,.1)",
                         color: "#e5484d",
@@ -477,7 +477,7 @@ export function TourExecution({
                     <button
                       type="button"
                       onClick={() => setValidateFor(s)}
-                      className="flex h-[54px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-bold text-white active:scale-[0.99]"
+                      className="text-title-sm flex h-[54px] w-full items-center justify-center gap-2 rounded-lg font-bold text-white active:scale-[0.99]"
                       style={{
                         fontFamily: SORA,
                         background: BRAND_VIOLET,

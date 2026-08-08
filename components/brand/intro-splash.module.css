@@ -20,9 +20,9 @@
   --c-x: 10.13%;
   --c-y: 43.09%;
   --wordmark: url("/brand/logo-fr-white.png");
-  --violet: #6c2bd9;
+  --violet: var(--color-primary-600);
   --violet-deep: #240a52;
-  --rose: #ff2d7a;
+  --rose: var(--color-accent-500);
   /* Couleur de RACCORD avec l'écran de lancement natif. Doit rester égale à
      @color/coligo_splash (android/app/src/main/res/values/colors.xml) et à
      `android.backgroundColor` (capacitor.config.ts). C'est la valeur du dégradé

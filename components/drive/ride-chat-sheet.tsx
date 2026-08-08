@@ -142,14 +142,14 @@ export function RideChatSheet({
         onClick={onClose}
       >
         <div
-          className="drive-up drive-jakarta flex h-[82vh] w-full flex-col rounded-t-[26px] bg-[var(--d-surface)] text-[var(--d-ink)] sm:h-[70vh] sm:max-w-md sm:rounded-[26px]"
+          className="drive-up drive-jakarta rounded-t-panel-lg sm:rounded-panel-lg flex h-[82vh] w-full flex-col bg-[var(--d-surface)] text-[var(--d-ink)] sm:h-[70vh] sm:max-w-md"
           onClick={(e) => e.stopPropagation()}
         >
           {/* En-tête : correspondant + confidentialité */}
           <div className="flex items-center gap-3 border-b border-[var(--d-line)] px-4 pt-3.5 pb-3">
             {peerAvatar ?? (
               <span
-                className="drive-sora grid size-10 shrink-0 place-items-center rounded-full text-[15px] font-extrabold text-white"
+                className="drive-sora text-title-sm grid size-10 shrink-0 place-items-center rounded-full font-extrabold text-white"
                 style={{
                   background: `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
                 }}
@@ -158,10 +158,10 @@ export function RideChatSheet({
               </span>
             )}
             <span className="min-w-0 flex-1">
-              <b className="drive-sora block truncate text-[15px] font-extrabold">
+              <b className="drive-sora text-title-sm block truncate font-extrabold">
                 {peerName}
               </b>
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-[var(--d-muted)]">
+              <span className="text-caption flex items-center gap-1 font-semibold text-[var(--d-muted)]">
                 <ShieldCheck className="size-3" style={{ color: GO }} />
                 {t("sub")}
               </span>
@@ -186,7 +186,7 @@ export function RideChatSheet({
                 />
               </div>
             ) : msgs.length === 0 ? (
-              <p className="py-8 text-center text-[12.5px] font-semibold text-[var(--d-muted)]">
+              <p className="text-label-lg py-8 text-center font-semibold text-[var(--d-muted)]">
                 {t("empty")}
               </p>
             ) : (
@@ -205,7 +205,7 @@ export function RideChatSheet({
                     <div className={cn("max-w-[80%]", mine && "text-end")}>
                       <div
                         className={cn(
-                          "inline-block rounded-[16px] px-3 py-2 text-start text-[13px] leading-snug font-medium break-words",
+                          "text-body-sm inline-block rounded-lg px-3 py-2 text-start leading-snug font-medium break-words",
                           mine
                             ? "rounded-br-[5px] text-white"
                             : "rounded-bl-[5px] bg-[var(--d-soft)]"
@@ -215,7 +215,7 @@ export function RideChatSheet({
                         {m.body}
                         <span
                           className={cn(
-                            "ms-2 inline-flex items-center gap-0.5 align-baseline text-[9.5px] font-semibold",
+                            "text-nano-lg ms-2 inline-flex items-center gap-0.5 align-baseline font-semibold",
                             mine ? "text-white/70" : "text-[var(--d-muted)]"
                           )}
                         >
@@ -234,7 +234,7 @@ export function RideChatSheet({
                       {/* Statut détaillé sous le DERNIER message envoyé. */}
                       {mine && m.id === lastMineId && (
                         <span
-                          className="mt-0.5 block text-[9.5px] font-semibold"
+                          className="text-nano-lg mt-0.5 block font-semibold"
                           style={{ color: read ? GO : "var(--d-muted)" }}
                         >
                           {read
@@ -272,7 +272,7 @@ export function RideChatSheet({
 
           {error && (
             <p
-              className="px-4 pb-1 text-[11.5px] font-bold"
+              className="text-caption-lg px-4 pb-1 font-bold"
               style={{ color: "#E5484D" }}
             >
               {error}

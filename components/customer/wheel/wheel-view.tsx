@@ -295,7 +295,7 @@ export function WheelView({
 
   if (!state || !state.enabled) {
     return (
-      <div className="bg-surface rounded-[20px] p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <div className="bg-surface rounded-xl p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
         <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
           <Hourglass className="size-6" />
         </span>
@@ -331,8 +331,8 @@ export function WheelView({
         {/* Aiguille dorée (vibre pendant le tirage). */}
         <div className="absolute top-[-8px] left-1/2 z-20 -translate-x-1/2">
           <div className={cn(spinning && "wh-ptr")}>
-            <div className="h-0 w-0 border-x-[17px] border-t-[27px] border-x-transparent border-t-[#F59E0B] drop-shadow-md" />
-            <div className="absolute top-[2px] left-1/2 h-0 w-0 -translate-x-1/2 border-x-[12px] border-t-[19px] border-x-transparent border-t-[#FF2D7A]" />
+            <div className="border-t-warning-500 h-0 w-0 border-x-[17px] border-t-[27px] border-x-transparent drop-shadow-md" />
+            <div className="border-t-accent-500 absolute top-[2px] left-1/2 h-0 w-0 -translate-x-1/2 border-x-[12px] border-t-[19px] border-x-transparent" />
           </div>
         </div>
 
@@ -379,14 +379,14 @@ export function WheelView({
       </div>
 
       {error && (
-        <p className="rounded-[12px] border border-rose-200 bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-800">
+        <p className="rounded-md border border-rose-200 bg-rose-50 px-3 py-2 text-center text-sm font-medium text-rose-800">
           {error}
         </p>
       )}
 
       {/* ── CTA ── */}
       {spentToday && !spinning ? (
-        <div className="bg-surface rounded-[16px] p-4 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="bg-surface rounded-lg p-4 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
           <p className="text-foreground text-sm font-extrabold">
             {t("comeBack")}
           </p>
@@ -398,7 +398,7 @@ export function WheelView({
           onClick={() => void spin()}
           disabled={spinning}
           className={cn(
-            "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-[16px] text-base font-extrabold text-white shadow-[0_14px_30px_-10px_rgba(255,45,122,0.55)] transition active:scale-[0.98] disabled:opacity-70",
+            "relative inline-flex h-[54px] w-full items-center justify-center gap-2 overflow-hidden rounded-lg text-base font-extrabold text-white shadow-[0_14px_30px_-10px_rgba(255,45,122,0.55)] transition active:scale-[0.98] disabled:opacity-70",
             !spinning && "wh-cta"
           )}
           style={{
@@ -424,9 +424,9 @@ export function WheelView({
       )}
 
       {/* ── SÉRIE ── */}
-      <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <div className="bg-surface rounded-lg p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
         <div className="flex items-center justify-between">
-          <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+          <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             {t("streakTitle")}
           </p>
           <p className="text-primary-700 text-xs font-black tabular-nums">
@@ -461,7 +461,7 @@ export function WheelView({
           onClick={() => setShowResult(false)}
         >
           <div
-            className="wh-pop bg-surface relative w-full max-w-[380px] overflow-hidden rounded-[26px] p-6 text-center shadow-2xl"
+            className="wh-pop bg-surface rounded-panel-lg relative w-full max-w-[380px] overflow-hidden p-6 text-center shadow-2xl"
             onClick={(e) => e.stopPropagation()}
           >
             {result.kind === "voucher" || result.kind === "free_delivery" ? (
@@ -557,7 +557,7 @@ export function WheelView({
             <button
               type="button"
               onClick={() => setShowResult(false)}
-              className="bg-primary-600 hover:bg-primary-700 mt-5 inline-flex w-full items-center justify-center gap-2 rounded-[13px] px-4 py-3 text-sm font-extrabold text-white"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card mt-5 inline-flex w-full items-center justify-center gap-2 px-4 py-3 text-sm font-extrabold text-white"
             >
               <Gift className="size-4" />
               {t("resultClose")}

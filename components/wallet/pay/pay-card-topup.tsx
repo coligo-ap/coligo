@@ -226,7 +226,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
           className="mx-auto size-10 animate-spin"
           style={{ color: "var(--d-violet)" }}
         />
-        <p className="mt-4 text-[15px] font-extrabold text-[var(--d-ink)]">
+        <p className="text-title-sm mt-4 font-extrabold text-[var(--d-ink)]">
           {t.checkingPay}
         </p>
       </ResultScreen>
@@ -237,12 +237,12 @@ export function PayCardTopup({ base }: { base: PayBase }) {
       <ResultScreen dir={dir}>
         <CheckCircle2 className="mx-auto size-12" style={{ color: BRAND_GO }} />
         <p
-          className="mt-4 text-[18px] font-extrabold text-[var(--d-ink)]"
+          className="text-heading-sm mt-4 font-extrabold text-[var(--d-ink)]"
           style={{ fontFamily: SORA }}
         >
           {t.confirmedTitle}
         </p>
-        <p className="mt-1 text-[12.5px] font-medium text-[var(--d-muted)]">
+        <p className="text-label-lg mt-1 font-medium text-[var(--d-muted)]">
           {t.confirmedSub}
         </p>
         <div className="mt-5 space-y-2">
@@ -261,12 +261,12 @@ export function PayCardTopup({ base }: { base: PayBase }) {
       <ResultScreen dir={dir}>
         <XCircle className="mx-auto size-12" style={{ color: BRAND_RED }} />
         <p
-          className="mt-4 text-[18px] font-extrabold text-[var(--d-ink)]"
+          className="text-heading-sm mt-4 font-extrabold text-[var(--d-ink)]"
           style={{ fontFamily: SORA }}
         >
           {t.failedTitle}
         </p>
-        <p className="mt-1 text-[12.5px] font-medium text-[var(--d-muted)]">
+        <p className="text-label-lg mt-1 font-medium text-[var(--d-muted)]">
           {t.failedSub}
         </p>
         <div className="mt-5 space-y-2">
@@ -285,10 +285,10 @@ export function PayCardTopup({ base }: { base: PayBase }) {
           className="mx-auto size-10"
           style={{ color: "var(--d-violet)" }}
         />
-        <p className="mt-4 text-[15px] font-extrabold text-[var(--d-ink)]">
+        <p className="text-title-sm mt-4 font-extrabold text-[var(--d-ink)]">
           {t.delayTitle}
         </p>
-        <p className="mt-1 text-[12.5px] font-medium text-[var(--d-muted)]">
+        <p className="text-label-lg mt-1 font-medium text-[var(--d-muted)]">
           {tr.ccpNote}
         </p>
         <div className="mt-5">
@@ -333,7 +333,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
                   key={r}
                   type="button"
                   onClick={() => setRail(r)}
-                  className="flex-1 rounded-[12px] border-[1.5px] px-2.5 py-2 text-start"
+                  className="flex-1 rounded-md border-[1.5px] px-2.5 py-2 text-start"
                   style={
                     on
                       ? {
@@ -349,9 +349,9 @@ export function PayCardTopup({ base }: { base: PayBase }) {
                 >
                   <span className="flex items-center gap-1.5">
                     <Icon className="size-3.5 shrink-0" />
-                    <b className="text-[12px]">{label}</b>
+                    <b className="text-label">{label}</b>
                   </span>
-                  <span className="mt-0.5 block text-[10px] font-semibold text-[var(--d-muted)]">
+                  <span className="text-micro mt-0.5 block font-semibold text-[var(--d-muted)]">
                     {sub}
                   </span>
                 </button>
@@ -359,7 +359,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
             })}
           </div>
         )}
-        <p className="mb-2 text-[12.5px] font-bold text-[var(--d-muted)]">
+        <p className="text-label-lg mb-2 font-bold text-[var(--d-muted)]">
           {tr.amountLabel}
         </p>
         <div className="grid grid-cols-3 gap-2">
@@ -370,7 +370,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
                 key={v}
                 type="button"
                 onClick={() => setAmount(String(v))}
-                className="rounded-[12px] border py-2.5 text-[13px] font-extrabold"
+                className="text-body-sm rounded-md border py-2.5 font-extrabold"
                 style={
                   on
                     ? {
@@ -391,7 +391,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
           })}
         </div>
         <input
-          className="mt-2.5 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 text-[13.5px] font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          className="text-body mt-2.5 w-full rounded-md border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
           inputMode="numeric"
@@ -419,7 +419,7 @@ export function PayCardTopup({ base }: { base: PayBase }) {
         )}
       </PayCard>
 
-      <p className="mt-3 flex items-start justify-center gap-1.5 px-4 text-center text-[11.5px] font-medium text-[var(--d-muted)]">
+      <p className="text-caption-lg mt-3 flex items-start justify-center gap-1.5 px-4 text-center font-medium text-[var(--d-muted)]">
         <ShieldCheck
           className="mt-[1px] size-3.5 shrink-0"
           style={{ color: BRAND_GO }}
@@ -454,7 +454,7 @@ function ResultScreen({
 }) {
   return (
     <section dir={dir} className="mx-auto w-full max-w-[560px]">
-      <div className="rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] px-5 py-10 text-center">
+      <div className="rounded-sheet-xl border border-[var(--d-line)] bg-[var(--d-surface)] px-5 py-10 text-center">
         {children}
       </div>
     </section>
@@ -472,7 +472,7 @@ function SecondaryLink({
     <Link
       href={href}
       prefetch
-      className="flex w-full items-center justify-center rounded-[14px] border border-[var(--d-line)] py-3 text-[13px] font-bold text-[var(--d-ink)]"
+      className="rounded-card-lg text-body-sm flex w-full items-center justify-center border border-[var(--d-line)] py-3 font-bold text-[var(--d-ink)]"
     >
       {children}
     </Link>

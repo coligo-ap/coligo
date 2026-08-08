@@ -239,7 +239,7 @@ export function DrivePriceScreen({
         <button
           type="button"
           onClick={() => setScreen("home")}
-          className="absolute start-4 top-[calc(0.75rem+env(safe-area-inset-top))] z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="rounded-card-lg absolute start-4 top-[calc(0.75rem+env(safe-area-inset-top))] z-10 grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
           aria-label={t("back")}
         >
           <ChevronLeft className="size-5" />
@@ -248,7 +248,7 @@ export function DrivePriceScreen({
         <button
           type="button"
           onClick={toggleMap}
-          className="absolute end-4 top-[calc(0.75rem+env(safe-area-inset-top))] z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="rounded-card-lg absolute end-4 top-[calc(0.75rem+env(safe-area-inset-top))] z-10 grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
           aria-label={mapFull ? t("map.collapse") : t("map.expand")}
         >
           {mapFull ? (
@@ -261,7 +261,7 @@ export function DrivePriceScreen({
             est déjà annoté sur la carte), et un CTA clair pour revenir. */}
         {mapFull && (
           <div className="absolute bottom-[calc(1rem+env(safe-area-inset-bottom))] left-1/2 z-10 flex -translate-x-1/2 flex-col items-center gap-2.5">
-            <div className="drive-jakarta flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2 text-[12.5px] font-bold shadow-lg">
+            <div className="drive-jakarta text-label-lg flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2 font-bold shadow-lg">
               <Route className="size-3.5" style={{ color: VIOLET }} />
               {distanceLabel} km
               <span className="text-[var(--d-muted)]">·</span>
@@ -271,7 +271,7 @@ export function DrivePriceScreen({
             <button
               type="button"
               onClick={toggleMap}
-              className="drive-jakarta rounded-full px-5 py-2.5 text-[13px] font-extrabold text-white shadow-lg"
+              className="drive-jakarta text-body-sm rounded-full px-5 py-2.5 font-extrabold text-white shadow-lg"
               style={{ background: VIOLET }}
             >
               {t("map.collapse")}
@@ -281,7 +281,7 @@ export function DrivePriceScreen({
       </div>
 
       <div
-        className={`drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] ${mapFull ? "hidden" : ""}`}
+        className={`drive-jakarta -mt-4 flex-1 overflow-y-auto rounded-t-2xl border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] ${mapFull ? "hidden" : ""}`}
       >
         <div className="mx-auto mb-4 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
         {/* Départ / destination (rail pointillé) */}
@@ -300,13 +300,13 @@ export function DrivePriceScreen({
             Ancrage cosmétique (le client paie le prix réel = ce que touche
             le chauffeur ; coût plateforme nul). Désactivable côté super-admin. */}
         {welcome?.isNew && welcome.save > 0 && (
-          <div className="mt-3 flex items-center gap-3 rounded-[16px] border-[1.5px] border-[#FF2D7A]/30 bg-[#FFF0F6] px-3.5 py-2.5">
-            <span className="text-[20px]">🎁</span>
+          <div className="border-accent-500/30 mt-3 flex items-center gap-3 rounded-lg border-[1.5px] bg-[var(--color-accent-50)] px-3.5 py-2.5">
+            <span className="text-heading-lg">🎁</span>
             <div className="flex-1">
-              <p className="text-[12.5px] font-extrabold text-[#FF2D7A]">
+              <p className="text-label-lg text-accent-500 font-extrabold">
                 {t("price.welcomeTitle", { code: welcome.code ?? "" })}
               </p>
-              <p className="text-[11px] font-semibold text-[var(--d-muted)]">
+              <p className="text-caption font-semibold text-[var(--d-muted)]">
                 <span className="line-through">{formatDA(welcome.anchor)}</span>{" "}
                 → <b>{formatDA(welcome.pay)}</b> ·{" "}
                 {t("price.welcomeSave", { save: formatDA(welcome.save) })}
@@ -325,7 +325,7 @@ export function DrivePriceScreen({
               setSchedMsg(null);
               setSchedOpen(true);
             }}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-dashed border-[var(--d-line)] py-2.5 text-[13px] font-bold"
+            className="rounded-card-lg text-body-sm mt-3 flex w-full items-center justify-center gap-2 border-[1.5px] border-dashed border-[var(--d-line)] py-2.5 font-bold"
             style={{ color: "var(--d-violet)" }}
           >
             <CalendarClock className="size-4" />
@@ -338,17 +338,17 @@ export function DrivePriceScreen({
             onClick={() => !schedBusy && setSchedOpen(false)}
           >
             <div
-              className="w-full max-w-[560px] rounded-t-[24px] bg-[var(--d-surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+              className="rounded-t-panel w-full max-w-[560px] bg-[var(--d-surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
               onClick={(e) => e.stopPropagation()}
             >
-              <p className="mb-1 text-[15px] font-extrabold">
+              <p className="text-title-sm mb-1 font-extrabold">
                 {t("price.scheduleTitle")}
               </p>
-              <p className="mb-3 text-[12px] text-[var(--d-muted)]">
+              <p className="text-label mb-3 text-[var(--d-muted)]">
                 {t("price.scheduleHint")}
               </p>
               {schedDone ? (
-                <p className="py-4 text-center text-[14px] font-bold text-[var(--d-go,#16A34A)]">
+                <p className="text-body-lg py-4 text-center font-bold text-[var(--d-go,#16A34A)]">
                   {t("price.scheduleOk")}
                 </p>
               ) : (
@@ -364,10 +364,10 @@ export function DrivePriceScreen({
                       .toISOString()
                       .slice(0, 16)}
                     onChange={(e) => setSchedAt(e.target.value)}
-                    className="w-full rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[14px] font-semibold"
+                    className="text-body-lg w-full rounded-md border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 font-semibold"
                   />
                   {schedMsg && (
-                    <p className="mt-2 text-[12px] font-semibold text-[#E5484D]">
+                    <p className="text-label mt-2 font-semibold text-[#E5484D]">
                       {schedMsg}
                     </p>
                   )}
@@ -375,7 +375,7 @@ export function DrivePriceScreen({
                     type="button"
                     disabled={!schedAt || schedBusy}
                     onClick={submitSchedule}
-                    className="mt-3 w-full rounded-[14px] py-3 text-[14px] font-extrabold text-white disabled:opacity-50"
+                    className="rounded-card-lg text-body-lg mt-3 w-full py-3 font-extrabold text-white disabled:opacity-50"
                     style={{ background: VIOLET }}
                   >
                     {schedBusy ? "…" : t("price.scheduleConfirm")}
@@ -388,17 +388,17 @@ export function DrivePriceScreen({
         <div className="mt-1 mb-3.5 flex flex-wrap gap-2">
           {/* Affichage INSTANTANÉ : estimation à vol d'oiseau tout de suite,
               affinée en silence par OSRM (jamais de loader d'attente). */}
-          <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
+          <span className="text-label-lg flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 font-bold">
             <Route className="size-3.5" /> {distanceLabel} km
           </span>
-          <span className="flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[12.5px] font-bold">
+          <span className="text-label-lg flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 font-bold">
             <Clock className="size-3.5" /> ~{etaMin} min
           </span>
           {/* Longue distance entre wilayas : le client confirme d'un coup
               d'œil que sa demande partira bien en « Inter-wilayas ». */}
           {inter && (
             <span
-              className="flex max-w-full items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-extrabold"
+              className="text-label-lg flex max-w-full items-center gap-1.5 rounded-full px-3 py-1.5 font-extrabold"
               style={{ background: "rgba(108,43,217,.10)", color: VIOLET }}
             >
               <span className="truncate">
@@ -415,7 +415,7 @@ export function DrivePriceScreen({
               key={g}
               type="button"
               onClick={() => pickGamme(g)}
-              className="relative flex w-[108px] shrink-0 flex-col items-center rounded-[18px] border-[1.5px] px-2 pt-3 pb-2.5 text-center"
+              className="rounded-sheet-lg relative flex w-[108px] shrink-0 flex-col items-center border-[1.5px] px-2 pt-3 pb-2.5 text-center"
               style={
                 /* Fond TOKENISÉ dans les deux états (jamais #fff en dur : en
                    sombre le texte hérité --d-ink est blanc → invisible). */
@@ -444,7 +444,7 @@ export function DrivePriceScreen({
                 </span>
               )}
               <span
-                className="pointer-events-none flex h-[64px] w-[92px] items-center justify-center rounded-[13px]"
+                className="rounded-card pointer-events-none flex h-[64px] w-[92px] items-center justify-center"
                 style={{
                   /* « Stage showroom » : socle CLAIR figé (identique clair/sombre)
                      pour que TOUTE illustration — verte (classic), blanche, ou en
@@ -465,12 +465,12 @@ export function DrivePriceScreen({
                   className="h-[54px] w-[84px] object-contain [filter:drop-shadow(0_3px_3px_rgba(17,20,45,.16))]"
                 />
               </span>
-              <b className="drive-sora mt-1 text-[13px]">{t(`gammes.${g}`)}</b>
+              <b className="drive-sora text-body-sm mt-1">{t(`gammes.${g}`)}</b>
               <span className="mt-0.5">
-                <b className="text-[12px]" style={{ color: "var(--d-violet)" }}>
+                <b className="text-label" style={{ color: "var(--d-violet)" }}>
                   {quotes ? formatDA(quotes[g].recommended) : "…"}
                 </b>
-                <span className="block text-[9px] font-semibold text-[var(--d-muted)]">
+                <span className="text-nano block font-semibold text-[var(--d-muted)]">
                   {t("price.recommended")}
                 </span>
               </span>
@@ -481,7 +481,7 @@ export function DrivePriceScreen({
         {/* Moyen de paiement — choisi ICI (maquette §2.2). Coligo Pay
             affiche le SOLDE ; vide → désactivé ; partiel → accepté, le
             complément se règle en espèces au chauffeur (mig 0163). */}
-        <p className="mb-2 text-[13.5px] font-bold">{t("price.payTitle")}</p>
+        <p className="text-body mb-2 font-bold">{t("price.payTitle")}</p>
         <div className="mb-3 flex gap-2">
           {(
             [
@@ -497,7 +497,7 @@ export function DrivePriceScreen({
                 type="button"
                 disabled={cpayEmpty}
                 onClick={() => setPayMode(m)}
-                className="flex-1 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-[12px] font-bold disabled:opacity-50"
+                className="text-label flex-1 rounded-md border-[1.5px] px-1.5 py-2.5 font-bold disabled:opacity-50"
                 style={
                   payMode === m
                     ? {
@@ -514,7 +514,7 @@ export function DrivePriceScreen({
                 {label}
                 {m === "coligo_pay" && (
                   <span
-                    className="block text-[10.5px] font-extrabold"
+                    className="text-micro-lg block font-extrabold"
                     style={cpayEmpty ? { color: "#E5484D" } : { color: GO }}
                   >
                     {formatDA(ctx.walletBalance)}
@@ -554,7 +554,7 @@ export function DrivePriceScreen({
                   type="button"
                   disabled={disabled}
                   onClick={() => setCardRail(r)}
-                  className="flex-1 rounded-[12px] border-[1.5px] px-2.5 py-2 text-start disabled:opacity-55"
+                  className="flex-1 rounded-md border-[1.5px] px-2.5 py-2 text-start disabled:opacity-55"
                   style={
                     on
                       ? {
@@ -570,10 +570,10 @@ export function DrivePriceScreen({
                 >
                   <span className="flex items-center gap-1.5">
                     <Icon className="size-3.5 shrink-0" />
-                    <b className="text-[12px]">{label}</b>
+                    <b className="text-label">{label}</b>
                   </span>
                   <span
-                    className="mt-0.5 block text-[10px] leading-snug font-semibold"
+                    className="text-micro mt-0.5 block leading-snug font-semibold"
                     style={{ color: "var(--d-muted)" }}
                   >
                     {sub}
@@ -587,8 +587,8 @@ export function DrivePriceScreen({
         {/* Solde Coligo Pay partiel : le complément ira en ESPÈCES au
             chauffeur — ou recharger pour couvrir toute la course. */}
         {payMode === "coligo_pay" && ctx.walletBalance < offerPrice && (
-          <div className="mb-3 rounded-[14px] border-[1.5px] border-dashed border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5">
-            <p className="text-[12px] leading-relaxed font-semibold">
+          <div className="rounded-card-lg mb-3 border-[1.5px] border-dashed border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5">
+            <p className="text-label leading-relaxed font-semibold">
               {t("price.cpayPartial", {
                 wallet: ctx.walletBalance,
                 cash: Math.max(0, offerPrice - ctx.walletBalance),
@@ -597,7 +597,7 @@ export function DrivePriceScreen({
             <button
               type="button"
               onClick={() => router.push("/coligo-pay")}
-              className="mt-1.5 text-[12px] font-extrabold underline underline-offset-2"
+              className="text-label mt-1.5 font-extrabold underline underline-offset-2"
               style={{ color: "var(--d-violet)" }}
             >
               {t("price.cpayRecharge")}
@@ -606,7 +606,7 @@ export function DrivePriceScreen({
         )}
 
         {/* Votre offre (prix recommandé pré-rempli, ± pas de 20) */}
-        <div className="mb-3 rounded-[18px] bg-[var(--d-soft)] p-4 text-center">
+        <div className="rounded-sheet-lg mb-3 bg-[var(--d-soft)] p-4 text-center">
           <p className="text-xs font-semibold text-[var(--d-muted)]">
             {t("price.offerLabel")}
           </p>
@@ -629,7 +629,7 @@ export function DrivePriceScreen({
                       setPrice(v);
                       if (boostOn) setBoostAmt(defBoost(v));
                     }}
-                    className="flex flex-1 flex-col items-center rounded-[12px] border-[1.5px] px-1 py-2"
+                    className="flex flex-1 flex-col items-center rounded-md border-[1.5px] px-1 py-2"
                     style={
                       on
                         ? {
@@ -644,8 +644,8 @@ export function DrivePriceScreen({
                           }
                     }
                   >
-                    <span className="text-[10px] font-bold">{label}</span>
-                    <b className="drive-sora text-[13px] font-extrabold">
+                    <span className="text-micro font-bold">{label}</span>
+                    <b className="drive-sora text-body-sm font-extrabold">
                       {v} DA
                     </b>
                   </button>
@@ -675,7 +675,7 @@ export function DrivePriceScreen({
               ) : (
                 <>
                   {offerPrice}{" "}
-                  <small className="text-[17px] text-[var(--d-muted)]">
+                  <small className="text-title-lg text-[var(--d-muted)]">
                     DA
                   </small>
                 </>
@@ -691,7 +691,7 @@ export function DrivePriceScreen({
               +
             </button>
           </div>
-          <p className="text-[11.5px] text-[var(--d-muted)]">
+          <p className="text-caption-lg text-[var(--d-muted)]">
             {floorLabel}
             {boostOn && (
               <span className="font-bold" style={{ color: GO }}>
@@ -701,7 +701,7 @@ export function DrivePriceScreen({
             )}
           </p>
           {quote && quote.high > 0 && (
-            <p className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1 text-[11px] font-bold text-[var(--d-muted)]">
+            <p className="text-caption mt-2 inline-flex items-center gap-1.5 rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-1 font-bold text-[var(--d-muted)]">
               {t("price.similar")}{" "}
               <b className="text-[var(--d-ink)]">
                 {quote.low}–{quote.high} DA
@@ -741,8 +741,8 @@ export function DrivePriceScreen({
               >
                 −
               </button>
-              <span className="min-w-[74px] text-center text-[13px] font-semibold text-[var(--d-muted)]">
-                <b className="drive-sora text-[20px] text-[var(--d-ink)]">
+              <span className="text-body-sm min-w-[74px] text-center font-semibold text-[var(--d-muted)]">
+                <b className="drive-sora text-heading-lg text-[var(--d-ink)]">
                   {boostAmt}
                 </b>{" "}
                 DA
@@ -796,7 +796,7 @@ export function DrivePriceScreen({
 
         {requestError && (
           <p
-            className="mt-2 rounded-[12px] bg-[rgba(229,72,77,.1)] px-3 py-2 text-center text-xs font-bold"
+            className="mt-2 rounded-md bg-[rgba(229,72,77,.1)] px-3 py-2 text-center text-xs font-bold"
             style={{ color: "#E5484D" }}
           >
             {requestError}
@@ -837,7 +837,7 @@ export function DrivePriceScreen({
             offerPrice > 0 && (
               <IntlApproxTag
                 totalDa={offerPrice + (boostOn ? boostAmt : 0)}
-                className="ms-1.5 text-[12px] font-bold tabular-nums opacity-90"
+                className="text-label ms-1.5 font-bold tabular-nums opacity-90"
               />
             )}
         </PrimaryBtn>

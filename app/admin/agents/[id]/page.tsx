@@ -140,7 +140,7 @@ export default async function AdminAgentDetailPage({
       </Link>
 
       {/* En-tête */}
-      <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
+      <div className="border-border bg-surface rounded-lg border p-4 shadow-sm">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <h1 className="text-foreground text-lg font-bold">
@@ -189,7 +189,7 @@ export default async function AdminAgentDetailPage({
           statut (mêmes règles que operator_can_operate / coligo_recharge_sell
           / recharge_points_nearby côté SQL), et où le lever. */}
       {(wallet.status === "suspended" || wallet.status === "disabled") && (
-        <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-[12px] border p-3 text-sm">
+        <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-md border p-3 text-sm">
           Point{" "}
           <strong>
             {wallet.status === "suspended" ? "suspendu" : "désactivé"}
@@ -201,7 +201,7 @@ export default async function AdminAgentDetailPage({
         </p>
       )}
       {wallet.status === "rejected" && (
-        <p className="border-warning-200 bg-warning-50 text-warning-800 rounded-[12px] border p-3 text-sm">
+        <p className="border-warning-200 bg-warning-50 text-warning-800 rounded-md border p-3 text-sm">
           Dossier <strong>refusé</strong>
           {wallet.rejected_reason ? (
             <>

@@ -44,7 +44,7 @@ export function AdminRefundClaims({ rows }: { rows: RefundClaimRow[] }) {
 
   if (rows.length === 0) {
     return (
-      <p className="text-muted border-border rounded-[12px] border border-dashed p-4 text-sm">
+      <p className="text-muted border-border rounded-md border border-dashed p-4 text-sm">
         Aucune réclamation d&apos;avance no-show.
       </p>
     );
@@ -74,7 +74,7 @@ export function AdminRefundClaims({ rows }: { rows: RefundClaimRow[] }) {
 function ClaimHeader({ row }: { row: RefundClaimRow }) {
   return (
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      <span className="bg-primary-50 text-primary-700 flex size-8 items-center justify-center rounded-[10px]">
+      <span className="bg-primary-50 text-primary-700 rounded-control flex size-8 items-center justify-center">
         <Banknote className="size-4" />
       </span>
       <span className="font-semibold tabular-nums">
@@ -123,14 +123,14 @@ function PendingClaim({ row }: { row: RefundClaimRow }) {
   }
 
   return (
-    <div className="border-warning-200 bg-warning-50/40 rounded-[12px] border p-4">
+    <div className="border-warning-200 bg-warning-50/40 rounded-md border p-4">
       <ClaimHeader row={row} />
       <div className="mt-3 grid gap-2 sm:grid-cols-[1fr_auto_auto]">
         <select
           value={decision}
           onChange={(e) => setDecision(e.target.value)}
           disabled={isPending}
-          className="border-border-strong bg-surface h-10 w-full rounded-[10px] border px-3 text-sm"
+          className="border-border-strong bg-surface rounded-control h-10 w-full border px-3 text-sm"
         >
           <option value="">— Sort de la marchandise —</option>
           {Object.entries(DECISION_LABEL).map(([k, v]) => (
@@ -144,7 +144,7 @@ function PendingClaim({ row }: { row: RefundClaimRow }) {
           onClick={() => resolve(true)}
           disabled={isPending || !decision}
           className={cn(
-            "bg-success-600 hover:bg-success-700 inline-flex h-10 items-center gap-1.5 rounded-[10px] px-4 text-sm font-semibold text-white",
+            "bg-success-600 hover:bg-success-700 rounded-control inline-flex h-10 items-center gap-1.5 px-4 text-sm font-semibold text-white",
             (isPending || !decision) && "opacity-50"
           )}
         >
@@ -154,7 +154,7 @@ function PendingClaim({ row }: { row: RefundClaimRow }) {
           type="button"
           onClick={() => resolve(false)}
           disabled={isPending}
-          className="text-danger-600 border-danger-200 hover:bg-danger-50 inline-flex h-10 items-center gap-1.5 rounded-[10px] border px-4 text-sm font-semibold disabled:opacity-50"
+          className="text-danger-600 border-danger-200 hover:bg-danger-50 rounded-control inline-flex h-10 items-center gap-1.5 border px-4 text-sm font-semibold disabled:opacity-50"
         >
           <X className="size-4" /> Refuser
         </button>
@@ -164,7 +164,7 @@ function PendingClaim({ row }: { row: RefundClaimRow }) {
         onChange={(e) => setNote(e.target.value)}
         disabled={isPending}
         placeholder="Note interne (visible du livreur si refus)"
-        className="border-border-strong bg-surface mt-2 h-10 w-full rounded-[10px] border px-3 text-sm"
+        className="border-border-strong bg-surface rounded-control mt-2 h-10 w-full border px-3 text-sm"
       />
       {error && <p className="text-danger-600 mt-2 text-sm">{error}</p>}
     </div>
@@ -173,7 +173,7 @@ function PendingClaim({ row }: { row: RefundClaimRow }) {
 
 function ResolvedClaim({ row }: { row: RefundClaimRow }) {
   return (
-    <div className="border-border bg-surface rounded-[12px] border p-3">
+    <div className="border-border bg-surface rounded-md border p-3">
       <ClaimHeader row={row} />
       <p className="mt-1.5 text-xs">
         <span

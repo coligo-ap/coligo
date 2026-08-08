@@ -62,7 +62,7 @@ export function ContractEntitySearch({
 
   if (selected) {
     return (
-      <div className="border-primary-200 bg-primary-50 flex items-center gap-2 rounded-[10px] border px-3 py-2">
+      <div className="border-primary-200 bg-primary-50 rounded-control flex items-center gap-2 border px-3 py-2">
         <Search className="text-primary-600 size-4 shrink-0" />
         <span className="text-foreground min-w-0 flex-1 truncate text-sm font-medium">
           {selected.name}
@@ -70,7 +70,7 @@ export function ContractEntitySearch({
             <span className="text-muted font-normal"> · {selected.sub}</span>
           )}
           {selected.pending && (
-            <span className="bg-warning-500 ml-2 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+            <span className="bg-warning-500 text-micro ml-2 rounded-full px-1.5 py-0.5 font-bold text-white">
               dossier en attente
             </span>
           )}
@@ -128,7 +128,7 @@ export function ContractEntitySearch({
 
       {openList && (
         <ul
-          className="border-border bg-surface absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-[12px] border shadow-lg"
+          className="border-border bg-surface absolute z-20 mt-1 max-h-72 w-full overflow-y-auto rounded-md border shadow-lg"
           // Empêche le blur de l'input avant le clic sur une option.
           onMouseDown={(e) => e.preventDefault()}
         >
@@ -156,7 +156,7 @@ export function ContractEntitySearch({
                     )}
                   </span>
                   {o.pending && (
-                    <span className="bg-warning-500 shrink-0 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+                    <span className="bg-warning-500 text-micro shrink-0 rounded-full px-1.5 py-0.5 font-bold text-white">
                       en attente
                     </span>
                   )}

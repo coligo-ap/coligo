@@ -109,7 +109,7 @@ export default async function AdminIdentitePage() {
             hint="Masqué = retirée partout (aucun parcours proposé). Actif = disponible pour les profils configurés ci-dessous."
           />
         ) : (
-          <div className="border-border bg-surface rounded-[16px] border p-4 text-sm">
+          <div className="border-border bg-surface rounded-lg border p-4 text-sm">
             Publication :{" "}
             <span className="font-semibold">
               {FLAG_STATUS_LABEL[flag.status] ?? flag.status}
@@ -171,7 +171,7 @@ export default async function AdminIdentitePage() {
             Journal d&apos;audit append-only des réglages (15 derniers).
           </p>
         </div>
-        <div className="border-border bg-surface overflow-hidden rounded-[16px] border">
+        <div className="border-border bg-surface overflow-hidden rounded-lg border">
           {audit.length === 0 ? (
             <p className="text-muted p-4 text-sm">
               Aucune modification enregistrée pour le moment.

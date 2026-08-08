@@ -81,7 +81,7 @@ export function TagsPicker({
                 disabled={disabled || (!on && full)}
                 onClick={() => toggle(tag.code)}
                 className={cn(
-                  "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
+                  "text-body-sm inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-semibold transition active:scale-95 disabled:cursor-not-allowed disabled:opacity-40",
                   on
                     ? "border-primary-600 bg-primary-50 text-primary-700"
                     : "border-border-strong bg-surface text-foreground hover:border-primary-300"
@@ -106,7 +106,7 @@ export function TagsPicker({
           {extraSelected.map((code) => (
             <span
               key={code}
-              className="border-primary-600 bg-primary-50 text-primary-700 inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[13px] font-semibold"
+              className="border-primary-600 bg-primary-50 text-primary-700 text-body-sm inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 font-semibold"
             >
               {getTagLabel(code, "fr")}
               <button
@@ -138,13 +138,13 @@ export function TagsPicker({
             }}
             placeholder="Ajouter une spécialité…"
             maxLength={32}
-            className="border-border-strong focus:ring-primary-400 focus:border-primary-400 h-9 flex-1 rounded-[10px] border bg-white px-3 text-sm focus:ring-2 focus:outline-none disabled:opacity-50"
+            className="border-border-strong focus:ring-primary-400 focus:border-primary-400 rounded-control h-9 flex-1 border bg-white px-3 text-sm focus:ring-2 focus:outline-none disabled:opacity-50"
           />
           <button
             type="button"
             disabled={disabled || custom.trim() === ""}
             onClick={addCustom}
-            className="bg-foreground text-background inline-flex items-center gap-1 rounded-[10px] px-3 text-sm font-bold disabled:opacity-40"
+            className="bg-foreground text-background rounded-control inline-flex items-center gap-1 px-3 text-sm font-bold disabled:opacity-40"
           >
             <Plus className="size-4" />
           </button>

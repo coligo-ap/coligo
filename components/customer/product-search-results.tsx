@@ -129,10 +129,10 @@ export function ProductSearchResults() {
       {/* En-tête résultats. */}
       <div className="flex items-end justify-between gap-3">
         <div>
-          <h2 className="text-foreground text-[21px] font-extrabold tracking-[-0.6px]">
+          <h2 className="text-foreground text-display-sm font-extrabold tracking-[-0.6px]">
             « {q} »
           </h2>
-          <p className="text-muted mt-0.5 text-[12.5px] font-semibold">
+          <p className="text-muted text-label-lg mt-0.5 font-semibold">
             {pending && total === 0 ? (
               t("searching")
             ) : (
@@ -163,7 +163,7 @@ export function ProductSearchResults() {
             type="button"
             onClick={() => setSort(key)}
             className={cn(
-              "shrink-0 rounded-full border px-3.5 py-2 text-[12.5px] font-bold transition active:scale-95",
+              "text-label-lg shrink-0 rounded-full border px-3.5 py-2 font-bold transition active:scale-95",
               sort === key
                 ? "border-foreground bg-foreground text-white"
                 : "border-border bg-surface text-foreground hover:border-primary-300"
@@ -176,7 +176,7 @@ export function ProductSearchResults() {
 
       {/* Aucun résultat. */}
       {!pending && total === 0 && (
-        <div className="border-border bg-surface text-muted mt-2 rounded-[12px] border px-6 py-12 text-center text-sm">
+        <div className="border-border bg-surface text-muted mt-2 rounded-md border px-6 py-12 text-center text-sm">
           <Search className="text-subtle mx-auto mb-2 size-6" />
           {t("empty", { q })}
         </div>
@@ -195,7 +195,7 @@ export function ProductSearchResults() {
       {/* Fermés pour le moment (grisés, en bas). */}
       {closedGroups.length > 0 && (
         <>
-          <p className="text-subtle mt-4 px-1 pb-1 text-[11px] font-extrabold tracking-wider uppercase">
+          <p className="text-subtle text-caption mt-4 px-1 pb-1 font-extrabold tracking-wider uppercase">
             {t("closedSection")}
           </p>
           {closedGroups.map((g) => (
@@ -245,7 +245,7 @@ function MerchantGroup({
   return (
     <section
       className={cn(
-        "bg-surface co-rise mt-3 overflow-hidden rounded-[12px] border shadow-[0_1px_3px_rgba(20,20,50,0.05)]",
+        "bg-surface co-rise mt-3 overflow-hidden rounded-md border shadow-[0_1px_3px_rgba(20,20,50,0.05)]",
         closed ? "border-border opacity-60" : "border-border"
       )}
     >
@@ -266,7 +266,7 @@ function MerchantGroup({
           <span className="text-foreground block truncate text-[15.5px] font-extrabold tracking-[-0.3px]">
             {m.name}
           </span>
-          <span className="text-muted mt-0.5 flex flex-wrap items-center gap-1.5 text-[11.5px] font-bold">
+          <span className="text-muted text-caption-lg mt-0.5 flex flex-wrap items-center gap-1.5 font-bold">
             {m.rating_count > 0 && (
               <span className="text-foreground flex items-center gap-0.5">
                 <Star className="size-3 fill-[#FFB02E] text-[#FFB02E]" />
@@ -295,7 +295,7 @@ function MerchantGroup({
         {badge ? (
           <span
             className={cn(
-              "shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold",
+              "text-micro shrink-0 rounded-full px-2.5 py-1 font-extrabold",
               badge.tone === "fast"
                 ? "bg-primary-50 text-primary-700"
                 : "bg-success-50 text-success-700"
@@ -304,7 +304,7 @@ function MerchantGroup({
             {badge.label}
           </span>
         ) : closed ? (
-          <span className="bg-surface-2 text-muted shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold">
+          <span className="bg-surface-2 text-muted text-micro shrink-0 rounded-full px-2.5 py-1 font-extrabold">
             {t("closedShort")}
           </span>
         ) : (
@@ -317,7 +317,7 @@ function MerchantGroup({
       {/* Carrousel produits (masqué pour un commerce fermé). */}
       {!closed && group.products.length > 0 && (
         <>
-          <div className="text-foreground flex items-center gap-1.5 px-4 pt-3 pb-2 text-[11.5px] font-extrabold">
+          <div className="text-foreground text-caption-lg flex items-center gap-1.5 px-4 pt-3 pb-2 font-extrabold">
             <span className="capitalize">{query}</span>
             <span className="text-primary-600">
               · {t("nProducts", { count: group.products.length })}
@@ -386,7 +386,7 @@ function ProductCard({
     >
       {/* Cadre façon Yassir : bordure autour de la PHOTO seule (fond blanc,
           produit entier) ; le texte vit dessous, hors cadre. */}
-      <div className="border-border relative h-[112px] w-full overflow-hidden rounded-[14px] border bg-white">
+      <div className="border-border rounded-card-lg relative h-[112px] w-full overflow-hidden border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -433,10 +433,10 @@ function ProductCard({
         </span>
       </div>
       <div className="px-1 pt-2">
-        <p className="text-foreground line-clamp-2 min-h-8 text-[13px] leading-tight font-semibold tracking-[-0.2px]">
+        <p className="text-foreground text-body-sm line-clamp-2 min-h-8 leading-tight font-semibold tracking-[-0.2px]">
           {product.name_fr}
         </p>
-        <p className="text-foreground mt-1 text-[15px] font-extrabold tabular-nums">
+        <p className="text-foreground text-title-sm mt-1 font-extrabold tabular-nums">
           {formatDA(product.price_da)}
         </p>
       </div>

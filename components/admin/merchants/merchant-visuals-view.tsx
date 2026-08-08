@@ -113,7 +113,7 @@ export function MerchantVisualsView({
   return (
     <div className="space-y-5">
       {/* ───── 1. ÉTAT GLOBAL + AUTO EN MASSE ───── */}
-      <section className="border-border bg-surface rounded-[16px] border p-4 lg:p-5">
+      <section className="border-border bg-surface rounded-lg border p-4 lg:p-5">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-foreground text-base font-bold">
@@ -167,7 +167,7 @@ export function MerchantVisualsView({
 
       <div className="grid items-start gap-4 lg:grid-cols-[300px_1fr]">
         {/* ───── 2a. LISTE DES COMMERÇANTS ───── */}
-        <section className="border-border bg-surface rounded-[16px] border">
+        <section className="border-border bg-surface rounded-lg border">
           <div className="border-border border-b p-3">
             <div className="bg-surface-2 flex h-9 items-center gap-2 rounded-full px-3">
               <Search className="text-muted size-4 shrink-0" />
@@ -198,7 +198,7 @@ export function MerchantVisualsView({
                     setBankFilter("cat");
                   }}
                   className={cn(
-                    "flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start transition-colors",
+                    "flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-start transition-colors",
                     m.id === selectedId ? "bg-primary-50" : "hover:bg-surface-2"
                   )}
                 >
@@ -215,10 +215,10 @@ export function MerchantVisualsView({
                       }
                       alt=""
                       loading="lazy"
-                      className="size-9 shrink-0 rounded-[10px] bg-white object-cover ring-1 ring-black/5"
+                      className="rounded-control size-9 shrink-0 bg-white object-cover ring-1 ring-black/5"
                     />
                   ) : (
-                    <span className="bg-surface-3 text-muted grid size-9 shrink-0 place-items-center rounded-[10px]">
+                    <span className="bg-surface-3 text-muted rounded-control grid size-9 shrink-0 place-items-center">
                       <Store className="size-4" />
                     </span>
                   )}
@@ -246,7 +246,7 @@ export function MerchantVisualsView({
         {/* ───── 2b. ÉDITEUR DU SÉLECTIONNÉ + 3. BANQUE ───── */}
         <div className="space-y-4">
           {selected ? (
-            <section className="border-border bg-surface rounded-[16px] border p-4 lg:p-5">
+            <section className="border-border bg-surface rounded-lg border p-4 lg:p-5">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <h2 className="text-foreground text-base font-bold">
                   {selected.name}
@@ -273,7 +273,7 @@ export function MerchantVisualsView({
 
               {/* Aperçu couverture AU CADRAGE RÉEL de la fiche client (même
                   ratio ~3:1 et même crop Cloudinary gravity auto). */}
-              <div className="bg-surface-3 relative mt-3 h-[120px] overflow-hidden rounded-[14px]">
+              <div className="bg-surface-3 rounded-card-lg relative mt-3 h-[120px] overflow-hidden">
                 {selected.cover_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -295,7 +295,7 @@ export function MerchantVisualsView({
                     catégorie par défaut.
                   </div>
                 )}
-                <span className="absolute start-2 bottom-1.5 rounded-full bg-black/55 px-2 py-0.5 text-[10px] font-semibold text-white">
+                <span className="text-micro absolute start-2 bottom-1.5 rounded-full bg-black/55 px-2 py-0.5 font-semibold text-white">
                   Aperçu au cadrage réel de la fiche
                 </span>
               </div>
@@ -312,7 +312,7 @@ export function MerchantVisualsView({
                       value={coverUrlInput}
                       onChange={(e) => setCoverUrlInput(e.target.value)}
                       placeholder="https://…"
-                      className="border-border bg-surface-2 text-foreground placeholder:text-hint h-9 w-full min-w-0 rounded-[10px] border px-2.5 text-sm outline-none"
+                      className="border-border bg-surface-2 text-foreground placeholder:text-hint rounded-control h-9 w-full min-w-0 border px-2.5 text-sm outline-none"
                     />
                     <button
                       type="button"
@@ -329,7 +329,7 @@ export function MerchantVisualsView({
                           () => "Couverture mise à jour."
                         )
                       }
-                      className="bg-primary-600 hover:bg-primary-700 h-9 shrink-0 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
+                      className="bg-primary-600 hover:bg-primary-700 rounded-control h-9 shrink-0 px-3 text-xs font-bold text-white disabled:opacity-50"
                     >
                       Appliquer
                     </button>
@@ -370,10 +370,10 @@ export function MerchantVisualsView({
                           }) ?? selected.logo_url
                         }
                         alt="Logo"
-                        className="size-9 shrink-0 rounded-[10px] bg-white object-cover ring-1 ring-black/5"
+                        className="rounded-control size-9 shrink-0 bg-white object-cover ring-1 ring-black/5"
                       />
                     ) : (
-                      <span className="bg-surface-3 text-muted grid size-9 shrink-0 place-items-center rounded-[10px]">
+                      <span className="bg-surface-3 text-muted rounded-control grid size-9 shrink-0 place-items-center">
                         <Store className="size-4" />
                       </span>
                     )}
@@ -382,7 +382,7 @@ export function MerchantVisualsView({
                       value={logoUrlInput}
                       onChange={(e) => setLogoUrlInput(e.target.value)}
                       placeholder="https://…"
-                      className="border-border bg-surface-2 text-foreground placeholder:text-hint h-9 w-full min-w-0 rounded-[10px] border px-2.5 text-sm outline-none"
+                      className="border-border bg-surface-2 text-foreground placeholder:text-hint rounded-control h-9 w-full min-w-0 border px-2.5 text-sm outline-none"
                     />
                     <button
                       type="button"
@@ -399,7 +399,7 @@ export function MerchantVisualsView({
                           () => "Logo mis à jour."
                         )
                       }
-                      className="bg-primary-600 hover:bg-primary-700 h-9 shrink-0 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
+                      className="bg-primary-600 hover:bg-primary-700 rounded-control h-9 shrink-0 px-3 text-xs font-bold text-white disabled:opacity-50"
                     >
                       Appliquer
                     </button>
@@ -425,13 +425,13 @@ export function MerchantVisualsView({
               <InlineMsg msg={editorMsg} />
             </section>
           ) : (
-            <section className="border-border bg-surface text-muted rounded-[16px] border p-8 text-center text-sm">
+            <section className="border-border bg-surface text-muted rounded-lg border p-8 text-center text-sm">
               Sélectionnez un commerçant pour gérer ses visuels.
             </section>
           )}
 
           {/* ───── 3. BANQUE D'IMAGES ───── */}
-          <section className="border-border bg-surface rounded-[16px] border p-4 lg:p-5">
+          <section className="border-border bg-surface rounded-lg border p-4 lg:p-5">
             <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-foreground text-base font-bold">
                 Banque d&apos;images HD
@@ -488,7 +488,7 @@ export function MerchantVisualsView({
                         () => `Couverture « ${img.label} » appliquée.`
                       )
                     }
-                    className="focus-visible:ring-primary-500 block w-full overflow-hidden rounded-[12px] ring-2 ring-transparent transition-shadow disabled:cursor-not-allowed"
+                    className="focus-visible:ring-primary-500 block w-full overflow-hidden rounded-md ring-2 ring-transparent transition-shadow disabled:cursor-not-allowed"
                   >
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
@@ -511,7 +511,7 @@ export function MerchantVisualsView({
                       </span>
                     )}
                   </button>
-                  <figcaption className="text-muted mt-1 flex items-center justify-between gap-1 text-[11px]">
+                  <figcaption className="text-muted text-caption mt-1 flex items-center justify-between gap-1">
                     <span className="truncate font-medium">
                       {img.label}
                       <span className="text-subtle">
@@ -620,12 +620,12 @@ function AddBankImageForm({
           onChange={(e) => setLabel(e.target.value)}
           placeholder="Libellé (ex. Vitrine pâtisserie)"
           maxLength={80}
-          className="border-border bg-surface-2 text-foreground placeholder:text-hint h-9 rounded-[10px] border px-2.5 text-sm outline-none"
+          className="border-border bg-surface-2 text-foreground placeholder:text-hint rounded-control h-9 border px-2.5 text-sm outline-none"
         />
         <select
           value={category}
           onChange={(e) => setCategory(e.target.value)}
-          className="border-border bg-surface-2 text-foreground h-9 rounded-[10px] border px-2 text-sm outline-none"
+          className="border-border bg-surface-2 text-foreground rounded-control h-9 border px-2 text-sm outline-none"
         >
           <option value="">Générique (toutes)</option>
           {categories.map((c) => (
@@ -639,7 +639,7 @@ function AddBankImageForm({
           value={url}
           onChange={(e) => setUrl(e.target.value)}
           placeholder="https://… (photo haute résolution)"
-          className="border-border bg-surface-2 text-foreground placeholder:text-hint h-9 rounded-[10px] border px-2.5 text-sm outline-none"
+          className="border-border bg-surface-2 text-foreground placeholder:text-hint rounded-control h-9 border px-2.5 text-sm outline-none"
         />
         <button
           type="button"
@@ -649,7 +649,7 @@ function AddBankImageForm({
             setLabel("");
             setUrl("");
           }}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-9 items-center gap-1.5 px-3 text-xs font-bold text-white disabled:opacity-50"
         >
           {busy ? (
             <Loader2 className="size-4 animate-spin" />

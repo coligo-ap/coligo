@@ -152,7 +152,7 @@ export function RidesExplorer({
 
   return (
     <div className="space-y-4">
-      <div className="border-border bg-surface space-y-3 rounded-[14px] border p-3">
+      <div className="border-border bg-surface rounded-card-lg space-y-3 border p-3">
         <div className="relative">
           <Search className="text-muted pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2" />
           <input
@@ -163,7 +163,7 @@ export function RidesExplorer({
               applyDebounced({ q: e.target.value });
             }}
             placeholder="Client (nom, téléphone), trajet, id de course…"
-            className="border-border bg-surface-2 h-11 w-full rounded-[12px] border pr-3 pl-10 text-sm outline-none"
+            className="border-border bg-surface-2 h-11 w-full rounded-md border pr-3 pl-10 text-sm outline-none"
           />
           {isPending && (
             <Loader2 className="text-muted absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin" />
@@ -180,13 +180,13 @@ export function RidesExplorer({
                 applyDebounced({ cq: e.target.value });
               }}
               placeholder="Chauffeur…"
-              className="border-border bg-surface h-10 w-full rounded-[10px] border pr-2 pl-8 text-[13px] outline-none"
+              className="border-border bg-surface rounded-control text-body-sm h-10 w-full border pr-2 pl-8 outline-none"
             />
           </div>
           <select
             value={filters.st ?? ""}
             onChange={(e) => apply({ st: e.target.value })}
-            className="border-border bg-surface h-10 rounded-[10px] border px-2.5 text-[13px] font-medium outline-none"
+            className="border-border bg-surface rounded-control text-body-sm h-10 border px-2.5 font-medium outline-none"
           >
             {STATUS_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -197,7 +197,7 @@ export function RidesExplorer({
           <select
             value={filters.pm ?? ""}
             onChange={(e) => apply({ pm: e.target.value })}
-            className="border-border bg-surface h-10 rounded-[10px] border px-2.5 text-[13px] font-medium outline-none"
+            className="border-border bg-surface rounded-control text-body-sm h-10 border px-2.5 font-medium outline-none"
           >
             {PAYMENT_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
@@ -208,7 +208,7 @@ export function RidesExplorer({
           <select
             value={filters.trip ?? ""}
             onChange={(e) => apply({ trip: e.target.value })}
-            className="border-border bg-surface h-10 rounded-[10px] border px-2.5 text-[13px] font-medium outline-none"
+            className="border-border bg-surface rounded-control text-body-sm h-10 border px-2.5 font-medium outline-none"
             aria-label="Type de trajet"
           >
             {TRIP_OPTIONS.map((o) => (
@@ -239,7 +239,7 @@ export function RidesExplorer({
               type="date"
               value={filters.from ?? ""}
               onChange={(e) => apply({ from: e.target.value })}
-              className="border-border bg-surface h-9 rounded-[10px] border px-2 text-xs outline-none"
+              className="border-border bg-surface rounded-control h-9 border px-2 text-xs outline-none"
               aria-label="Du"
             />
             <span className="text-muted text-xs">→</span>
@@ -247,7 +247,7 @@ export function RidesExplorer({
               type="date"
               value={filters.to ?? ""}
               onChange={(e) => apply({ to: e.target.value })}
-              className="border-border bg-surface h-9 rounded-[10px] border px-2 text-xs outline-none"
+              className="border-border bg-surface rounded-control h-9 border px-2 text-xs outline-none"
               aria-label="Au"
             />
           </div>
@@ -275,7 +275,7 @@ export function RidesExplorer({
               <li key={r.id}>
                 <Link
                   href={`/admin/chauffeurs/courses/${r.id}`}
-                  className="border-border bg-surface hover:border-primary-200 hover:bg-primary-50/30 flex items-center gap-3 rounded-[14px] border p-3.5 transition-colors"
+                  className="border-border bg-surface hover:border-primary-200 hover:bg-primary-50/30 rounded-card-lg flex items-center gap-3 border p-3.5 transition-colors"
                 >
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-1.5">
@@ -311,14 +311,14 @@ export function RidesExplorer({
                       )}
                     </p>
                     {(r.pickup_text || r.dest_text) && (
-                      <p className="text-subtle mt-0.5 flex items-center gap-1 truncate text-[11px]">
+                      <p className="text-subtle text-caption mt-0.5 flex items-center gap-1 truncate">
                         <MapPin className="size-3 shrink-0" />
                         {[r.pickup_text, r.dest_text]
                           .filter(Boolean)
                           .join(" → ")}
                       </p>
                     )}
-                    <p className="text-subtle mt-0.5 text-[11px]">
+                    <p className="text-subtle text-caption mt-0.5">
                       {new Date(r.created_at).toLocaleString("fr-DZ", {
                         timeZone: "Africa/Algiers",
                         day: "2-digit",
@@ -332,7 +332,7 @@ export function RidesExplorer({
                     <p className="text-sm font-bold tabular-nums">
                       {formatDA(r.price_da)}
                     </p>
-                    <p className="text-muted mt-0.5 inline-flex items-center gap-1 text-[11px]">
+                    <p className="text-muted text-caption mt-0.5 inline-flex items-center gap-1">
                       {r.payment_method === "cash" ? (
                         <Banknote className="size-3" />
                       ) : r.payment_method === "card" ? (
@@ -361,7 +361,7 @@ export function RidesExplorer({
             type="button"
             onClick={() => apply({ page: page - 1 }, false)}
             disabled={page <= 1 || isPending}
-            className="border-border hover:bg-surface-2 inline-flex size-9 items-center justify-center rounded-[10px] border disabled:opacity-40"
+            className="border-border hover:bg-surface-2 rounded-control inline-flex size-9 items-center justify-center border disabled:opacity-40"
             aria-label="Page précédente"
           >
             <ChevronLeft className="size-4" />
@@ -373,7 +373,7 @@ export function RidesExplorer({
             type="button"
             onClick={() => apply({ page: page + 1 }, false)}
             disabled={page >= pageCount || isPending}
-            className="border-border hover:bg-surface-2 inline-flex size-9 items-center justify-center rounded-[10px] border disabled:opacity-40"
+            className="border-border hover:bg-surface-2 rounded-control inline-flex size-9 items-center justify-center border disabled:opacity-40"
             aria-label="Page suivante"
           >
             <ChevronRight className="size-4" />

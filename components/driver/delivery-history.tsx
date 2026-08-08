@@ -53,7 +53,7 @@ function DeliveryHistorySkeleton() {
   return (
     <div className="space-y-3">
       <div
-        className="h-11 animate-pulse rounded-[14px]"
+        className="rounded-card-lg h-11 animate-pulse"
         style={{ background: "var(--d-soft)" }}
       />
       <div className="flex gap-2">
@@ -69,7 +69,7 @@ function DeliveryHistorySkeleton() {
         {Array.from({ length: 6 }).map((_, i) => (
           <div
             key={i}
-            className="h-[64px] animate-pulse rounded-[15px] border"
+            className="rounded-card-xl h-[64px] animate-pulse border"
             style={{
               background: "var(--d-surface)",
               borderColor: "var(--d-line)",
@@ -272,7 +272,7 @@ export function DeliveryHistory({
             "Rechercher une course (boutique, adresse, n°)…",
             "ابحث عن توصيلة (متجر، عنوان، رقم)…"
           )}
-          className="h-11 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] ps-10 pe-3 text-[13px] text-[var(--d-ink)] outline-none placeholder:text-[var(--d-muted)]"
+          className="rounded-card-lg text-body-sm h-11 w-full border border-[var(--d-line)] bg-[var(--d-surface)] ps-10 pe-3 text-[var(--d-ink)] outline-none placeholder:text-[var(--d-muted)]"
         />
       </div>
 
@@ -289,7 +289,7 @@ export function DeliveryHistory({
             key={key}
             type="button"
             onClick={() => setFilter(key)}
-            className="shrink-0 rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+            className="text-label-lg shrink-0 rounded-full px-3.5 py-2 font-bold whitespace-nowrap transition-colors"
             style={chip(filter === key)}
           >
             {label} · {count}
@@ -309,7 +309,7 @@ export function DeliveryHistory({
             key={key}
             type="button"
             onClick={() => setPay(pay === key ? "all" : key)}
-            className="shrink-0 rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+            className="text-label-lg shrink-0 rounded-full px-3.5 py-2 font-bold whitespace-nowrap transition-colors"
             style={chip(pay === key)}
           >
             {label}
@@ -329,7 +329,7 @@ export function DeliveryHistory({
             key={key}
             type="button"
             onClick={() => setMode(mode === key ? "all" : key)}
-            className="shrink-0 rounded-full px-3.5 py-2 text-[12.5px] font-bold whitespace-nowrap transition-colors"
+            className="text-label-lg shrink-0 rounded-full px-3.5 py-2 font-bold whitespace-nowrap transition-colors"
             style={chip(mode === key)}
           >
             {label}
@@ -364,16 +364,16 @@ export function DeliveryHistory({
               <button
                 type="button"
                 onClick={() => toggle(key)}
-                className="flex w-full items-center gap-2 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                className="rounded-card-lg flex w-full items-center gap-2 border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
               >
                 <span className="min-w-0 flex-1">
                   <b
-                    className="block text-[14px] text-[var(--d-ink)] capitalize"
+                    className="text-body-lg block text-[var(--d-ink)] capitalize"
                     style={{ fontFamily: SORA }}
                   >
                     {label}
                   </b>
-                  <small className="text-[11px] text-[var(--d-muted)]">
+                  <small className="text-caption text-[var(--d-muted)]">
                     {items.length} {isAr ? "توصيلة" : "courses"} ·{" "}
                     {tr("net", "صافي")} +{grp(net)} {tr("DA", "دج")}
                   </small>
@@ -410,7 +410,7 @@ export function DeliveryHistory({
 /** Ligne label → valeur du panneau détail. */
 function DetailLine({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 text-[12px]">
+    <div className="text-label flex items-baseline justify-between gap-3">
       <span className="shrink-0 text-[var(--d-muted)]">{label}</span>
       <span className="min-w-0 text-right font-semibold text-[var(--d-ink)]">
         {value}
@@ -457,7 +457,7 @@ function HistoRow({
       : null;
 
   return (
-    <div className="mb-2 overflow-hidden rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+    <div className="rounded-card-xl mb-2 overflow-hidden border border-[var(--d-line)] bg-[var(--d-surface)]">
       {/* ── Ligne compacte ── */}
       <button
         type="button"
@@ -465,15 +465,15 @@ function HistoRow({
         aria-expanded={open}
         className="flex w-full items-center gap-3 p-3 text-left"
       >
-        <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)] text-[var(--d-ink)]">
+        <span className="rounded-control-lg grid size-[34px] shrink-0 place-items-center bg-[var(--d-soft)] text-[var(--d-ink)]">
           {isExpress ? <Zap className="size-4" /> : <Bike className="size-4" />}
         </span>
         <span className="min-w-0 flex-1">
-          <b className="block truncate text-[13px] text-[var(--d-ink)]">
+          <b className="text-body-sm block truncate text-[var(--d-ink)]">
             {merchantName} →{" "}
             {r.delivery_address_text ?? tr("Adresse client", "عنوان الزبون")}
           </b>
-          <small className="block truncate text-[11px] text-[var(--d-muted)]">
+          <small className="text-caption block truncate text-[var(--d-muted)]">
             {fmtDateTime(date, isAr)} ·{" "}
             {r.payment_method === "cash"
               ? tr("Espèces", "نقداً")
@@ -483,14 +483,14 @@ function HistoRow({
         <span className="flex shrink-0 flex-col items-end gap-1">
           {delivered && (
             <b
-              className="text-[13px] leading-none text-[var(--d-ink)]"
+              className="text-body-sm leading-none text-[var(--d-ink)]"
               style={{ fontFamily: SORA }}
             >
               +{grp(gain)} {tr("DA", "دج")}
             </b>
           )}
           <span
-            className="rounded-full px-2 py-0.5 text-[10px] font-extrabold"
+            className="text-micro rounded-full px-2 py-0.5 font-extrabold"
             style={
               delivered
                 ? { background: "rgba(22,179,100,.12)", color: BRAND_GO }
@@ -550,7 +550,7 @@ function HistoRow({
           )}
           {r.validated_without_code && (
             <p
-              className="text-[11px] font-semibold"
+              className="text-caption font-semibold"
               style={{ color: BRAND_RED }}
             >
               {tr(
@@ -574,7 +574,7 @@ function HistoRow({
                 },
               })
             }
-            className="mt-1 inline-flex items-center gap-1.5 rounded-[10px] border border-[var(--d-line)] px-3 py-1.5 text-[12px] font-bold"
+            className="rounded-control text-label mt-1 inline-flex items-center gap-1.5 border border-[var(--d-line)] px-3 py-1.5 font-bold"
             style={{ color: "#6c2bd9" }}
           >
             <LifeBuoy className="size-3.5" />

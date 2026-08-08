@@ -14,10 +14,10 @@ export default function CompteInfosLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="h-14 animate-pulse rounded-[14px] bg-white dark:bg-[var(--color-surface)]"
+            className="rounded-card-lg h-14 animate-pulse bg-white dark:bg-[var(--color-surface)]"
           />
         ))}
-        <div className="bg-primary-100 h-12 animate-pulse rounded-[14px]" />
+        <div className="bg-primary-100 rounded-card-lg h-12 animate-pulse" />
       </div>
     </div>
   );

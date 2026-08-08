@@ -307,7 +307,7 @@ export function MapPickScreen({
       <button
         type="button"
         onClick={onBack}
-        className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+        className="rounded-card-lg absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-10 grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         aria-label="retour"
       >
         <ChevronLeft className="size-5" />
@@ -352,13 +352,13 @@ export function MapPickScreen({
           ) : null}
         </div>
         {searchOpen && searchResults.length > 0 && (
-          <ul className="mt-1.5 max-h-44 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+          <ul className="mt-1.5 max-h-44 overflow-auto rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
             {searchResults.map((r, i) => (
               <li key={`${r.lat}-${r.lng}-${i}`} className="flex items-center">
                 <button
                   type="button"
                   onClick={() => pickSuggestion(r)}
-                  className="flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                  className="text-body-sm flex min-w-0 flex-1 items-start gap-2 px-3 py-2.5 text-left font-semibold"
                 >
                   <MapPin
                     className="mt-0.5 size-4 shrink-0"
@@ -367,7 +367,7 @@ export function MapPickScreen({
                   <span className="min-w-0 flex-1">
                     {r.display}
                     {r.secondary && (
-                      <small className="block text-[11px] font-medium text-[var(--d-muted)]">
+                      <small className="text-caption block font-medium text-[var(--d-muted)]">
                         {r.secondary}
                       </small>
                     )}
@@ -375,7 +375,7 @@ export function MapPickScreen({
                   {/* Commerçant inscrit Coligo : badge automatique. */}
                   {r.kind === "merchant" && (
                     <span
-                      className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
+                      className="text-nano-lg mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 font-extrabold tracking-wide"
                       style={{ background: "var(--d-accent)", color: VIOLET }}
                     >
                       Coligo
@@ -384,7 +384,7 @@ export function MapPickScreen({
                   {/* Résultat Google Maps (distinct des cartes gratuites OSM). */}
                   {r.kind === "google" && (
                     <span
-                      className="mt-0.5 shrink-0 rounded-full border border-[var(--d-line)] px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide text-[var(--d-muted)]"
+                      className="text-nano-lg mt-0.5 shrink-0 rounded-full border border-[var(--d-line)] px-1.5 py-0.5 font-extrabold tracking-wide text-[var(--d-muted)]"
                       title="Résultat Google Maps"
                     >
                       Google
@@ -421,7 +421,7 @@ export function MapPickScreen({
         {searchQ.trim() === "" &&
           favOpen &&
           (favorites.length > 0 || recents.length > 0) && (
-            <ul className="mt-1.5 max-h-44 overflow-auto rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
+            <ul className="mt-1.5 max-h-44 overflow-auto rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-1 shadow-xl">
               {/* Bouton ✕ pour masquer « Tes lieux » manuellement (sinon il se
                   ferme à l'interaction carte). */}
               <li className="flex justify-end px-2 pt-0.5">
@@ -435,7 +435,7 @@ export function MapPickScreen({
                 </button>
               </li>
               {favorites.length > 0 && (
-                <li className="px-3 pt-0.5 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
+                <li className="text-micro px-3 pt-0.5 pb-1 font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
                   {t("savedPlaces")}
                 </li>
               )}
@@ -453,7 +453,7 @@ export function MapPickScreen({
                         lng: f.lng,
                       })
                     }
-                    className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                    className="text-body-sm flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left font-semibold"
                   >
                     <Star
                       className="size-4 shrink-0"
@@ -475,7 +475,7 @@ export function MapPickScreen({
                 </li>
               ))}
               {recents.length > 0 && (
-                <li className="px-3 pt-2 pb-1 text-[10px] font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
+                <li className="text-micro px-3 pt-2 pb-1 font-extrabold tracking-wide text-[var(--d-muted)] uppercase">
                   {t("recents")}
                 </li>
               )}
@@ -498,7 +498,7 @@ export function MapPickScreen({
                           lng: r.lng,
                         })
                       }
-                      className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left text-[13px] font-semibold"
+                      className="text-body-sm flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left font-semibold"
                     >
                       <Clock className="size-4 shrink-0 text-[var(--d-muted)]" />
                       <span className="min-w-0 flex-1 truncate">{r.text}</span>
@@ -525,7 +525,7 @@ export function MapPickScreen({
           !searching &&
           searchResults.length === 0 &&
           searchQ.trim().length >= 3 && (
-            <p className="mt-1.5 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)] shadow-xl">
+            <p className="rounded-card-lg mt-1.5 border border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)] shadow-xl">
               {t("noResults")}
             </p>
           )}
@@ -542,11 +542,11 @@ export function MapPickScreen({
         <div className="mx-auto h-3.5 w-[3px] rounded-sm bg-[var(--d-ink)]" />
         <div className="mx-auto mt-1 size-[7px] rounded-full bg-[rgba(8,9,15,.3)]" />
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
-        <p className="mb-1 text-[13px] text-[var(--d-muted)]">
+      <div className="rounded-t-panel-lg absolute inset-x-0 bottom-0 z-10 border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+        <p className="text-body-sm mb-1 text-[var(--d-muted)]">
           {forWhat === "dep" ? t("depLabel") : t("destLabel")}
         </p>
-        <p className="drive-sora mb-0.5 min-h-[24px] text-[17px] font-extrabold">
+        <p className="drive-sora text-title-lg mb-0.5 min-h-[24px] font-extrabold">
           {center
             ? resolving
               ? "…"
@@ -554,7 +554,7 @@ export function MapPickScreen({
             : t("moveMap")}
         </p>
         {center && addr && !resolving && (
-          <p className="mb-2 text-[11px] text-[var(--d-muted)] tabular-nums">
+          <p className="text-caption mb-2 text-[var(--d-muted)] tabular-nums">
             GPS · {gpsLabel(center)}
           </p>
         )}

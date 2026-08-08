@@ -552,10 +552,10 @@ export function DCarpool() {
   return (
     <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
       {/* Page de PREMIER NIVEAU (onglet « Covoit. » de la nav). */}
-      <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+      <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
         {tr("Covoiturage", "مشاركة المشوار")}
       </h1>
-      <p className="mt-0.5 text-[11.5px] font-medium text-[var(--d-muted)]">
+      <p className="text-caption-lg mt-0.5 font-medium text-[var(--d-muted)]">
         {tr(
           "Publie ton départ, ajoute des arrêts sur ta route, vends tes places.",
           "انشر رحلتك، أضف محطات على طريقك، وبِع مقاعدك."
@@ -569,7 +569,7 @@ export function DCarpool() {
           setPubStep(1);
           setPubError("");
         }}
-        className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white"
+        className="drive-sora rounded-control text-body-xl mt-3 flex h-[48px] w-full items-center justify-center gap-2 font-extrabold text-white"
         style={{ background: VIOLET }}
       >
         <Plus className="size-5" /> {tr("Publier un départ", "نشر رحلة")}
@@ -584,7 +584,7 @@ export function DCarpool() {
               key={tb.key}
               type="button"
               onClick={() => setTab(tb.key)}
-              className="drive-sora flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12.5px] font-bold transition"
+              className="drive-sora text-label-lg flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 font-bold transition"
               style={
                 active
                   ? { background: "var(--d-surface)", color: VIOLET }
@@ -593,7 +593,7 @@ export function DCarpool() {
             >
               {tb.label}
               <span
-                className="rounded-full px-1.5 text-[10.5px] font-bold tabular-nums"
+                className="text-micro-lg rounded-full px-1.5 font-bold tabular-nums"
                 style={
                   active
                     ? { background: "#F1E9FC", color: VIOLET }
@@ -618,7 +618,7 @@ export function DCarpool() {
               "Ville, commune, destination…",
               "مدينة، بلدية، وجهة…"
             )}
-            className="h-11 w-full rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)] ps-9 pe-10 text-[13px] font-semibold outline-none"
+            className="rounded-control text-body-sm h-11 w-full border border-[var(--d-line)] bg-[var(--d-surface)] ps-9 pe-10 font-semibold outline-none"
           />
           {query && (
             <button
@@ -652,7 +652,7 @@ export function DCarpool() {
               key={i}
               type="button"
               onClick={() => set(!active)}
-              className="inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap transition-colors"
+              className="text-caption inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 font-semibold whitespace-nowrap transition-colors"
               style={
                 active
                   ? {
@@ -685,7 +685,7 @@ export function DCarpool() {
       )}
 
       {!loading && filtered.length === 0 && (
-        <div className="mt-3 rounded-[10px] border border-[var(--d-line)] p-8 text-center text-[12.5px] text-[var(--d-muted)]">
+        <div className="rounded-control text-label-lg mt-3 border border-[var(--d-line)] p-8 text-center text-[var(--d-muted)]">
           <ClipboardList className="mx-auto mb-2 size-7 opacity-60" />
           {tab === "upcoming"
             ? tr(
@@ -711,7 +711,7 @@ export function DCarpool() {
           return (
             <li
               key={t.id}
-              className="overflow-hidden rounded-[12px] border bg-[var(--d-surface)]"
+              className="overflow-hidden rounded-md border bg-[var(--d-surface)]"
               style={
                 // Départ VIVANT = carte mise en avant (même langage que les
                 // commandes en cours côté client).
@@ -737,22 +737,22 @@ export function DCarpool() {
                 <span className="min-w-0 flex-1">
                   {/* Ligne 1 : itinéraire + prix/place */}
                   <span className="flex items-center justify-between gap-2">
-                    <span className="drive-sora line-clamp-1 text-[13.5px] font-extrabold">
+                    <span className="drive-sora text-body line-clamp-1 font-extrabold">
                       {isAr
                         ? `${wname(t.from_wilaya)} ← ${wname(t.to_wilaya)}`
                         : routeLabel}
                     </span>
-                    <span className="drive-sora shrink-0 text-[13.5px] font-extrabold tabular-nums">
+                    <span className="drive-sora text-body shrink-0 font-extrabold tabular-nums">
                       {t.price_per_seat_da}{" "}
-                      <span className="text-[10px] font-semibold text-[var(--d-muted)]">
+                      <span className="text-micro font-semibold text-[var(--d-muted)]">
                         {tr("DA/pl.", "دج/مق.")}
                       </span>
                     </span>
                   </span>
                   {/* Ligne 2 : badge vivant + date · places · arrêts */}
-                  <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--d-muted)]">
+                  <span className="text-caption mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[var(--d-muted)]">
                     <span
-                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                      className="text-nano-lg inline-flex items-center rounded-full px-2 py-0.5 font-extrabold"
                       style={{ background: chip.bg, color: chip.color }}
                     >
                       {live && (
@@ -781,7 +781,7 @@ export function DCarpool() {
                     )}
                     {t.female_only && (
                       <span
-                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-extrabold"
+                        className="text-nano inline-flex items-center rounded-full px-1.5 py-0.5 font-extrabold"
                         style={{
                           background: "rgba(236,72,153,.13)",
                           color: ROSE,
@@ -825,7 +825,7 @@ export function DCarpool() {
                       {t.route_wilayas.map((w, i) => (
                         <p
                           key={`${w}-${i}`}
-                          className="truncate py-0.5 text-[11.5px] font-semibold"
+                          className="text-caption-lg truncate py-0.5 font-semibold"
                           style={{
                             color:
                               i === 0 || i === t.route_wilayas.length - 1
@@ -837,14 +837,14 @@ export function DCarpool() {
                         </p>
                       ))}
                     </div>
-                    <span className="shrink-0 self-start text-[10.5px] font-bold text-[var(--d-muted)]">
+                    <span className="text-micro-lg shrink-0 self-start font-bold text-[var(--d-muted)]">
                       {t.distance_km} km
                     </span>
                   </div>
 
                   {/* Réservations (avec le SEGMENT de chaque passager) */}
                   {bks.length === 0 ? (
-                    <p className="py-2 text-center text-[12px] text-[var(--d-muted)]">
+                    <p className="text-label py-2 text-center text-[var(--d-muted)]">
                       {tr(
                         "Aucune réservation pour l'instant.",
                         "لا حجوزات بعد."
@@ -854,10 +854,10 @@ export function DCarpool() {
                     bks.map((b) => (
                       <div
                         key={b.id}
-                        className="flex items-center gap-2 border-b border-[var(--d-line)] py-2 text-[12px] last:border-b-0"
+                        className="text-label flex items-center gap-2 border-b border-[var(--d-line)] py-2 last:border-b-0"
                       >
                         <span
-                          className="drive-sora grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-extrabold text-white"
+                          className="drive-sora text-caption grid size-7 shrink-0 place-items-center rounded-full font-extrabold text-white"
                           style={{
                             background: `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
                           }}
@@ -867,12 +867,12 @@ export function DCarpool() {
                         <span className="min-w-0 flex-1">
                           <span className="block truncate font-semibold">
                             {b.customer_name}
-                            <span className="ms-1 text-[10px] font-medium text-[var(--d-muted)]">
+                            <span className="text-micro ms-1 font-medium text-[var(--d-muted)]">
                               · {b.seats} {tr("pl.", "مق.")} ·{" "}
                               {bkStatus(b.status)}
                             </span>
                           </span>
-                          <span className="block truncate text-[10px] font-medium text-[var(--d-muted)]">
+                          <span className="text-micro block truncate font-medium text-[var(--d-muted)]">
                             {(b.seg_from_text ?? wname(b.seg_from_wilaya)) +
                               " → " +
                               (b.seg_to_text ?? wname(b.seg_to_wilaya))}
@@ -884,13 +884,13 @@ export function DCarpool() {
                           <a
                             href={`tel:${b.customer_phone}`}
                             aria-label={tr("Appeler", "اتصال")}
-                            className="grid size-8 shrink-0 place-items-center rounded-[8px] border border-[var(--d-line)]"
+                            className="grid size-8 shrink-0 place-items-center rounded-sm border border-[var(--d-line)]"
                             style={{ color: GO }}
                           >
                             <Phone className="size-3.5" />
                           </a>
                         )}
-                        <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold">
+                        <span className="text-caption flex shrink-0 items-center gap-1 font-bold">
                           {b.payment_method === "cash" ? (
                             <Banknote
                               className="size-3.5"
@@ -923,7 +923,7 @@ export function DCarpool() {
                             }))
                           }
                           placeholder={tr("PIN passager", "PIN الراكب")}
-                          className="drive-sora h-10 w-28 rounded-[8px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold tracking-[3px] outline-none"
+                          className="drive-sora text-title-sm h-10 w-28 rounded-sm border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center font-extrabold tracking-[3px] outline-none"
                         />
                         <button
                           type="button"
@@ -942,7 +942,7 @@ export function DCarpool() {
                               return r;
                             })
                           }
-                          className="drive-sora flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[8px] text-[13px] font-extrabold text-white disabled:opacity-50"
+                          className="drive-sora text-body-sm flex h-10 flex-1 items-center justify-center gap-1.5 rounded-sm font-extrabold text-white disabled:opacity-50"
                           style={{ background: GO }}
                         >
                           {busy === "board" ? (
@@ -957,7 +957,7 @@ export function DCarpool() {
 
                   {errors[t.id] && (
                     <p
-                      className="mt-2 text-center text-[11px] font-bold"
+                      className="text-caption mt-2 text-center font-bold"
                       style={{ color: RED }}
                     >
                       {errors[t.id]}
@@ -975,7 +975,7 @@ export function DCarpool() {
                             ? void run(t.id, "start", () => carpoolStart(t.id))
                             : setConfirmArm((c) => ({ ...c, [t.id]: "start" }))
                         }
-                        className="drive-sora flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
+                        className="drive-sora rounded-control text-body flex h-11 flex-[1.4] items-center justify-center gap-1.5 font-extrabold text-white disabled:opacity-60"
                         style={{ background: arm === "start" ? "#0E9F6E" : GO }}
                       >
                         {busy === "start" ? (
@@ -995,7 +995,7 @@ export function DCarpool() {
                               )
                             : setConfirmArm((c) => ({ ...c, [t.id]: "cancel" }))
                         }
-                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border text-[12px] font-bold disabled:opacity-60"
+                        className="rounded-control text-label flex h-11 flex-1 items-center justify-center gap-1.5 border font-bold disabled:opacity-60"
                         style={{
                           borderColor: arm === "cancel" ? RED : "var(--d-line)",
                           color: arm === "cancel" ? RED : "var(--d-muted)",
@@ -1021,7 +1021,7 @@ export function DCarpool() {
                           ? void run(t.id, "done", () => carpoolComplete(t.id))
                           : setConfirmArm((c) => ({ ...c, [t.id]: "done" }))
                       }
-                      className="drive-sora mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-[10px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
+                      className="drive-sora rounded-control text-body mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 font-extrabold text-white disabled:opacity-60"
                       style={{ background: VIOLET }}
                     >
                       {busy === "done" ? (
@@ -1034,7 +1034,7 @@ export function DCarpool() {
                   )}
                   {t.status === "completed" && t.revenue_da > 0 && (
                     <p
-                      className="mt-2 text-center text-[12px] font-bold"
+                      className="text-label mt-2 text-center font-bold"
                       style={{ color: GO }}
                     >
                       {tr("Recette", "الإيراد")} : {t.revenue_da}{" "}
@@ -1046,7 +1046,7 @@ export function DCarpool() {
                     <button
                       type="button"
                       onClick={() => republish(t)}
-                      className="drive-sora mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] border border-[var(--d-line)] text-[12px] font-bold"
+                      className="drive-sora text-label mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-sm border border-[var(--d-line)] font-bold"
                       style={{ color: VIOLET }}
                     >
                       <Plus className="size-3.5" />
@@ -1063,9 +1063,9 @@ export function DCarpool() {
       {/* ── Feuille : publier un départ ── */}
       {sheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
-          <div className="max-h-[92dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[16px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className="max-h-[92dvh] w-full max-w-[560px] overflow-y-auto rounded-t-lg border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
             <div className="mb-2 flex items-center justify-between">
-              <h2 className="drive-sora text-[16px] font-extrabold">
+              <h2 className="drive-sora text-title font-extrabold">
                 {tr("Publier un départ", "نشر رحلة")}
               </h2>
               <button
@@ -1091,7 +1091,7 @@ export function DCarpool() {
                   />
                 ))}
               </div>
-              <p className="mt-1.5 text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+              <p className="text-micro-lg mt-1.5 font-bold tracking-wide text-[var(--d-muted)] uppercase">
                 {pubStep === 1
                   ? tr("Étape 1 · Itinéraire", "الخطوة 1 · المسار")
                   : pubStep === 2
@@ -1106,7 +1106,7 @@ export function DCarpool() {
             {pubStep === 1 && (
               <>
                 {/* Départ / Arrivée — COMMUNE en saisie libre + suggestions. */}
-                <div className="rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
+                <div className="rounded-control border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
                   <div className="flex items-center gap-2">
                     <div className="min-w-0 flex-1">
                       <div className="border-b border-[var(--d-line)]">
@@ -1143,7 +1143,7 @@ export function DCarpool() {
                         setToPick(f);
                       }}
                       aria-label={tr("Inverser", "عكس")}
-                      className="grid size-9 shrink-0 place-items-center rounded-[8px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+                      className="grid size-9 shrink-0 place-items-center rounded-sm border border-[var(--d-line)] bg-[var(--d-surface)]"
                       style={{ color: VIOLET }}
                     >
                       <ArrowUpDown className="size-4" />
@@ -1154,7 +1154,7 @@ export function DCarpool() {
                 {/* Arrêts SUGGÉRÉS par le tracé — l'app détecte, le chauffeur tape. */}
                 {corridor.length > 0 && (
                   <div className="mt-3">
-                    <p className="mb-1.5 text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    <p className="text-micro-lg mb-1.5 font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {tr(
                         "Sur votre route — prendre / déposer à",
                         "على طريقك — صعود / نزول في"
@@ -1175,7 +1175,7 @@ export function DCarpool() {
                                 return next;
                               })
                             }
-                            className="drive-sora flex h-8 items-center gap-1 rounded-full border px-3 text-[11px] font-bold"
+                            className="drive-sora text-caption flex h-8 items-center gap-1 rounded-full border px-3 font-bold"
                             style={
                               on
                                 ? {
@@ -1195,7 +1195,7 @@ export function DCarpool() {
                               <Plus className="size-3" />
                             )}
                             {wname(s.code)}
-                            <span className="text-[9px] font-semibold opacity-70">
+                            <span className="text-nano font-semibold opacity-70">
                               {s.offKm <= 5
                                 ? tr("sur la route", "على الطريق")
                                 : `${s.offKm} km`}
@@ -1209,8 +1209,8 @@ export function DCarpool() {
 
                 {/* Aperçu de l'itinéraire + prix PAR SEGMENT (auto). */}
                 {chain.length >= 2 && (
-                  <div className="mt-3 rounded-[10px] bg-[var(--d-soft)] px-3.5 py-2.5">
-                    <p className="text-[11px] font-bold">
+                  <div className="rounded-control mt-3 bg-[var(--d-soft)] px-3.5 py-2.5">
+                    <p className="text-caption font-bold">
                       {chain.map((p) => p.label.split(",")[0]).join(" → ")}{" "}
                       <span className="font-semibold text-[var(--d-muted)]">
                         · ≈ {totalKm} km
@@ -1224,7 +1224,7 @@ export function DCarpool() {
                           return (
                             <p
                               key={`${p.w}-${i}`}
-                              className="text-[10.5px] font-semibold text-[var(--d-muted)]"
+                              className="text-micro-lg font-semibold text-[var(--d-muted)]"
                             >
                               {p.label.split(",")[0]} →{" "}
                               {next.label.split(",")[0]} ·{" "}
@@ -1234,7 +1234,7 @@ export function DCarpool() {
                             </p>
                           );
                         })}
-                        <p className="text-[9.5px] font-medium text-[var(--d-muted)]">
+                        <p className="text-nano-lg font-medium text-[var(--d-muted)]">
                           {tr(
                             "Prix des tronçons calculés automatiquement (au prorata des km).",
                             "أسعار المقاطع تُحسب تلقائيًا (بحسب الكيلومترات)."
@@ -1252,13 +1252,13 @@ export function DCarpool() {
                 {/* DATE (calendrier Coligo) et HEURE séparées — compréhension
                 immédiate, plus de datetime-local illisible. */}
                 <div className="mt-1">
-                  <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                  <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                     {tr("Date de départ", "تاريخ الانطلاق")}
                   </span>
                   <button
                     type="button"
                     onClick={() => setCalOpen((v) => !v)}
-                    className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                    className="drive-sora rounded-control text-body mb-1.5 flex h-11 w-full items-center justify-between border-[1.5px] px-3 font-extrabold"
                     style={{
                       borderColor: depDate ? VIOLET : "var(--d-line)",
                       color: depDate ? VIOLET : "var(--d-muted)",
@@ -1283,7 +1283,7 @@ export function DCarpool() {
                   )}
                 </div>
                 <div className="mt-2">
-                  <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                  <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                     {tr("Heure de départ", "وقت الانطلاق")}
                   </span>
                   <TimeSelect
@@ -1303,7 +1303,7 @@ export function DCarpool() {
                     setRetOn((v) => !v);
                     if (!retDate && depDate) setRetDate(depDate);
                   }}
-                  className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
+                  className="rounded-control mt-2.5 flex w-full items-center gap-2.5 border-[1.5px] px-3 py-2.5 text-start"
                   style={{
                     borderColor: retOn ? GO : "var(--d-line)",
                     background: retOn ? "rgba(22,179,100,.06)" : "transparent",
@@ -1318,12 +1318,12 @@ export function DCarpool() {
                   >
                     {retOn && <Check className="size-3.5 text-white" />}
                   </span>
-                  <span className="text-[12px] font-bold">
+                  <span className="text-label font-bold">
                     {tr(
                       "Programmer aussi le retour",
                       "برمجة رحلة العودة أيضًا"
                     )}
-                    <span className="block text-[10px] font-medium text-[var(--d-muted)]">
+                    <span className="text-micro block font-medium text-[var(--d-muted)]">
                       {tr(
                         "Le trajet inverse (arrêts compris) est publié en même temps.",
                         "يُنشر المسار العكسي (مع المحطات) في الوقت نفسه."
@@ -1332,14 +1332,14 @@ export function DCarpool() {
                   </span>
                 </button>
                 {retOn && (
-                  <div className="mt-2 rounded-[10px] border border-[var(--d-line)] p-2.5">
-                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                  <div className="rounded-control mt-2 border border-[var(--d-line)] p-2.5">
+                    <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {tr("Date du retour", "تاريخ العودة")}
                     </span>
                     <button
                       type="button"
                       onClick={() => setRetCalOpen((v) => !v)}
-                      className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                      className="drive-sora rounded-control text-body mb-1.5 flex h-11 w-full items-center justify-between border-[1.5px] px-3 font-extrabold"
                       style={{
                         borderColor: retDate ? GO : "var(--d-line)",
                         color: retDate ? GO : "var(--d-muted)",
@@ -1362,7 +1362,7 @@ export function DCarpool() {
                         }}
                       />
                     )}
-                    <span className="mt-2 mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    <span className="text-micro-lg mt-2 mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {tr("Heure du retour", "وقت العودة")}
                     </span>
                     <TimeSelect
@@ -1381,7 +1381,7 @@ export function DCarpool() {
             {pubStep === 3 && (
               <>
                 {/* RÉCAP des étapes précédentes — modifiable en revenant. */}
-                <div className="rounded-[10px] bg-[var(--d-soft)] px-3 py-2.5 text-[11.5px] font-semibold">
+                <div className="rounded-control text-caption-lg bg-[var(--d-soft)] px-3 py-2.5 font-semibold">
                   <p className="truncate">
                     {fromPick?.label.split(",")[0]} →{" "}
                     {toPick?.label.split(",")[0]}
@@ -1398,32 +1398,32 @@ export function DCarpool() {
 
                 <div className="mt-2 flex gap-2">
                   <div className="flex-1">
-                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {tr("Places", "المقاعد")}
                     </span>
-                    <div className="flex h-11 items-center rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
+                    <div className="rounded-control flex h-11 items-center border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
                       <button
                         type="button"
                         onClick={() => setSeats((s) => Math.max(1, s - 1))}
-                        className="drive-sora h-full w-10 text-[16px] font-extrabold"
+                        className="drive-sora text-title h-full w-10 font-extrabold"
                       >
                         −
                       </button>
-                      <span className="drive-sora flex-1 text-center text-[15px] font-extrabold">
+                      <span className="drive-sora text-title-sm flex-1 text-center font-extrabold">
                         <UsersRound className="me-1 inline size-4 align-[-2px]" />
                         {seats}
                       </span>
                       <button
                         type="button"
                         onClick={() => setSeats((s) => Math.min(8, s + 1))}
-                        className="drive-sora h-full w-10 text-[16px] font-extrabold"
+                        className="drive-sora text-title h-full w-10 font-extrabold"
                       >
                         +
                       </button>
                     </div>
                   </div>
                   <label className="flex-1">
-                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {tr(
                         "Prix / place — trajet complet",
                         "السعر/مقعد — كامل الرحلة"
@@ -1440,7 +1440,7 @@ export function DCarpool() {
                           )
                         )
                       }
-                      className="drive-sora h-11 w-full rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold outline-none"
+                      className="drive-sora rounded-control text-title-sm h-11 w-full border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center font-extrabold outline-none"
                     />
                   </label>
                 </div>
@@ -1448,7 +1448,7 @@ export function DCarpool() {
                 <button
                   type="button"
                   onClick={() => setFemaleOnly((v) => !v)}
-                  className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
+                  className="rounded-control mt-2.5 flex w-full items-center gap-2.5 border-[1.5px] px-3 py-2.5 text-start"
                   style={{
                     borderColor: femaleOnly ? ROSE : "var(--d-line)",
                     background: femaleOnly
@@ -1465,9 +1465,9 @@ export function DCarpool() {
                   >
                     {femaleOnly && <Check className="size-3.5 text-white" />}
                   </span>
-                  <span className="text-[12px] font-bold">
+                  <span className="text-label font-bold">
                     {tr("Départ 100 % femmes", "رحلة 100٪ نساء")}
-                    <span className="block text-[10px] font-medium text-[var(--d-muted)]">
+                    <span className="text-micro block font-medium text-[var(--d-muted)]">
                       {tr(
                         "Réservé aux conductrices vérifiées.",
                         "مخصص للسائقات الموثّقات."
@@ -1480,7 +1480,7 @@ export function DCarpool() {
 
             {pubError && (
               <p
-                className="mt-2 text-center text-[11.5px] font-bold"
+                className="text-caption-lg mt-2 text-center font-bold"
                 style={{ color: RED }}
               >
                 {pubError}
@@ -1495,7 +1495,7 @@ export function DCarpool() {
                     setPubError("");
                     setPubStep((s) => (s - 1) as 1 | 2);
                   }}
-                  className="drive-sora flex h-[48px] flex-1 items-center justify-center rounded-[10px] border border-[var(--d-line)] text-[13px] font-bold text-[var(--d-muted)]"
+                  className="drive-sora rounded-control text-body-sm flex h-[48px] flex-1 items-center justify-center border border-[var(--d-line)] font-bold text-[var(--d-muted)]"
                 >
                   {tr("Retour", "رجوع")}
                 </button>
@@ -1504,7 +1504,7 @@ export function DCarpool() {
                 <button
                   type="button"
                   onClick={stepNext}
-                  className="drive-sora flex h-[48px] flex-[2] items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white"
+                  className="drive-sora rounded-control text-body-xl flex h-[48px] flex-[2] items-center justify-center gap-2 font-extrabold text-white"
                   style={{ background: VIOLET }}
                 >
                   {tr("Suivant", "التالي")}
@@ -1514,7 +1514,7 @@ export function DCarpool() {
                   type="button"
                   onClick={() => void publish()}
                   disabled={pubPending}
-                  className="drive-sora flex h-[48px] flex-[2] items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white disabled:opacity-60"
+                  className="drive-sora rounded-control text-body-xl flex h-[48px] flex-[2] items-center justify-center gap-2 font-extrabold text-white disabled:opacity-60"
                   style={{ background: VIOLET }}
                 >
                   {pubPending && <Loader2 className="size-5 animate-spin" />}

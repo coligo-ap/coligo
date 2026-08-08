@@ -83,7 +83,7 @@ export function CategoryRow({
       onDragOver={onDragOver}
       onDrop={onDrop}
       className={cn(
-        "border-border bg-surface relative rounded-[14px] border transition-opacity",
+        "border-border bg-surface rounded-card-lg relative border transition-opacity",
         dragging && "opacity-40",
         dropIndicator === false && "border-t-primary-500 border-t-2",
         dropIndicator === true && "border-b-primary-500 border-b-2"
@@ -159,7 +159,7 @@ export function CategoryRow({
             <span className="truncate text-sm font-semibold">{c.label}</span>
             <span
               className={cn(
-                "shrink-0 rounded-full px-1.5 py-px text-[10px] font-bold uppercase",
+                "text-micro shrink-0 rounded-full px-1.5 py-px font-bold uppercase",
                 c.kind === "filter"
                   ? "bg-accent-50 text-accent-700"
                   : "bg-surface-3 text-muted"
@@ -170,7 +170,7 @@ export function CategoryRow({
             {c.status !== "active" && (
               <span
                 className={cn(
-                  "shrink-0 rounded-full px-1.5 py-px text-[10px] font-bold",
+                  "text-micro shrink-0 rounded-full px-1.5 py-px font-bold",
                   c.status === "hidden"
                     ? "bg-danger-50 text-danger-600"
                     : "bg-warning-50 text-warning-700"
@@ -222,7 +222,7 @@ export function CategoryRow({
             aria-expanded={open}
             aria-label={`Détails ${c.label}`}
             className={cn(
-              "shrink-0 rounded-[10px] p-1.5 transition-transform",
+              "rounded-control shrink-0 p-1.5 transition-transform",
               open
                 ? "bg-primary-50 text-primary-700 rotate-180"
                 : "text-muted hover:text-foreground"
@@ -261,7 +261,7 @@ function VisibilityChip({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1 rounded-full border px-2 py-1 text-[11px] font-bold transition-colors disabled:opacity-50",
+        "text-caption inline-flex items-center gap-1 rounded-full border px-2 py-1 font-bold transition-colors disabled:opacity-50",
         on
           ? "border-primary-300 bg-primary-50 text-primary-700"
           : "border-border bg-surface-2 text-subtle line-through"
@@ -309,7 +309,7 @@ function CategoryDetail({
               )
             )
           }
-          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2 text-xs font-semibold"
+          className="border-border-strong bg-surface rounded-control h-9 border px-2 text-xs font-semibold"
           aria-label={`Statut ${c.label}`}
         >
           {(Object.keys(STATUS_LABEL) as AdminCategory["status"][]).map((s) => (
@@ -318,7 +318,7 @@ function CategoryDetail({
             </option>
           ))}
         </select>
-        <span className="text-subtle text-[11px]">
+        <span className="text-subtle text-caption">
           « Masqué » retire aussi du marketplace les commerces dont c&apos;est
           la catégorie principale.
         </span>
@@ -342,7 +342,7 @@ function CategoryDetail({
         <button
           type="button"
           onClick={() => fileRef.current?.click()}
-          className="border-border bg-surface-2 hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold"
+          className="border-border bg-surface-2 hover:bg-surface-3 rounded-control inline-flex items-center gap-1.5 border px-3 py-1.5 text-xs font-semibold"
         >
           <Upload className="size-3.5" />
           {c.imageUrl ? "Remplacer l'image" : "Image du rond"}
@@ -356,7 +356,7 @@ function CategoryDetail({
             Retirer l&apos;image
           </button>
         )}
-        <span className="text-subtle text-[11px]">
+        <span className="text-subtle text-caption">
           PNG/WebP carré, max 2 Mo — sinon l&apos;emoji.
         </span>
       </div>
@@ -368,20 +368,20 @@ function CategoryDetail({
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Libellé FR"
-            className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs sm:col-span-2"
+            className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs sm:col-span-2"
           />
           <input
             value={labelAr}
             onChange={(e) => setLabelAr(e.target.value)}
             placeholder="Libellé AR"
             dir="rtl"
-            className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+            className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs"
           />
           <input
             value={emoji}
             onChange={(e) => setEmoji(e.target.value)}
             placeholder="Emoji"
-            className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+            className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs"
           />
         </div>
         {renamed && (
@@ -392,7 +392,7 @@ function CategoryDetail({
                 updateCategoryLabels(c.code, { label, labelAr, emoji })
               )
             }
-            className="bg-primary-600 rounded-[10px] px-4 py-2 text-xs font-bold text-white"
+            className="bg-primary-600 rounded-control px-4 py-2 text-xs font-bold text-white"
           >
             Enregistrer les libellés
           </button>
@@ -410,7 +410,7 @@ function CategoryDetail({
 
       {/* Suppression — miroir exact de la garde serveur */}
       <div className="border-border flex items-center justify-between gap-2 border-t pt-2.5">
-        <span className="text-subtle text-[11px]">
+        <span className="text-subtle text-caption">
           {undeletable
             ? "Des commerçants utilisent cette catégorie (principale ou liaison) — masquez-la plutôt."
             : c.kind === "filter"
@@ -421,7 +421,7 @@ function CategoryDetail({
           type="button"
           disabled={undeletable}
           onClick={() => onRun(() => deleteCategory(c.code))}
-          className="text-danger-600 hover:bg-danger-50 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-bold disabled:opacity-30"
+          className="text-danger-600 hover:bg-danger-50 rounded-control inline-flex shrink-0 items-center gap-1.5 px-2.5 py-1.5 text-xs font-bold disabled:opacity-30"
         >
           <Trash2 className="size-3.5" /> Supprimer
         </button>
@@ -470,7 +470,7 @@ export function CreateCategoryForm({
   };
 
   return (
-    <div className="border-border bg-surface-2 mt-2 space-y-2.5 rounded-[14px] border p-3">
+    <div className="border-border bg-surface-2 rounded-card-lg mt-2 space-y-2.5 border p-3">
       <div className="flex gap-2">
         {(
           [
@@ -483,7 +483,7 @@ export function CreateCategoryForm({
             type="button"
             onClick={() => pickKind(k)}
             className={cn(
-              "flex-1 rounded-[10px] border px-2 py-2 text-xs font-semibold",
+              "rounded-control flex-1 border px-2 py-2 text-xs font-semibold",
               kind === k
                 ? "border-primary-400 bg-primary-50 text-primary-700"
                 : "border-border-strong bg-surface text-muted"
@@ -501,14 +501,14 @@ export function CreateCategoryForm({
             if (!codeTouched) setCode(slugify(e.target.value));
           }}
           placeholder="Libellé FR"
-          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+          className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs"
         />
         <input
           value={labelAr}
           onChange={(e) => setLabelAr(e.target.value)}
           placeholder="Libellé AR"
           dir="rtl"
-          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+          className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs"
         />
         <input
           value={code}
@@ -517,13 +517,13 @@ export function CreateCategoryForm({
             setCodeTouched(true);
           }}
           placeholder="code_technique (auto)"
-          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 font-mono text-xs"
+          className="border-border-strong bg-surface rounded-control h-9 border px-2.5 font-mono text-xs"
         />
         <input
           value={emoji}
           onChange={(e) => setEmoji(e.target.value)}
           placeholder="Emoji (ex. 🌮)"
-          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs"
+          className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs"
         />
       </div>
       {kind === "filter" && (
@@ -531,7 +531,7 @@ export function CreateCategoryForm({
           value={keywords}
           onChange={(e) => setKeywords(e.target.value)}
           placeholder="Mots-clés du mapping auto (ex. burger, hamburger)"
-          className="border-border-strong bg-surface h-9 w-full rounded-[10px] border px-2.5 text-xs"
+          className="border-border-strong bg-surface rounded-control h-9 w-full border px-2.5 text-xs"
         />
       )}
       <div className="flex flex-wrap items-center gap-1.5">
@@ -577,7 +577,7 @@ export function CreateCategoryForm({
               else onDone();
             });
           }}
-          className="bg-primary-600 rounded-[10px] px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
+          className="bg-primary-600 rounded-control px-4 py-2 text-xs font-bold text-white disabled:opacity-50"
         >
           {busy ? "Création…" : "Créer"}
         </button>
@@ -653,7 +653,7 @@ function FilterMappingPanel({
   };
 
   return (
-    <div className="border-border bg-surface-2 space-y-2.5 rounded-[12px] border p-3">
+    <div className="border-border bg-surface-2 space-y-2.5 rounded-md border p-3">
       <p className="text-muted text-xs font-bold uppercase">Commerçants liés</p>
 
       {/* Mots-clés + recalcul auto — FILTRES ÉDITORIAUX uniquement */}
@@ -664,13 +664,13 @@ function FilterMappingPanel({
               value={kw}
               onChange={(e) => setKw(e.target.value)}
               placeholder="Mots-clés auto (ex. burger, hamburger)"
-              className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2.5 text-xs"
+              className="border-border-strong bg-surface rounded-control h-9 min-w-0 flex-1 border px-2.5 text-xs"
             />
             <button
               type="button"
               disabled={busy}
               onClick={() => act(() => setCategoryKeywords(code, kw))}
-              className="border-border bg-surface rounded-[10px] border px-3 py-2 text-xs font-semibold disabled:opacity-50"
+              className="border-border bg-surface rounded-control border px-3 py-2 text-xs font-semibold disabled:opacity-50"
             >
               Enregistrer
             </button>
@@ -678,12 +678,12 @@ function FilterMappingPanel({
               type="button"
               disabled={busy}
               onClick={() => act(() => recomputeAutoLinks(code))}
-              className="bg-primary-600 rounded-[10px] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+              className="bg-primary-600 rounded-control px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
             >
               Recalculer auto
             </button>
           </div>
-          <p className="text-subtle text-[11px]">
+          <p className="text-subtle text-caption">
             Le recalcul lie les commerçants dont les produits, tags ou le nom
             contiennent un mot-clé — sans toucher aux liaisons manuelles.
           </p>
@@ -705,7 +705,7 @@ function FilterMappingPanel({
             } else setResults([]);
           }}
           placeholder="Ajouter un commerçant (nom)…"
-          className="border-border-strong bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2.5 text-xs"
+          className="border-border-strong bg-surface rounded-control h-9 min-w-0 flex-1 border px-2.5 text-xs"
         />
       </div>
       {results.length > 0 && (

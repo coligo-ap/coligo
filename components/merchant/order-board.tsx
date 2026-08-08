@@ -34,6 +34,7 @@ import {
 } from "lucide-react";
 import { ActionNote, useActionNote } from "@/components/shared/action-note";
 import { cn, formatDA } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
 import {
   updateOrderStatus,
   cancelOrderByMerchant,
@@ -170,7 +171,7 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
             type="button"
             onClick={() => setActive(c.key)}
             className={cn(
-              "relative flex flex-col items-center gap-0.5 rounded-[12px] border px-2 py-2 text-xs font-semibold transition-colors",
+              "relative flex flex-col items-center gap-0.5 rounded-md border px-2 py-2 text-xs font-semibold transition-colors",
               active === c.key
                 ? "border-primary-600 bg-primary-50 text-primary-700"
                 : "border-border text-muted bg-white",
@@ -178,20 +179,20 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
             )}
           >
             {c.key === "preparing" && alertCount.preparing > 0 && (
-              <span className="bg-danger-500 absolute -end-1.5 -top-1.5 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+              <span className="bg-danger-500 text-micro absolute -end-1.5 -top-1.5 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 font-extrabold text-white tabular-nums">
                 {alertCount.preparing}
               </span>
             )}
             {/* Illustration de la section — comprendre d'un coup d'œil. */}
             <span
               className={cn(
-                "grid size-8 place-items-center rounded-[10px]",
+                "rounded-control grid size-8 place-items-center",
                 c.tile
               )}
             >
               <c.icon className="size-4.5" />
             </span>
-            <span className="text-[11px] leading-tight">{c.title}</span>
+            <span className="text-caption leading-tight">{c.title}</span>
             <span
               className={cn(
                 "text-base leading-none font-bold tabular-nums",
@@ -224,7 +225,7 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
               {/* Illustration de la section (remplace le simple point coloré). */}
               <span
                 className={cn(
-                  "grid size-6 place-items-center rounded-[8px]",
+                  "grid size-6 place-items-center rounded-sm",
                   c.tile
                 )}
               >
@@ -234,7 +235,7 @@ export function OrderBoard({ orders }: { orders: OrderWithItems[] }) {
                 {c.title}
               </h2>
               {c.key === "preparing" && alertCount.preparing > 0 && (
-                <span className="bg-danger-100 text-danger-700 inline-flex animate-pulse items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums">
+                <span className="bg-danger-100 text-danger-700 text-caption inline-flex animate-pulse items-center gap-1 rounded-full px-2 py-0.5 font-bold tabular-nums">
                   {alertCount.preparing} en retard
                 </span>
               )}
@@ -272,7 +273,7 @@ function EmptyColumn({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="border-border text-subtle flex flex-col items-center justify-center gap-1.5 rounded-[14px] border border-dashed py-8">
+    <div className="border-border text-subtle rounded-card-lg flex flex-col items-center justify-center gap-1.5 border border-dashed py-8">
       <Icon className="size-5" />
       <span className="text-xs">Rien ici</span>
     </div>
@@ -332,13 +333,17 @@ function slotTime(iso: string): string {
   });
 }
 
-/** Mappe le ton de phase livraison vers les tons du Badge du board. */
+/**
+ * Mappe le ton de phase livraison vers les tons de `ui/badge`. Le board utilise
+ * les variantes PÂLES (fond -50) : ses cartes sont déjà colorées par l'alerte
+ * de retard, un fond -100 y serait trop appuyé.
+ */
 function phaseBadgeTone(
   tone: DeliveryPhaseTone
-): "primary" | "success" | "warning" | "neutral" {
-  if (tone === "amber") return "warning";
+): "primary" | "successSoft" | "warningSoft" | "neutral" {
+  if (tone === "amber") return "warningSoft";
   if (tone === "violet") return "primary";
-  if (tone === "success") return "success";
+  if (tone === "success") return "successSoft";
   if (tone === "primary") return "primary";
   return "neutral";
 }
@@ -386,7 +391,7 @@ export function OrderCard({
   return (
     <div
       className={cn(
-        "border-border bg-surface overflow-hidden rounded-[14px] border shadow-sm",
+        "border-border bg-surface rounded-card-lg overflow-hidden border shadow-sm",
         warn && "border-danger-300 ring-danger-100 ring-2",
         alert && "animate-order-alert border-danger-400"
       )}
@@ -423,24 +428,29 @@ export function OrderCard({
         {/* Ligne 4 : badges */}
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
           {phase ? (
-            <Badge tone={phaseBadgeTone(phase.tone)} icon={Bike}>
+            <Badge tone={phaseBadgeTone(phase.tone)} size="sm">
+              <Bike className="size-3" />
               {phase.short}
             </Badge>
           ) : (
-            <Badge
-              tone={isDelivery ? "primary" : "neutral"}
-              icon={isDelivery ? Bike : Package}
-            >
+            <Badge tone={isDelivery ? "primary" : "neutral"} size="sm">
+              {isDelivery ? (
+                <Bike className="size-3" />
+              ) : (
+                <Package className="size-3" />
+              )}
               {isDelivery ? "Livraison" : "Retrait"}
             </Badge>
           )}
           <Badge
-            tone={order.payment_method === "online" ? "success" : "neutral"}
+            tone={order.payment_method === "online" ? "successSoft" : "neutral"}
+            size="sm"
           >
             {order.payment_method === "online" ? "Payé en ligne" : "Espèces"}
           </Badge>
           {hasNote && (
-            <Badge tone="warning" icon={StickyNote}>
+            <Badge tone="warningSoft" size="sm">
+              <StickyNote className="size-3" />
               Note
             </Badge>
           )}
@@ -448,7 +458,7 @@ export function OrderCard({
           {column === "pending" && elapsed !== null && (
             <span
               className={cn(
-                "ml-auto inline-flex items-center gap-1 text-[11px] font-bold tabular-nums",
+                "text-caption ml-auto inline-flex items-center gap-1 font-bold tabular-nums",
                 warn ? "text-danger-600" : "text-subtle"
               )}
             >
@@ -461,7 +471,7 @@ export function OrderCard({
           {column === "preparing" && lateBy !== null && (
             <span
               className={cn(
-                "ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold tabular-nums",
+                "text-caption ml-auto inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold tabular-nums",
                 lateBy >= 1
                   ? "bg-danger-100 text-danger-700"
                   : lateBy >= 0
@@ -484,34 +494,6 @@ export function OrderCard({
         <CardActions order={order} column={column} />
       </div>
     </div>
-  );
-}
-
-function Badge({
-  children,
-  tone,
-  icon: Icon,
-}: {
-  children: React.ReactNode;
-  tone: "primary" | "success" | "warning" | "neutral";
-  icon?: React.ComponentType<{ className?: string }>;
-}) {
-  const tones: Record<string, string> = {
-    primary: "bg-primary-50 text-primary-700",
-    success: "bg-success-50 text-success-700",
-    warning: "bg-warning-50 text-warning-700",
-    neutral: "bg-surface-3 text-muted",
-  };
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold",
-        tones[tone]
-      )}
-    >
-      {Icon && <Icon className="size-3" />}
-      {children}
-    </span>
   );
 }
 
@@ -580,7 +562,7 @@ function CardActions({
     if (refusing) {
       return (
         <div className="space-y-1">
-          <p className="text-muted px-0.5 text-[11px] font-semibold tracking-wide uppercase">
+          <p className="text-muted text-caption px-0.5 font-semibold tracking-wide uppercase">
             Motif de l&apos;annulation
           </p>
           <div className="grid grid-cols-1 gap-0.5">
@@ -590,7 +572,7 @@ function CardActions({
                 type="button"
                 onClick={() => cancel(r)}
                 disabled={pending}
-                className="hover:bg-danger-50 text-foreground rounded-[8px] px-2 py-1.5 text-left text-xs disabled:opacity-50"
+                className="hover:bg-danger-50 text-foreground rounded-sm px-2 py-1.5 text-left text-xs disabled:opacity-50"
               >
                 {r}
               </button>
@@ -599,7 +581,7 @@ function CardActions({
           <button
             type="button"
             onClick={() => setRefusing(false)}
-            className="text-muted w-full pt-0.5 text-center text-[11px] hover:underline"
+            className="text-muted text-caption w-full pt-0.5 text-center hover:underline"
           >
             Retour
           </button>
@@ -614,7 +596,7 @@ function CardActions({
         type="button"
         onClick={() => setRefusing(true)}
         disabled={pending}
-        className="text-danger-700 hover:bg-danger-50 mt-1.5 inline-flex w-full items-center justify-center gap-1 rounded-[10px] py-1.5 text-[12px] font-semibold disabled:opacity-50"
+        className="text-danger-700 hover:bg-danger-50 rounded-control text-label mt-1.5 inline-flex w-full items-center justify-center gap-1 py-1.5 font-semibold disabled:opacity-50"
       >
         <X className="size-3.5" />
         Annuler (client injoignable)
@@ -630,7 +612,7 @@ function CardActions({
             onClick={() => move("preparing", undefined, "Acceptée")}
             disabled={pending || !!done}
             className={cn(
-              "bg-success-600 hover:bg-success-700 inline-flex flex-1 items-center justify-center gap-1 rounded-[10px] py-2 text-sm font-bold text-white",
+              "bg-success-600 hover:bg-success-700 rounded-control inline-flex flex-1 items-center justify-center gap-1 py-2 text-sm font-bold text-white",
               done ? "disabled:opacity-100" : "disabled:opacity-50"
             )}
           >
@@ -652,7 +634,7 @@ function CardActions({
             type="button"
             onClick={() => setRefusing(true)}
             disabled={pending}
-            className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center justify-center gap-1 rounded-[10px] border px-3 py-2 text-sm font-semibold disabled:opacity-50"
+            className="border-danger-200 text-danger-700 hover:bg-danger-50 rounded-control inline-flex items-center justify-center gap-1 border px-3 py-2 text-sm font-semibold disabled:opacity-50"
           >
             <X className="size-4" />
           </button>
@@ -669,7 +651,7 @@ function CardActions({
             onClick={() => move("ready", undefined, "Commande prête")}
             disabled={pending || !!done}
             className={cn(
-              "inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white",
+              "rounded-control inline-flex w-full items-center justify-center gap-1.5 py-2 text-sm font-bold text-white",
               done
                 ? "bg-success-600 disabled:opacity-100"
                 : "bg-primary-600 hover:bg-primary-700 disabled:opacity-50"
@@ -706,7 +688,7 @@ function CardActions({
         <div>
           <p
             className={cn(
-              "flex items-center gap-1.5 rounded-[10px] px-2.5 py-2 text-xs font-medium",
+              "rounded-control flex items-center gap-1.5 px-2.5 py-2 text-xs font-medium",
               isActive
                 ? "text-primary-700 bg-primary-50"
                 : "text-muted bg-surface-3"
@@ -728,7 +710,7 @@ function CardActions({
             type="button"
             onClick={() => move("completed", undefined, "Retrait confirmé")}
             disabled={pending}
-            className="bg-success-600 hover:bg-success-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white disabled:opacity-50"
+            className="bg-success-600 hover:bg-success-700 rounded-control inline-flex w-full items-center justify-center gap-1.5 py-2 text-sm font-bold text-white disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -745,7 +727,7 @@ function CardActions({
       <div>
         <Link
           href="/orders/validate"
-          className="bg-primary-600 hover:bg-primary-700 inline-flex w-full items-center justify-center gap-1.5 rounded-[10px] py-2 text-sm font-bold text-white"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex w-full items-center justify-center gap-1.5 py-2 text-sm font-bold text-white"
         >
           <QrCode className="size-4" />
           Valider le code

@@ -96,7 +96,7 @@ export default async function CustomerWalletPage({
 
       {/* ---- Soldes ---- */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Wallet className="size-3.5" />
             Solde Coligo Pay
@@ -105,7 +105,7 @@ export default async function CustomerWalletPage({
             {formatDA(topupDa)}
           </p>
         </section>
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Coins className="size-3.5" />
             Cashback
@@ -123,7 +123,7 @@ export default async function CustomerWalletPage({
       {(transfers.length > 0 || payments.length > 0) && (
         <div className="mt-3 grid gap-3 lg:grid-cols-2">
           {transfers.length > 0 && (
-            <section className="border-border bg-surface rounded-[14px] border p-4">
+            <section className="border-border bg-surface rounded-card-lg border p-4">
               <h2 className="text-muted text-xs font-bold uppercase">
                 Transferts P2P récents
               </h2>
@@ -154,7 +154,7 @@ export default async function CustomerWalletPage({
             </section>
           )}
           {payments.length > 0 && (
-            <section className="border-border bg-surface rounded-[14px] border p-4">
+            <section className="border-border bg-surface rounded-card-lg border p-4">
               <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
                 <QrCode className="size-3.5" />
                 Paiements marchands récents
@@ -180,7 +180,7 @@ export default async function CustomerWalletPage({
       )}
 
       {/* ---- Écritures ---- */}
-      <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
         <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
           <User className="size-3.5" />
           Écritures ({entries.length} dernières)

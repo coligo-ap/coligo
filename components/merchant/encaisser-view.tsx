@@ -88,11 +88,11 @@ export function EncaisserView() {
       </div>
 
       {step === "amount" && (
-        <div className="border-border bg-surface rounded-[20px] border p-5">
-          <label className="text-muted text-[11.5px] font-extrabold tracking-wide uppercase">
+        <div className="border-border bg-surface rounded-xl border p-5">
+          <label className="text-muted text-caption-lg font-extrabold tracking-wide uppercase">
             Montant à encaisser
           </label>
-          <div className="border-border bg-surface-2 focus-within:border-primary-400 mt-2 flex items-center gap-2 rounded-[14px] border px-4 py-3.5">
+          <div className="border-border bg-surface-2 focus-within:border-primary-400 rounded-card-lg mt-2 flex items-center gap-2 border px-4 py-3.5">
             <input
               inputMode="numeric"
               value={amount}
@@ -111,7 +111,7 @@ export function EncaisserView() {
                 key={p}
                 type="button"
                 onClick={() => setAmount(String(p))}
-                className="border-border hover:border-primary-300 rounded-[12px] border py-2.5 text-sm font-bold tabular-nums"
+                className="border-border hover:border-primary-300 rounded-md border py-2.5 text-sm font-bold tabular-nums"
               >
                 {p}
               </button>
@@ -121,7 +121,7 @@ export function EncaisserView() {
             type="button"
             disabled={busy || amount === ""}
             onClick={generate}
-            className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-40"
+            className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-4 inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-40"
           >
             {busy ? (
               <Loader2 className="size-5 animate-spin" />
@@ -132,7 +132,7 @@ export function EncaisserView() {
               </>
             )}
           </button>
-          <ActionNote note={note} className="mt-2 text-center text-[13px]" />
+          <ActionNote note={note} className="text-body-sm mt-2 text-center" />
         </div>
       )}
 
@@ -149,7 +149,7 @@ export function EncaisserView() {
       )}
 
       {step === "paid" && (
-        <div className="border-border bg-surface rounded-[20px] border p-7 text-center">
+        <div className="border-border bg-surface rounded-xl border p-7 text-center">
           <div className="bg-success-100 text-success-700 mx-auto grid size-16 place-items-center rounded-full">
             <Check className="size-9" />
           </div>
@@ -159,13 +159,13 @@ export function EncaisserView() {
           <p className="text-primary-600 mt-2 text-[34px] leading-none font-black tabular-nums">
             {formatDA(paidAmount)}
           </p>
-          <p className="text-muted mt-2 text-[13px] font-medium">
+          <p className="text-muted text-body-sm mt-2 font-medium">
             Crédité sur ton solde Coligo (vente − commission).
           </p>
           <button
             type="button"
             onClick={reset}
-            className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white"
+            className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-6 inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white"
           >
             <RefreshCw className="size-4" />
             Nouvel encaissement
@@ -241,8 +241,8 @@ function QrWaiting({
   const ss = String(remaining % 60).padStart(2, "0");
 
   return (
-    <div className="border-border bg-surface rounded-[20px] border p-6 text-center">
-      <p className="text-muted text-[12px] font-bold tracking-wide uppercase">
+    <div className="border-border bg-surface rounded-xl border p-6 text-center">
+      <p className="text-muted text-label font-bold tracking-wide uppercase">
         À encaisser
       </p>
       <p className="text-foreground mt-1 text-[34px] leading-none font-black tabular-nums">

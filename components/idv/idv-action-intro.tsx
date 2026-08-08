@@ -51,7 +51,7 @@ export function IdvActionIntro({
       <div className="idv-action flex flex-col items-center text-center">
         {illustration}
         <p
-          className="mt-5 text-[11px] font-semibold tracking-wide uppercase"
+          className="text-caption mt-5 font-semibold tracking-wide uppercase"
           style={{ color: "var(--idv-accent)" }}
         >
           {eyebrow}
@@ -70,7 +70,7 @@ export function IdvActionIntro({
 
       {error && (
         <p
-          className="mb-3 rounded-[12px] px-3 py-2.5 text-sm"
+          className="mb-3 rounded-md px-3 py-2.5 text-sm"
           style={{ background: "rgba(239,68,68,.12)", color: "var(--idv-bad)" }}
         >
           {error}

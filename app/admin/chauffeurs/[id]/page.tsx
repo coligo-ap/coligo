@@ -137,7 +137,7 @@ export default async function AdminChauffeurDetailPage({
       <header className="flex flex-wrap items-center gap-3">
         <Link
           href="/admin/chauffeurs"
-          className="border-border hover:bg-surface-2 grid size-9 place-items-center rounded-[10px] border"
+          className="border-border hover:bg-surface-2 rounded-control grid size-9 place-items-center border"
           aria-label="Retour"
         >
           <ArrowLeft className="size-4" />
@@ -179,7 +179,7 @@ export default async function AdminChauffeurDetailPage({
                 className="border-border size-24 rounded-full border-2 object-cover"
               />
             ) : (
-              <div className="bg-surface-2 text-muted grid size-24 place-items-center rounded-full text-center text-[10px] font-bold">
+              <div className="bg-surface-2 text-muted text-micro grid size-24 place-items-center rounded-full text-center font-bold">
                 Selfie
                 <br />
                 manquant

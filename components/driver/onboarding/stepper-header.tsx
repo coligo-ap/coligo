@@ -28,15 +28,15 @@ export function StepperHeader({
 }) {
   const isAr = useLocale() === "ar";
   return (
-    <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-4">
+    <div className="rounded-sheet-lg border border-[var(--line)] bg-[var(--surface)] p-4">
       <div className="flex items-baseline justify-between">
         <b
-          className="text-[13px] font-bold text-[var(--ink)]"
+          className="text-body-sm font-bold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
           {isAr ? "الخطوة" : "Étape"} {current + 1}/{steps.length}
         </b>
-        <span className="text-[12.5px] font-semibold text-[var(--muted)]">
+        <span className="text-label-lg font-semibold text-[var(--muted)]">
           {steps[current]?.title}
         </span>
       </div>
@@ -58,7 +58,7 @@ export function StepperHeader({
                     ? `الخطوة ${i + 1}: ${s.title}`
                     : `Étape ${i + 1} : ${s.title}`
                 }
-                className="grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-extrabold tabular-nums transition disabled:cursor-not-allowed"
+                className="text-caption grid size-7 shrink-0 place-items-center rounded-full font-extrabold tabular-nums transition disabled:cursor-not-allowed"
                 style={
                   state === "done"
                     ? { background: BRAND_GO, color: "#fff" }

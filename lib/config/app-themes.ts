@@ -8,6 +8,8 @@
 // dur). Fichier PUR (client + serveur).
 // =============================================================================
 
+import { ACCENT, PRIMARY } from "@/lib/design/tokens";
+
 export type AppThemeKey =
   | "coligo"
   | "ramadan"
@@ -71,11 +73,13 @@ export const APP_THEMES: Record<AppThemeKey, AppThemePreset> = {
   coligo: {
     label: "Coligo (défaut)",
     hint: "Le violet de la marque, toute l'année.",
-    g1: "#6C2BD9",
+    // g2/g3 : deux violets de DÉGRADÉ propres au héro (aucun équivalent dans
+    // l'échelle de marque — les aligner changerait le rendu du bandeau).
+    g1: PRIMARY[600],
     g2: "#5B21B6",
     g3: "#4C1B9B",
-    blobA: "#8A4DFF",
-    blobB: "#FF2D7A",
+    blobA: PRIMARY[400],
+    blobB: ACCENT[500],
     homeIcon: "sparkles",
     home: {
       fr: "Bienvenue sur Coligo",

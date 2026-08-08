@@ -9,11 +9,11 @@ export default function AdminWheelLoading() {
         {Array.from({ length: 4 }).map((_, i) => (
           <div
             key={i}
-            className="bg-surface-3 h-20 animate-pulse rounded-[14px]"
+            className="bg-surface-3 rounded-card-lg h-20 animate-pulse"
           />
         ))}
       </div>
-      <div className="bg-surface-3 mt-4 h-64 w-full animate-pulse rounded-[16px]" />
+      <div className="bg-surface-3 mt-4 h-64 w-full animate-pulse rounded-lg" />
     </div>
   );
 }

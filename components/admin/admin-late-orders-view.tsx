@@ -92,7 +92,7 @@ export function AdminLateOrdersView({ orders, thresholdMin }: Props) {
         <button
           type="button"
           onClick={() => router.refresh()}
-          className="text-muted hover:bg-surface-2 hover:text-foreground border-border inline-flex shrink-0 items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-sm font-medium"
+          className="text-muted hover:bg-surface-2 hover:text-foreground border-border rounded-control inline-flex shrink-0 items-center gap-1.5 border px-3 py-1.5 text-sm font-medium"
         >
           <RefreshCw className="size-3.5" />
           Rafraîchir
@@ -100,7 +100,7 @@ export function AdminLateOrdersView({ orders, thresholdMin }: Props) {
       </header>
 
       {orders.length === 0 ? (
-        <div className="border-border bg-surface rounded-[16px] border p-10 text-center">
+        <div className="border-border bg-surface rounded-lg border p-10 text-center">
           <Clock className="text-success-500 mx-auto size-10" />
           <p className="text-foreground mt-3 text-sm font-semibold">
             Aucune commande en retard 🎉
@@ -166,7 +166,7 @@ function LateOrderCard({
   }
 
   return (
-    <div className="border-danger-200 bg-surface rounded-[16px] border-l-4 p-4 shadow-sm">
+    <div className="border-danger-200 bg-surface rounded-lg border-l-4 p-4 shadow-sm">
       {/* En-tête : réf + retard + total */}
       <div className="flex flex-wrap items-center justify-between gap-2">
         <span className="text-foreground font-mono text-lg font-extrabold">
@@ -273,7 +273,7 @@ function LateOrderCard({
             onClick={() =>
               run(() => adminValidateDelivery(o.id), "Livraison validée")
             }
-            className="bg-success-600 hover:bg-success-700 inline-flex items-center gap-1 rounded-[10px] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+            className="bg-success-600 hover:bg-success-700 rounded-control inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -287,14 +287,14 @@ function LateOrderCard({
           type="button"
           disabled={pending}
           onClick={onCancel}
-          className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[10px] border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+          className="border-danger-200 text-danger-700 hover:bg-danger-50 rounded-control inline-flex items-center gap-1 border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
         >
           <Ban className="size-3.5" />
           Annuler
         </button>
         <Link
           href="/admin/orders"
-          className="border-border hover:bg-surface-2 text-foreground ml-auto inline-flex items-center gap-1 rounded-[10px] border px-3 py-1.5 text-xs font-bold"
+          className="border-border hover:bg-surface-2 text-foreground rounded-control ml-auto inline-flex items-center gap-1 border px-3 py-1.5 text-xs font-bold"
         >
           <ExternalLink className="size-3.5" />
           Gérer
@@ -318,7 +318,7 @@ function Info({
     <div className="flex items-start gap-2">
       <Icon className="text-muted mt-0.5 size-4 shrink-0" />
       <div className="min-w-0">
-        <dt className="text-muted text-[11px] font-semibold tracking-wide uppercase">
+        <dt className="text-muted text-caption font-semibold tracking-wide uppercase">
           {label}
         </dt>
         <dd className="text-foreground">{children}</dd>

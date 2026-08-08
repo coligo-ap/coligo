@@ -54,7 +54,7 @@ export function ShopModeToggle({
       >
         <span
           className={cn(
-            "text-[13.5px] font-extrabold whitespace-nowrap",
+            "text-body font-extrabold whitespace-nowrap",
             mode === "pickup" ? "text-foreground" : "text-muted"
           )}
         >
@@ -62,7 +62,7 @@ export function ShopModeToggle({
         </span>
         <span
           className={cn(
-            "text-[11px] font-medium whitespace-nowrap",
+            "text-caption font-medium whitespace-nowrap",
             mode === "pickup" ? "text-success-700" : "text-subtle"
           )}
         >
@@ -78,7 +78,7 @@ export function ShopModeToggle({
       >
         <span
           className={cn(
-            "text-[13.5px] font-extrabold whitespace-nowrap",
+            "text-body font-extrabold whitespace-nowrap",
             mode === "delivery" ? "text-foreground" : "text-muted"
           )}
         >
@@ -86,7 +86,7 @@ export function ShopModeToggle({
         </span>
         <span
           className={cn(
-            "max-w-full truncate text-[11px] font-medium",
+            "text-caption max-w-full truncate font-medium",
             mode === "delivery" ? "text-muted" : "text-subtle"
           )}
         >

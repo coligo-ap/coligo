@@ -151,7 +151,7 @@ export default async function RecrutePage() {
         </Link>
 
         {/* ───── HERO — promesse + l'offre en très grand ───── */}
-        <section className="cg-brand-gradient relative overflow-hidden rounded-[16px] p-7 text-white lg:p-10">
+        <section className="cg-brand-gradient relative overflow-hidden rounded-lg p-7 text-white lg:p-10">
           <div className="relative z-[1]">
             <Image
               src={BRAND_ASSETS.fullWhite}
@@ -181,7 +181,7 @@ export default async function RecrutePage() {
                 <p className="text-[64px] leading-none font-black tracking-tight lg:text-[96px]">
                   0&nbsp;%
                 </p>
-                <p className="mt-2 text-[13px] font-bold tracking-wide text-white/90 uppercase">
+                <p className="text-body-sm mt-2 font-bold tracking-wide text-white/90 uppercase">
                   de commission au lancement
                 </p>
               </div>
@@ -189,13 +189,13 @@ export default async function RecrutePage() {
                 <p className="text-[52px] leading-none font-black tracking-tight lg:text-[84px]">
                   Gratuit
                 </p>
-                <p className="mt-2 text-[13px] font-bold tracking-wide text-white/90 uppercase">
+                <p className="text-body-sm mt-2 font-bold tracking-wide text-white/90 uppercase">
                   inscription en ligne, 0 DA
                 </p>
               </div>
             </div>
             <p
-              className="rc-up mt-5 text-[13px] font-semibold text-white/80"
+              className="rc-up text-body-sm mt-5 font-semibold text-white/80"
               style={{ animationDelay: "440ms" }}
             >
               Dossier en 2 minutes · Support 24/7
@@ -223,8 +223,8 @@ export default async function RecrutePage() {
           </p>
 
           {visible.length === 0 ? (
-            <div className="border-border bg-surface mt-4 rounded-[12px] border p-6 text-center">
-              <p className="text-foreground text-[15px] font-bold">
+            <div className="border-border bg-surface mt-4 rounded-md border p-6 text-center">
+              <p className="text-foreground text-title-sm font-bold">
                 Les recrutements sont momentanément fermés.
               </p>
               <p className="text-muted mt-1 text-sm">
@@ -233,7 +233,7 @@ export default async function RecrutePage() {
               </p>
               <Link
                 href="/contact"
-                className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2.5 text-sm font-bold text-white transition-colors"
+                className="bg-primary-600 hover:bg-primary-700 rounded-control mt-4 inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold text-white transition-colors"
               >
                 Nous contacter
               </Link>
@@ -280,7 +280,7 @@ export default async function RecrutePage() {
         </section>
 
         {/* ───── RÉASSURANCE ───── */}
-        <section className="border-border bg-surface mt-8 rounded-[12px] border p-5">
+        <section className="border-border bg-surface mt-8 rounded-md border p-5">
           <div className="grid gap-4 sm:grid-cols-3">
             <Reassure
               icon={<BadgeCheck className="size-5" />}
@@ -301,7 +301,7 @@ export default async function RecrutePage() {
         </section>
 
         {/* ───── CTA CONTACT ───── */}
-        <section className="border-border bg-surface mt-8 rounded-[12px] border p-6 text-center">
+        <section className="border-border bg-surface mt-8 rounded-md border p-6 text-center">
           <h2 className="text-foreground text-lg font-extrabold">
             Une question avant de vous lancer ?
           </h2>
@@ -312,13 +312,13 @@ export default async function RecrutePage() {
           <div className="mt-4 flex flex-wrap justify-center gap-2">
             <Link
               href="/contact"
-              className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2.5 text-sm font-bold text-white transition-colors"
+              className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-bold text-white transition-colors"
             >
               Nous contacter
             </Link>
             <Link
               href="/centre-aide"
-              className="border-border text-foreground hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-4 py-2.5 text-sm font-semibold transition-colors"
+              className="border-border text-foreground hover:bg-surface-2 rounded-control inline-flex items-center gap-1.5 border px-4 py-2.5 text-sm font-semibold transition-colors"
             >
               Centre d&apos;aide
             </Link>
@@ -352,7 +352,7 @@ function RoleCardView({
 
   return (
     <div
-      className={`rc-up border-border bg-surface group flex flex-col overflow-hidden rounded-[14px] border ${
+      className={`rc-up border-border bg-surface group rounded-card-lg flex flex-col overflow-hidden border ${
         active ? "" : "opacity-75"
       }`}
       style={{ animationDelay: `${delayMs}ms` }}
@@ -374,13 +374,13 @@ function RoleCardView({
           aria-hidden
           className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/65 to-transparent"
         />
-        <span className="text-primary-700 absolute start-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11.5px] font-extrabold">
+        <span className="text-primary-700 text-caption-lg absolute start-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 font-extrabold">
           <BadgeCheck className="size-3.5" />
           {role.highlight}
         </span>
         <div className="absolute inset-x-0 bottom-0 p-3.5">
-          <h3 className="text-[17px] font-black text-white">{role.title}</h3>
-          <p className="mt-0.5 text-[12.5px] leading-snug text-white/85">
+          <h3 className="text-title-lg font-black text-white">{role.title}</h3>
+          <p className="text-label-lg mt-0.5 leading-snug text-white/85">
             {role.tagline}
           </p>
         </div>
@@ -391,7 +391,7 @@ function RoleCardView({
           {role.perks.map((p) => (
             <li key={p} className="flex items-start gap-2">
               <Check className="text-primary-600 mt-0.5 size-4 shrink-0" />
-              <span className="text-muted text-[13px] leading-snug">{p}</span>
+              <span className="text-muted text-body-sm leading-snug">{p}</span>
             </li>
           ))}
         </ul>
@@ -399,13 +399,13 @@ function RoleCardView({
         {active ? (
           <Link
             href={role.href}
-            className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex items-center justify-center gap-1.5 rounded-[10px] px-4 py-2.5 text-sm font-bold text-white transition-colors"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control mt-4 inline-flex items-center justify-center gap-1.5 px-4 py-2.5 text-sm font-bold text-white transition-colors"
           >
             {role.cta}
             <ArrowRight className="size-4 rtl:-scale-x-100" />
           </Link>
         ) : (
-          <div className="bg-surface-2 text-muted mt-4 rounded-[10px] px-4 py-2.5 text-center text-sm font-semibold">
+          <div className="bg-surface-2 text-muted rounded-control mt-4 px-4 py-2.5 text-center text-sm font-semibold">
             {soon ? "Bientôt disponible" : "Recrutement suspendu"}
             {message ? (
               <span className="text-subtle mt-0.5 block text-xs font-normal">
@@ -432,15 +432,17 @@ function Step({
   text: string;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[12px] border p-4">
+    <div className="border-border bg-surface rounded-md border p-4">
       <div className="flex items-center gap-2">
-        <span className="bg-primary-600 grid size-7 shrink-0 place-items-center rounded-full text-[13px] font-black text-white">
+        <span className="bg-primary-600 text-body-sm grid size-7 shrink-0 place-items-center rounded-full font-black text-white">
           {n}
         </span>
         <span className="text-primary-600">{icon}</span>
       </div>
-      <h3 className="text-foreground mt-2.5 text-[15px] font-bold">{title}</h3>
-      <p className="text-muted mt-1 text-[13px] leading-relaxed">{text}</p>
+      <h3 className="text-foreground text-title-sm mt-2.5 font-bold">
+        {title}
+      </h3>
+      <p className="text-muted text-body-sm mt-1 leading-relaxed">{text}</p>
     </div>
   );
 }
@@ -457,12 +459,12 @@ function Reassure({
 }) {
   return (
     <div className="flex items-start gap-2.5">
-      <span className="bg-primary-50 text-primary-600 grid size-9 shrink-0 place-items-center rounded-[10px]">
+      <span className="bg-primary-50 text-primary-600 rounded-control grid size-9 shrink-0 place-items-center">
         {icon}
       </span>
       <div className="min-w-0">
-        <p className="text-foreground text-[14px] font-bold">{title}</p>
-        <p className="text-muted mt-0.5 text-[13px] leading-snug">{text}</p>
+        <p className="text-foreground text-body-lg font-bold">{title}</p>
+        <p className="text-muted text-body-sm mt-0.5 leading-snug">{text}</p>
       </div>
     </div>
   );

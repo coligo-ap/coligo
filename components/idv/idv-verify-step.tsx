@@ -102,13 +102,13 @@ export function IdvStatusBlock({ idv }: { idv: IdvChoiceState }) {
 
   return (
     <div
-      className="flex items-center gap-2.5 rounded-[14px] p-3.5"
+      className="rounded-card-lg flex items-center gap-2.5 p-3.5"
       style={{ background: "var(--idv-soft)" }}
     >
       {icon}
       <div className="min-w-0">
-        <p className="text-[14px] font-bold">{title}</p>
-        <p className="text-[12px]" style={{ color: "var(--idv-muted)" }}>
+        <p className="text-body-lg font-bold">{title}</p>
+        <p className="text-label" style={{ color: "var(--idv-muted)" }}>
           {hint}
         </p>
       </div>
@@ -182,7 +182,7 @@ export function IdvVerifyStep({
         type="button"
         onClick={() => choose(value)}
         disabled={pending}
-        className="flex w-full items-center gap-2.5 rounded-[16px] border p-3.5 text-start transition-colors disabled:opacity-60"
+        className="flex w-full items-center gap-2.5 rounded-lg border p-3.5 text-start transition-colors disabled:opacity-60"
         style={{
           borderColor: active ? "var(--idv-accent)" : "var(--idv-line)",
           background: active ? "var(--idv-soft)" : "var(--idv-card)",
@@ -191,9 +191,9 @@ export function IdvVerifyStep({
       >
         {icon}
         <span className="min-w-0 flex-1">
-          <span className="block text-[14px] font-bold">{title}</span>
+          <span className="text-body-lg block font-bold">{title}</span>
           <span
-            className="block text-[12px]"
+            className="text-label block"
             style={{ color: "var(--idv-muted)" }}
           >
             {delay}
@@ -219,7 +219,7 @@ export function IdvVerifyStep({
       {idv.rejected ? (
         <IdvStatusBlock idv={idv} />
       ) : (
-        <p className="text-[13px]" style={{ color: "var(--idv-muted)" }}>
+        <p className="text-body-sm" style={{ color: "var(--idv-muted)" }}>
           {tr(
             "Comment souhaitez-vous prouver votre identité ?",
             "كيف تودّ إثبات هويتك؟"
@@ -254,10 +254,7 @@ export function IdvVerifyStep({
       />
 
       {error && (
-        <p
-          className="text-[12px] font-bold"
-          style={{ color: "var(--idv-bad)" }}
-        >
+        <p className="text-label font-bold" style={{ color: "var(--idv-bad)" }}>
           {error}
         </p>
       )}
@@ -308,7 +305,7 @@ export function IdvPrimaryButton({
           type="button"
           onClick={() => startTransition(() => router.refresh())}
           disabled={pending || busy}
-          className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] border text-[15px] font-bold disabled:opacity-40"
+          className="text-title-sm flex h-[52px] w-full items-center justify-center gap-2 rounded-lg border font-bold disabled:opacity-40"
           style={{
             borderColor: "var(--idv-line)",
             background: "var(--idv-card)",
@@ -331,7 +328,7 @@ export function IdvPrimaryButton({
         type="button"
         onClick={() => startTransition(() => router.push(idv.route))}
         disabled={pending || busy}
-        className="flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white disabled:opacity-40"
+        className="text-title-sm flex h-[52px] w-full items-center justify-center gap-2 rounded-lg font-extrabold text-white disabled:opacity-40"
         style={{ background: "var(--idv-accent)" }}
       >
         {pending ? (

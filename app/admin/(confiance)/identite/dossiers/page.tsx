@@ -33,7 +33,7 @@ const DOC_LABEL: Record<string, string> = {
 function ScorePill({ label, score }: { label: string; score: number | null }) {
   if (score == null) {
     return (
-      <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[11px]">
+      <span className="bg-surface-2 text-muted text-caption rounded-full px-2 py-0.5">
         {label} —
       </span>
     );
@@ -47,7 +47,7 @@ function ScorePill({ label, score }: { label: string; score: number | null }) {
         : "bg-warning-100 text-warning-700";
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${tone}`}
+      className={`text-caption rounded-full px-2 py-0.5 font-medium ${tone}`}
     >
       {label} {pct} %
     </span>
@@ -69,7 +69,7 @@ export default async function AdminIdvQueuePage() {
       </div>
 
       {queue.length === 0 ? (
-        <div className="border-border bg-surface flex flex-col items-center gap-2 rounded-[16px] border p-10 text-center">
+        <div className="border-border bg-surface flex flex-col items-center gap-2 rounded-lg border p-10 text-center">
           <ShieldQuestion className="text-muted size-8" />
           <p className="text-muted text-sm">
             La file est vide — les vérifications tranchées automatiquement
@@ -82,7 +82,7 @@ export default async function AdminIdvQueuePage() {
             <li key={c.id}>
               <Link
                 href={`/admin/identite/dossiers/${c.id}`}
-                className="border-border bg-surface hover:bg-surface-2 flex items-center gap-3 rounded-[16px] border p-3 transition-colors"
+                className="border-border bg-surface hover:bg-surface-2 flex items-center gap-3 rounded-lg border p-3 transition-colors"
               >
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">
@@ -103,7 +103,7 @@ export default async function AdminIdvQueuePage() {
                         demandé un examen humain. Les scores ne veulent plus rien
                         dire ici — ce dossier se juge sur PIÈCES. */}
                     {c.manual_fallback ? (
-                      <span className="bg-warning-50 text-warning-700 rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                      <span className="bg-warning-50 text-warning-700 text-caption rounded-full px-2 py-0.5 font-semibold">
                         Recours — refusé automatiquement, à juger sur pièces
                       </span>
                     ) : (

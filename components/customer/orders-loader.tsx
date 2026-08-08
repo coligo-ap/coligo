@@ -32,12 +32,9 @@ export function OrdersLoader({ customerId }: { customerId: string }) {
   if (isPending && !data) {
     return (
       <div className="space-y-3">
-        <div className="bg-surface-3 h-10 w-56 animate-pulse rounded-[12px]" />
+        <div className="bg-surface-3 h-10 w-56 animate-pulse rounded-md" />
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-24 animate-pulse rounded-[16px]"
-          />
+          <div key={i} className="bg-surface-3 h-24 animate-pulse rounded-lg" />
         ))}
       </div>
     );
@@ -45,7 +42,7 @@ export function OrdersLoader({ customerId }: { customerId: string }) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="border-border bg-surface mx-auto max-w-md rounded-[16px] border p-10 text-center">
+      <div className="border-border bg-surface mx-auto max-w-md rounded-lg border p-10 text-center">
         <ClipboardList className="text-primary-500 mx-auto size-10" />
         <p className="text-foreground mt-3 text-sm font-semibold">
           {t("emptyTitle")}
@@ -53,7 +50,7 @@ export function OrdersLoader({ customerId }: { customerId: string }) {
         <p className="text-muted mt-1 text-xs">{t("emptyDescription")}</p>
         <Link
           href="/"
-          className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex rounded-[10px] px-4 py-2 text-sm font-medium text-white"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control mt-4 inline-flex px-4 py-2 text-sm font-medium text-white"
         >
           {t("seeMerchants")}
         </Link>

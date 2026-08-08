@@ -264,7 +264,7 @@ export function EnrouteScreen({
         padding={{ top: 90, bottom: 440, left: 60, right: 60 }}
       />
       {/* Pill statut */}
-      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="text-body absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 font-bold whitespace-nowrap shadow-lg">
         <span
           className="size-2 animate-pulse rounded-full"
           style={{ background: inProgress ? GO : VIOLET }}
@@ -280,7 +280,7 @@ export function EnrouteScreen({
             setChatOpen(true);
             setMsgBanner(null);
           }}
-          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-[16px] border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
+          className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-40 flex items-center gap-2.5 rounded-lg border-2 bg-[var(--d-surface)] px-3.5 py-3 text-left shadow-xl"
           style={{ borderColor: VIOLET }}
         >
           <span
@@ -290,13 +290,13 @@ export function EnrouteScreen({
             <MessageSquare className="size-4" style={{ color: VIOLET }} />
           </span>
           <span className="min-w-0 flex-1">
-            <b className="block text-[13px]">{t("message")}</b>
-            <span className="block truncate text-[12px] text-[var(--d-muted)]">
+            <b className="text-body-sm block">{t("message")}</b>
+            <span className="text-label block truncate text-[var(--d-muted)]">
               {msgBanner}
             </span>
           </span>
           <span
-            className="shrink-0 text-[11px] font-extrabold"
+            className="text-caption shrink-0 font-extrabold"
             style={{ color: VIOLET }}
           >
             {t("see")}
@@ -306,14 +306,14 @@ export function EnrouteScreen({
 
       {/* Itinéraire anormal : « Tout va bien ? » */}
       {devAlert && (
-        <div className="drive-up absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-30 rounded-[20px] border-2 border-[#F59E0B] bg-[var(--d-surface)] p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
+        <div className="drive-up border-warning-500 absolute top-[calc(4rem+env(safe-area-inset-top))] right-2.5 left-2.5 z-30 rounded-xl border-2 bg-[var(--d-surface)] p-3.5 shadow-[0_18px_44px_-14px_rgba(245,158,11,.45)]">
           <div className="flex items-start gap-2.5">
-            <span className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[rgba(245,158,11,.15)]">
-              <AlertTriangle className="size-5 text-[#F59E0B]" />
+            <span className="grid size-[38px] shrink-0 place-items-center rounded-md bg-[rgba(245,158,11,.15)]">
+              <AlertTriangle className="text-warning-500 size-5" />
             </span>
             <span>
               <b className="block text-sm">{t("devTitle")}</b>
-              <span className="text-[11.5px] leading-snug text-[var(--d-muted)]">
+              <span className="text-caption-lg leading-snug text-[var(--d-muted)]">
                 {t("devSub")}
               </span>
             </span>
@@ -321,7 +321,7 @@ export function EnrouteScreen({
           <div className="mt-2.5 flex gap-2">
             <button
               type="button"
-              className="drive-sora h-[42px] flex-1 rounded-[12px] bg-[var(--d-soft)] text-[13px] font-bold"
+              className="drive-sora text-body-sm h-[42px] flex-1 rounded-md bg-[var(--d-soft)] font-bold"
               onClick={() => {
                 setDevAlert(false);
                 devSince.current = null;
@@ -332,7 +332,7 @@ export function EnrouteScreen({
             </button>
             <button
               type="button"
-              className="drive-sora h-[42px] flex-1 rounded-[12px] text-[13px] font-bold text-white"
+              className="drive-sora text-body-sm h-[42px] flex-1 rounded-md font-bold text-white"
               style={{ background: RED }}
               onClick={() => {
                 setDevAlert(false);
@@ -342,7 +342,7 @@ export function EnrouteScreen({
               SOS
             </button>
           </div>
-          <div className="mt-1.5 flex justify-center gap-4 text-[11.5px] font-bold">
+          <div className="text-caption-lg mt-1.5 flex justify-center gap-4 font-bold">
             <button
               type="button"
               style={{ color: RED }}
@@ -368,7 +368,7 @@ export function EnrouteScreen({
       )}
 
       {/* Feuille bas : fiche chauffeur v3 */}
-      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom))]">
+      <div className="absolute inset-x-0 bottom-0 z-10 max-h-[62vh] overflow-y-auto rounded-t-2xl border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
 
         {/* Tracker d'étapes (autre FORME que le pill : progression visuelle).
@@ -405,7 +405,7 @@ export function EnrouteScreen({
 
         {ride.proxy_name && (
           <div
-            className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] font-bold"
+            className="rounded-card text-label-lg mb-2.5 px-3 py-2.5 font-bold"
             style={{ background: "rgba(236,72,153,.13)", color: ROSE }}
           >
             <span className="flex items-center gap-2">
@@ -417,7 +417,7 @@ export function EnrouteScreen({
               <span className="mt-1.5 flex gap-1.5">
                 <button
                   type="button"
-                  className="flex-1 rounded-[9px] px-2 py-1.5 text-[11px] font-bold text-white"
+                  className="rounded-chip text-caption flex-1 px-2 py-1.5 font-bold text-white"
                   style={{ background: GO }}
                   onClick={() =>
                     window.open(
@@ -435,7 +435,7 @@ export function EnrouteScreen({
                 </button>
                 <button
                   type="button"
-                  className="flex-1 rounded-[9px] bg-[var(--d-surface)] px-2 py-1.5 text-[11px] font-bold"
+                  className="rounded-chip text-caption flex-1 bg-[var(--d-surface)] px-2 py-1.5 font-bold"
                   style={{ color: ROSE }}
                   onClick={() =>
                     window.open(
@@ -457,7 +457,7 @@ export function EnrouteScreen({
         )}
 
         {ch && (
-          <div className="mb-3 rounded-[22px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
+          <div className="rounded-sheet-xl mb-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4 shadow-[0_14px_34px_-12px_rgba(20,22,40,.26)]">
             <div className="flex items-center gap-3">
               <ChAvatar
                 name={ch.name}
@@ -465,10 +465,10 @@ export function EnrouteScreen({
                 size={58}
                 female={ch.is_female}
                 ringColor={ch.badge_color}
-                textClassName="text-[22px]"
+                textClassName="text-display"
               />
               <span className="min-w-0 flex-1">
-                <span className="drive-sora flex items-center gap-1.5 text-[17px] font-extrabold">
+                <span className="drive-sora text-title-lg flex items-center gap-1.5 font-extrabold">
                   {ch.name}
                   <BadgeCheck
                     className="size-4 shrink-0"
@@ -485,7 +485,7 @@ export function EnrouteScreen({
                 </span>
                 <span className="mt-1.5 flex flex-wrap gap-1.5">
                   {ch.rating != null && (
-                    <span className="inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 text-[11px] font-bold text-[#B45309]">
+                    <span className="text-caption inline-flex items-center gap-1 rounded-full bg-[rgba(245,158,11,.16)] px-2.5 py-1 font-bold text-[var(--color-warning-700)]">
                       <Star
                         className="size-3 shrink-0"
                         style={{ color: "#E8B53C", fill: "#E8B53C" }}
@@ -493,12 +493,12 @@ export function EnrouteScreen({
                       {String(ch.rating).replace(".", ",")}
                     </span>
                   )}
-                  <span className="rounded-full bg-[var(--d-soft)] px-2.5 py-1 text-[11px] font-bold text-[var(--d-muted)]">
+                  <span className="text-caption rounded-full bg-[var(--d-soft)] px-2.5 py-1 font-bold text-[var(--d-muted)]">
                     {t("ridesChip", { rides: ch.rides })}
                   </span>
                   {ch.is_female && (
                     <span
-                      className="rounded-full px-2.5 py-1 text-[11px] font-bold"
+                      className="text-caption rounded-full px-2.5 py-1 font-bold"
                       style={{
                         background: "rgba(236,72,153,.13)",
                         color: ROSE,
@@ -510,12 +510,12 @@ export function EnrouteScreen({
                 </span>
               </span>
             </div>
-            <div className="mt-3 flex items-center justify-between gap-2.5 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5">
-              <span className="truncate text-[12.5px] font-bold">
+            <div className="rounded-card mt-3 flex items-center justify-between gap-2.5 bg-[var(--d-soft)] px-3 py-2.5">
+              <span className="text-label-lg truncate font-bold">
                 {ch.vehicle ?? "—"}
               </span>
               {ch.plate && (
-                <span className="drive-sora drive-plate shrink-0 rounded-[7px] border-2 px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px] text-[var(--d-ink)]">
+                <span className="drive-sora drive-plate text-label-lg shrink-0 rounded-[7px] border-2 px-2.5 py-1 font-extrabold tracking-[2px] text-[var(--d-ink)]">
                   {ch.plate}
                 </span>
               )}
@@ -524,12 +524,12 @@ export function EnrouteScreen({
               <button
                 type="button"
                 onClick={() => setChatOpen(true)}
-                className="relative flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+                className="rounded-card-lg text-body relative flex h-[46px] flex-1 items-center justify-center gap-2 bg-[var(--d-soft)] font-bold"
               >
                 <MessageSquare className="size-4" /> {t("message")}
                 {unread > 0 && (
                   <span
-                    className="drive-badge absolute -top-1.5 -right-1.5 grid min-w-[20px] place-items-center rounded-full px-1.5 text-[11px] font-extrabold text-white"
+                    className="drive-badge text-caption absolute -top-1.5 -right-1.5 grid min-w-[20px] place-items-center rounded-full px-1.5 font-extrabold text-white"
                     style={{ background: RED }}
                   >
                     {unread}
@@ -539,7 +539,7 @@ export function EnrouteScreen({
               <button
                 type="button"
                 onClick={() => call.start(false)}
-                className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+                className="rounded-card-lg text-body flex h-[46px] flex-1 items-center justify-center gap-2 font-bold text-white"
                 style={{ background: VIOLET }}
               >
                 <Phone className="size-4" /> {t("call")}
@@ -552,14 +552,14 @@ export function EnrouteScreen({
 
         {/* Prix convenu */}
         <div
-          className="mb-2.5 flex items-center justify-between rounded-[14px] px-4 py-3"
+          className="rounded-card-lg mb-2.5 flex items-center justify-between px-4 py-3"
           style={{ background: "var(--d-accent)" }}
         >
           <span className="text-xs font-bold" style={{ color: VIOLET }}>
             {t("agreedPrice")}
           </span>
           <span
-            className="drive-sora text-[17px] font-extrabold"
+            className="drive-sora text-title-lg font-extrabold"
             style={{ color: VIOLET }}
           >
             {formatDA(ride.agreed_price_da ?? ride.proposed_price_da)}
@@ -571,7 +571,7 @@ export function EnrouteScreen({
             et n'est libéré au chauffeur qu'à la fin (mig 0145). */}
         {prepaid && (
           <div
-            className="mb-2.5 rounded-[13px] px-3 py-2.5 text-[12.5px] leading-relaxed font-bold"
+            className="rounded-card text-label-lg mb-2.5 px-3 py-2.5 leading-relaxed font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             {inProgress ? (
@@ -588,7 +588,7 @@ export function EnrouteScreen({
                     {ride.end_code && (
                       <>
                         {t("pinLabel")}{" "}
-                        <b className="text-[15px] tracking-[4px]">
+                        <b className="text-title-sm tracking-[4px]">
                           {ride.end_code.split("").join(" ")}
                         </b>{" "}
                         — {t("pinGive")}
@@ -596,14 +596,14 @@ export function EnrouteScreen({
                     )}
                   </span>
                 </span>
-                <span className="mt-1 block text-[11px] font-semibold text-[var(--d-muted)]">
+                <span className="text-caption mt-1 block font-semibold text-[var(--d-muted)]">
                   {t("escrowNote")}
                 </span>
               </>
             )}
             {/* Coligo Pay partiel : le complément se règle en espèces. */}
             {ride.payment_method === "coligo_pay" && ride.cash_due_da > 0 && (
-              <span className="mt-1.5 flex items-center gap-1.5 border-t border-[rgba(22,179,100,.25)] pt-1.5 text-[12px]">
+              <span className="text-label mt-1.5 flex items-center gap-1.5 border-t border-[rgba(22,179,100,.25)] pt-1.5">
                 <Banknote className="size-3.5 shrink-0" />
                 {t("cashDue", { amount: ride.cash_due_da })}
               </span>
@@ -613,7 +613,7 @@ export function EnrouteScreen({
 
         {midReported && (
           <p
-            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+            className="mb-2 rounded-md px-3 py-2 text-center text-xs font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             {t("devReported")}
@@ -625,14 +625,14 @@ export function EnrouteScreen({
           <button
             type="button"
             onClick={() => shareUrl && setShareOpen(true)}
-            className="flex h-[46px] flex-1 items-center justify-center gap-2 rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] text-[12.5px] font-bold"
+            className="rounded-card-lg text-label-lg flex h-[46px] flex-1 items-center justify-center gap-2 border-[1.5px] border-[var(--d-line)] bg-[var(--d-surface)] font-bold"
           >
             <Share2 className="size-4" /> {t("shareTrip")}
           </button>
           <button
             type="button"
             onClick={() => setSosOpen(true)}
-            className="flex h-[46px] w-[86px] items-center justify-center gap-1.5 rounded-[14px] border-[1.5px] text-[12.5px] font-bold"
+            className="rounded-card-lg text-label-lg flex h-[46px] w-[86px] items-center justify-center gap-1.5 border-[1.5px] font-bold"
             style={{ borderColor: RED, color: RED }}
           >
             {/* Même langage que la pilule SOS de l'accueil Drive (personne +

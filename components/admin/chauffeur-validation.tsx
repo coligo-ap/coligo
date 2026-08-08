@@ -44,20 +44,20 @@ export function ChauffeurValidationCard({
 
   if (done) {
     return (
-      <div className="border-border bg-surface rounded-[14px] border p-4 text-sm font-semibold">
+      <div className="border-border bg-surface rounded-card-lg border p-4 text-sm font-semibold">
         {done}
       </div>
     );
   }
 
   return (
-    <div className="border-warning-300 bg-surface rounded-[14px] border-2 p-4">
+    <div className="border-warning-300 bg-surface rounded-card-lg border-2 p-4">
       <div className="mb-2 flex flex-wrap items-center gap-2">
         <p className="font-bold">{chauffeur.full_name}</p>
         <span className="text-muted text-xs tabular-nums">
           {chauffeur.phone}
         </span>
-        <span className="bg-primary-50 text-primary-700 rounded-full px-2 py-0.5 text-[10px] font-bold uppercase">
+        <span className="bg-primary-50 text-primary-700 text-micro rounded-full px-2 py-0.5 font-bold uppercase">
           {chauffeur.gamme}
         </span>
         {chauffeur.city && (
@@ -118,7 +118,7 @@ export function ChauffeurValidationCard({
                 );
             })
           }
-          className="bg-success-600 inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-xs font-bold text-white disabled:opacity-50"
+          className="bg-success-600 rounded-control inline-flex h-9 flex-1 items-center justify-center gap-1.5 text-xs font-bold text-white disabled:opacity-50"
         >
           {pending ? (
             <Loader2 className="size-3.5 animate-spin" />
@@ -147,7 +147,7 @@ export function ChauffeurValidationCard({
                 );
             })
           }
-          className="bg-danger-600 inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-xs font-bold text-white disabled:opacity-50"
+          className="bg-danger-600 rounded-control inline-flex h-9 flex-1 items-center justify-center gap-1.5 text-xs font-bold text-white disabled:opacity-50"
         >
           <X className="size-3.5" /> Refuser (motif)
         </button>
@@ -179,7 +179,7 @@ export function SubPaymentActions({ paymentId }: { paymentId: string }) {
             else setDone("Activé ✓");
           })
         }
-        className="bg-success-600 rounded-[8px] px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+        className="bg-success-600 rounded-sm px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
       >
         {pending ? "…" : "Reçu OK · activer"}
       </button>
@@ -199,7 +199,7 @@ export function SubPaymentActions({ paymentId }: { paymentId: string }) {
             else setDone("Rejeté");
           })
         }
-        className="bg-danger-600 rounded-[8px] px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+        className="bg-danger-600 rounded-sm px-2.5 py-1.5 text-xs font-bold text-white disabled:opacity-50"
       >
         Rejeter
       </button>

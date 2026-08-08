@@ -92,7 +92,7 @@ export function MerchantRegistrations({
       {/* À TRAITER */}
       <section
         data-alert-focus="merchants_pending"
-        className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5"
+        className="border-warning-200 bg-warning-50/60 rounded-lg border p-4 lg:p-5"
       >
         <h2 className="text-warning-900 mb-1 flex items-center gap-2 text-base font-bold">
           <Clock className="size-4" />
@@ -113,7 +113,7 @@ export function MerchantRegistrations({
 
       {/* COMMENCÉES NON FINALISÉES (brouillons wizard, mig 0414) */}
       {drafts.length > 0 && (
-        <section className="border-border bg-surface rounded-[16px] border p-4 lg:p-5">
+        <section className="border-border bg-surface rounded-lg border p-4 lg:p-5">
           <h2 className="text-foreground mb-1 flex items-center gap-2 text-base font-bold">
             <Hourglass className="text-primary-600 size-4" />
             Commencées, non finalisées ({drafts.length})
@@ -132,7 +132,7 @@ export function MerchantRegistrations({
 
       {/* REFUSÉES (réexaminables) */}
       {rejected.length > 0 && (
-        <section className="border-border bg-surface rounded-[16px] border p-4 lg:p-5">
+        <section className="border-border bg-surface rounded-lg border p-4 lg:p-5">
           <h2 className="text-foreground mb-1 flex items-center gap-2 text-base font-bold">
             <XCircle className="text-danger-500 size-4" />
             Refusées ({rejected.length})
@@ -191,7 +191,7 @@ function RegistrationCard({ merchant }: { merchant: AdminMerchant }) {
   const loc = [merchant.city].filter(Boolean).join(", ");
 
   return (
-    <li className="border-border bg-surface rounded-[14px] border p-4">
+    <li className="border-border bg-surface rounded-card-lg border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
@@ -306,7 +306,7 @@ function DraftCard({
   const hasGps = draft.latitude != null && draft.longitude != null;
 
   return (
-    <li className="border-border bg-surface rounded-[14px] border p-4">
+    <li className="border-border bg-surface rounded-card-lg border p-4">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">

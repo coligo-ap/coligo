@@ -28,11 +28,11 @@ export function DriveHomeSkeleton() {
       {/* Contenu : titre + assistant + carte formulaire */}
       <main className="flex-1 px-5 pb-24">
         <div className="mt-3 h-8 w-56 animate-pulse rounded-lg bg-[var(--d-soft)]" />
-        <div className="mt-4 h-[52px] w-full animate-pulse rounded-[16px] bg-[var(--d-soft)]" />
-        <div className="mt-3 rounded-[24px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
-          <div className="h-[54px] w-full animate-pulse rounded-[15px] bg-[var(--d-soft)]" />
-          <div className="mt-2 h-[54px] w-full animate-pulse rounded-[15px] bg-[var(--d-soft)]" />
-          <div className="mt-3 h-[52px] w-full animate-pulse rounded-[18px] bg-[var(--d-soft)]" />
+        <div className="mt-4 h-[52px] w-full animate-pulse rounded-lg bg-[var(--d-soft)]" />
+        <div className="rounded-panel mt-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
+          <div className="rounded-card-xl h-[54px] w-full animate-pulse bg-[var(--d-soft)]" />
+          <div className="rounded-card-xl mt-2 h-[54px] w-full animate-pulse bg-[var(--d-soft)]" />
+          <div className="rounded-sheet-lg mt-3 h-[52px] w-full animate-pulse bg-[var(--d-soft)]" />
         </div>
       </main>
 

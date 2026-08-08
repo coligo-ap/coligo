@@ -95,7 +95,7 @@ export function CompteView({
   return (
     <>
       <h1
-        className="mb-3 text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+        className="text-display-sm mb-3 font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
         style={{ fontFamily: SORA }}
       >
         {tr("Compte", "الحساب")}
@@ -104,7 +104,7 @@ export function CompteView({
       {/* Profil (parité d-compte : avatar + nom + note · courses · depuis) */}
       <div className="mb-2.5 flex items-center gap-3">
         <span
-          className="grid size-14 shrink-0 place-items-center overflow-hidden rounded-full text-[21px] font-extrabold text-white"
+          className="text-display-sm grid size-14 shrink-0 place-items-center overflow-hidden rounded-full font-extrabold text-white"
           style={{
             fontFamily: SORA,
             background: `linear-gradient(135deg, #8a4dff, ${BRAND_VIOLET})`,
@@ -123,12 +123,12 @@ export function CompteView({
         </span>
         <span className="min-w-0">
           <span
-            className="block truncate text-[17px] font-bold text-[var(--d-ink)]"
+            className="text-title-lg block truncate font-bold text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
             {data.fullName}
           </span>
-          <span className="text-[13px] text-[var(--d-muted)]">
+          <span className="text-body-sm text-[var(--d-muted)]">
             {data.ratingAvg > 0 && (
               <b className="text-[var(--d-ink)]">
                 ★ {data.ratingAvg.toFixed(1).replace(".", ",")}
@@ -184,7 +184,7 @@ export function CompteView({
       {/* ── Finances : encours compact + accès (le détail vit en sous-pages) ── */}
       <PartnerMenuGroup title={tr("Finances", "المالية")}>
         <div className="border-b border-[var(--d-line)] px-3.5 py-3">
-          <div className="mb-1.5 flex items-center justify-between text-[12.5px]">
+          <div className="text-label-lg mb-1.5 flex items-center justify-between">
             <span className="font-semibold text-[var(--d-ink)]">
               {tr("Encours à reverser", "مستحقّات للتسديد")}
             </span>
@@ -205,7 +205,7 @@ export function CompteView({
           />
           {overCap && (
             <p
-              className="mt-1.5 text-[11px] font-bold"
+              className="text-caption mt-1.5 font-bold"
               style={{ color: BRAND_RED }}
             >
               {tr(

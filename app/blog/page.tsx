@@ -47,7 +47,7 @@ export default async function BlogPage() {
         {featured && (
           <Link
             href={`/blog/${featured.slug}`}
-            className="group border-border bg-surface mt-6 block overflow-hidden rounded-[20px] border shadow-sm transition-shadow hover:shadow-md"
+            className="group border-border bg-surface mt-6 block overflow-hidden rounded-xl border shadow-sm transition-shadow hover:shadow-md"
           >
             <Cover
               coverKey={featured.coverKey}
@@ -83,7 +83,7 @@ export default async function BlogPage() {
             <Link
               key={a.slug}
               href={`/blog/${a.slug}`}
-              className="group border-border bg-surface block overflow-hidden rounded-[18px] border shadow-sm transition-shadow hover:shadow-md"
+              className="group border-border bg-surface rounded-sheet-lg block overflow-hidden border shadow-sm transition-shadow hover:shadow-md"
             >
               <Cover
                 coverKey={a.coverKey}
@@ -98,10 +98,10 @@ export default async function BlogPage() {
                   date={a.publishedAt}
                   minutes={a.readMinutes}
                 />
-                <h2 className="text-foreground mt-1.5 text-[15px] leading-snug font-bold text-balance">
+                <h2 className="text-foreground text-title-sm mt-1.5 leading-snug font-bold text-balance">
                   {a.title}
                 </h2>
-                <p className="text-muted mt-1.5 line-clamp-2 text-[13px] leading-relaxed">
+                <p className="text-muted text-body-sm mt-1.5 line-clamp-2 leading-relaxed">
                   {a.excerpt}
                 </p>
               </div>
@@ -158,11 +158,11 @@ function Meta({
 }) {
   return (
     <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-      <span className="bg-primary-50 text-primary-700 rounded-full px-2 py-0.5 text-[11px] font-bold">
+      <span className="bg-primary-50 text-primary-700 text-caption rounded-full px-2 py-0.5 font-bold">
         {category}
       </span>
-      <span className="text-subtle text-[11px]">{blogDateLabel(date)}</span>
-      <span className="text-subtle inline-flex items-center gap-0.5 text-[11px]">
+      <span className="text-subtle text-caption">{blogDateLabel(date)}</span>
+      <span className="text-subtle text-caption inline-flex items-center gap-0.5">
         <Clock3 className="size-3" />
         {minutes} min
       </span>

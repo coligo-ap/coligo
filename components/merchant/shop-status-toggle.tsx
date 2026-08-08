@@ -120,7 +120,7 @@ export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
       </button>
 
       {note && (
-        <div className="border-border bg-surface absolute top-full right-0 z-40 mt-1 w-max max-w-[240px] rounded-[8px] border px-2 py-1 shadow-lg">
+        <div className="border-border bg-surface absolute top-full right-0 z-40 mt-1 w-max max-w-[240px] rounded-sm border px-2 py-1 shadow-lg">
           <ActionNote note={note} />
         </div>
       )}
@@ -128,7 +128,7 @@ export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
       {menuOpen && (
         <div
           role="menu"
-          className="border-border absolute right-0 z-50 mt-1.5 w-60 max-w-[calc(100vw-2rem)] overflow-hidden rounded-[14px] border bg-white shadow-lg"
+          className="border-border rounded-card-lg absolute right-0 z-50 mt-1.5 w-60 max-w-[calc(100vw-2rem)] overflow-hidden border bg-white shadow-lg"
         >
           {closed ? (
             <MenuItem onClick={() => act("open")} highlight>
@@ -137,7 +137,7 @@ export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
             </MenuItem>
           ) : (
             <>
-              <p className="text-subtle px-3 pt-2.5 pb-1 text-[11px] font-semibold tracking-wide uppercase">
+              <p className="text-subtle text-caption px-3 pt-2.5 pb-1 font-semibold tracking-wide uppercase">
                 Mettre en pause
               </p>
               <MenuItem onClick={() => act("pause_30m")}>
@@ -164,7 +164,7 @@ export function ShopStatusToggle({ input }: { input: MerchantPauseInput }) {
             </>
           )}
           <div className="border-border bg-surface-2 border-t px-3 py-2">
-            <p className="text-subtle text-[11px] leading-snug">
+            <p className="text-subtle text-caption leading-snug">
               Pour fermer plusieurs jours (congés), programmez une fermeture
               dans <span className="font-medium">Paramètres → Horaires</span>.
             </p>

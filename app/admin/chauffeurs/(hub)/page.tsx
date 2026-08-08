@@ -27,7 +27,7 @@ export default async function AdminChauffeursPage() {
       {pendingCount > 0 && (
         <Link
           href="/admin/chauffeurs/inscriptions"
-          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium transition-colors"
         >
           {pendingCount} dossier{pendingCount > 1 ? "s" : ""} de chauffeur à
           valider — ouvrir l&apos;onglet Inscriptions →

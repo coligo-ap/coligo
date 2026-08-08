@@ -85,14 +85,14 @@ export function DossierSection({ walletId }: { walletId: string }) {
   );
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm">
+    <div className="border-border bg-surface rounded-lg border p-4 shadow-sm">
       <h2 className="text-foreground mb-1 text-sm font-bold">Mon dossier</h2>
       {loading ? (
         <div className="text-muted flex items-center gap-2 py-3 text-sm">
           <Loader2 className="size-4 animate-spin" /> Chargement…
         </div>
       ) : allApproved ? (
-        <div className="border-success-200 bg-success-50 mt-2 rounded-[12px] border px-4 py-6 text-center">
+        <div className="border-success-200 bg-success-50 mt-2 rounded-md border px-4 py-6 text-center">
           <CheckCircle2 className="text-success-600 mx-auto mb-2 size-6" />
           <p className="text-foreground text-sm font-bold">
             Tous vos documents sont validés et à jour
@@ -185,7 +185,7 @@ function DocRow({
   const canUpload = !doc || doc.status === "rejected";
 
   return (
-    <div className="border-border rounded-[12px] border p-3">
+    <div className="border-border rounded-md border p-3">
       <div className="flex items-center justify-between gap-2">
         <span className="text-foreground flex items-center gap-2 text-sm font-semibold">
           <span className="text-primary-600">{icon}</span>
@@ -193,7 +193,7 @@ function DocRow({
         </span>
         {meta && (
           <span
-            className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold ${meta.cls}`}
+            className={`text-micro inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold ${meta.cls}`}
           >
             {meta.icon}
             {meta.label}
@@ -224,7 +224,7 @@ function DocRow({
             type="button"
             disabled={busy}
             onClick={() => inputRef.current?.click()}
-            className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+            className="border-primary-200 text-primary-700 hover:bg-primary-50 rounded-control inline-flex items-center gap-1.5 border px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
           >
             {busy ? (
               <Loader2 className="size-3.5 animate-spin" />

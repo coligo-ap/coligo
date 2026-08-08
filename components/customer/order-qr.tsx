@@ -36,7 +36,7 @@ export function OrderQr({
   return (
     <div
       ref={ref}
-      className="border-border inline-flex items-center justify-center rounded-[14px] border p-3"
+      className="border-border rounded-card-lg inline-flex items-center justify-center border p-3"
       // Fond TOUJOURS blanc + modules TOUJOURS noirs (peu importe le thème
       // clair/sombre). On n'utilise PAS la classe `bg-white` car en mode sombre
       // client elle est remappée vers la surface sombre (cf. globals.css) → le

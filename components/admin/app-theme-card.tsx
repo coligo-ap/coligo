@@ -53,7 +53,7 @@ export function AppThemeCard({
     });
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4">
+    <div className="border-border bg-surface rounded-lg border p-4">
       <div className="mb-1 flex items-center gap-2">
         <Palette className="text-primary-600 size-4" />
         <h3 className="text-sm font-semibold">Thème des portails & accueil</h3>
@@ -76,7 +76,7 @@ export function AppThemeCard({
               onClick={() => setSelected(key)}
               disabled={pending}
               className={cn(
-                "rounded-[12px] border p-1.5 text-start transition-colors",
+                "rounded-md border p-1.5 text-start transition-colors",
                 active
                   ? "border-primary-600 ring-primary-400 ring-1"
                   : "border-border hover:bg-surface-2"
@@ -84,7 +84,7 @@ export function AppThemeCard({
               title={t.hint}
             >
               <span
-                className="relative block h-12 overflow-hidden rounded-[8px]"
+                className="relative block h-12 overflow-hidden rounded-sm"
                 style={{ backgroundImage: themeGradient(t) }}
               >
                 <span
@@ -126,7 +126,7 @@ export function AppThemeCard({
               onClick={() => setModel(key)}
               disabled={pending}
               className={cn(
-                "rounded-[12px] border p-1.5 text-start transition-colors",
+                "rounded-md border p-1.5 text-start transition-colors",
                 active
                   ? "border-primary-600 ring-primary-400 ring-1"
                   : "border-border hover:bg-surface-2"
@@ -134,7 +134,7 @@ export function AppThemeCard({
               title={m.hint}
             >
               <span
-                className="relative block h-12 overflow-hidden rounded-[8px]"
+                className="relative block h-12 overflow-hidden rounded-sm"
                 style={{ backgroundImage: themeGradient(t) }}
               >
                 <ThemeDecor model={key} a={t.blobA} b={t.blobB} grain={false} />
@@ -153,7 +153,7 @@ export function AppThemeCard({
       </div>
 
       {/* Accueil marketplace : bandeau thémé optionnel. */}
-      <label className="border-border mt-3 flex cursor-pointer items-start gap-2.5 rounded-[12px] border p-3">
+      <label className="border-border mt-3 flex cursor-pointer items-start gap-2.5 rounded-md border p-3">
         <input
           type="checkbox"
           checked={heroOn}
@@ -176,7 +176,7 @@ export function AppThemeCard({
       {/* Étendre le design aux catégories (mig 0417) — pertinent seulement
           quand l'accueil est habillé. */}
       {heroOn && (
-        <label className="border-border ms-6 mt-2 flex cursor-pointer items-start gap-2.5 rounded-[12px] border p-3">
+        <label className="border-border ms-6 mt-2 flex cursor-pointer items-start gap-2.5 rounded-md border p-3">
           <input
             type="checkbox"
             checked={catsIn}

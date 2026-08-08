@@ -99,13 +99,13 @@ export function DriverList({
       </p>
 
       {rows.length === 0 ? (
-        <div className="bg-surface border-border text-muted rounded-[14px] border p-8 text-center text-sm">
+        <div className="bg-surface border-border text-muted rounded-card-lg border p-8 text-center text-sm">
           {query
             ? `Aucun livreur ne correspond à « ${query} ».`
             : "Aucun livreur enregistré."}
         </div>
       ) : (
-        <table className="bg-surface border-border w-full overflow-hidden rounded-[14px] border text-sm">
+        <table className="bg-surface border-border rounded-card-lg w-full overflow-hidden border text-sm">
           <thead className="bg-surface-2 text-muted text-xs uppercase">
             <tr>
               <th className="px-3 py-2 text-left">Nom</th>
@@ -142,7 +142,7 @@ export function DriverList({
                         className="size-7 shrink-0 rounded-full object-cover"
                       />
                     ) : (
-                      <span className="bg-primary-100 text-primary-700 grid size-7 shrink-0 place-items-center rounded-full text-[10px] font-bold">
+                      <span className="bg-primary-100 text-primary-700 text-micro grid size-7 shrink-0 place-items-center rounded-full font-bold">
                         {initials(d.full_name)}
                       </span>
                     )}
@@ -171,7 +171,7 @@ export function DriverList({
                   <div className="flex items-center justify-end gap-2">
                     <Link
                       href={`/admin/drivers/${d.id}`}
-                      className="border-border hover:bg-surface-2 rounded-[8px] border px-2.5 py-1 text-xs font-semibold"
+                      className="border-border hover:bg-surface-2 rounded-sm border px-2.5 py-1 text-xs font-semibold"
                     >
                       Gérer
                     </Link>
@@ -192,7 +192,7 @@ export function DriverList({
           type="button"
           disabled={busy}
           onClick={() => void load(query, rows.length)}
-          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
         >
           {busy
             ? "Chargement…"

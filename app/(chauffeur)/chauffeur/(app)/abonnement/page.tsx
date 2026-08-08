@@ -127,7 +127,7 @@ export default async function ChauffeurAbonnementPage() {
     <div className="drive-jakarta pt-safe pb-safe-nav">
       {/* Titre sobre (style Bolt) — les cartes d'offre portent le discours. */}
       <div className="mx-auto max-w-[560px] px-4 pb-3">
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]">
+        <h1 className="drive-sora text-display-sm font-extrabold tracking-[-0.5px] text-[var(--d-ink)]">
           {tr("Abonnement", "الاشتراك")}
         </h1>
       </div>

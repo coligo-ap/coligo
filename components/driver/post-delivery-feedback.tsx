@@ -78,14 +78,14 @@ export function PostDeliveryFeedback({
 
   return (
     <div className="fixed inset-0 z-[110] flex items-end justify-center bg-black/60 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
-      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-[22px] bg-[var(--surface)] p-5 text-[var(--ink)]">
+      <div className="rounded-sheet-xl max-h-[90vh] w-full max-w-md overflow-y-auto bg-[var(--surface)] p-5 text-[var(--ink)]">
         <div className="mx-auto grid size-14 place-items-center rounded-full bg-[var(--go-soft)] text-[var(--go)]">
           <Check className="size-7" />
         </div>
-        <h3 className="mt-3 text-center text-[18px] font-black">
+        <h3 className="text-heading-sm mt-3 text-center font-black">
           {tr("Livraison validée", "تم تأكيد التسليم")}
         </h3>
-        <p className="mt-1 text-center text-[13px] font-medium text-[var(--muted)]">
+        <p className="text-body-sm mt-1 text-center font-medium text-[var(--muted)]">
           {tr("Comment s'est passée la course", "كيف كانت التوصيلة")}
           {customerName
             ? isAr
@@ -125,7 +125,7 @@ export function PostDeliveryFeedback({
               "Un commentaire ? (facultatif)",
               "تعليق؟ (اختياري)"
             )}
-            className="mt-3 w-full resize-none rounded-[12px] border border-[var(--line)] bg-[var(--soft)] px-3 py-2.5 text-[13px] outline-none"
+            className="text-body-sm mt-3 w-full resize-none rounded-md border border-[var(--line)] bg-[var(--soft)] px-3 py-2.5 outline-none"
           />
         )}
 
@@ -134,7 +134,7 @@ export function PostDeliveryFeedback({
           <button
             type="button"
             onClick={() => setReporting(true)}
-            className="mt-3 flex w-full items-center justify-center gap-1.5 text-[12.5px] font-bold text-[var(--red)]"
+            className="text-label-lg mt-3 flex w-full items-center justify-center gap-1.5 font-bold text-[var(--red)]"
           >
             <Flag className="size-3.5" />
             {tr(
@@ -143,8 +143,8 @@ export function PostDeliveryFeedback({
             )}
           </button>
         ) : (
-          <div className="mt-3 rounded-[14px] border border-[var(--red)]/30 bg-[var(--red-soft)] p-3">
-            <p className="mb-2 text-[12px] font-extrabold tracking-wide text-[var(--red)] uppercase">
+          <div className="rounded-card-lg mt-3 border border-[var(--red)]/30 bg-[var(--red-soft)] p-3">
+            <p className="text-label mb-2 font-extrabold tracking-wide text-[var(--red)] uppercase">
               {tr("Signalement", "إبلاغ")}
             </p>
             <div className="flex flex-col gap-1.5">
@@ -156,7 +156,7 @@ export function PostDeliveryFeedback({
                     type="button"
                     onClick={() => setReason(r.fr)}
                     className={
-                      "flex items-center justify-between rounded-[10px] border px-3 py-2 text-left text-[13px] font-semibold " +
+                      "rounded-control text-body-sm flex items-center justify-between border px-3 py-2 text-left font-semibold " +
                       (active
                         ? "border-[var(--red)] bg-[var(--surface)] text-[var(--red)]"
                         : "border-[var(--line)] bg-[var(--surface)] text-[var(--ink)]")
@@ -173,7 +173,7 @@ export function PostDeliveryFeedback({
               onChange={(e) => setDetails(e.target.value.slice(0, 1000))}
               rows={2}
               placeholder={tr("Détails (facultatif)", "تفاصيل (اختياري)")}
-              className="mt-2 w-full resize-none rounded-[10px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13px] outline-none"
+              className="rounded-control text-body-sm mt-2 w-full resize-none border border-[var(--line)] bg-[var(--surface)] px-3 py-2 outline-none"
             />
           </div>
         )}
@@ -185,7 +185,7 @@ export function PostDeliveryFeedback({
             type="button"
             onClick={submit}
             disabled={pending}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-50"
+            className="rounded-card-lg text-title-sm inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-50"
             style={{ background: "linear-gradient(135deg,#5b2eff,#6c2bd9)" }}
           >
             {pending ? (
@@ -198,7 +198,7 @@ export function PostDeliveryFeedback({
             type="button"
             onClick={onDone}
             disabled={pending}
-            className="h-11 w-full text-[14px] font-semibold text-[var(--muted)] disabled:opacity-50"
+            className="text-body-lg h-11 w-full font-semibold text-[var(--muted)] disabled:opacity-50"
           >
             {tr("Passer", "تخطّي")}
           </button>

@@ -211,7 +211,7 @@ export default async function OrdersPage({
   if (error) {
     return (
       <div className="p-4 lg:p-6">
-        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-control border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Erreur de chargement des commandes : {error.message}
         </div>
       </div>

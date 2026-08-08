@@ -183,41 +183,41 @@ export function DriveAiBar({
   /* ─────────── Carte de confirmation du trajet ─────────── */
   if (draft) {
     return (
-      <div className="mb-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3 shadow-sm">
+      <div className="mb-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-3 shadow-sm">
         <p
-          className="drive-sora mb-2 flex items-center gap-1.5 text-[11px] font-extrabold tracking-[0.4px] uppercase"
+          className="drive-sora text-caption mb-2 flex items-center gap-1.5 font-extrabold tracking-[0.4px] uppercase"
           style={{ color: VIOLET }}
         >
           <Sparkles className="size-3.5" /> Confirme ton trajet
         </p>
 
         {/* Départ */}
-        <div className="flex items-center gap-2.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2">
+        <div className="flex items-center gap-2.5 rounded-md bg-[var(--d-soft)] px-3 py-2">
           <Navigation className="size-4 shrink-0" style={{ color: VIOLET }} />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+            <span className="text-micro block font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
               Départ
             </span>
-            <span className="block truncate text-[14px] font-bold">
+            <span className="text-body-lg block truncate font-bold">
               {draft.pickup.text ?? "Ma position actuelle"}
             </span>
           </span>
         </div>
 
         {/* Arrivée */}
-        <div className="mt-1.5 flex items-center gap-2.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2">
+        <div className="mt-1.5 flex items-center gap-2.5 rounded-md bg-[var(--d-soft)] px-3 py-2">
           <MapPin className="size-4 shrink-0 text-[var(--d-ink)]" />
           <span className="min-w-0 flex-1">
-            <span className="block text-[10px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+            <span className="text-micro block font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
               Arrivée
             </span>
-            <span className="block truncate text-[14px] font-bold">
+            <span className="text-body-lg block truncate font-bold">
               {draft.destination.text}
             </span>
           </span>
           {draft.destination.kind === "merchant" && (
             <span
-              className="shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
+              className="text-nano-lg shrink-0 rounded-full px-1.5 py-0.5 font-extrabold tracking-wide"
               style={{ background: "var(--d-accent)", color: VIOLET }}
             >
               Coligo
@@ -228,7 +228,7 @@ export function DriveAiBar({
         {/* Autres lieux possibles (le gazetteer a pu se tromper) */}
         {draft.alternatives.length > 0 && (
           <div className="mt-2">
-            <p className="mb-1 text-[11.5px] font-semibold text-[var(--d-muted)]">
+            <p className="text-caption-lg mb-1 font-semibold text-[var(--d-muted)]">
               Pas le bon lieu ?
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -237,7 +237,7 @@ export function DriveAiBar({
                   key={a.display}
                   type="button"
                   onClick={() => pickAlt(a)}
-                  className="max-w-full truncate rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1 text-[12px] font-semibold"
+                  className="text-label max-w-full truncate rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] px-2.5 py-1 font-semibold"
                 >
                   {a.display}
                   {a.kind === "merchant" && (
@@ -259,7 +259,7 @@ export function DriveAiBar({
           <div className="mt-2 flex flex-wrap gap-1.5">
             {draft.gamme !== "classic" && (
               <span
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                className="text-caption-lg inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold"
                 style={{ background: "var(--d-accent)", color: VIOLET }}
               >
                 {draft.gamme === "confort" ? (
@@ -272,7 +272,7 @@ export function DriveAiBar({
             )}
             {draft.female_only && (
               <span
-                className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11.5px] font-bold"
+                className="text-caption-lg inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold"
                 style={{ background: "rgba(236,72,153,.13)", color: ROSE }}
               >
                 <User className="size-3.5" /> Femme au volant
@@ -286,14 +286,14 @@ export function DriveAiBar({
           <button
             type="button"
             onClick={() => setDraft(null)}
-            className="flex items-center justify-center gap-1.5 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2.5 text-[13.5px] font-bold text-[var(--d-muted)]"
+            className="text-body flex items-center justify-center gap-1.5 rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-2.5 font-bold text-[var(--d-muted)]"
           >
             <X className="size-4" /> Modifier
           </button>
           <button
             type="button"
             onClick={confirm}
-            className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] px-3.5 py-2.5 text-[13.5px] font-extrabold text-white"
+            className="text-body flex flex-1 items-center justify-center gap-1.5 rounded-md px-3.5 py-2.5 font-extrabold text-white"
             style={{ background: VIOLET }}
           >
             <Check className="size-4" /> Confirmer le trajet
@@ -307,7 +307,7 @@ export function DriveAiBar({
   return (
     <div className="mb-3">
       <div
-        className="flex items-center gap-1.5 rounded-[15px] border px-3 py-2 transition-colors"
+        className="rounded-card-xl flex items-center gap-1.5 border px-3 py-2 transition-colors"
         style={{
           borderColor: listening ? "#EF4444" : VIOLET,
           // Fond tokenisé (--d-field) : bascule en sombre. Avant, ce violet pâle
@@ -329,7 +329,7 @@ export function DriveAiBar({
           enterKeyHint="go"
           placeholder={listening ? "Parle…" : "Dis où tu veux aller…"}
           aria-label="Réserver une course"
-          className="min-w-0 flex-1 bg-transparent text-[14px] font-semibold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)] disabled:opacity-100"
+          className="text-body-lg min-w-0 flex-1 bg-transparent font-semibold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)] disabled:opacity-100"
         />
 
         {listening ? (
@@ -372,7 +372,7 @@ export function DriveAiBar({
         )}
       </div>
       {err && (
-        <p className="mt-1.5 px-1 text-[12.5px] font-semibold text-red-600">
+        <p className="text-label-lg mt-1.5 px-1 font-semibold text-red-600">
           {err}
         </p>
       )}

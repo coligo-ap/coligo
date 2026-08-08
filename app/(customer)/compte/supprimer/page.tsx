@@ -69,7 +69,7 @@ export default async function DeleteAccountPage() {
         >
           <ChevronLeft className="size-[18px] rtl:-scale-x-100" />
         </Link>
-        <h1 className="text-[19px] font-black tracking-tight">
+        <h1 className="text-heading font-black tracking-tight">
           {t("delPageTitle")}
         </h1>
       </header>

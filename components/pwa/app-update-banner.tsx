@@ -64,7 +64,7 @@ export function AppUpdateBanner() {
 
   return (
     <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4.75rem)] z-[60] px-3 lg:bottom-4">
-      <div className="cg-brand-gradient mx-auto flex max-w-md items-center gap-3 rounded-[14px] p-3 text-white shadow-xl">
+      <div className="cg-brand-gradient rounded-card-lg mx-auto flex max-w-md items-center gap-3 p-3 text-white shadow-xl">
         <ArrowUpCircle className="size-6 shrink-0" />
         <span className="min-w-0 flex-1">
           <span className="block text-sm font-semibold">
@@ -77,7 +77,7 @@ export function AppUpdateBanner() {
         <Link
           href={DOWNLOAD_PAGE[role]}
           onClick={() => setShow(false)}
-          className="shrink-0 rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-[#6C2BD9]"
+          className="shrink-0 rounded-full bg-white px-3.5 py-2 text-sm font-semibold text-[var(--color-primary-600)]"
         >
           Mettre à jour
         </Link>

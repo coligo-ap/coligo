@@ -45,7 +45,7 @@ function Kpi({
         <Icon
           className={`size-4 ${accent && value > 0 ? "text-red-600" : "text-muted"}`}
         />
-        <span className="text-muted text-[11px] font-semibold">{label}</span>
+        <span className="text-muted text-caption font-semibold">{label}</span>
       </div>
       <div className="mt-1 text-2xl font-extrabold tabular-nums">{value}</div>
     </div>
@@ -72,7 +72,7 @@ function StackedDays({ days }: { days: FraudOverview["alerts_by_day"] }) {
               title={`${fmtDay(d.d)} — ${total} alerte${total > 1 ? "s" : ""}`}
             >
               {total > 0 && (
-                <span className="text-muted text-[10px] font-semibold tabular-nums">
+                <span className="text-muted text-micro font-semibold tabular-nums">
                   {total}
                 </span>
               )}
@@ -93,7 +93,7 @@ function StackedDays({ days }: { days: FraudOverview["alerts_by_day"] }) {
                   );
                 })}
               </div>
-              <span className="text-muted text-[9px]">{fmtDay(d.d)}</span>
+              <span className="text-muted text-nano">{fmtDay(d.d)}</span>
             </div>
           );
         })}
@@ -102,7 +102,7 @@ function StackedDays({ days }: { days: FraudOverview["alerts_by_day"] }) {
         {SEV_ORDER.map((sev) => (
           <span
             key={sev}
-            className="text-muted flex items-center gap-1.5 text-[11px]"
+            className="text-muted text-caption flex items-center gap-1.5"
           >
             <span
               className="inline-block size-2.5 rounded-[3px]"
@@ -241,7 +241,7 @@ export function FraudOverviewView({
                       title={`${fmtDay(d.d)} — auto ${d.auto} · équipe ${d.admin}`}
                     >
                       {total > 0 && (
-                        <span className="text-muted text-[10px] font-semibold tabular-nums">
+                        <span className="text-muted text-micro font-semibold tabular-nums">
                           {total}
                         </span>
                       )}
@@ -265,7 +265,7 @@ export function FraudOverviewView({
                           />
                         )}
                       </div>
-                      <span className="text-muted text-[9px]">
+                      <span className="text-muted text-nano">
                         {fmtDay(d.d)}
                       </span>
                     </div>
@@ -273,14 +273,14 @@ export function FraudOverviewView({
                 })}
               </div>
               <div className="mt-2 flex items-center gap-3">
-                <span className="text-muted flex items-center gap-1.5 text-[11px]">
+                <span className="text-muted text-caption flex items-center gap-1.5">
                   <span
                     className="inline-block size-2.5 rounded-[3px]"
                     style={{ backgroundColor: FRAUD_SOURCE_COLOR.auto }}
                   />
                   Automatiques
                 </span>
-                <span className="text-muted flex items-center gap-1.5 text-[11px]">
+                <span className="text-muted text-caption flex items-center gap-1.5">
                   <span
                     className="inline-block size-2.5 rounded-[3px]"
                     style={{ backgroundColor: FRAUD_SOURCE_COLOR.admin }}
@@ -353,7 +353,7 @@ export function FraudOverviewView({
           <div className="mt-3 overflow-x-auto">
             <table className="w-full min-w-[560px] text-sm">
               <thead>
-                <tr className="text-muted border-border border-b text-start text-[11px]">
+                <tr className="text-muted border-border text-caption border-b text-start">
                   <th className="py-1.5 text-start font-semibold">Règle</th>
                   <th className="text-end font-semibold">Déclenchée</th>
                   <th className="text-end font-semibold">Confirmées</th>
@@ -366,7 +366,7 @@ export function FraudOverviewView({
                   <tr key={r.code}>
                     <td className="py-2 pe-2">
                       <span className="font-medium">{r.label}</span>{" "}
-                      <span className="text-muted text-[11px]">{r.code}</span>
+                      <span className="text-muted text-caption">{r.code}</span>
                     </td>
                     <td className="text-end tabular-nums">{r.hits}</td>
                     <td className="text-end text-emerald-700 tabular-nums">

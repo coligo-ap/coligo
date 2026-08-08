@@ -52,7 +52,7 @@ export function AgentDocumentsManager({
 
   if (documents.length === 0) {
     return (
-      <div className="border-border text-muted flex items-center gap-2 rounded-[12px] border border-dashed p-4 text-sm">
+      <div className="border-border text-muted flex items-center gap-2 rounded-md border border-dashed p-4 text-sm">
         <FileWarning className="size-4" />
         L&apos;agent n&apos;a encore déposé aucune pièce.
       </div>
@@ -68,7 +68,7 @@ export function AgentDocumentsManager({
         return (
           <div
             key={d.id}
-            className="border-border flex items-start justify-between gap-3 rounded-[12px] border p-3"
+            className="border-border flex items-start justify-between gap-3 rounded-md border p-3"
           >
             <div className="min-w-0 text-sm">
               <p className="flex flex-wrap items-center gap-2 font-semibold">
@@ -78,7 +78,7 @@ export function AgentDocumentsManager({
                 ) : null}
                 <span
                   className={
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold " +
+                    "text-micro rounded-full px-2 py-0.5 font-bold " +
                     (meta?.cls ?? "bg-surface-2 text-muted")
                   }
                 >
@@ -113,7 +113,7 @@ export function AgentDocumentsManager({
                 <button
                   type="button"
                   aria-label="Valider la pièce"
-                  className="text-success-700 hover:bg-success-50 rounded-[8px] p-1.5"
+                  className="text-success-700 hover:bg-success-50 rounded-sm p-1.5"
                   onClick={() =>
                     startTransition(async () => {
                       const r = await setAgentDocumentStatus(
@@ -132,7 +132,7 @@ export function AgentDocumentsManager({
                 <button
                   type="button"
                   aria-label="Refuser la pièce"
-                  className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+                  className="text-danger-600 hover:bg-danger-50 rounded-sm p-1.5"
                   onClick={() => setRejecting({ docId: d.id, label })}
                 >
                   <X className="size-4" />

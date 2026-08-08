@@ -56,7 +56,7 @@ export function DriverPendingView({
         <SubmittedAnimation onDone={() => setShowAnimation(false)} />
       )}
 
-      <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-5">
+      <div className="rounded-sheet-lg border border-[var(--line)] bg-[var(--surface)] p-5">
         <StepsTracker
           steps={[
             {
@@ -139,21 +139,21 @@ function InfoRow({
   text: string;
 }) {
   return (
-    <div className="flex items-start gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] p-3.5">
+    <div className="rounded-card-lg flex items-start gap-3 border border-[var(--line)] bg-[var(--surface)] p-3.5">
       <span
-        className="grid size-9 shrink-0 place-items-center rounded-[11px]"
+        className="rounded-control-lg grid size-9 shrink-0 place-items-center"
         style={{ background: "var(--violet-soft)", color: BRAND_VIOLET }}
       >
         {icon}
       </span>
       <div className="min-w-0">
         <b
-          className="block text-[13px] font-bold text-[var(--ink)]"
+          className="text-body-sm block font-bold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
           {title}
         </b>
-        <small className="mt-0.5 block text-[11.5px] leading-relaxed text-[var(--muted)]">
+        <small className="text-caption-lg mt-0.5 block leading-relaxed text-[var(--muted)]">
           {text}
         </small>
       </div>

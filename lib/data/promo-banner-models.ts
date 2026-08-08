@@ -7,17 +7,14 @@
 // déduit du TYPE de promo (comportement du Lot 1).
 // =============================================================================
 
+import { PROMO_GRADIENTS } from "@/lib/design/tokens";
 import type { PromoBanner } from "@/lib/data/promo-banners";
 
-/** Dégradés doux repris de la maquette « coligo-collection-finale ». */
-export const PROMO_GRAD = {
-  deliv: "linear-gradient(120deg,#7C3AED,#9B5CF0 35%,#BE93F2 65%,#DCC5F8)",
-  brand: "linear-gradient(120deg,#6D2FD8,#8B4BE8 35%,#C86BD9 65%,#F0619A)",
-  mint: "linear-gradient(120deg,#3F8D6C,#6AB08D 40%,#9FD3B6 75%,#5FA383)",
-  sky: "linear-gradient(120deg,#8B93E8,#A6B4EE 30%,#BCD0F2 55%,#8E9AE4)",
-  dusk: "linear-gradient(120deg,#1E3A5C,#33567F 30%,#6D7FA6 55%,#C9A24E 88%,#E4BE6A)",
-  slate: "linear-gradient(120deg,#16161e,#2a2340 60%,#3a2c5e)",
-} as const;
+/**
+ * Dégradés doux repris de la maquette « coligo-collection-finale » —
+ * valeurs centralisées dans `lib/design/tokens.ts` (PROMO_GRADIENTS).
+ */
+export const PROMO_GRAD = PROMO_GRADIENTS;
 
 export type PromoPalette = keyof typeof PROMO_GRAD;
 

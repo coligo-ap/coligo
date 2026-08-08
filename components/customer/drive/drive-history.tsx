@@ -111,7 +111,7 @@ export function DriveHistorySkeleton() {
   return (
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] pb-24">
       <div
-        className="relative overflow-hidden rounded-b-[28px] pb-14 text-white"
+        className="relative overflow-hidden rounded-b-2xl pb-14 text-white"
         style={{
           backgroundImage:
             "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
@@ -119,17 +119,17 @@ export function DriveHistorySkeleton() {
       >
         <ThemeDecor />
         <div className="relative z-10 flex items-center gap-3 px-5 pt-[calc(1rem+env(safe-area-inset-top))]">
-          <div className="size-[42px] animate-pulse rounded-[14px] bg-white/20" />
+          <div className="rounded-card-lg size-[42px] animate-pulse bg-white/20" />
           <div className="h-6 w-40 animate-pulse rounded-lg bg-white/20" />
         </div>
       </div>
       <div className="relative z-10 -mt-10 px-5">
-        <div className="h-[54px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]" />
+        <div className="h-[54px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]" />
         <div className="mt-3 space-y-2.5">
           {Array.from({ length: 5 }).map((_, i) => (
             <div
               key={i}
-              className="flex items-center gap-3 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-page)] p-3.5"
+              className="flex items-center gap-3 rounded-lg border border-[var(--d-line)] bg-[var(--d-page)] p-3.5"
             >
               <div className="size-11 shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
               <div className="min-w-0 flex-1">
@@ -165,7 +165,7 @@ export function DriveHistoryView({
     <div className="drive-jakarta drive-page min-h-screen bg-[var(--d-surface)] pb-24">
       {/* HÉRO au thème « occasion » — même langage que l'accueil Drive. */}
       <div
-        className="relative overflow-hidden rounded-b-[28px] pb-14 text-white"
+        className="relative overflow-hidden rounded-b-2xl pb-14 text-white"
         style={{
           backgroundImage:
             "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
@@ -176,12 +176,12 @@ export function DriveHistoryView({
           <button
             type="button"
             onClick={() => router.push("/drive")}
-            className="grid size-[42px] place-items-center rounded-[14px] border border-white/25 bg-white/15 text-white"
+            className="rounded-card-lg grid size-[42px] place-items-center border border-white/25 bg-white/15 text-white"
             aria-label={tc("back")}
           >
             <ChevronLeft className="size-5 rtl:-scale-x-100" />
           </button>
-          <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px] drop-shadow-sm">
+          <h1 className="drive-sora text-display-sm font-extrabold tracking-[-0.5px] drop-shadow-sm">
             {t("title")}
           </h1>
         </div>
@@ -189,7 +189,7 @@ export function DriveHistoryView({
 
       {/* Onglets en pilule FLOTTANTE sur le dégradé + contenu dessous. */}
       <div className="relative z-10 -mt-10 px-5">
-        <div className="mb-3 flex gap-1.5 rounded-[16px] bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
+        <div className="mb-3 flex gap-1.5 rounded-lg bg-[var(--d-surface)] p-1.5 shadow-[0_14px_34px_-14px_rgba(0,0,0,0.45)]">
           {(
             [
               ["c", t("tabRides"), Car],
@@ -200,7 +200,7 @@ export function DriveHistoryView({
               key={k}
               type="button"
               onClick={() => setTab(k)}
-              className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-[12px] px-1.5 py-2 text-xs font-bold transition-colors"
+              className="flex min-h-[42px] flex-1 items-center justify-center gap-1.5 rounded-md px-1.5 py-2 text-xs font-bold transition-colors"
               style={
                 tab === k
                   ? { background: "var(--d-accent)", color: VIOLET }
@@ -222,17 +222,17 @@ export function DriveHistoryView({
             history.rides.map((r, i) => (
               <div
                 key={r.id}
-                className="drive-rise mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
+                className="drive-rise rounded-card-xl mb-2 flex items-center gap-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-3"
                 style={{ animationDelay: `${Math.min(i, 8) * 0.03}s` }}
               >
-                <span className="grid size-[34px] shrink-0 place-items-center rounded-[11px] bg-[var(--d-soft)]">
+                <span className="rounded-control-lg grid size-[34px] shrink-0 place-items-center bg-[var(--d-soft)]">
                   <Car className="size-4" />
                 </span>
                 <span className="min-w-0 flex-1">
-                  <b className="block truncate text-[13.5px]">
+                  <b className="text-body block truncate">
                     {r.dest_text ?? "—"}
                   </b>
-                  <small className="text-[11px] text-[var(--d-muted)]">
+                  <small className="text-caption text-[var(--d-muted)]">
                     {[
                       new Date(r.when).toLocaleDateString(
                         locale === "ar" ? "ar-DZ" : "fr-FR",
@@ -255,11 +255,11 @@ export function DriveHistoryView({
                   />
                 </span>
                 <span className="shrink-0 text-end">
-                  <span className="drive-sora block text-[14px] font-extrabold">
+                  <span className="drive-sora text-body-lg block font-extrabold">
                     {formatDA(r.price_da)}
                   </span>
                   <span
-                    className="mt-0.5 inline-block rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                    className="text-nano-lg mt-0.5 inline-block rounded-full px-2 py-0.5 font-extrabold"
                     style={
                       r.completed
                         ? {
@@ -288,14 +288,14 @@ export function DriveHistoryView({
           favs.map((f) => (
             <div
               key={f.chauffeur_id}
-              className="mb-2 flex items-center gap-3 rounded-[15px] border border-[var(--d-line)] p-3"
+              className="rounded-card-xl mb-2 flex items-center gap-3 border border-[var(--d-line)] p-3"
             >
               <ChAvatar name={f.name} url={f.avatar_url} size={38} />
               <span className="min-w-0 flex-1">
-                <b className="flex items-center gap-1.5 text-[13.5px]">
+                <b className="text-body flex items-center gap-1.5">
                   {f.name}
                   {f.rating != null && (
-                    <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                    <span className="text-caption inline-flex items-center gap-0.5 font-bold text-[var(--color-warning-700)]">
                       <Star
                         className="size-3 shrink-0"
                         style={{ color: "#E8B53C", fill: "#E8B53C" }}
@@ -304,7 +304,7 @@ export function DriveHistoryView({
                     </span>
                   )}
                 </b>
-                <small className="text-[11px] text-[var(--d-muted)]">
+                <small className="text-caption text-[var(--d-muted)]">
                   {[f.vehicle, t("ridesCount", { count: f.rides_count })]
                     .filter(Boolean)
                     .join(" · ")}

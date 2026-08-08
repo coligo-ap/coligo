@@ -79,7 +79,7 @@ export function DecisionNoteDialog({
       onClick={onClose}
     >
       <div
-        className="w-full max-w-lg rounded-[16px] bg-white p-5"
+        className="w-full max-w-lg rounded-lg bg-white p-5"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-1 flex items-center justify-between">
@@ -127,7 +127,7 @@ export function DecisionNoteDialog({
           placeholder={
             reject ? "Motif (modifiable librement)…" : "Note (optionnelle)…"
           }
-          className="border-border focus:border-primary-400 w-full resize-y rounded-[10px] border px-3 py-2 text-sm outline-none"
+          className="border-border focus:border-primary-400 rounded-control w-full resize-y border px-3 py-2 text-sm outline-none"
         />
 
         {error && (
@@ -140,7 +140,7 @@ export function DecisionNoteDialog({
             disabled={pending}
             onClick={confirm}
             className={cn(
-              "inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-bold text-white disabled:opacity-50",
+              "rounded-control inline-flex h-10 flex-1 items-center justify-center gap-1.5 text-sm font-bold text-white disabled:opacity-50",
               reject ? "bg-danger-600" : "bg-success-600"
             )}
           >
@@ -156,7 +156,7 @@ export function DecisionNoteDialog({
           <button
             type="button"
             onClick={onClose}
-            className="border-border hover:bg-surface-2 h-10 rounded-[10px] border px-4 text-sm font-semibold"
+            className="border-border hover:bg-surface-2 rounded-control h-10 border px-4 text-sm font-semibold"
           >
             Annuler
           </button>
@@ -220,7 +220,7 @@ export function AdminDocViewer({
         onClick={show}
         className={
           triggerClassName ??
-          "border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-[8px] border px-2 py-1 text-xs font-semibold"
+          "border-border hover:bg-surface-2 inline-flex items-center gap-1 rounded-sm border px-2 py-1 text-xs font-semibold"
         }
       >
         {pending ? (
@@ -243,7 +243,7 @@ export function AdminDocViewer({
             </p>
             <a
               href={downloadUrl ?? "#"}
-              className="inline-flex items-center gap-1.5 rounded-[8px] bg-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/25"
+              className="inline-flex items-center gap-1.5 rounded-sm bg-white/15 px-3 py-1.5 text-xs font-semibold hover:bg-white/25"
             >
               <Download className="size-3.5" /> Télécharger
             </a>
@@ -252,7 +252,7 @@ export function AdminDocViewer({
               target="_blank"
               rel="noopener noreferrer"
               aria-label="Ouvrir dans un onglet"
-              className="inline-flex items-center rounded-[8px] bg-white/15 p-1.5 hover:bg-white/25"
+              className="inline-flex items-center rounded-sm bg-white/15 p-1.5 hover:bg-white/25"
             >
               <ExternalLink className="size-3.5" />
             </a>
@@ -260,7 +260,7 @@ export function AdminDocViewer({
               type="button"
               onClick={() => setOpen(false)}
               aria-label="Fermer"
-              className="inline-flex items-center rounded-[8px] bg-white/15 p-1.5 hover:bg-white/25"
+              className="inline-flex items-center rounded-sm bg-white/15 p-1.5 hover:bg-white/25"
             >
               <X className="size-4" />
             </button>
@@ -275,7 +275,7 @@ export function AdminDocViewer({
               <iframe
                 src={url}
                 title={docTitle}
-                className="h-full w-full rounded-[10px] bg-white"
+                className="rounded-control h-full w-full bg-white"
                 onClick={(e) => e.stopPropagation()}
               />
             ) : (
@@ -283,7 +283,7 @@ export function AdminDocViewer({
               <img
                 src={url}
                 alt={docTitle}
-                className="mx-auto max-h-full rounded-[10px] object-contain"
+                className="rounded-control mx-auto max-h-full object-contain"
                 onClick={(e) => e.stopPropagation()}
               />
             )}
@@ -295,14 +295,14 @@ export function AdminDocViewer({
               <button
                 type="button"
                 onClick={() => setDecision("approved")}
-                className="bg-success-600 inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] text-sm font-bold text-white"
+                className="bg-success-600 inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md text-sm font-bold text-white"
               >
                 <BadgeCheck className="size-4" /> Valider
               </button>
               <button
                 type="button"
                 onClick={() => setDecision("rejected")}
-                className="bg-danger-600 inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] text-sm font-bold text-white"
+                className="bg-danger-600 inline-flex h-11 flex-1 items-center justify-center gap-1.5 rounded-md text-sm font-bold text-white"
               >
                 <X className="size-4" /> Refuser
               </button>

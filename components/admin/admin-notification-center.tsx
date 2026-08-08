@@ -72,13 +72,13 @@ export function AdminNotificationCenter() {
         onClick={() => setOpen((o) => !o)}
         aria-label={`Notifications${total > 0 ? ` (${total})` : ""}`}
         aria-expanded={open}
-        className="text-muted hover:bg-surface-2 hover:text-foreground relative flex size-9 items-center justify-center rounded-[10px] transition-colors"
+        className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control relative flex size-9 items-center justify-center transition-colors"
       >
         <Bell className="size-5" />
         {total > 0 && (
           <span
             className={cn(
-              "absolute -top-0.5 -right-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums",
+              "text-micro absolute -top-0.5 -right-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full px-1 font-extrabold text-white tabular-nums",
               overall === "critical"
                 ? "bg-danger-500 animate-pulse"
                 : overall === "warning"
@@ -92,7 +92,7 @@ export function AdminNotificationCenter() {
       </button>
 
       {open && (
-        <div className="border-border absolute right-0 z-50 mt-2 max-h-[70vh] w-[min(92vw,22rem)] overflow-y-auto rounded-[14px] border bg-white shadow-xl">
+        <div className="border-border rounded-card-lg absolute right-0 z-50 mt-2 max-h-[70vh] w-[min(92vw,22rem)] overflow-y-auto border bg-white shadow-xl">
           <div className="border-border bg-surface-2 sticky top-0 flex items-center justify-between border-b px-4 py-2.5">
             <span className="text-foreground text-sm font-bold">
               Alertes & notifications
@@ -116,7 +116,7 @@ export function AdminNotificationCenter() {
             <ul className="divide-border divide-y">
               {domains.map((dom) => (
                 <li key={dom} className="px-2 py-2">
-                  <p className="text-muted px-2 pb-1 text-[11px] font-bold tracking-wide uppercase">
+                  <p className="text-muted text-caption px-2 pb-1 font-bold tracking-wide uppercase">
                     {DOMAIN_LABEL[dom]}
                   </p>
                   <ul className="space-y-0.5">
@@ -125,7 +125,7 @@ export function AdminNotificationCenter() {
                         <Link
                           href={alertFocusHref(a)}
                           onClick={() => setOpen(false)}
-                          className="hover:bg-surface-2 flex items-center gap-2.5 rounded-[10px] px-2 py-2"
+                          className="hover:bg-surface-2 rounded-control flex items-center gap-2.5 px-2 py-2"
                         >
                           <span
                             className={cn(
@@ -159,7 +159,7 @@ export function AdminNotificationCenter() {
             <Link
               href="/admin/alertes"
               onClick={() => setOpen(false)}
-              className="text-primary-700 hover:bg-surface block rounded-[10px] px-2 py-1.5 text-center text-sm font-semibold"
+              className="text-primary-700 hover:bg-surface rounded-control block px-2 py-1.5 text-center text-sm font-semibold"
             >
               Voir le centre d&apos;alertes
             </Link>

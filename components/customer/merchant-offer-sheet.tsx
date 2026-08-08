@@ -111,7 +111,7 @@ export function MerchantOfferSheet({
         }}
       >
         <div
-          className="bg-surface flex w-full max-w-md flex-col rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]"
+          className="bg-surface flex w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl"
           role="dialog"
           aria-modal="true"
         >
@@ -132,14 +132,14 @@ export function MerchantOfferSheet({
           <div className="space-y-4 px-5 py-4">
             {/* Valeur + intitulé + commerçant */}
             <div className="flex items-start gap-3">
-              <span className="bg-accent-600 grid size-12 shrink-0 place-items-center rounded-[14px] text-white shadow-sm">
+              <span className="bg-accent-600 rounded-card-lg grid size-12 shrink-0 place-items-center text-white shadow-sm">
                 <Ticket className="size-6" />
               </span>
               <div className="min-w-0">
                 <p className="text-accent-700 text-lg leading-tight font-black">
                   {value}
                   {offer.type === "free_delivery" && (
-                    <span className="text-muted ml-1.5 text-[12px] font-semibold">
+                    <span className="text-muted text-label ml-1.5 font-semibold">
                       · {t("offerTourOnly")}
                     </span>
                   )}
@@ -147,7 +147,7 @@ export function MerchantOfferSheet({
                 <p className="text-foreground text-sm font-semibold">
                   {headline || title}
                 </p>
-                <p className="text-muted mt-0.5 flex items-center gap-1 text-[12px]">
+                <p className="text-muted text-label mt-0.5 flex items-center gap-1">
                   <Store className="size-3.5 shrink-0" /> {offer.merchant_name}
                 </p>
               </div>
@@ -158,12 +158,12 @@ export function MerchantOfferSheet({
               <button
                 type="button"
                 onClick={copy}
-                className="border-accent-300 bg-accent-50 flex w-full items-center gap-3 rounded-[14px] border border-dashed px-3.5 py-3"
+                className="border-accent-300 bg-accent-50 rounded-card-lg flex w-full items-center gap-3 border border-dashed px-3.5 py-3"
               >
-                <span className="border-accent-300 rounded-md border bg-[#fff] px-2.5 py-1 font-mono text-base font-black tracking-wider text-[#e6007a]">
+                <span className="border-accent-300 rounded-md border bg-[#fff] px-2.5 py-1 font-mono text-base font-black tracking-wider text-[var(--color-accent-600)]">
                   {code}
                 </span>
-                <span className="text-accent-600 flex-1 text-start text-[12px] font-medium">
+                <span className="text-accent-600 text-label flex-1 text-start font-medium">
                   {copied ? t("offerCodeCopied") : t("offerTapCode")}
                 </span>
                 <span
@@ -171,7 +171,7 @@ export function MerchantOfferSheet({
                     "grid size-9 shrink-0 place-items-center rounded-full shadow-sm transition-colors",
                     copied
                       ? "bg-success-600 text-white"
-                      : "bg-[#fff] text-[#e6007a]"
+                      : "bg-[#fff] text-[var(--color-accent-600)]"
                   )}
                 >
                   {copied ? (
@@ -185,7 +185,7 @@ export function MerchantOfferSheet({
 
             {/* Conditions */}
             <div>
-              <p className="text-foreground mb-1.5 text-[12px] font-bold">
+              <p className="text-foreground text-label mb-1.5 font-bold">
                 {t("offerConditions")}
               </p>
               <ul className="space-y-1.5">
@@ -207,7 +207,7 @@ export function MerchantOfferSheet({
             <Link
               href={`/m/${offer.merchant_slug}`}
               onClick={onClose}
-              className="bg-primary-600 hover:bg-primary-700 flex h-12 w-full items-center justify-center gap-1.5 rounded-[14px] text-sm font-bold text-white"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg flex h-12 w-full items-center justify-center gap-1.5 text-sm font-bold text-white"
             >
               {t("offerGoToMerchant", { merchant: offer.merchant_name })}
               <ArrowRight className="size-4 rtl:-scale-x-100" />

@@ -6,9 +6,9 @@ export default function DriverNotificationsLoading() {
     <div className="min-h-[100dvh] bg-[var(--d-surface)]">
       <main className="pt-safe pb-safe-nav mx-auto max-w-md space-y-2 px-5">
         <div className="h-10 w-48 animate-pulse rounded-lg bg-[var(--soft)]" />
-        <div className="h-20 animate-pulse rounded-[14px] bg-[var(--soft)]" />
-        <div className="h-20 animate-pulse rounded-[14px] bg-[var(--soft)]" />
-        <div className="h-20 animate-pulse rounded-[14px] bg-[var(--soft)]" />
+        <div className="rounded-card-lg h-20 animate-pulse bg-[var(--soft)]" />
+        <div className="rounded-card-lg h-20 animate-pulse bg-[var(--soft)]" />
+        <div className="rounded-card-lg h-20 animate-pulse bg-[var(--soft)]" />
       </main>
       <DriverBottomNav />
     </div>

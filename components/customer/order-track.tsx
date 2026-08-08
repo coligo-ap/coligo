@@ -96,7 +96,7 @@ export function OrderTrack({
             >
               <span
                 className={cn(
-                  "border-surface grid size-6 place-items-center rounded-full border-2 text-[10px] font-extrabold",
+                  "border-surface text-micro grid size-6 place-items-center rounded-full border-2 font-extrabold",
                   done
                     ? "bg-success-600 text-white"
                     : now

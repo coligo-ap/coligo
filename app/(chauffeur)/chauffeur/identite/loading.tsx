@@ -11,7 +11,7 @@ export default function Loading() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="h-[88px] rounded-[16px]"
+            className="h-[88px] rounded-lg"
             style={{ background: "var(--d-soft)" }}
           />
         ))}

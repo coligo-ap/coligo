@@ -26,7 +26,7 @@ export function OrderStatusTimeline({
   if (status === "cancelled") {
     const at = reachedAt.get("cancelled");
     return (
-      <div className="bg-danger-50 text-danger-700 flex items-center justify-between gap-2 rounded-[12px] px-4 py-3 text-sm font-medium">
+      <div className="bg-danger-50 text-danger-700 flex items-center justify-between gap-2 rounded-md px-4 py-3 text-sm font-medium">
         <span>Commande annulée</span>
         {at && (
           <span className="text-danger-600/80 text-xs">{formatTime(at)}</span>

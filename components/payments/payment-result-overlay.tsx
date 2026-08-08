@@ -22,9 +22,9 @@ export type PaymentResultState =
   | "cancelled"
   | "expired";
 
+// Les tokens --pay-* sont déclarés dans app/design-tokens.css (couche 4) : ce
+// composant injectait auparavant son propre bloc `:root` à chaque montage.
 const OVERLAY_CSS = `
-:root{--pay-bg:#fff;--pay-ink:#0b0c12;--pay-muted:#6b7280;--pay-line:rgba(0,0,0,.12);--pay-go:#16b364;--pay-red:#e5484d;--pay-violet:#6c2bd9}
-.theme-dark{--pay-bg:#0b0c12;--pay-ink:#fff;--pay-muted:#9ca0b3;--pay-line:rgba(255,255,255,.16)}
 @keyframes cg-pay-pop{0%{transform:scale(.5);opacity:0}60%{transform:scale(1.08)}100%{transform:scale(1);opacity:1}}
 @keyframes cg-pay-ring{0%{transform:scale(.7);opacity:.6}100%{transform:scale(1.5);opacity:0}}
 @keyframes cg-pay-shake{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px)}40%{transform:translateX(6px)}60%{transform:translateX(-4px)}80%{transform:translateX(4px)}}
@@ -62,10 +62,10 @@ export function PaymentResultOverlay({
     state === "failed" || state === "cancelled" || state === "expired";
 
   const accent = ok
-    ? "var(--pay-go, #16b364)"
+    ? "var(--pay-go)"
     : bad
-      ? "var(--pay-red, #e5484d)"
-      : "var(--pay-violet, #6c2bd9)";
+      ? "var(--pay-red)"
+      : "var(--pay-violet)";
 
   return (
     <Portal>
@@ -75,8 +75,8 @@ export function PaymentResultOverlay({
         aria-live="assertive"
         className="fixed inset-0 z-[150] flex flex-col items-center justify-center px-8 text-center"
         style={{
-          background: "var(--pay-bg, #ffffff)",
-          color: "var(--pay-ink, #0b0c12)",
+          background: "var(--pay-bg)",
+          color: "var(--pay-ink)",
           paddingTop: "calc(env(safe-area-inset-top) + 2rem)",
           paddingBottom: "calc(env(safe-area-inset-bottom) + 2rem)",
         }}
@@ -117,13 +117,13 @@ export function PaymentResultOverlay({
         </div>
 
         <div className="cg-pay-txt" style={{ animation: "cg-pay-up .4s ease" }}>
-          <h2 className="text-[22px] font-extrabold tracking-[-0.5px]">
+          <h2 className="text-display font-extrabold tracking-[-0.5px]">
             {title}
           </h2>
           {sub && (
             <p
-              className="mx-auto mt-2 max-w-xs text-[13.5px] leading-snug font-medium"
-              style={{ color: "var(--pay-muted, #6b7280)" }}
+              className="text-body mx-auto mt-2 max-w-xs leading-snug font-medium"
+              style={{ color: "var(--pay-muted)" }}
             >
               {sub}
             </p>
@@ -140,7 +140,7 @@ export function PaymentResultOverlay({
               <button
                 type="button"
                 onClick={onPrimary}
-                className="w-full rounded-[16px] py-3.5 text-[15px] font-extrabold text-white"
+                className="text-title-sm w-full rounded-lg py-3.5 font-extrabold text-white"
                 style={{ background: accent }}
               >
                 {primaryLabel}
@@ -150,10 +150,10 @@ export function PaymentResultOverlay({
               <button
                 type="button"
                 onClick={onSecondary}
-                className="w-full rounded-[16px] py-3 text-[14px] font-bold"
+                className="text-body-lg w-full rounded-lg py-3 font-bold"
                 style={{
                   border: "1.5px solid var(--pay-line, rgba(0,0,0,.12))",
-                  color: "var(--pay-ink, #0b0c12)",
+                  color: "var(--pay-ink)",
                 }}
               >
                 {secondaryLabel}

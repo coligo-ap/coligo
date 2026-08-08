@@ -26,7 +26,7 @@ type Props = {
 };
 
 const CHIP_CLS =
-  "border-border bg-surface inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-[12.5px] font-bold whitespace-nowrap transition-transform active:scale-[0.96]";
+  "border-border bg-surface inline-flex shrink-0 items-center gap-1.5 rounded-full border px-3 py-1.5 text-label-lg font-bold whitespace-nowrap transition-transform active:scale-[0.96]";
 
 export function MerchantReviewsDialog({
   ratingAvg,
@@ -44,11 +44,11 @@ export function MerchantReviewsDialog({
     if (variant === "stat") {
       return (
         <span className="flex flex-col items-center gap-0.5">
-          <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold tabular-nums">
+          <span className="text-foreground text-title-sm inline-flex items-center gap-1 font-extrabold tabular-nums">
             <Star className="size-4 fill-amber-400 text-amber-400" />
             5.0
           </span>
-          <span className="text-muted text-[12px] font-medium">
+          <span className="text-muted text-label font-medium">
             {t("newMerchant")}
           </span>
         </span>
@@ -71,7 +71,7 @@ export function MerchantReviewsDialog({
             5.0
           </span>
         </span>
-        <span className="text-muted mt-0.5 text-[11px] font-medium">
+        <span className="text-muted text-caption mt-0.5 font-medium">
           {t("newMerchant")}
         </span>
       </span>
@@ -90,11 +90,11 @@ export function MerchantReviewsDialog({
             rating: ratingAvg.toFixed(1),
           })}
         >
-          <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold tabular-nums">
+          <span className="text-foreground text-title-sm inline-flex items-center gap-1 font-extrabold tabular-nums">
             <Star className="size-4 fill-amber-400 text-amber-400" />
             {ratingAvg.toFixed(1)}
           </span>
-          <span className="text-muted text-[12px] font-medium tabular-nums">
+          <span className="text-muted text-label font-medium tabular-nums">
             ({ratingCount})
           </span>
         </button>
@@ -132,7 +132,7 @@ export function MerchantReviewsDialog({
               {ratingAvg.toFixed(1)}
             </span>
           </span>
-          <span className="text-muted mt-0.5 text-[11px] font-medium">
+          <span className="text-muted text-caption mt-0.5 font-medium">
             {t("reviewsCount", { count: ratingCount })}
           </span>
         </button>
@@ -146,8 +146,8 @@ export function MerchantReviewsDialog({
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="bg-surface flex max-h-[90vh] w-full max-w-lg flex-col rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
-              <header className="border-border bg-surface flex items-start justify-between gap-3 rounded-t-[20px] border-b px-5 py-4 sm:rounded-t-[20px]">
+            <div className="bg-surface flex max-h-[90vh] w-full max-w-lg flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
+              <header className="border-border bg-surface flex items-start justify-between gap-3 rounded-t-xl border-b px-5 py-4 sm:rounded-t-xl">
                 <div>
                   <h2 className="font-display text-foreground text-lg font-bold">
                     {t("customerFeedback")}
@@ -204,7 +204,7 @@ function ReviewItem({
     timeZone: "Africa/Algiers",
   });
   return (
-    <li className="border-border bg-surface-2 rounded-[12px] border p-3">
+    <li className="border-border bg-surface-2 rounded-md border p-3">
       <header className="flex items-start justify-between gap-3">
         <div>
           <p className="text-foreground text-sm font-semibold">{displayName}</p>

@@ -164,7 +164,7 @@ export function AnnouncementsManager({
 
   return (
     <div>
-      <div className="border-border bg-surface-2 mb-4 flex w-fit gap-1 rounded-[13px] border p-1">
+      <div className="border-border bg-surface-2 rounded-card mb-4 flex w-fit gap-1 border p-1">
         {(
           [
             ["liste", `Annonces (${rows.length})`],
@@ -176,7 +176,7 @@ export function AnnouncementsManager({
             type="button"
             onClick={() => setTab(key)}
             className={cn(
-              "rounded-[10px] px-3 py-1.5 text-sm font-bold transition-colors",
+              "rounded-control px-3 py-1.5 text-sm font-bold transition-colors",
               tab === key
                 ? "bg-surface text-foreground shadow-sm"
                 : "text-muted hover:text-foreground"
@@ -225,7 +225,7 @@ function ListPanel({
 }) {
   if (rows.length === 0) {
     return (
-      <div className="border-border bg-surface rounded-[16px] border p-6 text-center">
+      <div className="border-border bg-surface rounded-lg border p-6 text-center">
         <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
           <BellRing className="size-6" />
         </span>
@@ -235,7 +235,7 @@ function ListPanel({
         <button
           type="button"
           onClick={onNew}
-          className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex items-center gap-1.5 rounded-[11px] px-4 py-2.5 text-sm font-extrabold text-white"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control-lg mt-3 inline-flex items-center gap-1.5 px-4 py-2.5 text-sm font-extrabold text-white"
         >
           <Plus className="size-4" />
           Composer la première
@@ -244,7 +244,7 @@ function ListPanel({
     );
   }
   return (
-    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-[16px] border">
+    <div className="border-border bg-surface divide-border divide-y overflow-hidden rounded-lg border">
       {rows.map((a) => (
         <AnnouncementRow key={a.id} a={a} s={stats[a.id]} onEdit={onEdit} />
       ))}
@@ -290,7 +290,7 @@ function AnnouncementRow({
             )}
             {a.title_fr}
           </span>
-          <span className="text-muted block text-[11px] font-semibold">
+          <span className="text-muted text-caption block font-semibold">
             {a.audiences.map((x) => AUDIENCE_LABELS[x] ?? x).join(" · ")} ·{" "}
             {a.channel === "both"
               ? "push + pop-up"
@@ -303,7 +303,7 @@ function AnnouncementRow({
         </span>
         <span
           className={cn(
-            "shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold",
+            "text-caption shrink-0 rounded-full px-2.5 py-1 font-extrabold",
             st.cls
           )}
         >
@@ -311,7 +311,7 @@ function AnnouncementRow({
         </span>
       </div>
 
-      <p className="text-muted mt-1.5 text-[11px] font-bold tabular-nums">
+      <p className="text-muted text-caption mt-1.5 font-bold tabular-nums">
         {a.push_sent_at ? `${a.push_sent_count} push` : "push —"} ·{" "}
         {s?.impressions ?? 0} vues · {ackPct} % acquittées
         {a.buttons.length > 0 &&
@@ -426,7 +426,7 @@ function RowBtn({
       disabled={busy}
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[10px] px-2.5 py-1.5 text-xs font-extrabold transition-colors disabled:opacity-60",
+        "rounded-control inline-flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-extrabold transition-colors disabled:opacity-60",
         danger
           ? "bg-rose-50 text-rose-700 hover:bg-rose-100"
           : "bg-surface-2 text-foreground hover:bg-surface-3"
@@ -496,9 +496,9 @@ function ComposerPanel({
   return (
     <div className="grid gap-4 lg:grid-cols-[1fr_360px]">
       {/* ── FORMULAIRE ── */}
-      <div className="border-border bg-surface space-y-4 rounded-[16px] border p-4">
+      <div className="border-border bg-surface space-y-4 rounded-lg border p-4">
         {spamWarn.length > 0 && (
-          <p className="flex items-start gap-2 rounded-[12px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800">
+          <p className="flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2.5 text-xs font-semibold text-amber-800">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             {spamWarn.map((a) => AUDIENCE_LABELS[a]).join(", ")} :{" "}
             {
@@ -700,7 +700,7 @@ function ComposerPanel({
             type="button"
             disabled={pending}
             onClick={() => save(false)}
-            className="border-border text-foreground inline-flex items-center gap-2 rounded-[11px] border-2 px-4 py-2.5 text-sm font-extrabold disabled:opacity-60"
+            className="border-border text-foreground rounded-control-lg inline-flex items-center gap-2 border-2 px-4 py-2.5 text-sm font-extrabold disabled:opacity-60"
           >
             {pending ? <Loader2 className="size-4 animate-spin" /> : null}
             Enregistrer le brouillon
@@ -709,7 +709,7 @@ function ComposerPanel({
             type="button"
             disabled={pending}
             onClick={() => save(true)}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[11px] px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-60"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control-lg inline-flex items-center gap-2 px-4 py-2.5 text-sm font-extrabold text-white disabled:opacity-60"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -724,10 +724,10 @@ function ComposerPanel({
       {/* ── APERÇU EN DIRECT (le VRAI composant) ── */}
       <div className="lg:sticky lg:top-4 lg:self-start">
         <div className="mb-2 flex items-center justify-between">
-          <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+          <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             Aperçu en direct
           </p>
-          <div className="bg-surface-2 flex gap-0.5 rounded-full p-0.5 text-[11px] font-extrabold">
+          <div className="bg-surface-2 text-caption flex gap-0.5 rounded-full p-0.5 font-extrabold">
             {(["fr", "ar"] as const).map((l) => (
               <button
                 key={l}
@@ -745,7 +745,7 @@ function ComposerPanel({
             ))}
           </div>
         </div>
-        <div className="border-border bg-surface-2 rounded-[26px] border p-3">
+        <div className="border-border bg-surface-2 rounded-panel-lg border p-3">
           <AnnouncementPopup
             preview
             locale={previewLocale}
@@ -792,7 +792,7 @@ function ButtonsEditor({
   return (
     <div>
       <div className="mb-1.5 flex items-center justify-between">
-        <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
           Boutons ({form.buttons.length}/2)
         </p>
         {form.buttons.length < 2 && (
@@ -812,7 +812,7 @@ function ButtonsEditor({
                 ],
               }))
             }
-            className="bg-surface-2 text-foreground hover:bg-surface-3 inline-flex items-center gap-1 rounded-[9px] px-2.5 py-1.5 text-xs font-extrabold"
+            className="bg-surface-2 text-foreground hover:bg-surface-3 rounded-chip inline-flex items-center gap-1 px-2.5 py-1.5 text-xs font-extrabold"
           >
             <Plus className="size-3.5" />
             Ajouter
@@ -822,7 +822,7 @@ function ButtonsEditor({
       {form.buttons.map((b, i) => (
         <div
           key={i}
-          className="border-border bg-surface-2 mb-2 rounded-[12px] border p-2.5"
+          className="border-border bg-surface-2 mb-2 rounded-md border p-2.5"
         >
           <div className="grid grid-cols-2 gap-2">
             <input
@@ -904,7 +904,7 @@ function ButtonsEditor({
 }
 
 const inputCls =
-  "border-border bg-surface text-foreground w-full rounded-[10px] border px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary-500)]";
+  "border-border bg-surface text-foreground w-full rounded-control border px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary-500)]";
 
 function Field({
   label,

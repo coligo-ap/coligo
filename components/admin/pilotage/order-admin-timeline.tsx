@@ -127,7 +127,7 @@ export function OrderAdminTimeline({
   entries.sort((x, y) => new Date(x.at).getTime() - new Date(y.at).getTime());
 
   return (
-    <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+    <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
       <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
         <History className="size-3.5" />
         Historique complet
@@ -167,7 +167,7 @@ export function OrderAdminTimeline({
                 <p className="text-muted mt-0.5 text-xs">{e.detail}</p>
               )}
               {(e.admin || e.ip) && (
-                <p className="text-subtle mt-0.5 text-[11px]">
+                <p className="text-subtle text-caption mt-0.5">
                   {e.admin ?? "admin"}
                   {e.ip ? ` · IP ${e.ip}` : ""}
                 </p>

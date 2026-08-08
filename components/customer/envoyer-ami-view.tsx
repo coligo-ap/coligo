@@ -189,7 +189,7 @@ export function EnvoyerAmiView({
         >
           <ChevronLeft className="size-[18px] rtl:-scale-x-100" />
         </button>
-        <h1 className="text-[19px] font-black tracking-tight">
+        <h1 className="text-heading font-black tracking-tight">
           {step === "amount"
             ? t("sendAmountTitle")
             : step === "confirm"
@@ -271,7 +271,7 @@ export function EnvoyerAmiView({
             <p className="text-primary-600 mt-2 text-[34px] leading-none font-black tabular-nums">
               {formatDA(amountNum)}
             </p>
-            <p className="text-muted mt-2 text-[13px] font-semibold">
+            <p className="text-muted text-body-sm mt-2 font-semibold">
               {t.rich("sendSuccessDesc", {
                 name: recipient.name,
                 b: (c) => <b className="text-foreground font-extrabold">{c}</b>,
@@ -280,7 +280,7 @@ export function EnvoyerAmiView({
             <button
               type="button"
               onClick={() => router.push("/coligo-pay")}
-              className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-12 w-full max-w-[320px] items-center justify-center rounded-[14px] text-[15px] font-extrabold text-white"
+              className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-6 inline-flex h-12 w-full max-w-[320px] items-center justify-center font-extrabold text-white"
             >
               {t("qrDone")}
             </button>
@@ -334,7 +334,7 @@ function SearchStep({
             e.preventDefault();
             onSearch();
           }}
-          className="border-primary-400 focus-within:ring-primary-100 flex items-center gap-2.5 rounded-[15px] border bg-white px-3.5 py-3.5 shadow-[0_4px_14px_-8px_rgba(91,91,230,.45)] focus-within:ring-2"
+          className="border-primary-400 focus-within:ring-primary-100 rounded-card-xl flex items-center gap-2.5 border bg-white px-3.5 py-3.5 shadow-[0_4px_14px_-8px_rgba(91,91,230,.45)] focus-within:ring-2"
         >
           <Search className="text-primary-600 size-[18px] shrink-0" />
           <input
@@ -357,26 +357,26 @@ function SearchStep({
             )
           )}
         </form>
-        <p className="text-muted mt-2 px-1 text-[11.5px] font-medium">
+        <p className="text-muted text-caption-lg mt-2 px-1 font-medium">
           {t("sendSearchHint")}
         </p>
         {error && (
-          <p className="text-danger-600 mt-2 px-1 text-[12.5px] font-semibold">
+          <p className="text-danger-600 text-label-lg mt-2 px-1 font-semibold">
             {error}
           </p>
         )}
       </div>
 
       <div>
-        <p className="text-muted px-1 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption px-1 pb-2 font-extrabold tracking-wide uppercase">
           {t("sendRecents")}
         </p>
         {recents.length === 0 ? (
-          <p className="text-subtle px-1 text-[13px] font-medium">
+          <p className="text-subtle text-body-sm px-1 font-medium">
             {t("sendNoRecents")}
           </p>
         ) : (
-          <div className="divide-border divide-y overflow-hidden rounded-[18px] bg-white shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+          <div className="divide-border rounded-sheet-lg divide-y overflow-hidden bg-white shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
             {recents.map((r) => (
               <button
                 key={r.handle}
@@ -386,7 +386,7 @@ function SearchStep({
               >
                 <Avatar name={r.name} />
                 <span className="min-w-0 flex-1">
-                  <span className="text-foreground block truncate text-[14.5px] font-extrabold">
+                  <span className="text-foreground text-body-xl block truncate font-extrabold">
                     {r.name}
                   </span>
                   <span className="text-muted block truncate text-xs font-semibold">
@@ -460,7 +460,7 @@ function AmountStep({
         </p>
         <p
           className={cn(
-            "mt-2 text-[12.5px] font-bold",
+            "text-label-lg mt-2 font-bold",
             over ? "text-danger-600" : "text-muted"
           )}
         >
@@ -472,7 +472,7 @@ function AmountStep({
         value={note}
         onChange={(e) => setNote(e.target.value.slice(0, 140))}
         placeholder={t("sendNotePlaceholder")}
-        className="border-border mt-5 w-full max-w-[320px] rounded-[14px] border bg-white px-4 py-3 text-center text-sm font-semibold outline-none"
+        className="border-border rounded-card-lg mt-5 w-full max-w-[320px] border bg-white px-4 py-3 text-center text-sm font-semibold outline-none"
       />
 
       <div className="mt-5 grid w-full max-w-[320px] grid-cols-3 gap-1.5">
@@ -491,7 +491,7 @@ function AmountStep({
       </div>
 
       {error && (
-        <p className="text-danger-600 mt-4 text-center text-[12.5px] font-semibold">
+        <p className="text-danger-600 text-label-lg mt-4 text-center font-semibold">
           {error}
         </p>
       )}
@@ -500,7 +500,7 @@ function AmountStep({
         type="button"
         disabled={amountNum <= 0 || over}
         onClick={onContinue}
-        className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-[52px] w-full max-w-[320px] items-center justify-center gap-2 rounded-[15px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] disabled:opacity-40"
+        className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-6 inline-flex h-[52px] w-full max-w-[320px] items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] disabled:opacity-40"
       >
         {t("sendContinue")}
         <ArrowRight className="size-4 rtl:-scale-x-100" />
@@ -520,7 +520,7 @@ function Key({
     <button
       type="button"
       onClick={onClick}
-      className="active:bg-surface-3 text-foreground grid h-14 place-items-center rounded-[14px] text-[23px] font-extrabold tabular-nums transition-colors"
+      className="active:bg-surface-3 text-foreground rounded-card-lg grid h-14 place-items-center text-[23px] font-extrabold tabular-nums transition-colors"
     >
       {children}
     </button>
@@ -564,34 +564,34 @@ function ConfirmStep({
 }) {
   return (
     <div className="space-y-4">
-      <div className="rounded-[24px] bg-white p-6 text-center shadow-[0_14px_34px_-16px_rgba(40,35,90,.26)]">
+      <div className="rounded-panel bg-white p-6 text-center shadow-[0_14px_34px_-16px_rgba(40,35,90,.26)]">
         <div className="mb-4 flex items-center justify-center gap-4">
           <div className="flex flex-col items-center gap-1.5">
             <Avatar name={senderName} size={54} />
-            <span className="text-muted text-[11.5px] font-bold">
+            <span className="text-muted text-caption-lg font-bold">
               {t("sendYou")}
             </span>
           </div>
           <ArrowRight className="text-primary-600 size-6 rtl:-scale-x-100" />
           <div className="flex flex-col items-center gap-1.5">
             <Avatar name={recipient.name} size={54} />
-            <span className="text-muted text-[11.5px] font-bold">
+            <span className="text-muted text-caption-lg font-bold">
               {recipient.name.split(" ")[0]}
             </span>
           </div>
         </div>
-        <p className="text-muted text-[12.5px] font-bold">{t("sendYouSend")}</p>
+        <p className="text-muted text-label-lg font-bold">{t("sendYouSend")}</p>
         <p className="text-foreground mt-1 text-[38px] leading-none font-black tracking-tight tabular-nums">
           {formatDA(amountNum)}
         </p>
         {note.trim() && (
-          <p className="bg-surface-2 text-foreground mt-4 rounded-[12px] px-3.5 py-2.5 text-[13px] font-semibold">
+          <p className="bg-surface-2 text-foreground text-body-sm mt-4 rounded-md px-3.5 py-2.5 font-semibold">
             « {note.trim()} »
           </p>
         )}
       </div>
 
-      <div className="divide-border divide-y rounded-[18px] bg-white px-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+      <div className="divide-border rounded-sheet-lg divide-y bg-white px-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
         <Row
           k={t("sendRecipient")}
           v={`${recipient.name} · ${recipient.handle}`}
@@ -604,14 +604,14 @@ function ConfirmStep({
         />
       </div>
 
-      <div className="text-muted flex items-start gap-2 px-1 text-[11.5px] font-medium">
+      <div className="text-muted text-caption-lg flex items-start gap-2 px-1 font-medium">
         <ShieldCheck className="text-primary-600 mt-0.5 size-4 shrink-0" />
         <span>{t("sendSecurityNote")}</span>
       </div>
 
       {/* PIN obligatoire */}
       {locked ? (
-        <div className="border-danger-200 bg-danger-50 text-danger-700 rounded-[14px] border px-4 py-3 text-sm font-semibold">
+        <div className="border-danger-200 bg-danger-50 text-danger-700 rounded-card-lg border px-4 py-3 text-sm font-semibold">
           <span className="flex items-center gap-2">
             <Lock className="size-4 shrink-0" />
             {t("qrErrPinLocked")}
@@ -620,7 +620,7 @@ function ConfirmStep({
           <button
             type="button"
             onClick={onForgot}
-            className="text-primary-600 mt-2 text-[12.5px] font-bold underline"
+            className="text-primary-600 text-label-lg mt-2 font-bold underline"
           >
             {t("pinForgot")}
           </button>
@@ -628,8 +628,8 @@ function ConfirmStep({
       ) : !hasPin ? (
         <InlineCreatePin t={t} onCreated={onPinCreated} />
       ) : (
-        <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
-          <p className="text-muted mb-2 text-center text-[13px] font-bold">
+        <div className="bg-surface rounded-lg p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+          <p className="text-muted text-body-sm mb-2 text-center font-bold">
             {t("sendEnterPin")}
           </p>
           <input
@@ -640,10 +640,10 @@ function ConfirmStep({
               setPin(e.target.value.replace(/\D/g, "").slice(0, 4))
             }
             placeholder="••••"
-            className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 w-full rounded-[14px] border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
+            className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-card-lg w-full border py-3.5 text-center text-2xl font-black tracking-[0.5em] tabular-nums outline-none"
           />
           {error && (
-            <p className="text-danger-600 mt-2 text-center text-[12.5px] font-semibold">
+            <p className="text-danger-600 text-label-lg mt-2 text-center font-semibold">
               {error}
             </p>
           )}
@@ -651,7 +651,7 @@ function ConfirmStep({
             type="button"
             disabled={busy || pin.length !== 4 || locked}
             onClick={onSend}
-            className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[15px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] disabled:opacity-40"
+            className="bg-primary-600 hover:bg-primary-700 rounded-card-xl text-title-sm mt-4 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] disabled:opacity-40"
           >
             {busy ? (
               <Loader2 className="size-5 animate-spin" />
@@ -665,7 +665,7 @@ function ConfirmStep({
           <button
             type="button"
             onClick={onForgot}
-            className="text-primary-600 mt-3 block w-full text-center text-[12.5px] font-bold"
+            className="text-primary-600 text-label-lg mt-3 block w-full text-center font-bold"
           >
             {t("pinForgot")}
           </button>
@@ -677,7 +677,7 @@ function ConfirmStep({
 
 function Row({ k, v, green }: { k: string; v: string; green?: boolean }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-3 text-[13.5px] font-bold">
+    <div className="text-body flex items-center justify-between gap-3 py-3 font-bold">
       <span className="text-muted">{k}</span>
       <span className={green ? "text-success-700" : "text-foreground"}>
         {v}
@@ -727,12 +727,12 @@ function InlineCreatePin({
   }
 
   return (
-    <div className="bg-surface rounded-[16px] p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
+    <div className="bg-surface rounded-lg p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)]">
       <p className="text-foreground flex items-center gap-2 text-sm font-extrabold">
         <Lock className="text-primary-600 size-4" />
         {t("qrCreatePinTitle")}
       </p>
-      <p className="text-muted mt-1 text-[12px] font-medium">
+      <p className="text-muted text-label mt-1 font-medium">
         {t("qrCreatePinDesc")}
       </p>
       <div className="mt-3 grid grid-cols-2 gap-2">
@@ -744,7 +744,7 @@ function InlineCreatePin({
             setErr(null);
           }}
           placeholder={t("qrPinLabel")}
-          className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
+          className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-md border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
         />
         <input
           inputMode="numeric"
@@ -754,17 +754,17 @@ function InlineCreatePin({
             setErr(null);
           }}
           placeholder={t("qrPinConfirmLabel")}
-          className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-[12px] border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
+          className="border-border bg-surface-2 text-foreground placeholder:text-subtle focus:border-primary-400 rounded-md border py-3 text-center text-lg font-black tracking-[0.4em] tabular-nums outline-none"
         />
       </div>
       {err && (
-        <p className="text-danger-600 mt-2 text-[12px] font-semibold">{err}</p>
+        <p className="text-danger-600 text-label mt-2 font-semibold">{err}</p>
       )}
       <button
         type="button"
         disabled={busy || a.length !== 4 || b.length !== 4}
         onClick={save}
-        className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[13px] text-sm font-extrabold text-white disabled:opacity-40"
+        className="bg-primary-600 hover:bg-primary-700 rounded-card mt-3 inline-flex h-11 w-full items-center justify-center gap-2 text-sm font-extrabold text-white disabled:opacity-40"
       >
         {busy ? (
           <Loader2 className="size-4 animate-spin" />

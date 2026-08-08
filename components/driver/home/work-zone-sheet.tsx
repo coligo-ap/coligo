@@ -60,7 +60,7 @@ export function WorkZoneSheet({
         onClick={onClose}
       >
         <div
-          className="w-full max-w-md overflow-hidden rounded-t-[22px] bg-[var(--surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
+          className="rounded-t-sheet-xl sm:rounded-sheet-xl w-full max-w-md overflow-hidden bg-[var(--surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--ink)] shadow-2xl sm:pb-0"
           onClick={(e) => e.stopPropagation()}
         >
           {/* En-tête */}
@@ -70,7 +70,7 @@ export function WorkZoneSheet({
                 className="size-[18px]"
                 style={{ color: "var(--violet)" }}
               />
-              <h2 className="mq-sora text-[16px] font-extrabold">
+              <h2 className="mq-sora text-title font-extrabold">
                 {tr("Ma zone de travail", "منطقة عملي")}
               </h2>
             </div>
@@ -85,7 +85,7 @@ export function WorkZoneSheet({
           </div>
 
           <div className="p-4">
-            <p className="mb-3 text-[13px] leading-snug text-[var(--muted)]">
+            <p className="text-body-sm mb-3 leading-snug text-[var(--muted)]">
               {tr(
                 "Choisissez le centre de votre zone et un rayon. Vous ne recevrez que les courses Express de ce périmètre, où que vous soyez.",
                 "اختر مركز منطقتك ونصف القطر. لن تصلك إلا توصيلات السريع ضمن هذا المحيط، أينما كنت."
@@ -108,7 +108,7 @@ export function WorkZoneSheet({
 
             {/* Sélecteur de rayon */}
             <div className="mt-4">
-              <div className="mb-2 text-[12px] font-bold tracking-wide text-[var(--muted)] uppercase">
+              <div className="text-label mb-2 font-bold tracking-wide text-[var(--muted)] uppercase">
                 {tr("Rayon de la zone", "نصف قطر المنطقة")}
               </div>
               <div className="grid grid-cols-4 gap-2">
@@ -119,7 +119,7 @@ export function WorkZoneSheet({
                       key={r}
                       type="button"
                       onClick={() => setRadius(r)}
-                      className="h-11 rounded-[12px] border text-[14px] font-bold transition"
+                      className="text-body-lg h-11 rounded-md border font-bold transition"
                       style={
                         active
                           ? {
@@ -147,7 +147,7 @@ export function WorkZoneSheet({
                 type="button"
                 onClick={activate}
                 disabled={!center}
-                className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white disabled:opacity-50"
+                className="rounded-card-lg text-title-sm inline-flex h-[52px] w-full items-center justify-center gap-2 font-bold text-white disabled:opacity-50"
                 style={{
                   background: "var(--violet)",
                   boxShadow: "0 14px 28px -12px var(--violet-glow)",
@@ -159,7 +159,7 @@ export function WorkZoneSheet({
               <button
                 type="button"
                 onClick={useAroundMe}
-                className="inline-flex h-[48px] w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--line)] text-[14px] font-semibold text-[var(--ink)]"
+                className="rounded-card-lg text-body-lg inline-flex h-[48px] w-full items-center justify-center gap-2 border border-[var(--line)] font-semibold text-[var(--ink)]"
               >
                 <Crosshair className="size-[16px]" />
                 {tr("Autour de moi (position GPS)", "حولي (موقع GPS)")}

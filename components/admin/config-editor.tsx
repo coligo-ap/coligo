@@ -103,7 +103,9 @@ function ConfigRow({ item }: { item: ConfigItem }) {
               {item.helpFr}
             </p>
           )}
-          <p className="text-muted/70 mt-1 font-mono text-[11px]">{item.key}</p>
+          <p className="text-muted/70 text-caption mt-1 font-mono">
+            {item.key}
+          </p>
         </div>
         <button
           type="button"

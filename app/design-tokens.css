@@ -1,0 +1,491 @@
+/* =============================================================================
+ * COLIGO — DESIGN TOKENS · SOURCE UNIQUE DE VÉRITÉ
+ *
+ * TOUTE l'identité visuelle vit ici, en 4 couches :
+ *   1. PRIMITIVES  (@theme Tailwind v4)  — palettes, typo, rayons, ombres
+ *   2. SÉMANTIQUES (:root, light/dark)   — accents partagés, Drive --d-*,
+ *      mouvements, remaps sombres
+ *   3. ESPACES     ([data-space="driver"]) — palette livreur + alias --d-*
+ *   4. THÈMES DE COMPOSANTS — sous-systèmes scopés (portefeuille, paiement,
+ *      vérification d'identité) qui avaient chacun leur palette en dur
+ *
+ * Règle : ON MODIFIE LE TOKEN, JAMAIS LE COMPOSANT. Aucun hex hors de ce
+ * fichier (garde-fou : scripts/check-design-tokens.mjs). Le miroir TypeScript
+ * pour les contextes sans var() CSS (MapLibre, pdf-lib, canvas, Capacitor)
+ * est lib/design/tokens.ts — les deux fichiers doivent rester alignés.
+ * Vitrine visuelle : /design-system · doc : docs/design-system.md
+ * ========================================================================== */
+
+/* ─────────────────────── COUCHE 1 — PRIMITIVES (@theme) ─────────────────── */
+@theme {
+  /* Typo storefront :
+     - Corps + UI : Plus Jakarta Sans  (--font-sans-body)
+     - Titres    : Sora                 (--font-display, classe font-display)
+     Les variables sont injectées par next/font (cf. lib/fonts.ts). */
+  --font-sans:
+    var(--font-sans-body), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display:
+    var(--font-display), var(--font-sans-body), system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
+
+  /* === Palette violette/indigo (kit e-commerce) ===
+     ⚠️ DÉPRÉCIÉE : les tons 700-900 sont des INDIGOS hors charte. À terme,
+     tout usage doit basculer sur --color-primary-*. Ne rien y ajouter. */
+  --color-violet-50: #eeeefb;
+  --color-violet-100: #e0e0f8;
+  --color-violet-200: #c4c4f1;
+  --color-violet-300: #a3a3e8;
+  --color-violet-400: #8a4dff;
+  --color-violet-500: #7a3aec;
+  --color-violet-600: #6c2bd9;
+  --color-violet-700: #4a4ac4;
+  --color-violet-800: #3c3c9e;
+  --color-violet-900: #313178;
+
+  /* Couleur primaire = violet de marque Coligo (#6C2BD9) */
+  --color-primary-50: #f4eefe;
+  --color-primary-100: #e9ddfd;
+  --color-primary-200: #d2bcfb;
+  --color-primary-300: #b493f9;
+  --color-primary-400: #8a4dff;
+  --color-primary-500: #7a3aec;
+  --color-primary-600: #6c2bd9;
+  --color-primary-700: #4b1fa6;
+  --color-primary-800: #3a1880;
+  --color-primary-900: #2b1160;
+
+  /* Accents sémantiques */
+  --color-success-50: #ecfdf5;
+  --color-success-100: #d1fae5;
+  --color-success-500: #10b981;
+  --color-success-600: #059669;
+  --color-success-700: #047857;
+
+  --color-warning-50: #fffbeb;
+  --color-warning-100: #fef3c7;
+  --color-warning-500: #f59e0b;
+  --color-warning-600: #d97706;
+  --color-warning-700: #b45309;
+
+  --color-danger-50: #fef2f2;
+  --color-danger-100: #fee2e2;
+  --color-danger-500: #ef4444;
+  --color-danger-600: #dc2626;
+  --color-danger-700: #b91c1c;
+
+  /* Info (bleu) — état neutre/informatif */
+  --color-info-50: #f0f9ff;
+  --color-info-100: #e0f2fe;
+  --color-info-500: #0ea5e9;
+  --color-info-600: #0284c7;
+  --color-info-700: #0369a1;
+
+  /* === Accents storefront (prompt 20 redesign) ===
+     Usage intentionnel et sobre :
+     - coral  : badge promo, cœur favori actif, pastille panier
+     - mint   : badge "Ouvert", mention "Retrait gratuit"
+     - amber  : étoiles de note UNIQUEMENT (si rating disponible)
+     - violet-accent : fonds de tags / hover (déjà couvert par primary-50/100) */
+  --color-coral-50: #fff1ee;
+  --color-coral-100: #ffd9d1;
+  --color-coral-300: #ff9a86;
+  --color-coral-500: #ff6b5c;
+  --color-coral-600: #ec4f3e;
+  --color-coral-700: #c63a2b;
+
+  --color-mint-50: #ecfdf5;
+  --color-mint-100: #d1fae5;
+  --color-mint-300: #6ee7b7;
+  --color-mint-500: #10c98d;
+  --color-mint-600: #0fa978;
+  --color-mint-700: #0c855e;
+
+  --color-amber-50: #fff8eb;
+  --color-amber-100: #fdecc8;
+  --color-amber-400: #f7bf4f;
+  --color-amber-500: #f0a92c;
+  --color-amber-600: #d18d18;
+
+  /* === Accent rose de marque Coligo (#FF2D7A) ===
+     Couleur OFFICIELLE de la charte (avec le violet primaire) réservée aux
+     PROMOTIONS : badges « −X% », « 2 achetés = 1 offert », prix promo, codes
+     promo, cartes de réduction. Le 600 garde ≥ 4,5:1 de contraste. */
+  --color-accent-50: #fff0f6;
+  --color-accent-100: #ffdcea;
+  --color-accent-200: #ffb8d5;
+  --color-accent-300: #ff8abb;
+  --color-accent-400: #ff5499;
+  --color-accent-500: #ff2d7a;
+  --color-accent-600: #e6007a;
+  --color-accent-700: #c00068;
+  --color-accent-800: #990052;
+  --color-accent-900: #7a0042;
+  --color-accent-950: #4d0029;
+
+  /* Encres invariantes — ne suivent JAMAIS le thème.
+     - on-brand : texte/icône posé sur une surface de marque ou colorée
+       (bouton violet, héro dégradé) ; reste blanc en clair comme en sombre.
+     - plain-white / plain-black : blanc et noir absolus (plaque
+       d'immatriculation, contrastes forcés, impression). */
+  --color-on-brand: #ffffff;
+  --color-plain-white: #ffffff;
+  --color-plain-black: #000000;
+
+  /* Neutres (gris du kit) */
+  --color-background: #ffffff;
+  --color-surface: #ffffff;
+  --color-surface-2: #f7f7fb;
+  --color-surface-3: #efeff5;
+  --color-foreground: #1a1a2e;
+  --color-muted: #6b6b80;
+  --color-subtle: #9b9bb0;
+  --color-border: #ececf2;
+  --color-border-strong: #dcdce6;
+
+  /* === Teintes translucides d'état (halos) — les rgba() récurrents.
+     Utilitaires : bg-success-tint, bg-danger-tint, border-primary-tint… */
+  --color-primary-tint: rgba(108, 43, 217, 0.1);
+  --color-success-tint: rgba(22, 179, 100, 0.12);
+  --color-danger-tint: rgba(229, 72, 77, 0.12);
+  --color-danger-tint-weak: rgba(229, 72, 77, 0.1);
+  --color-warning-tint: rgba(245, 158, 11, 0.13);
+  --color-accent-tint: rgba(255, 45, 122, 0.14);
+
+  /* === Rayons — règle flat Bolt : contrôles 8-11px, cartes 12-15px,
+     feuilles 16-18px, panneaux 20-28px. rounded-full réservé aux PILULES de
+     filtre/segmented et aux avatars. Échelle mappée 1:1 sur les valeurs
+     réellement utilisées : renommer suffit à faire bouger toute l'app. */
+  --radius-sm: 8px; /* rounded-sm         */
+  --radius-chip: 9px; /* rounded-chip       */
+  --radius-control: 10px; /* rounded-control — boutons/inputs */
+  --radius-control-lg: 11px; /* rounded-control-lg */
+  --radius-md: 12px; /* rounded-md — cartes */
+  --radius-card: 13px; /* rounded-card       */
+  --radius-card-lg: 14px; /* rounded-card-lg    */
+  --radius-card-xl: 15px; /* rounded-card-xl    */
+  --radius-lg: 16px; /* rounded-lg — feuilles */
+  --radius-sheet-lg: 18px; /* rounded-sheet-lg   */
+  --radius-xl: 20px; /* rounded-xl         */
+  --radius-sheet-xl: 22px; /* rounded-sheet-xl   */
+  --radius-panel: 24px; /* rounded-panel      */
+  --radius-panel-lg: 26px; /* rounded-panel-lg   */
+  --radius-2xl: 28px; /* rounded-2xl        */
+
+  /* === Typo — échelle RÉELLE de l'app, mappée 1:1 (iso-visuel), SANS
+     line-height associée : les valeurs arbitraires n'en posaient pas, et les
+     `text-base`/`text-lg` de Tailwind en imposent une. Ne PAS les substituer. */
+  --text-nano: 9px;
+  --text-nano-lg: 9.5px;
+  --text-micro: 10px; /* pastilles minuscules     */
+  --text-micro-lg: 10.5px;
+  --text-caption: 11px; /* légendes, méta           */
+  --text-caption-lg: 11.5px;
+  --text-label: 12px; /* labels, boutons compacts */
+  --text-label-lg: 12.5px;
+  --text-body-sm: 13px; /* corps compact            */
+  --text-body: 13.5px; /* corps standard           */
+  --text-body-lg: 14px;
+  --text-body-xl: 14.5px;
+  --text-title-sm: 15px; /* titres de carte          */
+  --text-title: 16px;
+  --text-title-lg: 17px;
+  --text-heading-sm: 18px;
+  --text-heading: 19px;
+  --text-heading-lg: 20px;
+  --text-display-sm: 21px; /* montants, chiffres héro  */
+  --text-display: 22px;
+
+  /* === Élévation FONCTIONNELLE uniquement (dropdown, feuille, overlay qui
+     doivent se détacher) — le décor reste FLAT (bordures + fonds doux). */
+  --shadow-float: 0 8px 22px -16px rgba(40, 35, 90, 0.2);
+  --shadow-pop: 0 12px 28px -14px rgba(40, 35, 90, 0.3);
+  --shadow-overlay: 0 20px 50px -16px rgba(0, 0, 0, 0.4);
+  --shadow-sheet: 0 14px 34px -14px rgba(0, 0, 0, 0.45);
+}
+
+/* ──────────── COUCHE 2 — SÉMANTIQUES PARTAGÉES (:root, light/dark) ──────── */
+
+:root {
+  /* Mouvements (nouvelles animations : consommer ces tokens) */
+  --duration-fast: 160ms;
+  --duration-base: 220ms;
+  --duration-slow: 400ms;
+  --ease-spring: cubic-bezier(0.22, 1, 0.36, 1);
+
+  /* HAUTEUR RÉELLE de la barre d'onglets partenaire (PartnerTabbar) : 66px de
+     contenu + zone sûre du bas. Tout ce qui flotte au-dessus s'y réfère
+     (.above-nav / .over-nav / .pb-safe-nav, cf. globals.css). */
+  --partner-nav-h: calc(66px + env(safe-area-inset-bottom));
+}
+
+/* ── Drive (client/chauffeur) : tokens --d-* clair/sombre ──
+   Les écrans Drive consomment ces variables ; le sombre est un CHOIX
+   utilisateur (interrupteur du header, cookie coligo_theme). */
+:root {
+  --d-page: #e9ebf1;
+  --d-surface: #fff;
+  --d-ink: #0b0c12;
+  --d-muted: #6b7280;
+  --d-line: #eef0f4;
+  --d-soft: #f4f5f9;
+  /* Accents violets pâles (badges/tuiles « Coligo », champs de saisie Drive).
+     ⚠️ --d-accent est un FOND, pas une couleur de texte. */
+  --d-accent: #eeeefd;
+  --d-field: #f6f3fe;
+  /* Violet d'accent LISIBLE dans les deux thèmes (textes/bordures). */
+  --d-violet: var(--color-primary-600);
+}
+.drive-jakarta {
+  --d-page: #e9ebf1;
+  --d-surface: #fff;
+  --d-ink: #0b0c12;
+  --d-muted: #6b7280;
+  --d-line: #eef0f4;
+  --d-soft: #f4f5f9;
+  --d-accent: #eeeefd;
+  --d-field: #f6f3fe;
+  --d-violet: var(--color-primary-600);
+  color: var(--d-ink);
+}
+/* Sombre AUSSI sur <body> : les feuilles/modales Drive passent par un <Portal>
+   monté sur document.body, HORS de .drive-jakarta. Le scope reste sûr : ces
+   tokens ne sont consommés que par les écrans Drive/chauffeur. */
+.theme-dark :is(.drive-jakarta, body) {
+  --d-page: #06070b;
+  --d-surface: #161823;
+  --d-ink: #fff;
+  --d-muted: #9ca0b3;
+  --d-line: #262838;
+  --d-soft: #1f2230;
+  --d-accent: rgba(138, 77, 255, 0.16);
+  --d-field: rgba(138, 77, 255, 0.12);
+  --d-violet: #b493f9;
+}
+
+/* ── Marketplace CLIENT : mode sombre (interrupteur du header) ──
+   Scopé à [data-space="client"] (posé par CustomerShell + miroité sur <body>
+   pour les portails). Les remaps de COMPAT (.bg-white, chips pâles…) restent
+   dans globals.css — ici uniquement les tokens. */
+.theme-dark :is([data-space="client"], .drive-jakarta) {
+  --color-background: #0b0c12;
+  --color-surface: #161823;
+  --color-surface-2: #0e0f16;
+  --color-surface-3: #1f2230;
+  --color-foreground: #f4f5fa;
+  --color-muted: #9ca0b3;
+  --color-subtle: #80849a;
+  --color-border: #262838;
+  --color-border-strong: #343852;
+  color-scheme: dark;
+}
+
+/* ─────────── COUCHE 3 — ESPACE LIVREUR ([data-space="driver"]) ──────────── */
+/* Palette « maquette » livreur (ex-maquette.css) + tokens 1ʳᵉ génération
+   (--d-bg/-card/-txt…) encore consommés par d'anciens écrans. Bascule sombre
+   par la classe .dark (store useDriverDark). */
+[data-space="driver"] {
+  /* Accents maquette. Volontairement SCOPÉS ici (et non à :root) : les hisser
+     au document les activerait dans des espaces où ces composants partagés
+     rendent aujourd'hui sans eux → changement visuel. */
+  --violet: var(--color-primary-600);
+  --violet-l: var(--color-primary-400);
+  --violet-d: var(--color-primary-700);
+  --violet-soft: #f3edfc;
+  --violet-glow: rgba(108, 43, 217, 0.45);
+  --go: #16b364;
+  --go-l: #28d27c;
+  --go-d: #0e8c4d;
+  --go-glow: rgba(22, 179, 100, 0.45);
+  --go-soft: rgba(22, 179, 100, 0.12);
+  --red: #e5484d;
+  --red-soft: rgba(229, 72, 77, 0.12);
+  --amber: var(--color-warning-500);
+  --amber-d: #c2790a;
+
+  /* Neutres maquette */
+  --page: #e9ebf1;
+  --surface: #ffffff;
+  --ink: #0b0c12;
+  --muted: #6b7280;
+  --line: #eef0f4;
+  --soft: #f4f5f9;
+  /* Carte SVG maquette */
+  --mq-map: radial-gradient(120% 80% at 60% 22%, #fbfbfe, #eceef5 60%, #e6e8f0);
+  --street-major: #ffffff;
+  --street-minor: #ffffff;
+  --street: #ffffff;
+  --block: #e7e9f1;
+  --park: #e2efe6;
+  --statics: #0b0c12;
+  --pill-shadow: 0 14px 34px -12px rgba(20, 22, 40, 0.3);
+
+  /* Pont design system PARTAGÉ livreur/chauffeur : les primitives partagées
+     (components/shared/partner-ui.tsx) sont écrites en tokens --d-* (espace
+     chauffeur / Drive). On les aliase ici vers la palette livreur → un même
+     composant rend nativement dans les DEUX espaces, clair ET sombre. */
+  --d-page: var(--page);
+  --d-surface: var(--surface);
+  --d-ink: var(--ink);
+  --d-muted: var(--muted);
+  --d-line: var(--line);
+  --d-soft: var(--soft);
+  --d-accent: var(--violet-soft);
+  --d-field: var(--violet-soft);
+  --d-violet: var(--violet);
+
+  /* Tokens 1ʳᵉ génération (« style Uber ») — encore consommés (idv, anciens
+     écrans). NE PLUS les utiliser dans du code neuf : préférer --d-* ci-dessus. */
+  --d-bg: #f2f2f2;
+  --d-card: #ffffff;
+  --d-txt: #1a1a1a;
+  --d-hint: #9e9e9e;
+  --d-bd: #eeeeee;
+  --d-bd2: #e5e5e5;
+  --d-p: var(--color-primary-600);
+  --d-p-d: var(--color-primary-700);
+  --d-mint: #00a86b;
+  --d-coral: #e53935;
+  --d-amber: #f39c12;
+
+  font-family:
+    var(--font-jakarta),
+    "Plus Jakarta Sans",
+    system-ui,
+    -apple-system,
+    "Segoe UI",
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  color: var(--ink);
+}
+
+[data-space="driver"].dark {
+  --page: #06070b;
+  --surface: #161823;
+  --ink: #ffffff;
+  --muted: #9ca0b3;
+  --line: #262838;
+  --soft: #1f2230;
+  --mq-map: radial-gradient(120% 80% at 60% 25%, #1a1c28, #0f1018 60%, #0a0b11);
+  --street-major: #232536;
+  --street-minor: #1b1d2b;
+  --street: #232536;
+  --block: #13141d;
+  --park: #10231a;
+  --statics: #ffffff;
+  --pill-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.6);
+  /* Alias partagés : accents violets pâles assombris (mêmes valeurs que le
+     mode sombre chauffeur) — --violet-soft reste clair, inutilisable ici. */
+  --d-accent: rgba(138, 77, 255, 0.16);
+  --d-field: rgba(138, 77, 255, 0.12);
+  --d-violet: #b493f9;
+
+  /* Remap des tokens GLOBAUX --color-* : tous les composants livreur écrits en
+     classes Tailwind globales (bg-surface, text-muted, border-border…)
+     s'adaptent au sombre SANS édition fichier par fichier. */
+  --color-background: #06070b;
+  --color-surface: #161823;
+  --color-surface-2: #1f2230;
+  --color-surface-3: #262838;
+  --color-foreground: #f4f5fa;
+  --color-muted: #9ca0b3;
+  --color-subtle: #80849a;
+  --color-border: #262838;
+  --color-border-strong: #343852;
+  color-scheme: dark;
+}
+
+/* ─────────────── COUCHE 4 — THÈMES DE COMPOSANTS (sous-systèmes) ────────────
+ * Trois parcours traversent plusieurs espaces (livreur, chauffeur, commerçant,
+ * client) qui n'exposent pas les mêmes variables. Chacun s'était donc écrit sa
+ * propre palette EN DUR dans son fichier .tsx — trois forks silencieux, avec
+ * des valeurs qui avaient dérivé de quelques points les unes des autres. Les
+ * déclarations sont rapatriées ici ; les composants ne font plus que consommer.
+ * -------------------------------------------------------------------------- */
+
+/* ── Portefeuille / recharge (.cgw) — cf. components/wallet/operator-recharge.style.ts
+   Certaines teintes restent volontairement propres à ce parcours (lavande et
+   neutres légèrement différents des échelles globales) : les aligner
+   changerait le rendu. Elles sont désormais SOUS GOUVERNANCE, au même endroit
+   que le reste — c'est ce qui permettra de les converger plus tard. */
+.cgw {
+  --violet: var(--color-primary-600);
+  --violet-l: var(--color-primary-400);
+  --violet-d: var(--color-primary-700);
+  --violet-soft: #f1e9fc;
+  --violet-glow: rgba(108, 43, 217, 0.42);
+  --cyan: #5be0ff;
+  --rose: var(--color-accent-500);
+  --go: #16b364;
+  --go-soft: var(--color-success-tint);
+  --red: #e5484d;
+  --surface: #fff;
+  --ink: #0c0d14;
+  --muted: #878ca0;
+  --line: #eceef4;
+  --soft: #f5f6fb;
+  --sh-s: 0 8px 22px -12px rgba(20, 22, 45, 0.2);
+  --sh-m: 0 18px 44px -20px rgba(20, 22, 45, 0.3);
+  /* Héro du portefeuille : dégradé de marque, teinte d'entrée propre au
+     parcours (plus claire que --violet-l pour ouvrir le dégradé). */
+  --hero-gradient: linear-gradient(
+    135deg,
+    #8a3de8,
+    var(--color-primary-600) 52%,
+    var(--color-primary-700)
+  );
+  --sora: var(--font-display), "Sora", system-ui, sans-serif;
+  --jakarta: var(--font-sans-body), "Plus Jakarta Sans", system-ui, sans-serif;
+}
+/* Sombre UNIQUEMENT dans les espaces qui basculent réellement (livreur,
+   chauffeur/Drive, client). Commerçant et agent restent clairs même si le
+   cookie global coligo_theme=dark est posé. */
+[data-space="driver"].dark .cgw,
+.theme-dark :is([data-space="client"], .drive-jakarta) .cgw {
+  --surface: #14161f;
+  --ink: #fff;
+  --muted: #979bb0;
+  --line: #23263a;
+  --soft: #1b1e2b;
+  --violet-soft: #2a1c44;
+  --sh-s: 0 8px 22px -10px rgba(0, 0, 0, 0.6);
+  --sh-m: 0 18px 44px -16px rgba(0, 0, 0, 0.7);
+}
+
+/* ── Vérification d'identité (.idv-scope) — cf. components/idv/idv-theme.tsx
+   Le même parcours tourne dans trois espaces : livreur/chauffeur (tokens
+   --d-*), et commerçant (aucun --d-*, d'où les replis). ⚠️ --d-accent est un
+   FOND lavande, PAS la couleur d'action : celle-ci est --d-violet. */
+.idv-scope {
+  --idv-accent: var(--d-violet, var(--color-primary-600));
+  --idv-accent-ink: #ffffff;
+  --idv-soft: var(--d-soft, rgba(108, 43, 217, 0.08));
+  --idv-tint: var(--d-accent, var(--color-primary-tint));
+  --idv-card: var(--d-card, #ffffff);
+  --idv-line: var(--d-line, rgba(0, 0, 0, 0.1));
+  --idv-ink: var(--d-ink, #0b0c12);
+  --idv-muted: var(--d-muted, #6b7280);
+  --idv-ok: var(--d-mint, var(--color-success-500));
+  --idv-warn: var(--d-amber, var(--color-warning-500));
+  --idv-bad: var(--d-coral, var(--color-danger-500));
+  color: var(--idv-ink);
+}
+
+/* ── Résultat de paiement (--pay-*) — cf. components/payments/payment-result-overlay.tsx
+   L'overlay est monté par un <Portal> sur document.body : ses tokens doivent
+   exister à la racine, d'où la portée globale. Avant, ce composant injectait
+   lui-même un bloc `:root` à chaque montage. */
+:root {
+  --pay-bg: #fff;
+  --pay-ink: #0b0c12;
+  --pay-muted: #6b7280;
+  --pay-line: rgba(0, 0, 0, 0.12);
+  --pay-go: #16b364;
+  --pay-red: #e5484d;
+  --pay-violet: var(--color-primary-600);
+}
+.theme-dark {
+  --pay-bg: #0b0c12;
+  --pay-ink: #fff;
+  --pay-muted: #9ca0b3;
+  --pay-line: rgba(255, 255, 255, 0.16);
+}

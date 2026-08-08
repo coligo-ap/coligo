@@ -49,9 +49,9 @@ export function MerchantTopbar({
         <input
           type="search"
           placeholder="Rechercher une commande, un client, un produit…"
-          className="border-border bg-surface-2 focus:border-primary-400 focus:ring-primary-400/20 h-10 w-full rounded-[10px] border pr-4 pl-10 text-sm transition-all focus:bg-white focus:ring-2 focus:outline-none"
+          className="border-border bg-surface-2 focus:border-primary-400 focus:ring-primary-400/20 rounded-control h-10 w-full border pr-4 pl-10 text-sm transition-all focus:bg-white focus:ring-2 focus:outline-none"
         />
-        <kbd className="border-border text-muted absolute top-1/2 right-3 hidden -translate-y-1/2 items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono text-[10px] xl:flex">
+        <kbd className="border-border text-muted text-micro absolute top-1/2 right-3 hidden -translate-y-1/2 items-center gap-1 rounded border bg-white px-1.5 py-0.5 font-mono xl:flex">
           ⌘ K
         </kbd>
       </div>
@@ -80,7 +80,7 @@ export function MerchantTopbar({
         >
           <Bell className="size-4" />
           {pendingCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            <span className="text-micro absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 font-bold text-white ring-2 ring-white">
               {pendingCount}
             </span>
           )}
@@ -98,7 +98,7 @@ export function MerchantTopbar({
           </button>
 
           {menuOpen && (
-            <div className="border-border absolute top-full right-0 mt-1 w-64 overflow-hidden rounded-[12px] border bg-white shadow-lg">
+            <div className="border-border absolute top-full right-0 mt-1 w-64 overflow-hidden rounded-md border bg-white shadow-lg">
               <div className="border-surface-3 border-b px-4 py-3">
                 <div className="truncate text-sm font-medium">
                   {merchantName}

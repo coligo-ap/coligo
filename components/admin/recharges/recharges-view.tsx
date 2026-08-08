@@ -272,7 +272,7 @@ export async function RechargesView() {
 
       <section
         data-alert-focus="payment_accounts_missing"
-        className="border-border bg-surface mt-4 rounded-[16px] border p-5"
+        className="border-border bg-surface mt-4 rounded-lg border p-5"
       >
         <div className="mb-4">
           <h2 className="text-foreground text-base font-bold">

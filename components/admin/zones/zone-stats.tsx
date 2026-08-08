@@ -35,7 +35,7 @@ function StatCard({
     .sort((a, b) => Number(b.cnt) - Number(a.cnt))
     .slice(0, 8);
   return (
-    <div className="bg-surface border-border rounded-[14px] border p-4">
+    <div className="bg-surface border-border rounded-card-lg border p-4">
       <h3 className="text-foreground mb-3 flex items-center gap-2 text-sm font-bold">
         {icon}
         {title}
@@ -44,10 +44,10 @@ function StatCard({
         {SERVICES.map((s) => (
           <div
             key={s}
-            className="bg-surface-2 rounded-[10px] p-2.5 text-center"
+            className="bg-surface-2 rounded-control p-2.5 text-center"
           >
             <div className={"text-lg font-extrabold " + accent}>{t[s]}</div>
-            <div className="text-muted text-[11px] font-semibold">
+            <div className="text-muted text-caption font-semibold">
               {SERVICE_LABELS[s]}
             </div>
           </div>
@@ -60,12 +60,12 @@ function StatCard({
           {top.map((r, i) => (
             <li
               key={i}
-              className="text-foreground flex items-center justify-between gap-2 text-[13px]"
+              className="text-foreground text-body-sm flex items-center justify-between gap-2"
             >
               <span className="flex min-w-0 items-center gap-1.5">
                 <MapPin className="text-subtle size-3.5 shrink-0" />
                 <span className="truncate">{zoneLabel(r)}</span>
-                <span className="text-subtle shrink-0 text-[11px]">
+                <span className="text-subtle text-caption shrink-0">
                   · {SERVICE_LABELS[r.service]}
                 </span>
               </span>
@@ -112,7 +112,7 @@ export function ZoneStats({
           accent="text-primary-700"
         />
       </div>
-      <p className="text-subtle mt-2 text-[11px]">
+      <p className="text-subtle text-caption mt-2">
         Priorisez l&apos;ouverture des zones où la demande refusée et la liste
         d&apos;attente sont les plus fortes.
       </p>

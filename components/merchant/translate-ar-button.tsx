@@ -96,7 +96,7 @@ export function TranslateArButton({
         disabled={disabled || busy}
         title="Traduction automatique par IA depuis le français"
         className={cn(
-          "border-border-strong text-primary-700 hover:bg-surface-2 inline-flex items-center justify-center gap-1.5 rounded-[10px] border text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
+          "border-border-strong text-primary-700 hover:bg-surface-2 rounded-control inline-flex items-center justify-center gap-1.5 border text-xs font-medium transition disabled:cursor-not-allowed disabled:opacity-50",
           compact ? "size-8" : "h-8 px-2.5"
         )}
       >
@@ -108,7 +108,7 @@ export function TranslateArButton({
         {!compact && (busy ? "Traduction…" : "Traduire en arabe")}
         {/* Pastille IA : assume la traduction par intelligence artificielle. */}
         {!compact && !busy && (
-          <span className="bg-primary-600 rounded-full px-1.5 py-px text-[9px] leading-4 font-extrabold text-white">
+          <span className="bg-primary-600 text-nano rounded-full px-1.5 py-px leading-4 font-extrabold text-white">
             IA
           </span>
         )}

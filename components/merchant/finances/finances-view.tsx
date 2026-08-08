@@ -107,7 +107,7 @@ export function FinancesView({
         <h1 className="text-xl font-bold tracking-tight lg:text-2xl">
           Mon argent
         </h1>
-        <p className="text-muted mt-0.5 text-[13px] leading-snug">
+        <p className="text-muted text-body-sm mt-0.5 leading-snug">
           Tout converge dans votre{" "}
           <strong className="text-foreground">Coligo Pay</strong> : paiements en
           ligne, cashback et commissions.
@@ -173,7 +173,7 @@ function EssentialMoney({
     <div className="space-y-3">
       <section
         className={cn(
-          "relative overflow-hidden rounded-[22px] p-5 text-white shadow-lg shadow-black/10",
+          "rounded-sheet-xl relative overflow-hidden p-5 text-white shadow-lg shadow-black/10",
           negative ? "cg-warning-gradient" : "cg-brand-gradient"
         )}
       >
@@ -183,11 +183,11 @@ function EssentialMoney({
           className="pointer-events-none absolute -top-12 -right-10 size-44 rounded-full bg-white/10 blur-2xl"
         />
         <div className="relative z-10">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[11px] font-semibold tracking-wide backdrop-blur-sm">
+          <span className="text-caption inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 font-semibold tracking-wide backdrop-blur-sm">
             <Wallet className="size-3.5" /> Coligo Pay
           </span>
 
-          <p className="mt-4 text-[11px] font-medium tracking-wider text-white/75 uppercase">
+          <p className="text-caption mt-4 font-medium tracking-wider text-white/75 uppercase">
             {negative
               ? "Vous devez à Coligo"
               : balance > 0
@@ -200,17 +200,17 @@ function EssentialMoney({
 
           {/* UNE seule ligne de contexte, seulement si elle AJOUTE une info. */}
           {negative ? (
-            <p className="mt-2 text-[12.5px] text-white/85">
+            <p className="text-label-lg mt-2 text-white/85">
               Commission de vos ventes <strong>espèces</strong> — rechargez pour
               régulariser.
             </p>
           ) : summary.reserved > 0 ? (
-            <p className="mt-2 text-[12.5px] text-white/85">
+            <p className="text-label-lg mt-2 text-white/85">
               dont <strong>{formatDA(summary.reserved)}</strong> déjà en cours
               de versement.
             </p>
           ) : balance === 0 ? (
-            <p className="mt-2 text-[12.5px] text-white/85">
+            <p className="text-label-lg mt-2 text-white/85">
               Tout est à jour — aucun montant en attente, aucune dette.
             </p>
           ) : null}
@@ -221,7 +221,7 @@ function EssentialMoney({
               <button
                 type="button"
                 onClick={() => setPayoutOpen(true)}
-                className="text-primary-700 inline-flex h-11 flex-1 items-center justify-center gap-2 rounded-[14px] bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
+                className="text-primary-700 rounded-card-lg inline-flex h-11 flex-1 items-center justify-center gap-2 bg-white text-sm font-bold shadow-sm transition-transform active:scale-[0.98]"
               >
                 <Banknote className="size-4" /> Demander mon versement
               </button>
@@ -230,7 +230,7 @@ function EssentialMoney({
               href="/recharger"
               prefetch
               className={cn(
-                "inline-flex h-11 items-center justify-center gap-2 rounded-[14px] text-sm font-bold transition-transform active:scale-[0.98]",
+                "rounded-card-lg inline-flex h-11 items-center justify-center gap-2 text-sm font-bold transition-transform active:scale-[0.98]",
                 canWithdraw
                   ? "bg-white/15 px-4 text-white backdrop-blur-sm"
                   : "text-primary-700 flex-1 bg-white shadow-sm"
@@ -268,7 +268,7 @@ function CashDebtBanner({ status }: { status: CashDebtStatus }) {
   return (
     <section
       className={cn(
-        "flex items-start gap-3 rounded-[14px] border p-4",
+        "rounded-card-lg flex items-start gap-3 border p-4",
         blocked
           ? "border-danger-100 bg-danger-50"
           : "border-warning-100 bg-warning-50"
@@ -316,7 +316,7 @@ function CashDebtBanner({ status }: { status: CashDebtStatus }) {
           href="/recharger"
           prefetch
           className={cn(
-            "mt-3 inline-flex h-9 items-center gap-2 rounded-[10px] px-4 text-xs font-bold text-white",
+            "rounded-control mt-3 inline-flex h-9 items-center gap-2 px-4 text-xs font-bold text-white",
             blocked ? "bg-danger-600" : "bg-warning-600"
           )}
         >
@@ -340,7 +340,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
     return (
       <Link
         href="/settings"
-        className="border-border bg-surface text-muted hover:bg-surface-2 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
+        className="border-border bg-surface text-muted hover:bg-surface-2 rounded-card-lg flex items-center gap-2.5 border px-4 py-3 text-sm transition-colors"
       >
         <Settings2 className="text-primary-500 size-4 shrink-0" />
         <span>
@@ -354,7 +354,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
 
   if (info.kind === "frozen") {
     return (
-      <div className="border-warning-100 bg-warning-50 text-warning-700 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
+      <div className="border-warning-100 bg-warning-50 text-warning-700 rounded-card-lg flex items-center gap-2.5 border px-4 py-3 text-sm">
         <CalendarClock className="size-4 shrink-0" />
         <span>
           Versements <strong>suspendus</strong> (compte gelé). Contactez le
@@ -368,7 +368,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
     return (
       <Link
         href="/settings"
-        className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100 flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm transition-colors"
+        className="border-warning-100 bg-warning-50 text-warning-700 hover:bg-warning-100 rounded-card-lg flex items-center gap-2.5 border px-4 py-3 text-sm transition-colors"
       >
         <CalendarClock className="size-4 shrink-0" />
         <span>
@@ -381,7 +381,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
 
   if (info.kind === "waiting_balance") {
     return (
-      <div className="border-border bg-surface text-muted flex items-center gap-2.5 rounded-[14px] border px-4 py-3 text-sm">
+      <div className="border-border bg-surface text-muted rounded-card-lg flex items-center gap-2.5 border px-4 py-3 text-sm">
         <CalendarClock className="text-primary-500 size-4 shrink-0" />
         <span>
           Versement {cadenceLabel(info.cadence)} automatique — dès que votre
@@ -401,7 +401,7 @@ function NextPayoutBanner({ info }: { info: NextPayout }) {
     timeZone: "Africa/Algiers",
   });
   return (
-    <div className="border-primary-100 bg-primary-50/70 flex items-center gap-3 rounded-[14px] border px-4 py-3">
+    <div className="border-primary-100 bg-primary-50/70 rounded-card-lg flex items-center gap-3 border px-4 py-3">
       <div className="bg-primary-100 text-primary-700 grid size-9 shrink-0 place-items-center rounded-full">
         <CalendarClock className="size-5" />
       </div>
@@ -515,10 +515,10 @@ function PaymentsModule({
   }, [filters.q]);
 
   const selClass =
-    "border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none";
+    "border-border-strong bg-surface h-9 rounded-control border px-2.5 text-xs focus-visible:outline-none";
 
   return (
-    <section className="border-border bg-surface mt-4 overflow-hidden rounded-[16px] border">
+    <section className="border-border bg-surface mt-4 overflow-hidden rounded-lg border">
       {/* ── En-tête : onglets + période ── */}
       <div className="border-border flex flex-wrap items-center gap-2 border-b px-3 py-2.5">
         <div className="bg-surface-2 flex rounded-full p-0.5" role="tablist">
@@ -568,7 +568,7 @@ function PaymentsModule({
             onChange={(e) => setQInput(e.target.value)}
             placeholder="Rechercher (commande, note, facture…)"
             aria-label="Rechercher"
-            className="border-border-strong bg-surface h-9 w-full rounded-[10px] border pr-2.5 pl-8 text-xs focus-visible:outline-none"
+            className="border-border-strong bg-surface rounded-control h-9 w-full border pr-2.5 pl-8 text-xs focus-visible:outline-none"
           />
         </div>
         {/* <a> : routes fichiers (PDF inline / CSV téléchargé). */}
@@ -576,14 +576,14 @@ function PaymentsModule({
           href={`/api/pdf/releve-commercant?${exportQs}`}
           target="_blank"
           rel="noopener"
-          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border px-2.5 text-xs font-semibold transition-colors"
+          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 rounded-control inline-flex h-9 shrink-0 items-center gap-1.5 border px-2.5 text-xs font-semibold transition-colors"
         >
           <FileText className="size-3.5" />
           PDF
         </a>
         <a
           href={`/finances/export?${exportQs}`}
-          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 inline-flex h-9 shrink-0 items-center gap-1.5 rounded-[10px] border px-2.5 text-xs font-semibold transition-colors"
+          className="border-border bg-surface-2 text-foreground hover:bg-surface-3 rounded-control inline-flex h-9 shrink-0 items-center gap-1.5 border px-2.5 text-xs font-semibold transition-colors"
         >
           <FileSpreadsheet className="size-3.5" />
           CSV
@@ -612,7 +612,7 @@ function PaymentsModule({
             type="button"
             disabled={!from || !to || from > to}
             onClick={() => navigate({ period: "custom", from, to })}
-            className="bg-primary-600 h-9 rounded-[10px] px-3 text-xs font-bold text-white disabled:opacity-50"
+            className="bg-primary-600 rounded-control h-9 px-3 text-xs font-bold text-white disabled:opacity-50"
           >
             Appliquer
           </button>
@@ -680,7 +680,7 @@ function TabButton({
       {label}
       <span
         className={cn(
-          "rounded-full px-1.5 py-px text-[10px] font-bold tabular-nums",
+          "text-micro rounded-full px-1.5 py-px font-bold tabular-nums",
           active ? "bg-primary-50 text-primary-700" : "bg-surface-3 text-muted"
         )}
       >
@@ -787,7 +787,7 @@ function PayoutHistory({
                           href={`/api/pdf/versement/${p.id}`}
                           target="_blank"
                           rel="noopener"
-                          className="bg-primary-600 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
+                          className="bg-primary-600 rounded-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white"
                         >
                           <FileText className="size-3.5" />
                           Facture (PDF)
@@ -796,14 +796,14 @@ function PayoutHistory({
                           href={`/api/pdf/versement/${p.id}?detail=1`}
                           target="_blank"
                           rel="noopener"
-                          className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                          className="border-border bg-surface text-foreground hover:bg-surface-3 rounded-control inline-flex items-center gap-1.5 border px-3 py-2 text-xs font-semibold transition-colors"
                         >
                           <FileText className="size-3.5" />
                           Détail par commande (PDF)
                         </a>
                         <a
                           href={`/finances/versements/${p.id}/export`}
-                          className="border-border bg-surface text-foreground hover:bg-surface-3 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-semibold transition-colors"
+                          className="border-border bg-surface text-foreground hover:bg-surface-3 rounded-control inline-flex items-center gap-1.5 border px-3 py-2 text-xs font-semibold transition-colors"
                         >
                           <FileSpreadsheet className="size-3.5" />
                           Détail (CSV)
@@ -859,7 +859,7 @@ function Operations({
         <select
           value={filters.type}
           onChange={(e) => onType(e.target.value)}
-          className="border-border-strong bg-surface h-9 rounded-[10px] border px-2.5 text-xs focus-visible:outline-none"
+          className="border-border-strong bg-surface rounded-control h-9 border px-2.5 text-xs focus-visible:outline-none"
           aria-label="Type d'opération"
         >
           <option value="">Tous les types</option>
@@ -977,7 +977,7 @@ function PayoutForm({
   }, [state, router, onClose]);
 
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-4">
+    <section className="border-border bg-surface rounded-lg border p-4">
       <h2 className="flex items-center gap-2 text-sm font-semibold">
         <Banknote className="text-primary-500 size-4" />
         Demander mon versement
@@ -1023,7 +1023,7 @@ function PayoutForm({
             name="method"
             defaultValue="ccp"
             disabled={pending}
-            className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-md border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
           >
             {PAYOUT_METHODS.map((m) => (
               <option key={m.value} value={m.value}>
@@ -1044,7 +1044,7 @@ function PayoutForm({
             placeholder="Ex. CCP 00799999 clé 25"
             required
             disabled={pending}
-            className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+            className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-md border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
           />
         </div>
 

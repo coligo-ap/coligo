@@ -228,7 +228,7 @@ export function TopupModal({
       onClick={onClose}
     >
       <div
-        className="bg-surface w-full max-w-md rounded-t-[20px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-[20px] sm:pb-5"
+        className="bg-surface w-full max-w-md rounded-t-xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-xl sm:pb-5"
         onClick={(e) => e.stopPropagation()}
       >
         <header className="mb-4 flex items-center justify-between">
@@ -263,7 +263,7 @@ export function TopupModal({
                 setCustom("");
               }}
               className={cn(
-                "rounded-[12px] border px-3 py-3 text-sm font-semibold tabular-nums transition disabled:cursor-not-allowed disabled:opacity-50",
+                "rounded-md border px-3 py-3 text-sm font-semibold tabular-nums transition disabled:cursor-not-allowed disabled:opacity-50",
                 amount === p && !custom
                   ? "border-primary-600 bg-primary-600 text-white"
                   : "border-border bg-surface hover:border-primary-300"
@@ -286,7 +286,7 @@ export function TopupModal({
           value={custom}
           onChange={(e) => setCustom(e.target.value)}
           placeholder={t("customAmountPlaceholder")}
-          className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-[12px] border px-3 py-2 text-sm tabular-nums focus-visible:ring-2 focus-visible:outline-none"
+          className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-md border px-3 py-2 text-sm tabular-nums focus-visible:ring-2 focus-visible:outline-none"
         />
 
         {/* Choix du rail — affiché seulement si la carte internationale est
@@ -304,7 +304,7 @@ export function TopupModal({
                 type="button"
                 onClick={() => setRail(r)}
                 className={cn(
-                  "flex-1 rounded-[12px] border px-2.5 py-2 text-start transition",
+                  "flex-1 rounded-md border px-2.5 py-2 text-start transition",
                   rail === r
                     ? "border-primary-600 bg-primary-50 text-primary-700"
                     : "border-border bg-surface text-muted"
@@ -312,9 +312,9 @@ export function TopupModal({
               >
                 <span className="flex items-center gap-1.5">
                   <Icon className="size-3.5 shrink-0" />
-                  <b className="text-[12px]">{label}</b>
+                  <b className="text-label">{label}</b>
                 </span>
-                <span className="text-muted mt-0.5 block text-[10px] leading-snug font-semibold">
+                <span className="text-muted text-micro mt-0.5 block leading-snug font-semibold">
                   {sub}
                 </span>
               </button>
@@ -342,7 +342,7 @@ export function TopupModal({
           )}
         </Button>
         <ActionNote note={note} className="mt-2 text-center" />
-        <p className="text-muted mt-3 text-center text-[11px]">
+        <p className="text-muted text-caption mt-3 text-center">
           {rail === "eur" ? t("intlCardNote") : t("chargilyRedirectNote")}
         </p>
       </div>

@@ -273,7 +273,7 @@ export function LocationPicker({ onClose, initial }: Props) {
       </header>
 
       {/* ─── Barre de recherche d'emplacement ─── */}
-      <div className="border-border bg-surface-2 flex items-center gap-2.5 rounded-[13px] px-3.5 py-3">
+      <div className="border-border bg-surface-2 rounded-card flex items-center gap-2.5 px-3.5 py-3">
         <Search className="text-muted size-4 shrink-0" />
         <input
           type="search"
@@ -299,7 +299,7 @@ export function LocationPicker({ onClose, initial }: Props) {
 
       {/* Erreur GPS EN LIGNE (permission refusée / géoloc indispo). */}
       {geoErr && (
-        <p className="border-danger-200 bg-danger-50 text-danger-700 rounded-[12px] border px-3.5 py-2.5 text-[13px] font-semibold">
+        <p className="border-danger-200 bg-danger-50 text-danger-700 text-body-sm rounded-md border px-3.5 py-2.5 font-semibold">
           {geoErr}
         </p>
       )}
@@ -310,7 +310,7 @@ export function LocationPicker({ onClose, initial }: Props) {
       <div className="h-[clamp(280px,48vh,440px)] space-y-4 overflow-y-auto overscroll-contain">
         {/* Résultats de recherche (remplacent les options tant qu'on tape). */}
         {q.trim().length >= 3 ? (
-          <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+          <div className="divide-border border-border rounded-card divide-y overflow-hidden border">
             {results.length === 0 && !searching ? (
               <p className="text-muted px-4 py-3 text-sm">
                 {t("noSearchResults")}
@@ -333,7 +333,7 @@ export function LocationPicker({ onClose, initial }: Props) {
         ) : (
           <>
             {/* ─── Actions principales ─── */}
-            <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+            <div className="divide-border border-border rounded-card divide-y overflow-hidden border">
               <PlaceRow
                 icon={<MapIcon className="size-[18px]" />}
                 title={t("selectOnMap")}
@@ -457,10 +457,10 @@ function Section({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-muted px-1 text-[11px] font-extrabold tracking-wide uppercase">
+      <p className="text-muted text-caption px-1 font-extrabold tracking-wide uppercase">
         {title}
       </p>
-      <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+      <div className="divide-border border-border rounded-card divide-y overflow-hidden border">
         {children}
       </div>
     </div>

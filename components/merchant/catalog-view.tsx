@@ -765,7 +765,7 @@ export function CatalogView({
 
       {/* Retour d'action inline (erreurs / résultats de suppression en masse…) —
           remplace les toasts (règle produit). Auto-effacé. */}
-      <ActionNote note={note} className="mb-3 text-[13px]" />
+      <ActionNote note={note} className="text-body-sm mb-3" />
 
       {/* Barre recherche + outils */}
       <div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
@@ -787,7 +787,7 @@ export function CatalogView({
             <select
               value={sort}
               onChange={(e) => setSort(e.target.value as SortKey)}
-              className="border-border-strong focus:ring-primary-400 h-11 rounded-[12px] border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
+              className="border-border-strong focus:ring-primary-400 h-11 rounded-md border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
             >
               {(Object.keys(SORT_LABELS) as SortKey[]).map((k) => (
                 <option key={k} value={k}>
@@ -816,7 +816,7 @@ export function CatalogView({
 
       {/* Bandeau mode sélection : rappel visible + sortie en un tap. */}
       {selectMode && selProducts.size === 0 && selCats.size === 0 && (
-        <div className="border-primary-200 bg-primary-50 text-primary-800 mb-4 flex items-center justify-between gap-2 rounded-[12px] border px-3 py-2 text-sm">
+        <div className="border-primary-200 bg-primary-50 text-primary-800 mb-4 flex items-center justify-between gap-2 rounded-md border px-3 py-2 text-sm">
           <span>Touchez des produits pour les sélectionner.</span>
           <button
             type="button"
@@ -824,7 +824,7 @@ export function CatalogView({
               setSelectMode(false);
               clearSelection();
             }}
-            className="hover:bg-primary-100 rounded-[8px] px-2 py-1 text-xs font-semibold"
+            className="hover:bg-primary-100 rounded-sm px-2 py-1 text-xs font-semibold"
           >
             Quitter
           </button>
@@ -939,7 +939,7 @@ export function CatalogView({
                               <button
                                 type="button"
                                 onClick={() => selectAllInCategory(ids)}
-                                className="text-primary-700 hover:bg-primary-50 mb-3 inline-flex items-center gap-1.5 rounded-[8px] px-2 py-1 text-xs font-medium"
+                                className="text-primary-700 hover:bg-primary-50 mb-3 inline-flex items-center gap-1.5 rounded-sm px-2 py-1 text-xs font-medium"
                               >
                                 {allSel ? (
                                   <CheckSquare className="size-4" />

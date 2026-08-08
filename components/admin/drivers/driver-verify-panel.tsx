@@ -54,7 +54,7 @@ export function DriverVerifyPanel({
     });
 
   return (
-    <div className="border-border bg-surface w-full rounded-[14px] border p-3 lg:w-[360px]">
+    <div className="border-border bg-surface rounded-card-lg w-full border p-3 lg:w-[360px]">
       <label className="flex cursor-pointer items-start gap-2.5">
         <input
           type="checkbox"
@@ -122,7 +122,7 @@ export function DriverVerifyPanel({
             value={reason}
             onChange={(e) => setReason(e.target.value)}
             placeholder="Ex : la photo de la carte grise est illisible."
-            className="border-border bg-surface-2 w-full rounded-[10px] border p-2 text-sm"
+            className="border-border bg-surface-2 rounded-control w-full border p-2 text-sm"
           />
           <Button
             size="sm"

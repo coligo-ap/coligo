@@ -69,7 +69,7 @@ export function CatalogDisplayForm({
               disabled={pending}
               aria-pressed={active}
               className={cn(
-                "rounded-[14px] border p-4 text-start transition disabled:opacity-60",
+                "rounded-card-lg border p-4 text-start transition disabled:opacity-60",
                 active
                   ? "border-primary-500 bg-primary-50 ring-primary-400/40 ring-2"
                   : "border-border-strong bg-surface hover:border-primary-300"

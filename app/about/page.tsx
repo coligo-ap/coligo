@@ -67,7 +67,7 @@ export default async function AboutPage() {
         </Link>
 
         {/* ───── HERO — dégradé de marque, promesse claire ───── */}
-        <section className="cg-brand-gradient relative overflow-hidden rounded-[24px] p-7 text-white lg:p-10">
+        <section className="cg-brand-gradient rounded-panel relative overflow-hidden p-7 text-white lg:p-10">
           <div className="relative z-[1]">
             <Image
               src={BRAND_ASSETS.fullWhite}
@@ -114,7 +114,7 @@ export default async function AboutPage() {
                 alt={s.alt}
                 loading="lazy"
                 decoding="async"
-                className="aspect-[4/3] w-full rounded-[16px] object-cover"
+                className="aspect-[4/3] w-full rounded-lg object-cover"
               />
             );
           })}
@@ -241,7 +241,7 @@ export default async function AboutPage() {
         </section>
 
         {/* ───── PARTENAIRES / CTA ───── */}
-        <section className="border-border bg-surface mt-8 rounded-[20px] border p-6">
+        <section className="border-border bg-surface mt-8 rounded-xl border p-6">
           <div className="flex items-start gap-3">
             <span className="bg-primary-50 text-primary-600 grid size-11 shrink-0 place-items-center rounded-2xl">
               <Store className="size-5" />
@@ -306,7 +306,7 @@ export default async function AboutPage() {
         {/* Installation — badges OFFICIELS des deux boutiques, chacun avec son
             lien direct. Page publique très consultée depuis un téléphone : le
             pied de page (réservé à l'ordinateur) ne suffisait pas. */}
-        <section className="border-border bg-surface mt-8 rounded-[20px] border p-6 text-center">
+        <section className="border-border bg-surface mt-8 rounded-xl border p-6 text-center">
           <h2 className="text-foreground text-lg font-extrabold">
             {tDl("title")}
           </h2>
@@ -333,13 +333,13 @@ function Step({
   text: string;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-5">
+    <div className="border-border bg-surface rounded-lg border p-5">
       <div className="flex items-center gap-2.5">
         <span className="bg-primary-600 grid size-8 shrink-0 place-items-center rounded-full text-sm font-black text-white">
           {n}
         </span>
         <span className="text-primary-600">{icon}</span>
-        <h3 className="text-foreground text-[15px] font-bold">{title}</h3>
+        <h3 className="text-foreground text-title-sm font-bold">{title}</h3>
       </div>
       <p className="text-muted mt-2 text-sm leading-relaxed">{text}</p>
     </div>
@@ -357,12 +357,12 @@ function Service({
   text: string;
 }) {
   return (
-    <div className="border-border bg-surface flex items-start gap-3 rounded-[16px] border p-5">
+    <div className="border-border bg-surface flex items-start gap-3 rounded-lg border p-5">
       <span className="bg-primary-50 grid size-10 shrink-0 place-items-center rounded-xl">
         {icon}
       </span>
       <div className="min-w-0">
-        <h3 className="text-foreground text-[15px] font-bold">{title}</h3>
+        <h3 className="text-foreground text-title-sm font-bold">{title}</h3>
         <p className="text-muted mt-1 text-sm leading-relaxed">{text}</p>
       </div>
     </div>
@@ -380,12 +380,14 @@ function Value({
   text: string;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-5 text-center">
+    <div className="border-border bg-surface rounded-lg border p-5 text-center">
       <span className="bg-primary-50 text-primary-600 mx-auto grid size-10 place-items-center rounded-xl">
         {icon}
       </span>
-      <h3 className="text-foreground mt-2.5 text-[15px] font-bold">{title}</h3>
-      <p className="text-muted mt-1 text-[13px] leading-relaxed">{text}</p>
+      <h3 className="text-foreground text-title-sm mt-2.5 font-bold">
+        {title}
+      </h3>
+      <p className="text-muted text-body-sm mt-1 leading-relaxed">{text}</p>
     </div>
   );
 }

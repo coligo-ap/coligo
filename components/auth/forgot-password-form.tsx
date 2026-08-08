@@ -47,7 +47,7 @@ export function ForgotPasswordForm({
         <p className="text-danger-600 text-sm">{state.error}</p>
       )}
       {state.ok && state.message && (
-        <p className="border-success-200 bg-success-50 text-success-700 rounded-[10px] border px-3 py-2 text-sm">
+        <p className="border-success-200 bg-success-50 text-success-700 rounded-control border px-3 py-2 text-sm">
           {state.message}
         </p>
       )}

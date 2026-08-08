@@ -65,25 +65,25 @@ export function InstallBanner({
       >
         <div
           className={cn(
-            "border-border mx-auto flex max-w-sm items-center gap-2.5 rounded-[16px] border bg-white/95 p-2.5 shadow-lg backdrop-blur transition-all duration-300 ease-out",
+            "border-border mx-auto flex max-w-sm items-center gap-2.5 rounded-lg border bg-white/95 p-2.5 shadow-lg backdrop-blur transition-all duration-300 ease-out",
             shown ? "translate-y-0 opacity-100" : "translate-y-3 opacity-0"
           )}
         >
-          <span className="from-primary-600 to-primary-700 flex size-10 shrink-0 items-center justify-center rounded-[12px] bg-gradient-to-br text-white">
+          <span className="from-primary-600 to-primary-700 flex size-10 shrink-0 items-center justify-center rounded-md bg-gradient-to-br text-white">
             <Icon className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
-            <p className="text-foreground text-[13px] leading-tight font-semibold">
+            <p className="text-foreground text-body-sm leading-tight font-semibold">
               {label ?? t("bannerTitle")}
             </p>
-            <p className="text-muted truncate text-[11px] leading-tight">
+            <p className="text-muted text-caption truncate leading-tight">
               {text ?? (isIos ? t("bannerTextIos") : t("bannerText"))}
             </p>
           </div>
           <button
             type="button"
             onClick={handle}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-8 shrink-0 items-center rounded-[10px] px-3 text-xs font-semibold text-white"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-8 shrink-0 items-center px-3 text-xs font-semibold text-white"
           >
             {t("action")}
           </button>

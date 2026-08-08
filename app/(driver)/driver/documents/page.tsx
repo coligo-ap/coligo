@@ -39,7 +39,7 @@ export default async function DriverDocumentsPage() {
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="h-14 animate-pulse rounded-[14px]"
+                className="rounded-card-lg h-14 animate-pulse"
                 style={{ background: "var(--d-soft)" }}
               />
             ))}

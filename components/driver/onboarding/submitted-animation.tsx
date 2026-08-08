@@ -42,14 +42,14 @@ export function SubmittedAnimation({ onDone }: { onDone: () => void }) {
       <ColigoCelebration variant="sent" />
 
       <span
-        className="mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
+        className="text-caption mb-3 inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-bold"
         style={{ background: "var(--violet-soft)", color: BRAND_VIOLET }}
       >
         <Send className="size-3" />
         {tr("Dossier transmis", "أُرسل الملف")}
       </span>
       <h1
-        className="text-[21px] leading-tight font-extrabold text-[var(--ink)]"
+        className="text-display-sm leading-tight font-extrabold text-[var(--ink)]"
         style={{ fontFamily: SORA }}
       >
         {isAr ? (
@@ -65,13 +65,13 @@ export function SubmittedAnimation({ onDone }: { onDone: () => void }) {
           </>
         )}
       </h1>
-      <p className="mt-2.5 max-w-[320px] text-[13px] leading-relaxed text-[var(--muted)]">
+      <p className="text-body-sm mt-2.5 max-w-[320px] leading-relaxed text-[var(--muted)]">
         {tr(
           "L'équipe Coligo procède actuellement à la vérification de votre identité et de vos documents. Vous recevrez une notification dès que votre compte sera validé.",
           "يقوم فريق كوليغو حاليًا بالتحقق من هويتك ووثائقك. ستصلك رسالة إشعار فور المصادقة على حسابك."
         )}
       </p>
-      <p className="mt-3 text-[12.5px] font-semibold text-[var(--ink)]">
+      <p className="text-label-lg mt-3 font-semibold text-[var(--ink)]">
         {tr(
           "Merci pour votre confiance et votre patience.",
           "شكرًا على ثقتك وصبرك."

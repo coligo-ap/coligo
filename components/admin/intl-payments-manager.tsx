@@ -128,14 +128,14 @@ export function IntlPaymentsManager({
 
       {/* ── Vue d'ensemble : taux effectif + capacité + waitlist ─────────── */}
       <section className="mb-5 grid gap-3 sm:grid-cols-3">
-        <div className="border-border bg-surface rounded-[16px] border p-4">
-          <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+        <div className="border-border bg-surface rounded-lg border p-4">
+          <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             Taux appliqué
           </p>
           <p className="text-foreground mt-1 text-xl font-extrabold tabular-nums">
             {effectiveRate ? `${effectiveRate.rate_da} DA / €` : "—"}
           </p>
-          <p className="text-muted mt-0.5 text-[11px] font-medium">
+          <p className="text-muted text-caption mt-0.5 font-medium">
             {effectiveRate
               ? effectiveRate.source === "manual"
                 ? "Imposé manuellement"
@@ -156,7 +156,7 @@ export function IntlPaymentsManager({
                 );
               });
             }}
-            className="border-border text-foreground mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-extrabold disabled:opacity-60"
+            className="border-border text-foreground text-label mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 font-extrabold disabled:opacity-60"
           >
             {refreshPending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -166,14 +166,14 @@ export function IntlPaymentsManager({
             Rafraîchir depuis le marché
           </button>
           {refreshMsg && (
-            <p className="text-muted mt-2 text-[11px] font-medium">
+            <p className="text-muted text-caption mt-2 font-medium">
               {refreshMsg}
             </p>
           )}
         </div>
 
-        <div className="border-border bg-surface rounded-[16px] border p-4">
-          <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+        <div className="border-border bg-surface rounded-lg border p-4">
+          <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             Capacité plateforme
           </p>
           <div className="mt-2 space-y-2.5">
@@ -193,10 +193,10 @@ export function IntlPaymentsManager({
             ].map((row) => (
               <div key={row.label}>
                 <div className="flex items-baseline justify-between">
-                  <span className="text-foreground text-[12px] font-bold">
+                  <span className="text-foreground text-label font-bold">
                     {row.label}
                   </span>
-                  <span className="text-muted text-[11px] font-semibold tabular-nums">
+                  <span className="text-muted text-caption font-semibold tabular-nums">
                     {eur(row.used)} / {eur(row.max)}
                   </span>
                 </div>
@@ -218,14 +218,14 @@ export function IntlPaymentsManager({
           </div>
         </div>
 
-        <div className="border-border bg-surface rounded-[16px] border p-4">
-          <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+        <div className="border-border bg-surface rounded-lg border p-4">
+          <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
             Liste d&apos;attente
           </p>
           <p className="text-foreground mt-1 text-xl font-extrabold tabular-nums">
             {waitlistCount}
           </p>
-          <p className="text-muted mt-0.5 text-[11px] font-medium">
+          <p className="text-muted text-caption mt-0.5 font-medium">
             clients à prévenir à la réouverture
           </p>
           <button
@@ -240,7 +240,7 @@ export function IntlPaymentsManager({
                 );
               });
             }}
-            className="border-border text-foreground mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12px] font-extrabold disabled:opacity-50"
+            className="border-border text-foreground text-label mt-2 inline-flex h-8 items-center gap-1.5 rounded-full border px-3 font-extrabold disabled:opacity-50"
           >
             {notifyPending ? (
               <Loader2 className="size-3.5 animate-spin" />
@@ -250,7 +250,7 @@ export function IntlPaymentsManager({
             Notifier la réouverture
           </button>
           {notifyMsg && (
-            <p className="text-muted mt-2 text-[11px] font-medium">
+            <p className="text-muted text-caption mt-2 font-medium">
               {notifyMsg}
             </p>
           )}
@@ -260,7 +260,7 @@ export function IntlPaymentsManager({
       {/* ── Réglages ─────────────────────────────────────────────────────── */}
       <form
         action={formAction}
-        className="border-border bg-surface mb-5 rounded-[16px] border p-4"
+        className="border-border bg-surface mb-5 rounded-lg border p-4"
       >
         <h2 className="text-foreground flex items-center gap-2 text-sm font-bold">
           <ShieldCheck className="text-primary-600 size-4" />
@@ -268,12 +268,12 @@ export function IntlPaymentsManager({
         </h2>
 
         <div className="mt-3 grid gap-4 sm:grid-cols-2">
-          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+          <label className="border-border flex items-center justify-between gap-3 rounded-md border px-3.5 py-3">
             <span>
-              <span className="text-foreground block text-[13px] font-bold">
+              <span className="text-foreground text-body-sm block font-bold">
                 Paiements € activés
               </span>
-              <span className="text-muted block text-[11px] font-medium">
+              <span className="text-muted text-caption block font-medium">
                 Kill-switch global — coupe l&apos;option au checkout.
               </span>
             </span>
@@ -285,12 +285,12 @@ export function IntlPaymentsManager({
             />
           </label>
 
-          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+          <label className="border-border flex items-center justify-between gap-3 rounded-md border px-3.5 py-3">
             <span>
-              <span className="text-foreground block text-[13px] font-bold">
+              <span className="text-foreground text-body-sm block font-bold">
                 PayPal (via Stripe)
               </span>
-              <span className="text-muted block text-[11px] font-medium">
+              <span className="text-muted text-caption block font-medium">
                 Nécessite un compte Stripe UE — laisser coupé sinon.
               </span>
             </span>
@@ -305,12 +305,12 @@ export function IntlPaymentsManager({
           {/* Activation PAR DOMAINE (mig 0385) — le kill-switch global reste
               maître : un domaine n'est proposé que si « Paiements € activés »
               ET son propre interrupteur sont ON. */}
-          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+          <label className="border-border flex items-center justify-between gap-3 rounded-md border px-3.5 py-3">
             <span>
-              <span className="text-foreground block text-[13px] font-bold">
+              <span className="text-foreground text-body-sm block font-bold">
                 € sur Coligo Drive
               </span>
-              <span className="text-muted block text-[11px] font-medium">
+              <span className="text-muted text-caption block font-medium">
                 Carte internationale pour les courses Drive.
               </span>
             </span>
@@ -322,12 +322,12 @@ export function IntlPaymentsManager({
             />
           </label>
 
-          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+          <label className="border-border flex items-center justify-between gap-3 rounded-md border px-3.5 py-3">
             <span>
-              <span className="text-foreground block text-[13px] font-bold">
+              <span className="text-foreground text-body-sm block font-bold">
                 € sur le Marketplace
               </span>
-              <span className="text-muted block text-[11px] font-medium">
+              <span className="text-muted text-caption block font-medium">
                 Carte internationale au checkout des commandes.
               </span>
             </span>
@@ -339,12 +339,12 @@ export function IntlPaymentsManager({
             />
           </label>
 
-          <label className="border-border flex items-center justify-between gap-3 rounded-[12px] border px-3.5 py-3">
+          <label className="border-border flex items-center justify-between gap-3 rounded-md border px-3.5 py-3">
             <span>
-              <span className="text-foreground block text-[13px] font-bold">
+              <span className="text-foreground text-body-sm block font-bold">
                 € pour recharger Coligo Pay
               </span>
-              <span className="text-muted block text-[11px] font-medium">
+              <span className="text-muted text-caption block font-medium">
                 Carte internationale pour recharger Coligo Pay — clients ET
                 partenaires (chauffeur, livreur, commerçant). Couper cet
                 interrupteur retire l&apos;option des DEUX espaces immédiatement
@@ -361,24 +361,24 @@ export function IntlPaymentsManager({
         </div>
 
         <div className="mt-4">
-          <label className="text-foreground block text-[13px] font-bold">
+          <label className="text-foreground text-body-sm block font-bold">
             Pays autorisés (codes ISO-2, ou * pour tous)
           </label>
           <input
             name="allowed_countries"
             defaultValue={settings.allowed_countries.join(", ")}
             placeholder="FR, BE, DE, ES…"
-            className="border-border bg-surface text-foreground mt-1.5 h-11 w-full rounded-[12px] border px-3.5 text-[13.5px] font-semibold"
+            className="border-border bg-surface text-foreground text-body mt-1.5 h-11 w-full rounded-md border px-3.5 font-semibold"
           />
-          <p className="text-muted mt-1 text-[11px] font-medium">
+          <p className="text-muted text-caption mt-1 font-medium">
             L&apos;option n&apos;apparaît qu&apos;aux clients dont l&apos;IP est
             dans ces pays. DZ est utile pour tes propres tests.
           </p>
         </div>
 
         {/* Taux */}
-        <div className="border-border mt-4 rounded-[12px] border p-3.5">
-          <p className="text-foreground text-[13px] font-bold">
+        <div className="border-border mt-4 rounded-md border p-3.5">
+          <p className="text-foreground text-body-sm font-bold">
             Taux de change (1 € = X DA)
           </p>
           <div className="mt-2 flex gap-2">
@@ -391,7 +391,7 @@ export function IntlPaymentsManager({
               <label
                 key={mode}
                 className={cn(
-                  "flex-1 cursor-pointer rounded-[10px] border-2 px-3 py-2 text-center text-[12px] font-extrabold transition",
+                  "rounded-control text-label flex-1 cursor-pointer border-2 px-3 py-2 text-center font-extrabold transition",
                   rateMode === mode
                     ? "border-primary-600 bg-primary-50 text-primary-800"
                     : "border-border text-muted"
@@ -411,7 +411,7 @@ export function IntlPaymentsManager({
           </div>
           <div className="mt-3 grid gap-3 sm:grid-cols-4">
             <label className={cn(rateMode !== "manual" && "opacity-40")}>
-              <span className="text-muted block text-[11px] font-bold">
+              <span className="text-muted text-caption block font-bold">
                 Taux manuel (DA/€)
               </span>
               <input
@@ -420,11 +420,11 @@ export function IntlPaymentsManager({
                 step="0.01"
                 disabled={rateMode !== "manual"}
                 defaultValue={settings.manual_rate_da ?? ""}
-                className="border-border bg-surface text-foreground mt-1 h-10 w-full rounded-[10px] border px-3 text-[13px] font-semibold tabular-nums"
+                className="border-border bg-surface text-foreground rounded-control text-body-sm mt-1 h-10 w-full border px-3 font-semibold tabular-nums"
               />
             </label>
             <label className={cn(rateMode !== "auto" && "opacity-40")}>
-              <span className="text-muted block text-[11px] font-bold">
+              <span className="text-muted text-caption block font-bold">
                 Marge auto (− DA)
               </span>
               <input
@@ -433,11 +433,11 @@ export function IntlPaymentsManager({
                 step="0.01"
                 disabled={rateMode !== "auto"}
                 defaultValue={settings.auto_margin_da}
-                className="border-border bg-surface text-foreground mt-1 h-10 w-full rounded-[10px] border px-3 text-[13px] font-semibold tabular-nums"
+                className="border-border bg-surface text-foreground rounded-control text-body-sm mt-1 h-10 w-full border px-3 font-semibold tabular-nums"
               />
             </label>
             <label>
-              <span className="text-muted block text-[11px] font-bold">
+              <span className="text-muted text-caption block font-bold">
                 Plancher (DA/€)
               </span>
               <input
@@ -445,11 +445,11 @@ export function IntlPaymentsManager({
                 type="number"
                 step="0.01"
                 defaultValue={settings.rate_floor_da}
-                className="border-border bg-surface text-foreground mt-1 h-10 w-full rounded-[10px] border px-3 text-[13px] font-semibold tabular-nums"
+                className="border-border bg-surface text-foreground rounded-control text-body-sm mt-1 h-10 w-full border px-3 font-semibold tabular-nums"
               />
             </label>
             <label>
-              <span className="text-muted block text-[11px] font-bold">
+              <span className="text-muted text-caption block font-bold">
                 Plafond (DA/€)
               </span>
               <input
@@ -457,11 +457,11 @@ export function IntlPaymentsManager({
                 type="number"
                 step="0.01"
                 defaultValue={settings.rate_ceiling_da}
-                className="border-border bg-surface text-foreground mt-1 h-10 w-full rounded-[10px] border px-3 text-[13px] font-semibold tabular-nums"
+                className="border-border bg-surface text-foreground rounded-control text-body-sm mt-1 h-10 w-full border px-3 font-semibold tabular-nums"
               />
             </label>
           </div>
-          <p className="text-muted mt-2 text-[11px] font-medium">
+          <p className="text-muted text-caption mt-2 font-medium">
             Auto = dernier taux observé du marché parallèle (snapshots
             ci-dessous) moins la marge, borné plancher/plafond. Exemple : marché
             à 270, marge 30 → 240 DA/€. Le manuel s&apos;applique immédiatement
@@ -470,8 +470,8 @@ export function IntlPaymentsManager({
         </div>
 
         {/* Plafonds € */}
-        <div className="border-border mt-4 rounded-[12px] border p-3.5">
-          <p className="text-foreground text-[13px] font-bold">Plafonds (€)</p>
+        <div className="border-border mt-4 rounded-md border p-3.5">
+          <p className="text-foreground text-body-sm font-bold">Plafonds (€)</p>
           <div className="mt-2 grid grid-cols-2 gap-3 sm:grid-cols-3">
             {(
               [
@@ -508,7 +508,7 @@ export function IntlPaymentsManager({
               ] as const
             ).map(([name, label, cents]) => (
               <label key={name}>
-                <span className="text-muted block text-[11px] font-bold">
+                <span className="text-muted text-caption block font-bold">
                   {label}
                 </span>
                 <input
@@ -516,12 +516,12 @@ export function IntlPaymentsManager({
                   type="number"
                   step="0.01"
                   defaultValue={(cents / 100).toFixed(2)}
-                  className="border-border bg-surface text-foreground mt-1 h-10 w-full rounded-[10px] border px-3 text-[13px] font-semibold tabular-nums"
+                  className="border-border bg-surface text-foreground rounded-control text-body-sm mt-1 h-10 w-full border px-3 font-semibold tabular-nums"
                 />
               </label>
             ))}
           </div>
-          <p className="text-muted mt-2 text-[11px] font-medium">
+          <p className="text-muted text-caption mt-2 font-medium">
             Capacité atteinte → l&apos;option disparaît, les clients voient «
             momentanément indisponible » + « Me prévenir », et une alerte
             remonte dans le Centre d&apos;alertes.
@@ -529,12 +529,12 @@ export function IntlPaymentsManager({
         </div>
 
         {formState.error && (
-          <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[10px] border px-3 py-2 text-sm">
+          <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-control mt-3 border px-3 py-2 text-sm">
             {formState.error}
           </p>
         )}
         {formState.ok && (
-          <p className="mt-3 rounded-[10px] border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+          <p className="rounded-control mt-3 border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
             Réglages enregistrés — effet immédiat.
           </p>
         )}
@@ -542,7 +542,7 @@ export function IntlPaymentsManager({
         <button
           type="submit"
           disabled={formPending}
-          className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex h-11 items-center gap-2 rounded-full px-5 text-[13.5px] font-extrabold text-white disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 text-body mt-4 inline-flex h-11 items-center gap-2 rounded-full px-5 font-extrabold text-white disabled:opacity-60"
         >
           {formPending && <Loader2 className="size-4 animate-spin" />}
           Enregistrer
@@ -550,7 +550,7 @@ export function IntlPaymentsManager({
       </form>
 
       {/* ── Clés (présence seulement) ────────────────────────────────────── */}
-      <section className="border-border bg-surface mb-5 rounded-[16px] border p-4">
+      <section className="border-border bg-surface mb-5 rounded-lg border p-4">
         <h2 className="text-foreground text-sm font-bold">Environnement</h2>
         <div className="text-muted mt-2 flex flex-wrap gap-x-4 gap-y-1 text-xs">
           {(
@@ -569,27 +569,27 @@ export function IntlPaymentsManager({
             </span>
           ))}
         </div>
-        <p className="text-muted mt-2 text-[11px] font-medium">
+        <p className="text-muted text-caption mt-2 font-medium">
           La bascule TEST / LIVE se fait dans Plateforme → Contrôle des services
           (même fonctionnement que Chargily).
         </p>
       </section>
 
       {/* ── Sessions récentes ────────────────────────────────────────────── */}
-      <section className="border-border bg-surface mb-5 rounded-[16px] border p-4">
+      <section className="border-border bg-surface mb-5 rounded-lg border p-4">
         <h2 className="text-foreground flex items-center gap-2 text-sm font-bold">
           <CircleDollarSign className="text-primary-600 size-4" />
           Paiements récents
         </h2>
         {sessions.length === 0 ? (
-          <p className="text-muted mt-2 text-[12.5px] font-medium">
+          <p className="text-muted text-label-lg mt-2 font-medium">
             Aucune session pour l&apos;instant.
           </p>
         ) : (
           <div className="mt-2 overflow-x-auto">
-            <table className="w-full min-w-[640px] text-start text-[12.5px]">
+            <table className="text-label-lg w-full min-w-[640px] text-start">
               <thead>
-                <tr className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+                <tr className="text-muted text-caption font-extrabold tracking-wide uppercase">
                   <th className="py-1.5 pe-3 text-start">Date</th>
                   <th className="py-1.5 pe-3 text-start">Montant €</th>
                   <th className="py-1.5 pe-3 text-start">Équiv. DA</th>
@@ -620,7 +620,7 @@ export function IntlPaymentsManager({
                     <td className="py-2">
                       <span
                         className={cn(
-                          "rounded-full px-2 py-0.5 text-[10.5px] font-extrabold",
+                          "text-micro-lg rounded-full px-2 py-0.5 font-extrabold",
                           STATUS_TONE[s.status] ?? "bg-surface-2 text-muted"
                         )}
                       >
@@ -637,13 +637,13 @@ export function IntlPaymentsManager({
 
       {/* ── Snapshots du taux + audit ────────────────────────────────────── */}
       <section className="grid gap-5 lg:grid-cols-2">
-        <div className="border-border bg-surface rounded-[16px] border p-4">
+        <div className="border-border bg-surface rounded-lg border p-4">
           <h2 className="text-foreground text-sm font-bold">
             Relevés du marché parallèle
           </h2>
           <ul className="divide-border mt-2 divide-y">
             {snapshots.length === 0 && (
-              <li className="text-muted py-2 text-[12px] font-medium">
+              <li className="text-muted text-label py-2 font-medium">
                 Aucun relevé — le premier paiement (ou « Rafraîchir ») en créera
                 un.
               </li>
@@ -653,15 +653,15 @@ export function IntlPaymentsManager({
                 key={i}
                 className="flex items-center justify-between gap-3 py-2"
               >
-                <span className="text-muted text-[11.5px] font-semibold tabular-nums">
+                <span className="text-muted text-caption-lg font-semibold tabular-nums">
                   {dt(s.fetched_at)}
                 </span>
                 {s.ok ? (
-                  <span className="text-foreground text-[12.5px] font-extrabold tabular-nums">
+                  <span className="text-foreground text-label-lg font-extrabold tabular-nums">
                     {s.raw_rate_da} DA/€
                   </span>
                 ) : (
-                  <span className="text-danger-600 max-w-[55%] truncate text-[11.5px] font-bold">
+                  <span className="text-danger-600 text-caption-lg max-w-[55%] truncate font-bold">
                     échec — {s.note ?? "?"}
                   </span>
                 )}
@@ -670,26 +670,26 @@ export function IntlPaymentsManager({
           </ul>
         </div>
 
-        <div className="border-border bg-surface rounded-[16px] border p-4">
+        <div className="border-border bg-surface rounded-lg border p-4">
           <h2 className="text-foreground text-sm font-bold">
             Journal d&apos;audit
           </h2>
           <ul className="divide-border mt-2 divide-y">
             {audit.length === 0 && (
-              <li className="text-muted py-2 text-[12px] font-medium">
+              <li className="text-muted text-label py-2 font-medium">
                 Aucun événement.
               </li>
             )}
             {audit.map((a, i) => (
               <li key={i} className="py-2">
-                <p className="text-foreground text-[12px] font-extrabold">
+                <p className="text-foreground text-label font-extrabold">
                   {a.action}
-                  <span className="text-muted ms-2 text-[11px] font-semibold tabular-nums">
+                  <span className="text-muted text-caption ms-2 font-semibold tabular-nums">
                     {dt(a.created_at)}
                   </span>
                 </p>
                 {a.note && (
-                  <p className="text-muted mt-0.5 text-[11.5px] leading-snug font-medium">
+                  <p className="text-muted text-caption-lg mt-0.5 leading-snug font-medium">
                     {a.note}
                   </p>
                 )}

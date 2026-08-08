@@ -90,12 +90,12 @@ export function MerchantManageSheet({
       onClick={onClose}
     >
       <div
-        className="bg-surface max-h-[92dvh] w-full max-w-[560px] overflow-auto rounded-t-[22px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] sm:rounded-[22px]"
+        className="bg-surface rounded-t-sheet-xl sm:rounded-sheet-xl max-h-[92dvh] w-full max-w-[560px] overflow-auto p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <h2 className="text-foreground truncate text-[17px] font-extrabold">
+            <h2 className="text-foreground text-title-lg truncate font-extrabold">
               {merchant.name}
             </h2>
             <p className="text-muted truncate text-xs">
@@ -164,7 +164,7 @@ export function MerchantManageSheet({
             url={val("cover_url", merchant.cover_url)}
             onChange={(v) => set("cover_url", v)}
           />
-          <p className="text-subtle text-[11px]">
+          <p className="text-subtle text-caption">
             Collez l&apos;adresse d&apos;une image, ou piochez dans la banque
             d&apos;images depuis l&apos;onglet « Visuels ».
           </p>
@@ -291,7 +291,7 @@ export function MerchantManageSheet({
           <button
             type="button"
             onClick={onClose}
-            className="border-border text-foreground flex-1 rounded-[12px] border px-4 py-2.5 text-sm font-semibold"
+            className="border-border text-foreground flex-1 rounded-md border px-4 py-2.5 text-sm font-semibold"
           >
             Annuler
           </button>
@@ -299,7 +299,7 @@ export function MerchantManageSheet({
             type="button"
             onClick={save}
             disabled={pending || dirty === 0}
-            className="bg-primary-600 hover:bg-primary-700 flex flex-1 items-center justify-center gap-2 rounded-[12px] px-4 py-2.5 text-sm font-extrabold text-white transition-colors disabled:opacity-50"
+            className="bg-primary-600 hover:bg-primary-700 flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-extrabold text-white transition-colors disabled:opacity-50"
           >
             {pending && <Loader2 className="size-4 animate-spin" />}
             {dirty === 0
@@ -329,7 +329,7 @@ function Section({
 }) {
   const isOpen = open === id;
   return (
-    <div className="border-border mb-2 rounded-[12px] border">
+    <div className="border-border mb-2 rounded-md border">
       <button
         type="button"
         onClick={() => setOpen(isOpen ? null : id)}
@@ -358,7 +358,7 @@ function Field({
 }) {
   return (
     <label className="block">
-      <span className="text-muted mb-1 block text-[11px] font-semibold">
+      <span className="text-muted text-caption mb-1 block font-semibold">
         {label}
       </span>
       {textarea ? (
@@ -366,13 +366,13 @@ function Field({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           rows={2}
-          className="border-border bg-surface text-foreground w-full rounded-[10px] border px-3 py-2 text-sm"
+          className="border-border bg-surface text-foreground rounded-control w-full border px-3 py-2 text-sm"
         />
       ) : (
         <input
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="border-border bg-surface text-foreground w-full rounded-[10px] border px-3 py-2 text-sm"
+          className="border-border bg-surface text-foreground rounded-control w-full border px-3 py-2 text-sm"
         />
       )}
     </label>
@@ -392,7 +392,7 @@ function Toggle({
     <button
       type="button"
       onClick={() => onChange(!on)}
-      className="border-border flex w-full items-center justify-between gap-3 rounded-[10px] border px-3 py-2.5 text-left"
+      className="border-border rounded-control flex w-full items-center justify-between gap-3 border px-3 py-2.5 text-left"
     >
       <span className="text-foreground text-sm font-semibold">{label}</span>
       <span
@@ -418,11 +418,11 @@ function Visual({
 }) {
   return (
     <div>
-      <span className="text-muted mb-1 block text-[11px] font-semibold">
+      <span className="text-muted text-caption mb-1 block font-semibold">
         {label}
       </span>
       <div className="flex items-center gap-2.5">
-        <span className="bg-surface-2 border-border size-14 shrink-0 overflow-hidden rounded-[10px] border">
+        <span className="bg-surface-2 border-border rounded-control size-14 shrink-0 overflow-hidden border">
           {url ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={url} alt="" className="size-full object-cover" />
@@ -432,7 +432,7 @@ function Visual({
           value={url}
           onChange={(e) => onChange(e.target.value)}
           placeholder="https://…"
-          className="border-border bg-surface text-foreground min-w-0 flex-1 rounded-[10px] border px-3 py-2 text-sm"
+          className="border-border bg-surface text-foreground rounded-control min-w-0 flex-1 border px-3 py-2 text-sm"
         />
       </div>
     </div>

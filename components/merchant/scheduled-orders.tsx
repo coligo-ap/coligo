@@ -87,17 +87,17 @@ export function ScheduledOrders({
             <Link
               key={o.id}
               href={`/orders/${o.id}`}
-              className="block rounded-[14px] border border-amber-300 bg-amber-50 p-3 transition-colors hover:bg-amber-100/70"
+              className="rounded-card-lg block border border-amber-300 bg-amber-50 p-3 transition-colors hover:bg-amber-100/70"
             >
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-sm font-extrabold text-amber-900">
                   #{ref}
                 </span>
-                <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[10px] font-extrabold text-white">
+                <span className="text-micro rounded-full bg-amber-600 px-2 py-0.5 font-extrabold text-white">
                   📅 PROGRAMMÉE
                 </span>
               </div>
-              <p className="mt-1.5 text-[15px] font-bold text-amber-900">
+              <p className="text-title-sm mt-1.5 font-bold text-amber-900">
                 {isDelivery ? "Livraison" : "Retrait"} ·{" "}
                 {fmtDateTime(o.pickup_slot_at)}
               </p>

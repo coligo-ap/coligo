@@ -39,7 +39,7 @@ export function CashbackLoader({ userId }: { userId: string }) {
           du thème « occasion » (vars sur <html>, mig 0415/0416) + décor du
           modèle choisi par le super-admin + grain. */}
       <section
-        className="relative -mx-4 overflow-hidden rounded-b-[26px] px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8"
+        className="rounded-b-panel-lg relative -mx-4 overflow-hidden px-5 pt-7 pb-7 text-white lg:-mx-6 lg:px-6 lg:pt-8 lg:pb-8"
         style={{
           backgroundImage:
             "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
@@ -54,7 +54,7 @@ export function CashbackLoader({ userId }: { userId: string }) {
           <p className="mt-1 text-[32px] leading-none font-black tracking-tight tabular-nums drop-shadow-sm lg:text-5xl">
             <WalletBalanceValue kind="cashback" userId={userId} initial={0} />
           </p>
-          <p className="mt-2.5 max-w-md text-[12.5px] leading-relaxed font-semibold opacity-90">
+          <p className="text-label-lg mt-2.5 max-w-md leading-relaxed font-semibold opacity-90">
             {t.rich("cashbackNonWithdrawable", {
               strong: (chunks) => (
                 <strong className="font-extrabold">{chunks}</strong>
@@ -67,13 +67,13 @@ export function CashbackLoader({ userId }: { userId: string }) {
       {/* Card info : Coligo Pay (différent du cashback) → page dédiée. */}
       <Link
         href="/coligo-pay"
-        className="mt-4 flex items-center gap-3 rounded-[18px] bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)] transition-transform active:scale-[.99]"
+        className="rounded-sheet-lg mt-4 flex items-center gap-3 bg-white p-4 shadow-[0_8px_20px_-16px_rgba(40,35,90,.2)] transition-transform active:scale-[.99]"
       >
-        <div className="bg-primary-50 text-primary-600 flex size-[46px] shrink-0 items-center justify-center rounded-[13px]">
+        <div className="bg-primary-50 text-primary-600 rounded-card flex size-[46px] shrink-0 items-center justify-center">
           <Wallet className="size-5" />
         </div>
         <div className="min-w-0 flex-1">
-          <p className="text-foreground text-[14.5px] font-extrabold tracking-tight">
+          <p className="text-foreground text-body-xl font-extrabold tracking-tight">
             {t("coligoPayLinkTitle")}
           </p>
           <p className="text-muted mt-0.5 text-xs font-medium">
@@ -84,7 +84,7 @@ export function CashbackLoader({ userId }: { userId: string }) {
 
       {/* Historique CASHBACK uniquement (timeline) */}
       <section className="mt-6">
-        <h2 className="text-foreground mb-2.5 text-[18px] font-black tracking-tight">
+        <h2 className="text-foreground text-heading-sm mb-2.5 font-black tracking-tight">
           {t("cashbackHistory")}
         </h2>
         {isPending && !history ? (
@@ -92,7 +92,7 @@ export function CashbackLoader({ userId }: { userId: string }) {
             {Array.from({ length: 4 }).map((_, i) => (
               <div
                 key={i}
-                className="bg-surface-3 h-16 animate-pulse rounded-[16px]"
+                className="bg-surface-3 h-16 animate-pulse rounded-lg"
               />
             ))}
           </div>

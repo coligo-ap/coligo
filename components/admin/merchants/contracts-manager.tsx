@@ -155,7 +155,7 @@ export function ContractsManager({
   return (
     <div className="space-y-6">
       {/* ── Émission ─────────────────────────────────────────────────────── */}
-      <section className="border-border bg-surface rounded-[16px] border p-5">
+      <section className="border-border bg-surface rounded-lg border p-5">
         <div className="flex items-center justify-between gap-3">
           <div>
             <h2 className="text-foreground flex items-center gap-2 text-base font-bold">
@@ -211,7 +211,7 @@ export function ContractsManager({
                 <select
                   value={party.legal_form}
                   onChange={(e) => setP("legal_form", e.target.value)}
-                  className="border-border bg-surface text-foreground focus:border-primary-500 h-10 w-full rounded-[10px] border px-3 text-sm outline-none"
+                  className="border-border bg-surface text-foreground focus:border-primary-500 rounded-control h-10 w-full border px-3 text-sm outline-none"
                 >
                   {LEGAL_FORMS.map((f) => (
                     <option key={f}>{f}</option>
@@ -355,7 +355,7 @@ export function ContractsManager({
                       e.target.value as ContractTerms["duration_type"]
                     )
                   }
-                  className="border-border bg-surface text-foreground focus:border-primary-500 h-10 w-full rounded-[10px] border px-3 text-sm outline-none"
+                  className="border-border bg-surface text-foreground focus:border-primary-500 rounded-control h-10 w-full border px-3 text-sm outline-none"
                 >
                   <option value="indeterminee">Indéterminée</option>
                   <option value="determinee">
@@ -391,7 +391,7 @@ export function ContractsManager({
             </fieldset>
 
             {/* Matériel (annexe optionnelle) */}
-            <fieldset className="border-border rounded-[12px] border p-4">
+            <fieldset className="border-border rounded-md border p-4">
               <legend className="text-foreground px-1 text-sm font-semibold">
                 Matériel remis au commerçant
               </legend>
@@ -433,7 +433,7 @@ export function ContractsManager({
                   {terms.equipment.items.map((it, i) => (
                     <div
                       key={i}
-                      className="border-border bg-surface-2 grid gap-2 rounded-[10px] border p-3 sm:grid-cols-6"
+                      className="border-border bg-surface-2 rounded-control grid gap-2 border p-3 sm:grid-cols-6"
                     >
                       <div className="sm:col-span-2">
                         <Input
@@ -480,7 +480,7 @@ export function ContractsManager({
                           items[i] = { ...it, condition: e.target.value };
                           setT("equipment", { ...terms.equipment, items });
                         }}
-                        className="border-border bg-surface text-foreground h-10 rounded-[10px] border px-2 text-sm outline-none"
+                        className="border-border bg-surface text-foreground rounded-control h-10 border px-2 text-sm outline-none"
                       >
                         {EQUIPMENT_CONDITIONS.map((c) => (
                           <option key={c}>{c}</option>
@@ -499,7 +499,7 @@ export function ContractsManager({
                         <button
                           type="button"
                           aria-label="Retirer ce matériel"
-                          className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-2"
+                          className="text-danger-600 hover:bg-danger-50 rounded-sm p-2"
                           onClick={() =>
                             setT("equipment", {
                               ...terms.equipment,
@@ -553,17 +553,17 @@ export function ContractsManager({
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={2}
-                className="border-border bg-surface text-foreground focus:border-primary-500 w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+                className="border-border bg-surface text-foreground focus:border-primary-500 rounded-control w-full border px-3 py-2 text-sm outline-none"
               />
             </Field>
 
             {formMsg.err && (
-              <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-[10px] border px-3 py-2.5 text-sm">
+              <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-control border px-3 py-2.5 text-sm">
                 {formMsg.err}
               </p>
             )}
             {formMsg.ok && (
-              <p className="rounded-[10px] border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-800">
+              <p className="rounded-control border border-green-200 bg-green-50 px-3 py-2.5 text-sm text-green-800">
                 {formMsg.ok}
               </p>
             )}
@@ -635,7 +635,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
   const equip = c.terms.equipment;
 
   return (
-    <article className="border-border bg-surface rounded-[16px] border p-4">
+    <article className="border-border bg-surface rounded-lg border p-4">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-foreground font-mono text-sm font-bold">
           {c.contract_number}
@@ -679,7 +679,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
           href={`/api/pdf/contrat/${c.id}`}
           target="_blank"
           rel="noopener noreferrer"
-          className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-sm font-medium"
+          className="border-border hover:bg-surface-2 rounded-control inline-flex items-center gap-1.5 border px-3 py-1.5 text-sm font-medium"
         >
           <Download className="size-4" /> PDF du contrat
         </a>
@@ -690,7 +690,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
             className="inline-flex items-center gap-2"
           >
             <input type="hidden" name="contract_id" value={c.id} />
-            <label className="border-border hover:bg-surface-2 inline-flex cursor-pointer items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-sm font-medium">
+            <label className="border-border hover:bg-surface-2 rounded-control inline-flex cursor-pointer items-center gap-1.5 border px-3 py-1.5 text-sm font-medium">
               {uploading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -776,7 +776,7 @@ function ContractCard({ c }: { c: MerchantContractRow }) {
             onChange={(e) => setNotes(e.target.value)}
             rows={3}
             placeholder="Notes de suivi (état du matériel, relances, litiges…)"
-            className="border-border bg-surface text-foreground focus:border-primary-500 w-full rounded-[10px] border px-3 py-2 text-sm outline-none"
+            className="border-border bg-surface text-foreground focus:border-primary-500 rounded-control w-full border px-3 py-2 text-sm outline-none"
           />
           <Button
             size="sm"

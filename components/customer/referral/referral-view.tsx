@@ -34,7 +34,7 @@ export function ReferralView({
 
   if (!overview) {
     return (
-      <div className="rounded-[16px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+      <div className="rounded-lg border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
         {t("loadError")}
       </div>
     );
@@ -43,7 +43,7 @@ export function ReferralView({
   // Programme coupé / « bientôt » (flag ou réglage admin) → état compact.
   if (!overview.enabled) {
     return (
-      <div className="rounded-[20px] bg-white p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+      <div className="rounded-xl bg-white p-6 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
         <span className="bg-primary-50 text-primary-600 mx-auto grid size-12 place-items-center rounded-2xl">
           <Hourglass className="size-6" />
         </span>
@@ -78,14 +78,14 @@ export function ReferralView({
   return (
     <div className="space-y-4">
       {/* HERO — code + partage */}
-      <section className="from-primary-500 via-primary-600 to-primary-800 relative overflow-hidden rounded-[20px] bg-gradient-to-br p-5 text-white shadow-[0_14px_30px_-16px_rgba(76,27,155,.55)]">
+      <section className="from-primary-500 via-primary-600 to-primary-800 relative overflow-hidden rounded-xl bg-gradient-to-br p-5 text-white shadow-[0_14px_30px_-16px_rgba(76,27,155,.55)]">
         <span className="pointer-events-none absolute -end-10 -top-14 size-44 rounded-full border border-white/15" />
         <span className="pointer-events-none absolute end-6 -top-6 size-24 rounded-full border border-white/10" />
 
         <p className="text-lg leading-snug font-extrabold tracking-tight">
           {t("heroTitle", { amount: overview.reward_referrer_da })}
         </p>
-        <p className="mt-1 text-[13px] font-medium text-white/85">
+        <p className="text-body-sm mt-1 font-medium text-white/85">
           {t("heroSubtitle", {
             amount: overview.reward_referee_da,
             min: overview.min_order_da,
@@ -94,8 +94,8 @@ export function ReferralView({
 
         {/* Code — pointillés façon coupon */}
         <div className="mt-4 flex items-center gap-2">
-          <div className="flex-1 rounded-[14px] border-2 border-dashed border-white/40 bg-white/10 px-3 py-2.5 text-center">
-            <p className="text-[10px] font-bold tracking-widest text-white/70 uppercase">
+          <div className="rounded-card-lg flex-1 border-2 border-dashed border-white/40 bg-white/10 px-3 py-2.5 text-center">
+            <p className="text-micro font-bold tracking-widest text-white/70 uppercase">
               {t("yourCode")}
             </p>
             <p className="font-mono text-xl font-black tracking-[.25em]">
@@ -106,7 +106,7 @@ export function ReferralView({
             type="button"
             onClick={() => void copy("code")}
             aria-label={t("copyCode")}
-            className="grid size-11 shrink-0 place-items-center rounded-[14px] bg-white/15 transition-colors hover:bg-white/25 active:scale-95"
+            className="rounded-card-lg grid size-11 shrink-0 place-items-center bg-white/15 transition-colors hover:bg-white/25 active:scale-95"
           >
             {copied === "code" ? (
               <Check className="size-5" />
@@ -121,7 +121,7 @@ export function ReferralView({
             href={waHref}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-primary-700 inline-flex items-center justify-center gap-2 rounded-[14px] bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition-transform active:scale-[.98]"
+            className="text-primary-700 rounded-card-lg inline-flex items-center justify-center gap-2 bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition-transform active:scale-[.98]"
           >
             <MessageCircle className="size-4.5" />
             {t("inviteWhatsapp")}
@@ -130,7 +130,7 @@ export function ReferralView({
             type="button"
             onClick={() => void copy("link")}
             aria-label={t("copyLink")}
-            className="grid size-11 place-items-center self-center rounded-[14px] bg-white/15 transition-colors hover:bg-white/25 active:scale-95"
+            className="rounded-card-lg grid size-11 place-items-center self-center bg-white/15 transition-colors hover:bg-white/25 active:scale-95"
           >
             {copied === "link" ? (
               <Check className="size-5" />
@@ -163,14 +163,14 @@ export function ReferralView({
       </section>
 
       {/* COMMENT ÇA MARCHE */}
-      <section className="rounded-[16px] bg-white p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-        <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+      <section className="rounded-lg bg-white p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
           {t("howTitle")}
         </p>
         <ol className="mt-2 space-y-2">
           {[t("step1"), t("step2"), t("step3")].map((step, i) => (
             <li key={i} className="flex items-start gap-2.5">
-              <span className="bg-primary-50 text-primary-700 mt-0.5 grid size-5 shrink-0 place-items-center rounded-full text-[11px] font-black">
+              <span className="bg-primary-50 text-primary-700 text-caption mt-0.5 grid size-5 shrink-0 place-items-center rounded-full font-black">
                 {i + 1}
               </span>
               <span className="text-foreground text-sm font-medium">
@@ -182,8 +182,8 @@ export function ReferralView({
       </section>
 
       {/* FILLEULS */}
-      <section className="rounded-[16px] bg-white p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
-        <p className="text-muted text-[11px] font-extrabold tracking-wide uppercase">
+      <section className="rounded-lg bg-white p-4 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <p className="text-muted text-caption font-extrabold tracking-wide uppercase">
           {t("listTitle")}
         </p>
         {overview.referees.length === 0 ? (
@@ -210,11 +210,11 @@ export function ReferralView({
 
 function StatTile({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-[16px] bg-white p-3 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+    <div className="rounded-lg bg-white p-3 text-center shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
       <p className="text-foreground text-lg font-black tracking-tight tabular-nums">
         {value}
       </p>
-      <p className="text-muted text-[11px] font-bold">{label}</p>
+      <p className="text-muted text-caption font-bold">{label}</p>
     </div>
   );
 }
@@ -223,15 +223,15 @@ function RefereeRow({ referee }: { referee: ReferralReferee }) {
   const t = useTranslations("referral");
   const badge =
     referee.status === "rewarded" ? (
-      <span className="bg-success-50 text-success-700 inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-extrabold">
+      <span className="bg-success-50 text-success-700 text-caption inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-extrabold">
         <Gift className="size-3" />+ {formatDA(referee.amount_da)}
       </span>
     ) : referee.status === "waiting" ? (
-      <span className="rounded-full bg-amber-50 px-2.5 py-1 text-[11px] font-extrabold text-amber-700">
+      <span className="text-caption rounded-full bg-amber-50 px-2.5 py-1 font-extrabold text-amber-700">
         {t("statusWaiting")}
       </span>
     ) : (
-      <span className="bg-surface-2 text-subtle rounded-full px-2.5 py-1 text-[11px] font-extrabold">
+      <span className="bg-surface-2 text-subtle text-caption rounded-full px-2.5 py-1 font-extrabold">
         {t("statusExpired")}
       </span>
     );

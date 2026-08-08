@@ -96,7 +96,7 @@ function AlertCard({ alert }: { alert: FraudAlertRow }) {
         <span className="min-w-0 flex-1 truncate text-sm font-bold">
           {alert.title}
         </span>
-        <span className="text-muted text-[11px] tabular-nums">
+        <span className="text-muted text-caption tabular-nums">
           {fmtDateTime(alert.last_seen_at)}
         </span>
       </div>

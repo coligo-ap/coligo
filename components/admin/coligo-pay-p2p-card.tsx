@@ -49,11 +49,11 @@ export function ColigoPayP2pCard({ enabled }: { enabled: boolean }) {
   };
 
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4">
+    <div className="border-border bg-surface rounded-lg border p-4">
       <div className="flex items-center gap-3">
         <span
           className={cn(
-            "grid size-10 shrink-0 place-items-center rounded-[12px]",
+            "grid size-10 shrink-0 place-items-center rounded-md",
             on ? "bg-green-100 text-green-700" : "bg-surface-3 text-muted"
           )}
         >
@@ -64,7 +64,7 @@ export function ColigoPayP2pCard({ enabled }: { enabled: boolean }) {
             Transferts Coligo Pay (Envoyer / Recevoir)
             <span
               className={cn(
-                "rounded-full px-2 py-0.5 text-[10px] font-extrabold tracking-wide uppercase",
+                "text-micro rounded-full px-2 py-0.5 font-extrabold tracking-wide uppercase",
                 on
                   ? "bg-green-100 text-green-800"
                   : "bg-amber-100 text-amber-800"
@@ -111,12 +111,12 @@ export function ColigoPayP2pCard({ enabled }: { enabled: boolean }) {
       )}
 
       {msg.err && (
-        <p className="border-danger-200 bg-danger-50 text-danger-800 mt-3 rounded-[10px] border px-3 py-2 text-sm">
+        <p className="border-danger-200 bg-danger-50 text-danger-800 rounded-control mt-3 border px-3 py-2 text-sm">
           {msg.err}
         </p>
       )}
       {msg.ok && (
-        <p className="mt-3 rounded-[10px] border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
+        <p className="rounded-control mt-3 border border-green-200 bg-green-50 px-3 py-2 text-sm text-green-800">
           {msg.ok}
         </p>
       )}

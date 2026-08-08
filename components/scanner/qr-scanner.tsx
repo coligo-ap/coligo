@@ -779,7 +779,7 @@ export function QrScanner({
   return (
     <div
       className={cn(
-        "relative mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-[16px] bg-black",
+        "relative mx-auto aspect-square w-full max-w-[320px] overflow-hidden rounded-lg bg-black",
         className
       )}
     >
@@ -797,11 +797,11 @@ export function QrScanner({
       {mode === "barcode" ? (
         <>
           <style>{`@keyframes qrsLaser{0%,100%{top:8%}50%{top:88%}}`}</style>
-          <div className="pointer-events-none absolute inset-x-6 inset-y-7 rounded-[14px] border-2 border-white/80">
-            <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-[14px]" />
-            <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-[14px]" />
-            <span className="bg-primary-500 absolute -bottom-px -left-px size-5 rounded-bl-[14px]" />
-            <span className="bg-primary-500 absolute -right-px -bottom-px size-5 rounded-br-[14px]" />
+          <div className="rounded-card-lg pointer-events-none absolute inset-x-6 inset-y-7 border-2 border-white/80">
+            <span className="bg-primary-500 rounded-tl-card-lg absolute -top-px -left-px size-5" />
+            <span className="bg-primary-500 rounded-tr-card-lg absolute -top-px -right-px size-5" />
+            <span className="bg-primary-500 rounded-bl-card-lg absolute -bottom-px -left-px size-5" />
+            <span className="bg-primary-500 rounded-br-card-lg absolute -right-px -bottom-px size-5" />
             <span
               className="bg-primary-400 absolute inset-x-3 h-[3px] rounded-full shadow-[0_0_14px_3px_rgba(138,77,255,.55)]"
               style={{ animation: "qrsLaser 2.2s ease-in-out infinite" }}
@@ -810,11 +810,11 @@ export function QrScanner({
         </>
       ) : (
         <>
-          <div className="pointer-events-none absolute inset-6 rounded-[12px] border-2 border-white/80">
-            <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-[12px]" />
-            <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-[12px]" />
-            <span className="bg-primary-500 absolute -bottom-px -left-px size-5 rounded-bl-[12px]" />
-            <span className="bg-primary-500 absolute -right-px -bottom-px size-5 rounded-br-[12px]" />
+          <div className="pointer-events-none absolute inset-6 rounded-md border-2 border-white/80">
+            <span className="bg-primary-500 absolute -top-px -left-px size-5 rounded-tl-md" />
+            <span className="bg-primary-500 absolute -top-px -right-px size-5 rounded-tr-md" />
+            <span className="bg-primary-500 absolute -bottom-px -left-px size-5 rounded-bl-md" />
+            <span className="bg-primary-500 absolute -right-px -bottom-px size-5 rounded-br-md" />
           </div>
           <div className="bg-primary-400/80 pointer-events-none absolute inset-x-6 top-1/2 h-0.5 -translate-y-1/2 animate-pulse" />
         </>

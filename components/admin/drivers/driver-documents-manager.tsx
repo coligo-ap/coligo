@@ -116,14 +116,14 @@ export function DriverDocumentsManager({
         editing && editing !== "new" && editing.id === d.id ? null : (
           <div
             key={d.id}
-            className="border-border flex items-start justify-between gap-3 rounded-[12px] border p-3"
+            className="border-border flex items-start justify-between gap-3 rounded-md border p-3"
           >
             <div className="min-w-0 text-sm">
               <p className="flex items-center gap-2 font-semibold">
                 {docLabel(d.doc_type)}
                 <span
                   className={
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold " +
+                    "text-micro rounded-full px-2 py-0.5 font-bold " +
                     (STATUS_META[d.status]?.cls ?? "bg-surface-2 text-muted")
                   }
                 >
@@ -186,7 +186,7 @@ export function DriverDocumentsManager({
                   <button
                     type="button"
                     aria-label="Valider la pièce"
-                    className="text-success-700 hover:bg-success-50 rounded-[8px] p-1.5"
+                    className="text-success-700 hover:bg-success-50 rounded-sm p-1.5"
                     disabled={delPending}
                     onClick={() => {
                       startDel(async () => {
@@ -206,7 +206,7 @@ export function DriverDocumentsManager({
                   <button
                     type="button"
                     aria-label="Refuser la pièce"
-                    className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+                    className="text-danger-600 hover:bg-danger-50 rounded-sm p-1.5"
                     disabled={delPending}
                     onClick={() =>
                       setRejecting({
@@ -222,7 +222,7 @@ export function DriverDocumentsManager({
               <button
                 type="button"
                 aria-label="Modifier"
-                className="text-muted hover:bg-surface-2 rounded-[8px] p-1.5"
+                className="text-muted hover:bg-surface-2 rounded-sm p-1.5"
                 onClick={() => setEditing(d)}
               >
                 <Pencil className="size-4" />
@@ -230,7 +230,7 @@ export function DriverDocumentsManager({
               <button
                 type="button"
                 aria-label="Supprimer"
-                className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+                className="text-danger-600 hover:bg-danger-50 rounded-sm p-1.5"
                 disabled={delPending}
                 onClick={async () => {
                   if (
@@ -260,7 +260,7 @@ export function DriverDocumentsManager({
         <form
           key={editing === "new" ? "new" : editing.id}
           action={formAction}
-          className="border-border space-y-3 rounded-[12px] border border-dashed p-3"
+          className="border-border space-y-3 rounded-md border border-dashed p-3"
         >
           {doc && <input type="hidden" name="doc_id" value={doc.id} />}
           <p className="text-muted text-xs font-semibold uppercase">
@@ -276,7 +276,7 @@ export function DriverDocumentsManager({
                 name="doc_type"
                 required
                 defaultValue={doc?.doc_type ?? "cni"}
-                className="border-border bg-surface h-10 w-full rounded-[10px] border px-3 text-sm"
+                className="border-border bg-surface rounded-control h-10 w-full border px-3 text-sm"
               >
                 {DOC_TYPES.map(([v, l]) => (
                   <option key={v} value={v}>
@@ -333,7 +333,7 @@ export function DriverDocumentsManager({
               name="file"
               type="file"
               accept="image/jpeg,image/png,image/webp,application/pdf"
-              className="border-border file:bg-surface-2 block w-full rounded-[10px] border text-sm file:mr-3 file:border-0 file:px-3 file:py-2 file:text-sm"
+              className="border-border file:bg-surface-2 rounded-control block w-full border text-sm file:mr-3 file:border-0 file:px-3 file:py-2 file:text-sm"
             />
             {doc?.hasScan && (
               <p className="text-muted mt-1 flex items-center gap-1 text-xs">

@@ -77,7 +77,7 @@ export function AgentsDirectory({
       </p>
 
       {rows.length === 0 ? (
-        <p className="border-border text-muted rounded-[14px] border border-dashed p-6 text-center text-sm">
+        <p className="border-border text-muted rounded-card-lg border border-dashed p-6 text-center text-sm">
           {query
             ? `Aucun agent ne correspond à « ${query} ».`
             : "Aucun agent actif pour le moment."}
@@ -95,7 +95,7 @@ export function AgentsDirectory({
           type="button"
           disabled={busy}
           onClick={() => void load(query, rows.length)}
-          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
         >
           {busy
             ? "Chargement…"

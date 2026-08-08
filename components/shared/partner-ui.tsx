@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useLocale } from "next-intl";
+import { PARTNER } from "@/lib/design/tokens";
 import {
   ChevronLeft,
   ChevronRight,
@@ -23,12 +24,17 @@ import {
  * Complète (ne remplace pas) `partner-drawer.tsx` / `partner-sheet.tsx`.
  */
 
-/** Violet de marque unifié (cf. mémoire « Couleurs de marque »). */
-export const BRAND_VIOLET = "#6c2bd9";
-export const BRAND_VIOLET_D = "#4b1fa6";
-export const BRAND_GO = "#16b364";
-export const BRAND_RED = "#e5484d";
-export const BRAND_AMBER = "#f59e0b";
+/**
+ * Couleurs de marque des primitives partenaires. Elles proviennent du design
+ * system (lib/design/tokens.ts, miroir de app/design-tokens.css) : ce fichier
+ * ne définit plus aucune couleur, il ne fait que la réexporter sous le nom
+ * historique attendu par les écrans livreur/chauffeur.
+ */
+export const BRAND_VIOLET = PARTNER.violet;
+export const BRAND_VIOLET_D = PARTNER.violetDark;
+export const BRAND_GO = PARTNER.go;
+export const BRAND_RED = PARTNER.red;
+export const BRAND_AMBER = PARTNER.amber;
 /** Police titres/chiffres (Sora), exposée par les 2 layouts partenaires. */
 export const SORA = 'var(--font-sora), "Sora", system-ui, sans-serif';
 
@@ -107,7 +113,7 @@ export function PartnerTabbar({
               // SYSTÈME AGRANDIE (réglage Android/iOS), un libellé long
               // débordait de sa colonne sur l'onglet voisin. Il se tronque
               // désormais (…) sans jamais sortir de sa case.
-              className="flex min-w-0 flex-col items-center justify-center gap-[3px] px-0.5 text-[10px] font-semibold"
+              className="text-micro flex min-w-0 flex-col items-center justify-center gap-[3px] px-0.5 font-semibold"
               style={{ color: active ? BRAND_VIOLET : "var(--d-muted)" }}
             >
               <Icon className="size-[22px] shrink-0" />
@@ -143,7 +149,7 @@ export function PartnerBackHeader({
   const router = useRouter();
   const isAr = useLocale() === "ar";
   const back =
-    "grid size-[42px] shrink-0 place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow";
+    "grid size-[42px] shrink-0 place-items-center rounded-card-lg border border-[var(--d-line)] bg-[var(--d-surface)] shadow";
   return (
     <div className="mb-4 flex items-center gap-3">
       {href ? (
@@ -166,13 +172,13 @@ export function PartnerBackHeader({
       )}
       <div className="min-w-0 flex-1">
         <h1
-          className="truncate text-[19px] font-extrabold tracking-[-0.4px] text-[var(--d-ink)]"
+          className="text-heading truncate font-extrabold tracking-[-0.4px] text-[var(--d-ink)]"
           style={{ fontFamily: SORA }}
         >
           {title}
         </h1>
         {subtitle != null && (
-          <p className="truncate text-[12px] font-medium text-[var(--d-muted)]">
+          <p className="text-label truncate font-medium text-[var(--d-muted)]">
             {subtitle}
           </p>
         )}
@@ -194,7 +200,7 @@ export function PartnerSegmented<K extends string>({
   onChange: (key: K) => void;
 }) {
   return (
-    <div className="flex gap-[3px] rounded-[14px] bg-[var(--d-soft)] p-1">
+    <div className="rounded-card-lg flex gap-[3px] bg-[var(--d-soft)] p-1">
       {options.map((o) => {
         const on = o.key === value;
         return (
@@ -202,7 +208,7 @@ export function PartnerSegmented<K extends string>({
             key={o.key}
             type="button"
             onClick={() => onChange(o.key)}
-            className="flex-1 rounded-[11px] p-2 text-[12.5px] font-bold transition-colors"
+            className="rounded-control-lg text-label-lg flex-1 p-2 font-bold transition-colors"
             style={
               on
                 ? {
@@ -236,15 +242,15 @@ export function PartnerStatTiles({
       {tiles.map((t, i) => (
         <div
           key={i}
-          className="rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-3 text-center"
+          className="rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] px-2 py-3 text-center"
         >
           <div
-            className="text-[18px] font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
+            className="text-heading-sm font-extrabold tracking-[-0.5px] text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
             {t.value}
           </div>
-          <div className="mt-0.5 text-[10.5px] font-semibold text-[var(--d-muted)]">
+          <div className="text-micro-lg mt-0.5 font-semibold text-[var(--d-muted)]">
             {t.label}
           </div>
         </div>
@@ -269,11 +275,11 @@ export function PartnerMenuGroup({
   return (
     <div className="mb-2.5">
       {title != null && (
-        <p className="mb-1 px-1 text-[11px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+        <p className="text-caption mb-1 px-1 font-bold tracking-wide text-[var(--d-muted)] uppercase">
           {title}
         </p>
       )}
-      <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+      <div className="overflow-hidden rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]">
         {children}
       </div>
     </div>
@@ -312,7 +318,7 @@ export function PartnerMenuRow({
     <>
       {icon != null && (
         <span
-          className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]"
+          className="rounded-control grid size-8 shrink-0 place-items-center bg-[var(--d-soft)]"
           style={{ color: danger ? BRAND_RED : undefined }}
         >
           {icon}
@@ -323,7 +329,7 @@ export function PartnerMenuRow({
           {label}
         </span>
         {sublabel != null && (
-          <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+          <span className="text-caption-lg block truncate font-medium text-[var(--d-muted)]">
             {sublabel}
           </span>
         )}
@@ -343,7 +349,7 @@ export function PartnerMenuRow({
     </>
   );
   const cls =
-    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3 text-start text-[13.5px] font-semibold last:border-b-0";
+    "flex w-full items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3 text-start text-body font-semibold last:border-b-0";
   if (href) {
     return (
       <Link href={href} className={cls} onClick={onClick}>
@@ -379,7 +385,7 @@ export function PartnerStatusChip({
         : { background: "var(--d-accent)", color: BRAND_VIOLET };
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
+      className="text-micro-lg inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold"
       style={style}
     >
       {icon}
@@ -394,7 +400,7 @@ const BADGE_TONES = {
   ok: { background: "rgba(22,179,100,.12)", color: BRAND_GO },
   ko: { background: "rgba(229,72,77,.12)", color: BRAND_RED },
   violet: { background: "rgba(108,43,217,.12)", color: BRAND_VIOLET },
-  amber: { background: "rgba(245,158,11,.14)", color: "#c2790a" },
+  amber: { background: "rgba(245,158,11,.14)", color: PARTNER.amberDark },
   muted: { background: "var(--d-soft)", color: "var(--d-muted)" },
 } as const;
 
@@ -407,7 +413,7 @@ export function PartnerBadge({
 }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-[20px] px-2 py-[3px] text-[10.5px] font-bold whitespace-nowrap"
+      className="text-micro-lg inline-flex items-center gap-1 rounded-xl px-2 py-[3px] font-bold whitespace-nowrap"
       style={BADGE_TONES[tone]}
     >
       {children}
@@ -431,20 +437,20 @@ export function PartnerHeroCard({
 }) {
   return (
     <div
-      className="rounded-[22px] p-5 text-white"
+      className="rounded-sheet-xl p-5 text-white"
       style={{
         background: `linear-gradient(135deg, ${BRAND_VIOLET}, ${BRAND_VIOLET_D})`,
         boxShadow: "0 18px 40px -14px rgba(108,43,217,.45)",
       }}
     >
-      <div className="text-[12.5px] font-semibold opacity-85">{label}</div>
+      <div className="text-label-lg font-semibold opacity-85">{label}</div>
       <div
         className="mt-1.5 mb-1 text-[32px] leading-none font-extrabold tracking-[-1px]"
         style={{ fontFamily: SORA }}
       >
         {value}
       </div>
-      {sub != null && <div className="text-[12px] opacity-90">{sub}</div>}
+      {sub != null && <div className="text-label opacity-90">{sub}</div>}
       {children}
     </div>
   );
@@ -501,10 +507,10 @@ export function PartnerLogoutRow({
               setPending(false);
             });
         }}
-        className="mt-3 flex w-full items-center gap-3 rounded-[16px] border border-[var(--d-line)] px-3.5 py-3.5 text-start text-[13.5px] font-semibold disabled:opacity-70"
+        className="text-body mt-3 flex w-full items-center gap-3 rounded-lg border border-[var(--d-line)] px-3.5 py-3.5 text-start font-semibold disabled:opacity-70"
         style={{ color: BRAND_RED }}
       >
-        <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+        <span className="rounded-control grid size-8 shrink-0 place-items-center bg-[var(--d-soft)]">
           {pending ? (
             <Loader2
               className="size-4 animate-spin"
@@ -533,7 +539,7 @@ export function PartnerInlineError({
   if (!children) return null;
   return (
     <p
-      className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+      className="text-label rounded-md px-3 py-2 text-center font-bold"
       style={{ background: "rgba(229,72,77,.1)", color: BRAND_RED }}
     >
       {children}
@@ -573,7 +579,7 @@ export function PartnerEmptyState({
   text: React.ReactNode;
 }) {
   return (
-    <div className="rounded-[18px] border border-[var(--d-line)] bg-[var(--d-soft)] px-4 py-8 text-center">
+    <div className="rounded-sheet-lg border border-[var(--d-line)] bg-[var(--d-soft)] px-4 py-8 text-center">
       {icon != null && (
         <span
           className="mx-auto mb-2.5 grid size-11 place-items-center rounded-full bg-[var(--d-surface)] shadow-sm"
@@ -584,13 +590,13 @@ export function PartnerEmptyState({
       )}
       {title != null && (
         <p
-          className="mb-1 text-[15px] font-extrabold text-[var(--d-ink)]"
+          className="text-title-sm mb-1 font-extrabold text-[var(--d-ink)]"
           style={{ fontFamily: SORA }}
         >
           {title}
         </p>
       )}
-      <p className="text-[13px] font-medium text-[var(--d-muted)]">{text}</p>
+      <p className="text-body-sm font-medium text-[var(--d-muted)]">{text}</p>
     </div>
   );
 }

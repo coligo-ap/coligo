@@ -9,23 +9,23 @@ export default function RechargerLoading() {
     <div className="p-4 lg:p-6">
       <div className="mx-auto max-w-[480px] animate-pulse space-y-4">
         {/* Titre */}
-        <div className="bg-surface-3 h-6 w-40 rounded-[10px]" />
+        <div className="bg-surface-3 rounded-control h-6 w-40" />
         {/* Hero solde */}
-        <div className="bg-surface-3 h-28 w-full rounded-[20px]" />
+        <div className="bg-surface-3 h-28 w-full rounded-xl" />
         {/* Sélecteur de méthode (3 chips) */}
         <div className="grid grid-cols-3 gap-2">
-          <div className="bg-surface-3 h-12 rounded-[14px]" />
-          <div className="bg-surface-3 h-12 rounded-[14px]" />
-          <div className="bg-surface-3 h-12 rounded-[14px]" />
+          <div className="bg-surface-3 rounded-card-lg h-12" />
+          <div className="bg-surface-3 rounded-card-lg h-12" />
+          <div className="bg-surface-3 rounded-card-lg h-12" />
         </div>
         {/* Montants */}
         <div className="grid grid-cols-3 gap-2">
           {Array.from({ length: 6 }).map((_, i) => (
-            <div key={i} className="bg-surface-3 h-11 rounded-[12px]" />
+            <div key={i} className="bg-surface-3 h-11 rounded-md" />
           ))}
         </div>
         {/* CTA */}
-        <div className="bg-surface-3 h-12 w-full rounded-[14px]" />
+        <div className="bg-surface-3 rounded-card-lg h-12 w-full" />
       </div>
     </div>
   );

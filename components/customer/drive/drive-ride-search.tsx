@@ -367,16 +367,16 @@ export function SearchScreen({
           padding={mapPadding}
         />
       )}
-      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
+      <div className="absolute inset-x-0 top-[230px] bottom-0 z-10 overflow-y-auto rounded-t-2xl border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-3.5 pb-[calc(2rem+env(safe-area-inset-bottom))] shadow-[0_-16px_40px_-22px_rgba(20,22,40,.3)]">
         {/* En-tête STICKY : poignée + statut + bouton ROUGE « Annuler ». Reste
             épinglé en haut du sheet → toujours accessible même si la liste des
             offres est longue (plus besoin de scroller jusqu'en bas pour annuler). */}
-        <div className="sticky top-0 z-30 -mx-5 -mt-3.5 mb-3 rounded-t-[28px] bg-[var(--d-surface)] px-5 pt-3.5 pb-3">
+        <div className="sticky top-0 z-30 -mx-5 -mt-3.5 mb-3 rounded-t-2xl bg-[var(--d-surface)] px-5 pt-3.5 pb-3">
           <div className="mx-auto mb-3 h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
           {/* Statut seul (le bouton « Annuler » vit désormais sur la carte, en
               haut à droite — demande produit). */}
           <div
-            className="flex min-w-0 items-center gap-2 text-[13px] font-bold"
+            className="text-body-sm flex min-w-0 items-center gap-2 font-bold"
             style={{ color: VIOLET }}
           >
             {!offlineQueued && (
@@ -394,10 +394,7 @@ export function SearchScreen({
             </span>
           </div>
           {error && (
-            <p
-              className="mt-2 text-[12px] font-semibold"
-              style={{ color: RED }}
-            >
+            <p className="text-label mt-2 font-semibold" style={{ color: RED }}>
               {error}
             </p>
           )}
@@ -408,11 +405,11 @@ export function SearchScreen({
             paiement du prix EXACT se fait au TAP sur un chauffeur (choose). */}
         {isCard && !ride?.online_paid && offers.length > 0 && (
           <div
-            className="mb-3 flex items-center gap-2 rounded-[13px] border-[1.5px] border-dashed px-3 py-2"
+            className="rounded-card mb-3 flex items-center gap-2 border-[1.5px] border-dashed px-3 py-2"
             style={{ borderColor: VIOLET }}
           >
             <CreditCard className="size-4 shrink-0" style={{ color: VIOLET }} />
-            <span className="text-[11.5px] leading-snug font-semibold text-[var(--d-muted)]">
+            <span className="text-caption-lg leading-snug font-semibold text-[var(--d-muted)]">
               {t("cardPayOnAccept")}
             </span>
           </div>
@@ -420,7 +417,7 @@ export function SearchScreen({
 
         {boosted && (
           <span
-            className="mb-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12.5px] font-bold"
+            className="text-label-lg mb-2.5 inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             <Zap className="size-3.5" />{" "}
@@ -430,13 +427,13 @@ export function SearchScreen({
 
         {/* Hors connexion : demande en file (maquette offbanner) */}
         {offlineQueued && (
-          <div className="mb-3 flex items-start gap-2.5 rounded-[15px] border-[1.5px] border-dashed border-[#6B7280] bg-[var(--d-soft)] p-3">
-            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
+          <div className="rounded-card-xl mb-3 flex items-start gap-2.5 border-[1.5px] border-dashed border-[#6B7280] bg-[var(--d-soft)] p-3">
+            <span className="rounded-control-lg grid size-9 shrink-0 place-items-center bg-[var(--d-surface)]">
               <WifiOff className="size-4.5 text-[var(--d-muted)]" />
             </span>
             <span>
-              <b className="block text-[13px]">{t("offlineTitle")}</b>
-              <span className="text-[11px] leading-snug text-[var(--d-muted)]">
+              <b className="text-body-sm block">{t("offlineTitle")}</b>
+              <span className="text-caption leading-snug text-[var(--d-muted)]">
                 {t("offlineSub")}
               </span>
             </span>
@@ -454,17 +451,17 @@ export function SearchScreen({
               await refreshActive();
               setBoosting(false);
             }}
-            className="mb-3 flex w-full items-center gap-3 rounded-[14px] p-3 text-left disabled:opacity-50"
+            className="rounded-card-lg mb-3 flex w-full items-center gap-3 p-3 text-left disabled:opacity-50"
             style={{ background: "rgba(22,179,100,.12)" }}
           >
-            <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-surface)]">
+            <span className="rounded-control grid size-8 shrink-0 place-items-center bg-[var(--d-surface)]">
               <Zap className="size-4" style={{ color: GO }} />
             </span>
             <span className="min-w-0 flex-1">
-              <b className="block text-[12.5px]" style={{ color: GO }}>
+              <b className="text-label-lg block" style={{ color: GO }}>
                 {t("boostBar", { amount: boostDefault })}
               </b>
-              <span className="text-[10.5px] text-[var(--d-muted)]">
+              <span className="text-micro-lg text-[var(--d-muted)]">
                 {t("boostBarSub")}
               </span>
             </span>
@@ -490,7 +487,7 @@ export function SearchScreen({
               key={k}
               type="button"
               onClick={() => setSort(k)}
-              className="flex flex-1 items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] px-1.5 py-2.5 text-xs font-bold"
+              className="flex flex-1 items-center justify-center gap-1.5 rounded-md border-[1.5px] px-1.5 py-2.5 text-xs font-bold"
               style={
                 sort === k
                   ? {
@@ -509,7 +506,7 @@ export function SearchScreen({
 
         {/* Repli conductrices */}
         {femaleFallback && (
-          <div className="mb-2.5 flex items-start gap-2.5 rounded-[13px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 text-[11.5px] leading-relaxed font-semibold text-[var(--d-muted)]">
+          <div className="rounded-card text-caption-lg mb-2.5 flex items-start gap-2.5 border border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-2.5 leading-relaxed font-semibold text-[var(--d-muted)]">
             <AlertTriangle
               className="mt-0.5 size-4 shrink-0"
               style={{ color: ROSE }}
@@ -525,7 +522,7 @@ export function SearchScreen({
             temps affiché ; à 0 la course est annulée côté serveur. */}
         {payDeadline !== null && payLeft > 0 && (
           <p
-            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold tabular-nums"
+            className="mb-2 rounded-md px-3 py-2 text-center text-xs font-bold tabular-nums"
             style={{
               background: "var(--d-accent)",
               color: "var(--d-violet)",
@@ -539,7 +536,7 @@ export function SearchScreen({
 
         {error && (
           <p
-            className="mb-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+            className="mb-2 rounded-md px-3 py-2 text-center text-xs font-bold"
             style={{ background: "rgba(229,72,77,.1)", color: RED }}
           >
             {error}
@@ -584,7 +581,7 @@ export function SearchScreen({
             return (
               <div
                 key={o.id}
-                className="drive-rise mb-2 flex items-center gap-3 rounded-[18px] border bg-[var(--d-soft)] p-3"
+                className="drive-rise rounded-sheet-lg mb-2 flex items-center gap-3 border bg-[var(--d-soft)] p-3"
                 style={{
                   borderColor: female
                     ? o.is_female
@@ -614,7 +611,7 @@ export function SearchScreen({
                   >
                     {o.name}
                     {o.rating != null && (
-                      <span className="inline-flex items-center gap-0.5 text-[11px] font-bold text-[#B45309]">
+                      <span className="text-caption inline-flex items-center gap-0.5 font-bold text-[var(--color-warning-700)]">
                         <Star
                           className="size-3 shrink-0"
                           style={{ color: "#E8B53C", fill: "#E8B53C" }}
@@ -623,7 +620,7 @@ export function SearchScreen({
                       </span>
                     )}
                     {o.is_premium && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#E8B53C] px-2 py-0.5 text-[9.5px] font-extrabold text-[#3a2c00]">
+                      <span className="text-nano-lg inline-flex items-center gap-1 rounded-full bg-[#E8B53C] px-2 py-0.5 font-extrabold text-[#3a2c00]">
                         <Crown
                           className="size-2.5 shrink-0"
                           fill="currentColor"
@@ -632,7 +629,7 @@ export function SearchScreen({
                       </span>
                     )}
                     {o.is_priority && (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-2 py-0.5 text-[9.5px] font-extrabold text-white">
+                      <span className="to-primary-600 text-nano-lg inline-flex items-center gap-1 rounded-full bg-gradient-to-r from-[#5B2EFF] px-2 py-0.5 font-extrabold text-white">
                         <Zap
                           className="size-2.5 shrink-0"
                           fill="currentColor"
@@ -654,11 +651,11 @@ export function SearchScreen({
                     )}
                   </span>
                   {o.vehicle && (
-                    <span className="mt-0.5 block truncate text-[11px] text-[var(--d-muted)]">
+                    <span className="text-caption mt-0.5 block truncate text-[var(--d-muted)]">
                       {o.vehicle}
                     </span>
                   )}
-                  <span className="block truncate text-[11px] text-[var(--d-muted)]">
+                  <span className="text-caption block truncate text-[var(--d-muted)]">
                     {o.eta_min != null
                       ? t("etaLine", {
                           min: o.eta_min,
@@ -672,14 +669,14 @@ export function SearchScreen({
                   </span>
                 </span>
                 <span className="shrink-0 text-right">
-                  <span className="drive-sora block text-[17px] font-extrabold">
+                  <span className="drive-sora text-title-lg block font-extrabold">
                     {o.price_da} DA
                   </span>
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => void choose(o.id)}
-                    className="drive-shine mt-1 rounded-[12px] px-3.5 py-2 text-xs font-extrabold text-white transition-transform active:scale-95 disabled:opacity-50"
+                    className="drive-shine mt-1 rounded-md px-3.5 py-2 text-xs font-extrabold text-white transition-transform active:scale-95 disabled:opacity-50"
                     style={{
                       background: VIOLET,
                       boxShadow: "0 8px 18px -8px rgba(108,43,217,.7)",
@@ -702,7 +699,7 @@ export function SearchScreen({
           onClick={handleCancel}
           disabled={busy}
           aria-label={t("cancelSearch")}
-          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 z-20 inline-flex items-center gap-1.5 rounded-[14px] px-4 py-2.5 text-[13px] font-extrabold text-white shadow-lg transition-transform active:scale-95 disabled:opacity-60"
+          className="rounded-card-lg text-body-sm absolute top-[calc(0.75rem+env(safe-area-inset-top))] right-4 z-20 inline-flex items-center gap-1.5 px-4 py-2.5 font-extrabold text-white shadow-lg transition-transform active:scale-95 disabled:opacity-60"
           style={{ background: RED }}
         >
           {busy ? (
@@ -719,7 +716,7 @@ export function SearchScreen({
         <button
           type="button"
           onClick={onBackToPrice}
-          className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-20 grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+          className="rounded-card-lg absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-4 z-20 grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
         >
           <X className="size-5" />
         </button>
@@ -762,7 +759,7 @@ function Tag({
 }) {
   return (
     <span
-      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+      className="text-nano-lg inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-extrabold"
       style={{ background: soft, color }}
     >
       {children}

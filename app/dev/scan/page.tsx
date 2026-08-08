@@ -29,12 +29,12 @@ export default function DevScanPage() {
         </p>
       </header>
 
-      <section className="border-border bg-surface rounded-[14px] border p-5">
+      <section className="border-border bg-surface rounded-card-lg border p-5">
         {scanning ? (
           <QrScanner onScan={handleScan} oneShot />
         ) : (
           <div className="space-y-4">
-            <div className="border-success-200 bg-success-50 flex items-start gap-3 rounded-[12px] border p-4">
+            <div className="border-success-200 bg-success-50 flex items-start gap-3 rounded-md border p-4">
               <ScanLine className="text-success-600 mt-0.5 size-5" />
               <div className="min-w-0 flex-1">
                 <p className="text-success-800 text-sm font-medium">

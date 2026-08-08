@@ -350,12 +350,12 @@ export function PartnerBenefits({ variant }: { variant: AuthVariant }) {
           {c.stats.map((s) => (
             <div
               key={s.l[0]}
-              className="border-border rounded-[14px] border bg-white p-2.5 text-center"
+              className="border-border rounded-card-lg border bg-white p-2.5 text-center"
             >
               <div className="text-primary-700 text-lg leading-tight font-extrabold tabular-nums">
                 {pick(s.v)}
               </div>
-              <div className="text-muted mt-0.5 text-[10.5px] leading-tight font-medium">
+              <div className="text-muted text-micro-lg mt-0.5 leading-tight font-medium">
                 {pick(s.l)}
               </div>
             </div>
@@ -370,21 +370,21 @@ export function PartnerBenefits({ variant }: { variant: AuthVariant }) {
               <div
                 key={b.t[0]}
                 className={cn(
-                  "border-border flex items-center gap-3 rounded-[18px] border bg-white p-3.5 shadow-[0_10px_24px_-18px_rgba(40,35,90,.35)]",
+                  "border-border rounded-sheet-lg flex items-center gap-3 border bg-white p-3.5 shadow-[0_10px_24px_-18px_rgba(40,35,90,.35)]",
                   reveal
                 )}
                 style={{ transitionDelay: `${160 + i * 80}ms` }}
               >
                 <span
                   className={cn(
-                    "grid size-11 shrink-0 place-items-center rounded-[14px]",
+                    "rounded-card-lg grid size-11 shrink-0 place-items-center",
                     b.tint
                   )}
                 >
                   <Icon className="size-5" />
                 </span>
                 <div className="min-w-0">
-                  <p className="text-foreground text-[15px] leading-tight font-bold">
+                  <p className="text-foreground text-title-sm leading-tight font-bold">
                     {pick(b.t)}
                   </p>
                   <p className="text-muted mt-0.5 text-xs leading-snug">
@@ -399,7 +399,7 @@ export function PartnerBenefits({ variant }: { variant: AuthVariant }) {
         {/* CTA — bannière au dégradé du thème (mêmes vars que les héros). */}
         <div className={reveal} style={{ transitionDelay: "600ms" }}>
           <div
-            className="relative mt-4 overflow-hidden rounded-[20px] p-5 text-white"
+            className="relative mt-4 overflow-hidden rounded-xl p-5 text-white"
             style={{
               backgroundImage:
                 "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",

@@ -137,7 +137,7 @@ export default async function CustomerAccountPage({
               {initial}
             </div>
             <div className="min-w-0">
-              <p className="truncate text-[22px] leading-tight font-black tracking-tight">
+              <p className="text-display truncate leading-tight font-black tracking-tight">
                 {customer?.full_name || t("myAccount")}
               </p>
               {customer?.phone && (
@@ -149,7 +149,7 @@ export default async function CustomerAccountPage({
               {verified && (
                 // Vérifié = concept de réussite → vert (pastille blanche + coche
                 // verte pour rester lisible sur le héro violet).
-                <span className="mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 text-[10.5px] font-extrabold text-[#00854f] shadow-sm">
+                <span className="text-micro-lg mt-1.5 inline-flex items-center gap-1 rounded-full bg-white px-2.5 py-1 font-extrabold text-[#00854f] shadow-sm">
                   <BadgeCheck className="size-3" />
                   {t("verifiedAccount")}
                 </span>
@@ -168,7 +168,7 @@ export default async function CustomerAccountPage({
               (cashbackActive ? (
                 <Link
                   href="/cashback"
-                  className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+                  className="rounded-sheet-lg bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
@@ -176,7 +176,7 @@ export default async function CustomerAccountPage({
                     </span>
                     <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
                   </div>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                  <p className="text-muted text-caption-lg mt-2.5 font-extrabold">
                     {t("cashbackTitle")}
                   </p>
                   <p
@@ -190,11 +190,11 @@ export default async function CustomerAccountPage({
                   </p>
                 </Link>
               ) : (
-                <div className="rounded-[18px] bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
+                <div className="rounded-sheet-lg bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
                   <span className="grid size-9 place-items-center rounded-xl bg-amber-50 text-amber-600">
                     <Gift className="size-[18px]" />
                   </span>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                  <p className="text-muted text-caption-lg mt-2.5 font-extrabold">
                     {t("cashbackTitle")}
                   </p>
                   <p className="text-subtle mt-0.5 text-sm font-bold">
@@ -206,7 +206,7 @@ export default async function CustomerAccountPage({
               (payActive ? (
                 <Link
                   href="/coligo-pay"
-                  className="rounded-[18px] bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
+                  className="rounded-sheet-lg bg-white p-3.5 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)] transition-transform active:scale-[.97]"
                 >
                   <div className="flex items-center justify-between">
                     <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
@@ -214,7 +214,7 @@ export default async function CustomerAccountPage({
                     </span>
                     <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
                   </div>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                  <p className="text-muted text-caption-lg mt-2.5 font-extrabold">
                     Coligo Pay
                   </p>
                   <p
@@ -228,11 +228,11 @@ export default async function CustomerAccountPage({
                   </p>
                 </Link>
               ) : (
-                <div className="rounded-[18px] bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
+                <div className="rounded-sheet-lg bg-white p-3.5 opacity-60 shadow-[0_12px_28px_-14px_rgba(40,35,90,.3)]">
                   <span className="bg-primary-50 text-primary-600 grid size-9 place-items-center rounded-xl">
                     <Wallet className="size-[18px]" />
                   </span>
-                  <p className="text-muted mt-2.5 text-[11.5px] font-extrabold">
+                  <p className="text-muted text-caption-lg mt-2.5 font-extrabold">
                     Coligo Pay
                   </p>
                   <p className="text-subtle mt-0.5 text-sm font-bold">
@@ -246,7 +246,7 @@ export default async function CustomerAccountPage({
         {completePhone && !customer?.phone && (
           <Link
             href="/compte/infos"
-            className="border-warning-200 bg-warning-50 text-warning-800 mx-4 mt-4 block rounded-[14px] border px-4 py-3 text-sm font-medium"
+            className="border-warning-200 bg-warning-50 text-warning-800 rounded-card-lg mx-4 mt-4 block border px-4 py-3 text-sm font-medium"
           >
             {t.rich("completePhoneBanner", {
               strong: (chunks) => <strong>{chunks}</strong>,
@@ -255,10 +255,10 @@ export default async function CustomerAccountPage({
         )}
 
         {/* Section COMPTE */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionAccount")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
           <MenuRow
             href="/compte/infos"
             tone="info"
@@ -276,10 +276,10 @@ export default async function CustomerAccountPage({
         </div>
 
         {/* Section ACTIVITÉ */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionActivity")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
           <MenuRow
             href="/commandes"
             tone="orders"
@@ -327,18 +327,18 @@ export default async function CustomerAccountPage({
         </div>
 
         {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré. */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionPreferences")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
           <CustomerLanguageRow title={t("language")} />
         </div>
 
         {/* Section AIDE — live chat support (Tawk.to) */}
-        <p className="text-muted px-5 pt-5 pb-2 text-[11px] font-extrabold tracking-wide uppercase">
+        <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionHelp")}
         </p>
-        <div className="divide-border mx-4 divide-y overflow-hidden rounded-[20px] bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
+        <div className="divide-border mx-4 divide-y overflow-hidden rounded-xl bg-white shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]">
           <CustomerSupportRow
             title={t("helpSupport")}
             subtitle={t("helpSupportDesc")}
@@ -397,7 +397,7 @@ function MenuRow({
         {icon}
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block text-[15px] font-extrabold tracking-tight">
+        <span className="text-foreground text-title-sm block font-extrabold tracking-tight">
           {title}
         </span>
         <span className="text-muted block truncate text-xs font-medium">
@@ -405,7 +405,7 @@ function MenuRow({
         </span>
       </span>
       {pill ? (
-        <span className="bg-primary-50 text-primary-700 shrink-0 rounded-full px-2.5 py-1 text-[11px] font-extrabold">
+        <span className="bg-primary-50 text-primary-700 text-caption shrink-0 rounded-full px-2.5 py-1 font-extrabold">
           {pill}
         </span>
       ) : (

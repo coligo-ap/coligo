@@ -93,7 +93,7 @@ export function ZoneNotice({
   return (
     <div
       className={
-        "rounded-[12px] border border-amber-200 bg-amber-50 p-3 " + className
+        "rounded-md border border-amber-200 bg-amber-50 p-3 " + className
       }
     >
       {blocked.map((s) => {
@@ -101,7 +101,7 @@ export function ZoneNotice({
         return (
           <p
             key={s}
-            className="flex items-start gap-2 text-[12.5px] font-semibold text-amber-800"
+            className="text-label-lg flex items-start gap-2 font-semibold text-amber-800"
           >
             {e.coming_soon ? (
               <Clock className="mt-0.5 size-4 shrink-0" />
@@ -118,7 +118,7 @@ export function ZoneNotice({
 
       {anyComingSoon &&
         (joined ? (
-          <p className="mt-2 flex items-center gap-1.5 text-[12px] font-bold text-emerald-700">
+          <p className="text-label mt-2 flex items-center gap-1.5 font-bold text-emerald-700">
             <CheckCircle2 className="size-4" />
             Parfait — on vous prévient dès l&apos;ouverture !
           </p>
@@ -126,7 +126,7 @@ export function ZoneNotice({
           <button
             type="button"
             onClick={join}
-            className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 text-[12px] font-bold text-white"
+            className="text-label mt-2 inline-flex items-center gap-1.5 rounded-full bg-amber-600 px-3 py-1.5 font-bold text-white"
           >
             <BellRing className="size-3.5" />
             Prévenez-moi

@@ -40,7 +40,7 @@ export function ActionNote({
     <p
       role="status"
       aria-live="polite"
-      className={`text-[11px] font-medium ${
+      className={`text-caption font-medium ${
         note.ok ? "text-success-700" : "text-danger-600"
       } ${className}`}
     >

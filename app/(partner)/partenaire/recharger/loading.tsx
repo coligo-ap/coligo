@@ -7,8 +7,8 @@ export default function Loading() {
   return (
     <div className="mx-auto max-w-2xl space-y-3 p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
       <div className="bg-surface-2 h-9 w-40 animate-pulse rounded-full" />
-      <div className="bg-surface-2 h-32 animate-pulse rounded-[16px]" />
-      <div className="bg-surface-2 h-24 animate-pulse rounded-[16px]" />
+      <div className="bg-surface-2 h-32 animate-pulse rounded-lg" />
+      <div className="bg-surface-2 h-24 animate-pulse rounded-lg" />
     </div>
   );
 }

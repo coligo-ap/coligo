@@ -69,7 +69,7 @@ export function IdvIntro({
                 key={doc.key}
                 type="button"
                 onClick={() => setDocKey(doc.key)}
-                className="flex w-full items-center gap-3 rounded-[14px] border p-3 text-start transition-colors"
+                className="rounded-card-lg flex w-full items-center gap-3 border p-3 text-start transition-colors"
                 style={{
                   background: active ? "var(--idv-tint)" : "var(--idv-card)",
                   borderColor: active ? "var(--idv-accent)" : "var(--idv-line)",
@@ -114,7 +114,7 @@ export function IdvIntro({
                     key={m.key}
                     type="button"
                     onClick={() => setModeKey(m.key)}
-                    className="rounded-[14px] border p-3 text-start"
+                    className="rounded-card-lg border p-3 text-start"
                     style={{
                       background: active
                         ? "var(--idv-tint)"
@@ -135,7 +135,7 @@ export function IdvIntro({
         )}
 
         <p
-          className="flex items-center justify-center gap-1.5 text-[11px]"
+          className="text-caption flex items-center justify-center gap-1.5"
           style={{ color: "var(--idv-muted)" }}
         >
           <Lock className="size-3.5" />

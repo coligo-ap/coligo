@@ -188,13 +188,13 @@ export function ProductOptionsEditor({
   }
 
   return (
-    <section className="border-border bg-surface rounded-[16px] border">
+    <section className="border-border bg-surface rounded-lg border">
       {/* En-tête cliquable : replié par défaut, compteur toujours visible */}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
-        className="flex w-full items-center justify-between gap-3 rounded-[16px] p-5 text-left"
+        className="flex w-full items-center justify-between gap-3 rounded-lg p-5 text-left"
       >
         <div>
           <span className="text-sm font-medium">Options & variantes</span>
@@ -240,7 +240,7 @@ export function ProductOptionsEditor({
           {groups.map((g, gi) => (
             <div
               key={gi}
-              className="border-border-strong space-y-3 rounded-[12px] border p-4"
+              className="border-border-strong space-y-3 rounded-md border p-4"
             >
               <div className="grid gap-3 sm:grid-cols-2">
                 <Input
@@ -297,7 +297,7 @@ export function ProductOptionsEditor({
                   type="button"
                   onClick={() => removeGroup(gi)}
                   disabled={pending}
-                  className="text-danger-600 hover:bg-danger-50 ml-auto inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-xs disabled:opacity-50"
+                  className="text-danger-600 hover:bg-danger-50 ml-auto inline-flex items-center gap-1 rounded-sm px-2 py-1 text-xs disabled:opacity-50"
                 >
                   <Trash2 className="size-3.5" />
                   Supprimer le groupe
@@ -309,7 +309,7 @@ export function ProductOptionsEditor({
                 {g.options.map((o, oi) => (
                   <div
                     key={oi}
-                    className="border-border bg-surface-2 grid items-center gap-2 rounded-[10px] border p-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"
+                    className="border-border bg-surface-2 rounded-control grid items-center gap-2 border p-2 sm:grid-cols-[1fr_1fr_auto_auto_auto]"
                   >
                     <Input
                       value={o.name_fr}
@@ -378,7 +378,7 @@ export function ProductOptionsEditor({
                       type="button"
                       onClick={() => removeOption(gi, oi)}
                       disabled={pending}
-                      className="text-danger-600 hover:bg-danger-50 inline-flex size-8 items-center justify-center rounded-[8px] disabled:opacity-50"
+                      className="text-danger-600 hover:bg-danger-50 inline-flex size-8 items-center justify-center rounded-sm disabled:opacity-50"
                       aria-label="Supprimer l'option"
                     >
                       <Trash2 className="size-4" />
@@ -399,7 +399,7 @@ export function ProductOptionsEditor({
           ))}
 
           {error && (
-            <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+            <div className="rounded-control border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
               {error}
             </div>
           )}

@@ -1,18 +1,7 @@
-import { Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { PARTNER_FONT_VARS } from "@/lib/fonts";
 import { ShareTrackView } from "@/components/customer/drive/share-track-view";
 
 export const dynamic = "force-dynamic";
-
-const sora = Sora({
-  subsets: ["latin"],
-  weight: ["700", "800"],
-  variable: "--font-sora",
-});
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-jakarta",
-});
 
 /**
  * Partage de trajet PUBLIC (sans compte) — coligo.app/t/{token}.
@@ -25,7 +14,7 @@ export default async function ShareTrackPage({
 }) {
   const { token } = await params;
   return (
-    <div className={`${sora.variable} ${jakarta.variable} drive-jakarta`}>
+    <div className={`${PARTNER_FONT_VARS} drive-jakarta`}>
       <ShareTrackView token={token} />
     </div>
   );

@@ -43,11 +43,11 @@ export function PriorityPassManager({ initial }: { initial: PriorityPass }) {
 
   return (
     <section className="border-border overflow-hidden rounded-2xl border">
-      <header className="flex items-center gap-2 bg-gradient-to-r from-[#5B2EFF] to-[#6C2BD9] px-4 py-3 text-white">
+      <header className="to-primary-600 flex items-center gap-2 bg-gradient-to-r from-[#5B2EFF] px-4 py-3 text-white">
         <Crown className="size-5" />
         <div>
           <h2 className="font-extrabold">Pass Prioritaire</h2>
-          <p className="text-[11px] text-white/80">
+          <p className="text-caption text-white/80">
             Abonnement commun livreurs + chauffeurs — achète la visibilité (coup
             d’avance au dispatch + badge), pas une baisse de commission.
           </p>
@@ -85,7 +85,7 @@ export function PriorityPassManager({ initial }: { initial: PriorityPass }) {
           type="button"
           onClick={() => setEnabled((v) => !v)}
           className={
-            "flex w-full items-center gap-2 rounded-[10px] border px-3 py-2.5 text-sm font-medium " +
+            "rounded-control flex w-full items-center gap-2 border px-3 py-2.5 text-sm font-medium " +
             (enabled
               ? "border-primary-300 bg-primary-50 text-primary-700"
               : "border-border text-muted")
@@ -148,12 +148,12 @@ export function PriorityPassManager({ initial }: { initial: PriorityPass }) {
           </p>
         )}
         {msg.error && (
-          <p className="bg-danger-50 text-danger-700 rounded-[10px] px-3 py-2 text-sm font-medium">
+          <p className="bg-danger-50 text-danger-700 rounded-control px-3 py-2 text-sm font-medium">
             {msg.error}
           </p>
         )}
         {msg.ok && (
-          <p className="bg-success-50 text-success-700 rounded-[10px] px-3 py-2 text-sm font-medium">
+          <p className="bg-success-50 text-success-700 rounded-control px-3 py-2 text-sm font-medium">
             {msg.ok}
           </p>
         )}
@@ -163,7 +163,7 @@ export function PriorityPassManager({ initial }: { initial: PriorityPass }) {
             type="button"
             onClick={save}
             disabled={pending || promoTooHigh}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
           >
             {pending ? (
               <Loader2 className="size-4 animate-spin" />
@@ -189,8 +189,8 @@ function Stat({
   icon?: typeof Bike;
 }) {
   return (
-    <div className="border-border bg-surface-2 rounded-[12px] border p-3">
-      <p className="text-muted flex items-center gap-1 text-[11px] font-semibold">
+    <div className="border-border bg-surface-2 rounded-md border p-3">
+      <p className="text-muted text-caption flex items-center gap-1 font-semibold">
         {Icon && <Icon className="size-3.5" />}
         {label}
       </p>
@@ -200,7 +200,7 @@ function Stat({
 }
 
 const inputCls =
-  "border-border bg-surface w-full rounded-[10px] border px-3 py-2 text-sm tabular-nums";
+  "border-border bg-surface w-full rounded-control border px-3 py-2 text-sm tabular-nums";
 
 function Field({
   label,
@@ -218,7 +218,7 @@ function Field({
       </span>
       {children}
       {hint && (
-        <span className="text-muted mt-1 block text-[11px]">{hint}</span>
+        <span className="text-muted text-caption mt-1 block">{hint}</span>
       )}
     </label>
   );

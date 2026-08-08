@@ -38,7 +38,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[18px] sm:pb-0"
+        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:pb-0"
       >
         {/* Header chaleureux */}
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
@@ -74,7 +74,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
 
         {/* « Je ne trouve pas l'option » : il faut souvent scroller la liste. */}
         <div className="px-5 pb-5">
-          <div className="border-border bg-surface-2 text-muted flex items-start gap-2 rounded-[12px] border p-3 text-xs">
+          <div className="border-border bg-surface-2 text-muted flex items-start gap-2 rounded-md border p-3 text-xs">
             <Info className="text-primary-600 mt-0.5 size-4 shrink-0" />
             <span>{t("iosNotFound")}</span>
           </div>
@@ -89,7 +89,7 @@ export function IosInstallSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 w-full items-center justify-center rounded-[10px] px-5 text-sm font-medium text-white"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-10 w-full items-center justify-center px-5 text-sm font-medium text-white"
           >
             {t("done")}
           </button>
@@ -116,7 +116,7 @@ function OpenInSafariSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[18px] sm:pb-0"
+        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:pb-0"
       >
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
           <button
@@ -149,7 +149,7 @@ function OpenInSafariSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 w-full items-center justify-center rounded-[10px] px-5 text-sm font-medium text-white"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-10 w-full items-center justify-center px-5 text-sm font-medium text-white"
           >
             {t("done")}
           </button>
@@ -226,7 +226,7 @@ function ShareIcon({ className }: { className?: string }) {
  */
 function SafariBottomBarMockup({ label }: { label: string }) {
   return (
-    <div className="border-border w-full max-w-xs rounded-[16px] border bg-white p-3 shadow-sm">
+    <div className="border-border w-full max-w-xs rounded-lg border bg-white p-3 shadow-sm">
       {/* Barre URL Safari */}
       <div className="bg-surface-2 mb-3 flex items-center gap-2 rounded-full px-3 py-2 text-xs">
         <span className="bg-success-500 inline-block size-1.5 rounded-full" />
@@ -237,13 +237,13 @@ function SafariBottomBarMockup({ label }: { label: string }) {
       <div className="text-muted flex items-center justify-between px-2">
         <ChevronIcon dir="left" />
         <ChevronIcon dir="right" />
-        <div className="border-primary-400 bg-primary-50 ring-primary-200 -m-1 inline-flex size-9 animate-pulse items-center justify-center rounded-[10px] border-2 ring-4">
+        <div className="border-primary-400 bg-primary-50 ring-primary-200 rounded-control -m-1 inline-flex size-9 animate-pulse items-center justify-center border-2 ring-4">
           <ShareIcon className="text-primary-700 size-4" />
         </div>
         <BookIcon />
         <TabsIcon />
       </div>
-      <p className="text-muted mt-2 text-center text-[11px]">{label}</p>
+      <p className="text-muted text-caption mt-2 text-center">{label}</p>
     </div>
   );
 }

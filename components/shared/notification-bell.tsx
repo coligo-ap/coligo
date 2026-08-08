@@ -104,7 +104,7 @@ export function NotificationBell({
         <Bell className={iconClassName} />
         {unread > 0 && (
           <span
-            className="absolute -top-0.5 -right-0.5 grid h-4 min-w-[16px] place-items-center rounded-full px-1 text-[9px] font-extrabold text-white"
+            className="text-nano absolute -top-0.5 -right-0.5 grid h-4 min-w-[16px] place-items-center rounded-full px-1 font-extrabold text-white"
             style={{ background: "#E5484D" }}
           >
             {unread > 9 ? "9+" : unread}
@@ -119,7 +119,7 @@ export function NotificationBell({
             onClick={() => setOpen(false)}
           >
             <div
-              className="drive-up drive-jakarta flex max-h-[78vh] w-full flex-col rounded-t-[26px] bg-[var(--d-surface)] text-[var(--d-ink)] sm:max-w-md sm:rounded-[26px]"
+              className="drive-up drive-jakarta rounded-t-panel-lg sm:rounded-panel-lg flex max-h-[78vh] w-full flex-col bg-[var(--d-surface)] text-[var(--d-ink)] sm:max-w-md"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="flex items-center gap-3 px-5 pt-4 pb-2">
@@ -129,7 +129,7 @@ export function NotificationBell({
                 >
                   <Bell className="size-4" />
                 </span>
-                <h2 className="drive-sora flex-1 text-[17px] font-extrabold tracking-[-0.3px]">
+                <h2 className="drive-sora text-title-lg flex-1 font-extrabold tracking-[-0.3px]">
                   {t("title")}
                 </h2>
                 <button
@@ -148,7 +148,7 @@ export function NotificationBell({
                     <span className="grid size-12 place-items-center rounded-full bg-[var(--d-soft)]">
                       <BellOff className="size-5 text-[var(--d-muted)]" />
                     </span>
-                    <p className="text-[13px] font-semibold text-[var(--d-muted)]">
+                    <p className="text-body-sm font-semibold text-[var(--d-muted)]">
                       {t("empty")}
                     </p>
                   </div>
@@ -168,7 +168,7 @@ export function NotificationBell({
                         onKeyDown={(e) => {
                           if (e.key === "Enter" || e.key === " ") go(n);
                         }}
-                        className="flex w-full cursor-pointer items-start gap-3 rounded-[16px] p-3 text-start transition-colors active:bg-[var(--d-soft)]"
+                        className="flex w-full cursor-pointer items-start gap-3 rounded-lg p-3 text-start transition-colors active:bg-[var(--d-soft)]"
                         style={
                           fresh ? { background: "var(--d-accent)" } : undefined
                         }
@@ -181,15 +181,15 @@ export function NotificationBell({
                         </span>
                         <span className="min-w-0 flex-1">
                           <span className="flex items-baseline gap-2">
-                            <b className="min-w-0 flex-1 truncate text-[13px]">
+                            <b className="text-body-sm min-w-0 flex-1 truncate">
                               {n.title}
                             </b>
-                            <small className="shrink-0 text-[10.5px] font-medium text-[var(--d-muted)]">
+                            <small className="text-micro-lg shrink-0 font-medium text-[var(--d-muted)]">
                               {timeAgo(n.created_at, locale)}
                             </small>
                           </span>
                           {n.body && (
-                            <span className="mt-0.5 line-clamp-2 block text-[12px] leading-snug text-[var(--d-muted)]">
+                            <span className="text-label mt-0.5 line-clamp-2 block leading-snug text-[var(--d-muted)]">
                               {n.body}
                             </span>
                           )}
@@ -224,7 +224,7 @@ export function NotificationBell({
                   <button
                     type="button"
                     onClick={() => void clearAll()}
-                    className="mx-auto flex min-h-[44px] items-center justify-center gap-2 text-[13px] font-bold text-[var(--d-muted)] transition-colors hover:text-[#E5484D]"
+                    className="text-body-sm mx-auto flex min-h-[44px] items-center justify-center gap-2 font-bold text-[var(--d-muted)] transition-colors hover:text-[#E5484D]"
                   >
                     <Trash2 className="size-4" />
                     {t("clearAll")}

@@ -52,12 +52,12 @@ export function DriverCourseDrawer({ onHelp }: { onHelp?: () => void }) {
         header={
           <div className="pt-1 pb-2">
             <p
-              className="text-[17px] font-extrabold text-[var(--ink)]"
+              className="text-title-lg font-extrabold text-[var(--ink)]"
               style={{ fontFamily: "var(--font-sora), Sora, sans-serif" }}
             >
               {tr("Menu livreur", "قائمة السائق")}
             </p>
-            <p className="mt-0.5 text-[12px] font-medium text-[var(--muted)]">
+            <p className="text-label mt-0.5 font-medium text-[var(--muted)]">
               {tr("Course en cours", "توصيلة جارية")}
             </p>
           </div>

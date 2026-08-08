@@ -10,14 +10,14 @@
 function Bar({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`block animate-pulse rounded-[8px] bg-[var(--d-soft)] ${className}`}
+      className={`block animate-pulse rounded-sm bg-[var(--d-soft)] ${className}`}
     />
   );
 }
 
 function RideCardSkeleton() {
   return (
-    <div className="mb-2.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
+    <div className="mb-2.5 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
       <div className="flex items-center gap-2.5">
         <Bar className="size-[34px] !rounded-full" />
         <div className="flex-1 space-y-1.5">
@@ -73,19 +73,19 @@ export function HomeSkeleton() {
       {/* Bandeau haut : courses dispo · revenu · GPS */}
       <div className="absolute inset-x-3 top-[calc(env(safe-area-inset-top)+12px)] z-10 grid grid-cols-3 items-start gap-2">
         <div className="flex justify-start">
-          <div className="h-[44px] w-[86px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
+          <div className="h-[44px] w-[86px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-lg" />
         </div>
         <div className="flex justify-center">
-          <div className="h-[44px] w-[118px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
+          <div className="h-[44px] w-[118px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-lg" />
         </div>
         <div className="flex justify-end">
-          <div className="size-[44px] animate-pulse rounded-[16px] bg-[var(--d-surface)] shadow-lg" />
+          <div className="size-[44px] animate-pulse rounded-lg bg-[var(--d-surface)] shadow-lg" />
         </div>
       </div>
       {/* Feuille RÉDUITE : poignée + toggle « En ligne » */}
-      <div className="over-nav absolute right-0 left-0 z-10 rounded-t-[28px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-1.5 pb-5">
+      <div className="over-nav absolute right-0 left-0 z-10 rounded-t-2xl border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-1.5 pb-5">
         <span className="mx-auto mb-2 block h-[5px] w-[42px] rounded-full bg-[var(--d-line)]" />
-        <Bar className="h-[58px] w-full !rounded-[16px]" />
+        <Bar className="h-[58px] w-full !rounded-lg" />
       </div>
     </div>
   );
@@ -97,9 +97,9 @@ export function PageSkeleton() {
     <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
       <Bar className="h-6 w-44" />
       <Bar className="mt-2 h-3 w-28" />
-      <Bar className="mt-4 h-28 w-full !rounded-[16px]" />
-      <Bar className="mt-3 h-20 w-full !rounded-[16px]" />
-      <Bar className="mt-3 h-20 w-full !rounded-[16px]" />
+      <Bar className="mt-4 h-28 w-full !rounded-lg" />
+      <Bar className="mt-3 h-20 w-full !rounded-lg" />
+      <Bar className="mt-3 h-20 w-full !rounded-lg" />
     </div>
   );
 }

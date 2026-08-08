@@ -106,7 +106,7 @@ export function ReferralCodeCard({
   };
 
   return (
-    <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+    <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
       <header className="flex items-center gap-2">
         <KeyRound className="size-4" />
         <h2 className="text-base font-semibold tracking-tight">
@@ -122,7 +122,7 @@ export function ReferralCodeCard({
       )}
 
       {hasActiveCode && !revealedCode && (
-        <div className="bg-surface-2 rounded-[12px] p-3 text-sm">
+        <div className="bg-surface-2 rounded-md p-3 text-sm">
           <p className="font-medium">Un code actif existe.</p>
           <p className="text-muted mt-1 text-xs">
             Pour des raisons de sécurité, le code en clair n&apos;est PAS
@@ -182,7 +182,7 @@ export function ReferralCodeCard({
       )}
 
       {/* Zone sensible — séparée de la régénération du code. */}
-      <div className="border-danger-200 bg-danger-50 mt-1 space-y-2 rounded-[12px] border p-4">
+      <div className="border-danger-200 bg-danger-50 mt-1 space-y-2 rounded-md border p-4">
         <div className="text-danger-700 flex items-center gap-2">
           <ShieldAlert className="size-4" />
           <h3 className="text-sm font-semibold">Réinitialiser les accès</h3>
@@ -210,7 +210,7 @@ export function ReferralCodeCard({
         </Button>
       </div>
 
-      <ActionNote note={note} className="text-[12px]" />
+      <ActionNote note={note} className="text-label" />
     </section>
   );
 }
@@ -269,7 +269,7 @@ function ShareCodePanel({
   };
 
   return (
-    <div className="border-success-200 bg-success-50 space-y-3 rounded-[12px] border px-4 py-3">
+    <div className="border-success-200 bg-success-50 space-y-3 rounded-md border px-4 py-3">
       <p className="text-success-700 text-xs font-medium tracking-wide uppercase">
         Nouveau code — note-le, il ne sera plus affiché
       </p>
@@ -345,7 +345,7 @@ function ShareCodePanel({
         validé directement), soit saisir le code à la main.
       </p>
 
-      <ActionNote note={note} className="text-[12px]" />
+      <ActionNote note={note} className="text-label" />
     </div>
   );
 }

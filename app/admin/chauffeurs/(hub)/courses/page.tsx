@@ -34,7 +34,7 @@ export default async function AdminRidesPage({
           (?focus=…) : le panneau de tête, où elles se tranchent. */}
       <div
         data-alert-focus="rides_stuck_active rides_searching_card_expired"
-        className="rounded-[16px]"
+        className="rounded-lg"
       >
         <StuckRidesPanel rides={stuckRides} />
       </div>

@@ -173,7 +173,7 @@ export function IdvScanOverlay({
 
         {/* Aperçu avec ligne de balayage. */}
         {previewUrl && (
-          <div className="relative mb-6 w-full max-w-[300px] overflow-hidden rounded-[18px] border border-white/20">
+          <div className="rounded-sheet-lg relative mb-6 w-full max-w-[300px] overflow-hidden border border-white/20">
             {/* eslint-disable-next-line @next/next/no-img-element -- blob local */}
             <img
               src={previewUrl}
@@ -212,7 +212,7 @@ export function IdvScanOverlay({
             return (
               <li
                 key={item.key}
-                className="idv-row flex items-center gap-2.5 rounded-[12px] bg-white/[.07] px-3 py-2.5"
+                className="idv-row flex items-center gap-2.5 rounded-md bg-white/[.07] px-3 py-2.5"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
                 <span className="flex size-5 shrink-0 items-center justify-center">
@@ -249,7 +249,7 @@ export function IdvScanOverlay({
                   {isAr ? item.labelAr : item.label}
                 </span>
                 {(st === "skipped" || st === "error") && (
-                  <span className="ms-auto text-[10px] text-white/40">
+                  <span className="text-micro ms-auto text-white/40">
                     {tr("non applicable", "غير معنيّ")}
                   </span>
                 )}

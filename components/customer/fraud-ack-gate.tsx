@@ -84,7 +84,7 @@ export function FraudAckGate() {
           type="button"
           onClick={accept}
           disabled={pending}
-          className="bg-accent mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl text-[15px] font-bold text-white transition active:scale-[0.99] disabled:opacity-70"
+          className="bg-accent text-title-sm mt-4 flex h-12 w-full items-center justify-center gap-2 rounded-2xl font-bold text-white transition active:scale-[0.99] disabled:opacity-70"
         >
           {pending ? <Loader2 className="size-5 animate-spin" /> : t("confirm")}
         </button>

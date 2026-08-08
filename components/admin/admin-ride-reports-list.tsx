@@ -110,7 +110,7 @@ export function AdminRideReportsList({ rows }: { rows: RideReportRow[] }) {
             return (
               <div
                 key={r.id}
-                className="border-border bg-surface rounded-[14px] border p-4"
+                className="border-border bg-surface rounded-card-lg border p-4"
               >
                 <div className="flex flex-wrap items-center gap-2">
                   <span
@@ -173,7 +173,7 @@ export function AdminRideReportsList({ rows }: { rows: RideReportRow[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => act(r.id, "reviewed")}
-                      className="bg-success-600 hover:bg-success-700 inline-flex items-center gap-1 rounded-[10px] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                      className="bg-success-600 hover:bg-success-700 rounded-control inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                     >
                       {busy ? (
                         <Loader2 className="size-3.5 animate-spin" />
@@ -186,7 +186,7 @@ export function AdminRideReportsList({ rows }: { rows: RideReportRow[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => act(r.id, "dismissed")}
-                      className="border-border hover:bg-surface-2 text-foreground inline-flex items-center gap-1 rounded-[10px] border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+                      className="border-border hover:bg-surface-2 text-foreground rounded-control inline-flex items-center gap-1 border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
                     >
                       Rejeter
                     </button>
@@ -196,7 +196,7 @@ export function AdminRideReportsList({ rows }: { rows: RideReportRow[] }) {
                       type="button"
                       disabled={busy}
                       onClick={() => act(r.id, "open")}
-                      className="text-muted hover:text-foreground inline-flex items-center gap-1 rounded-[10px] px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
+                      className="text-muted hover:text-foreground rounded-control inline-flex items-center gap-1 px-3 py-1.5 text-xs font-semibold disabled:opacity-50"
                     >
                       Rouvrir
                     </button>

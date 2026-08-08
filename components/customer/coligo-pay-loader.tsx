@@ -46,7 +46,7 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
           langage que la marketplace : dégradé du thème « occasion » (vars sur
           <html>, mig 0415/0416) + décor du modèle + grain. */}
       <section
-        className="relative overflow-hidden rounded-b-[28px] px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-14 text-white lg:px-6"
+        className="relative overflow-hidden rounded-b-2xl px-4 pt-[calc(0.75rem+env(safe-area-inset-top))] pb-14 text-white lg:px-6"
         style={{
           backgroundImage:
             "linear-gradient(140deg, var(--auth-g1,#6C2BD9) 0%, var(--auth-g2,#5B21B6) 55%, var(--auth-g3,#4C1B9B) 100%)",
@@ -66,12 +66,12 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
             <span className="grid size-7 place-items-center rounded-lg bg-white/20 backdrop-blur">
               <Wallet className="size-4" />
             </span>
-            <span className="text-[12.5px] font-extrabold tracking-wide uppercase opacity-90">
+            <span className="text-label-lg font-extrabold tracking-wide uppercase opacity-90">
               {t("coligoPayTitle")}
             </span>
           </div>
 
-          <p className="mt-4 text-[11px] font-bold tracking-wide uppercase opacity-70">
+          <p className="text-caption mt-4 font-bold tracking-wide uppercase opacity-70">
             {t("coligoPayBalance")}
           </p>
           <p className="mt-0.5 text-[42px] leading-none font-black tracking-tight tabular-nums drop-shadow-sm">
@@ -101,13 +101,13 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
           reste de la page). */}
         <Link
           href="/cashback"
-          className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-[16px] border bg-white p-3 transition-colors"
+          className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-lg border bg-white p-3 transition-colors"
         >
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
             <Gift className="size-[18px]" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="text-foreground text-[14px] font-extrabold tracking-tight">
+            <p className="text-foreground text-body-lg font-extrabold tracking-tight">
               {t("cashbackLinkTitle")}
             </p>
             <p className="text-muted truncate text-xs font-medium">
@@ -119,7 +119,7 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
 
         {/* Historique TOPUP */}
         <section className="mt-6">
-          <h2 className="text-foreground mb-2.5 text-[18px] font-black tracking-tight">
+          <h2 className="text-foreground text-heading-sm mb-2.5 font-black tracking-tight">
             {t("coligoPayHistory")}
           </h2>
           {isPending && !data ? (
@@ -127,7 +127,7 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
               {Array.from({ length: 4 }).map((_, i) => (
                 <div
                   key={i}
-                  className="bg-surface-3 h-16 animate-pulse rounded-[16px]"
+                  className="bg-surface-3 h-16 animate-pulse rounded-lg"
                 />
               ))}
             </div>

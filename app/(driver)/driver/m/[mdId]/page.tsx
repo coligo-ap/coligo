@@ -54,7 +54,7 @@ export default async function DriverMerchantSpacePage({
           subtitle={tr("Tournées", "الجولات")}
         />
         <div
-          className="rounded-[14px] px-4 py-3 text-sm font-medium"
+          className="rounded-card-lg px-4 py-3 text-sm font-medium"
           style={{ background: "rgba(245,158,11,.12)", color: "#c2790a" }}
         >
           {link.status === "pending"
@@ -80,10 +80,10 @@ export default async function DriverMerchantSpacePage({
       {merchant.tours_enabled ? (
         <Link
           href={`/driver/m/${link.id}/tours`}
-          className="flex items-center gap-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4 active:scale-[0.99]"
+          className="rounded-sheet-lg flex items-center gap-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4 active:scale-[0.99]"
         >
           <span
-            className="grid size-11 shrink-0 place-items-center rounded-[14px]"
+            className="rounded-card-lg grid size-11 shrink-0 place-items-center"
             style={{ background: "rgba(108,43,217,.1)", color: "#6c2bd9" }}
           >
             <CalendarDays className="size-5" />

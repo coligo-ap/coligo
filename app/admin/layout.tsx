@@ -75,7 +75,7 @@ export default async function AdminLayout({
               <form action={logout}>
                 <button
                   type="submit"
-                  className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-1.5 rounded-[8px] px-3 py-1.5 text-sm font-semibold transition-colors"
+                  className="text-danger-600 hover:bg-danger-50 inline-flex items-center gap-1.5 rounded-sm px-3 py-1.5 text-sm font-semibold transition-colors"
                 >
                   <LogOut className="size-3.5" />
                   <span className="hidden sm:inline">Déconnexion</span>

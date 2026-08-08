@@ -156,10 +156,10 @@ function ZonesEditor({
   };
 
   return (
-    <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+    <div className="border-border-strong space-y-3 rounded-md border border-dashed p-3">
       <div>
         <span className={LABEL}>Zones ciblées</span>
-        <p className="text-muted text-[11px] leading-snug">
+        <p className="text-muted text-caption leading-snug">
           Vide = bannière <b>visible partout</b>. Ajoutez une ou plusieurs zones
           (rayon autour d&apos;un point) → la bannière n&apos;apparaît
           qu&apos;aux utilisateurs situés dans l&apos;une d&apos;elles.
@@ -171,7 +171,7 @@ function ZonesEditor({
           {zones.map((z, i) => (
             <li
               key={i}
-              className="border-border-strong flex items-center gap-2 rounded-[10px] border bg-white px-3 py-2 text-[12px]"
+              className="border-border-strong rounded-control text-label flex items-center gap-2 border bg-white px-3 py-2"
             >
               <MapPin className="text-primary-600 size-4 shrink-0" />
               <span className="min-w-0 flex-1 truncate font-semibold">
@@ -185,7 +185,7 @@ function ZonesEditor({
               <button
                 type="button"
                 onClick={() => onChange(zones.filter((_, j) => j !== i))}
-                className="text-danger-600 hover:bg-danger-50 grid size-7 shrink-0 place-items-center rounded-[8px]"
+                className="text-danger-600 hover:bg-danger-50 grid size-7 shrink-0 place-items-center rounded-sm"
                 title="Retirer"
               >
                 <Trash2 className="size-3.5" />
@@ -196,8 +196,8 @@ function ZonesEditor({
       )}
 
       {adding ? (
-        <div className="border-border-strong space-y-2 rounded-[10px] border bg-white p-2.5">
-          <p className="text-muted text-[11px]">
+        <div className="border-border-strong rounded-control space-y-2 border bg-white p-2.5">
+          <p className="text-muted text-caption">
             Déplacez la carte / cherchez une adresse pour placer le centre de la
             zone, puis choisissez le rayon.
           </p>
@@ -236,7 +236,7 @@ function ZonesEditor({
               type="button"
               disabled={!center}
               onClick={add}
-              className="bg-primary-600 hover:bg-primary-700 inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 text-[13px] font-bold text-white disabled:opacity-50"
+              className="bg-primary-600 hover:bg-primary-700 rounded-control text-body-sm inline-flex h-9 flex-1 items-center justify-center gap-1.5 px-3 font-bold text-white disabled:opacity-50"
             >
               <Plus className="size-4" /> Ajouter cette zone
             </button>
@@ -246,7 +246,7 @@ function ZonesEditor({
                 setAdding(false);
                 setCenter(null);
               }}
-              className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-9 items-center justify-center rounded-[10px] border px-3 text-[13px] font-semibold"
+              className="border-border-strong text-muted hover:bg-surface-2 rounded-control text-body-sm inline-flex h-9 items-center justify-center border px-3 font-semibold"
             >
               Annuler
             </button>
@@ -256,7 +256,7 @@ function ZonesEditor({
         <button
           type="button"
           onClick={() => setAdding(true)}
-          className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-9 items-center gap-1.5 rounded-[10px] border-[1.5px] border-dashed px-3 text-[13px] font-bold"
+          className="border-primary-200 text-primary-700 hover:bg-primary-50 rounded-control text-body-sm inline-flex h-9 items-center gap-1.5 border-[1.5px] border-dashed px-3 font-bold"
         >
           <Plus className="size-4" /> Ajouter une zone
         </button>
@@ -331,10 +331,10 @@ function MerchantOfferPicker({
   }, [q, merchantId]);
 
   return (
-    <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+    <div className="border-border-strong space-y-3 rounded-md border border-dashed p-3">
       <div>
         <span className={LABEL}>Offre mise en avant</span>
-        <p className="text-muted text-[11px] leading-snug">
+        <p className="text-muted text-caption leading-snug">
           Choisis un commerçant puis <b>une de ses offres actives</b>. Coligo ne
           crée pas l&apos;offre : elle est relue en direct. Si le commerçant la
           désactive, la bannière disparaît automatiquement.
@@ -353,7 +353,7 @@ function MerchantOfferPicker({
               autoFocus
             />
           </div>
-          <ul className="border-border-strong max-h-64 divide-y overflow-y-auto rounded-[10px] border">
+          <ul className="border-border-strong rounded-control max-h-64 divide-y overflow-y-auto border">
             {searching && results.length === 0 ? (
               <li className="text-muted flex items-center gap-2 px-3 py-3 text-sm">
                 <Loader2 className="size-4 animate-spin" /> Recherche…
@@ -381,7 +381,7 @@ function MerchantOfferPicker({
                       <span className="text-foreground block truncate text-sm font-semibold">
                         {m.name}
                       </span>
-                      <span className="text-muted block truncate text-[11px]">
+                      <span className="text-muted text-caption block truncate">
                         {[m.commune, m.wilaya_code]
                           .filter(Boolean)
                           .join(" · ") || "—"}
@@ -389,7 +389,7 @@ function MerchantOfferPicker({
                     </span>
                     <span
                       className={cn(
-                        "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                        "text-caption shrink-0 rounded-full px-2 py-0.5 font-bold",
                         m.active_offers > 0
                           ? "bg-primary-50 text-primary-700"
                           : "bg-surface-2 text-muted"
@@ -408,7 +408,7 @@ function MerchantOfferPicker({
       ) : (
         <div className="space-y-2.5">
           {/* Commerçant sélectionné */}
-          <div className="border-primary-200 bg-primary-50 flex items-center gap-2 rounded-[10px] border px-3 py-2">
+          <div className="border-primary-200 bg-primary-50 rounded-control flex items-center gap-2 border px-3 py-2">
             <Store className="text-primary-700 size-4 shrink-0" />
             <span className="text-primary-800 min-w-0 flex-1 truncate text-sm font-bold">
               {merchantLabel || "Commerçant"}
@@ -420,7 +420,7 @@ function MerchantOfferPicker({
                 onSelectOffer(null);
                 setQ("");
               }}
-              className="text-primary-700 hover:bg-primary-100 inline-flex items-center gap-1 rounded-[8px] px-2 py-1 text-[12px] font-semibold"
+              className="text-primary-700 hover:bg-primary-100 text-label inline-flex items-center gap-1 rounded-sm px-2 py-1 font-semibold"
             >
               <X className="size-3.5" /> Changer
             </button>
@@ -432,7 +432,7 @@ function MerchantOfferPicker({
               <Loader2 className="size-4 animate-spin" /> Chargement des offres…
             </div>
           ) : offers.length === 0 ? (
-            <div className="flex items-start gap-2 rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2.5 text-[12px] font-semibold text-amber-800">
+            <div className="rounded-control text-label flex items-start gap-2 border border-amber-200 bg-amber-50 px-3 py-2.5 font-semibold text-amber-800">
               <AlertTriangle className="mt-0.5 size-4 shrink-0" />
               Ce commerçant n&apos;a aucune offre active en ce moment. La
               bannière resterait masquée tant qu&apos;il n&apos;en publie pas.
@@ -447,7 +447,7 @@ function MerchantOfferPicker({
                       type="button"
                       onClick={() => onSelectOffer(o)}
                       className={cn(
-                        "flex w-full items-center gap-2.5 rounded-[10px] border px-3 py-2.5 text-start transition-colors",
+                        "rounded-control flex w-full items-center gap-2.5 border px-3 py-2.5 text-start transition-colors",
                         selected
                           ? "border-primary-600 bg-primary-50"
                           : "border-border-strong hover:bg-surface-2"
@@ -455,7 +455,7 @@ function MerchantOfferPicker({
                     >
                       <span
                         className={cn(
-                          "grid size-8 shrink-0 place-items-center rounded-[8px]",
+                          "grid size-8 shrink-0 place-items-center rounded-sm",
                           selected
                             ? "bg-primary-600 text-white"
                             : "bg-surface-2 text-muted"
@@ -471,7 +471,7 @@ function MerchantOfferPicker({
                         <span className="text-foreground block truncate text-sm font-semibold">
                           {o.title_fr}
                         </span>
-                        <span className="text-primary-700 block truncate text-[12px] font-bold">
+                        <span className="text-primary-700 text-label block truncate font-bold">
                           {offerSummary(o)}
                         </span>
                       </span>
@@ -568,7 +568,7 @@ export function BannerForm({
     );
 
   return (
-    <div className="border-border-strong space-y-4 rounded-[14px] border bg-white p-4">
+    <div className="border-border-strong rounded-card-lg space-y-4 border bg-white p-4">
       {/* Aperçu live */}
       <div>
         <span className={LABEL}>Aperçu</span>
@@ -596,7 +596,7 @@ export function BannerForm({
               type="button"
               onClick={() => set("mode", m.value)}
               className={cn(
-                "rounded-[10px] border px-3 py-2 text-start transition-colors",
+                "rounded-control border px-3 py-2 text-start transition-colors",
                 d.mode === m.value
                   ? "border-primary-600 bg-primary-50"
                   : "border-border-strong hover:bg-surface-2"
@@ -604,13 +604,13 @@ export function BannerForm({
             >
               <span
                 className={cn(
-                  "block text-[13px] font-bold",
+                  "text-body-sm block font-bold",
                   d.mode === m.value ? "text-primary-700" : "text-foreground"
                 )}
               >
                 {m.label}
               </span>
-              <span className="text-muted block text-[11px]">{m.hint}</span>
+              <span className="text-muted text-caption block">{m.hint}</span>
             </button>
           ))}
         </div>
@@ -679,10 +679,10 @@ export function BannerForm({
       </div>
 
       {/* Design de la card : modèle + palette + produits (aperçu live). */}
-      <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+      <div className="border-border-strong space-y-3 rounded-md border border-dashed p-3">
         <div>
           <span className={LABEL}>Design de la card</span>
-          <p className="text-muted text-[11px] leading-snug">
+          <p className="text-muted text-caption leading-snug">
             Choisis un <b>modèle</b> (avec illustration 3D) et, si besoin, force
             une <b>palette</b>. « Automatique » = modèle selon le type de promo.
             L&apos;aperçu ci-dessus se met à jour en direct.
@@ -734,7 +734,7 @@ export function BannerForm({
               </option>
             ))}
           </select>
-          <p className="text-muted mt-1 text-[11px]">
+          <p className="text-muted text-caption mt-1">
             Force n&apos;importe quelle illustration 3D, indépendamment du
             modèle (ou « Aucune »).
           </p>
@@ -768,16 +768,16 @@ export function BannerForm({
       )}
 
       {/* Image : upload (recommandé) + mode d'intégration */}
-      <div className="border-border-strong space-y-3 rounded-[12px] border border-dashed p-3">
+      <div className="border-border-strong space-y-3 rounded-md border border-dashed p-3">
         <div>
           <label className={LABEL}>Image de la bannière (optionnel)</label>
-          <p className="text-muted mb-2 text-[11px] leading-snug">
+          <p className="text-muted text-caption mb-2 leading-snug">
             Format conseillé : ~1200×600 px (paysage). Toute image, même grande,
             est automatiquement redimensionnée et intégrée au cadre — aucune
             déformation. PNG, JPG ou WEBP, 5 Mo max.
           </p>
           <div className="flex flex-wrap items-center gap-2">
-            <label className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-10 cursor-pointer items-center gap-2 rounded-[10px] border-[1.5px] px-3 text-sm font-bold">
+            <label className="border-primary-200 text-primary-700 hover:bg-primary-50 rounded-control inline-flex h-10 cursor-pointer items-center gap-2 border-[1.5px] px-3 text-sm font-bold">
               {uploading ? (
                 <Loader2 className="size-4 animate-spin" />
               ) : (
@@ -799,14 +799,14 @@ export function BannerForm({
               <button
                 type="button"
                 onClick={() => set("image_url", "")}
-                className="text-danger-600 hover:bg-danger-50 inline-flex h-10 items-center gap-1.5 rounded-[10px] px-3 text-sm font-semibold"
+                className="text-danger-600 hover:bg-danger-50 rounded-control inline-flex h-10 items-center gap-1.5 px-3 text-sm font-semibold"
               >
                 <Trash2 className="size-4" /> Retirer
               </button>
             )}
           </div>
           {uploadErr && (
-            <p className="text-danger-700 mt-1.5 text-[12px] font-semibold">
+            <p className="text-danger-700 text-label mt-1.5 font-semibold">
               {uploadErr}
             </p>
           )}
@@ -829,7 +829,7 @@ export function BannerForm({
                   type="button"
                   onClick={() => set("image_fit", o.value)}
                   className={cn(
-                    "rounded-[10px] border px-2 py-2 text-[12px] font-bold transition-colors",
+                    "rounded-control text-label border px-2 py-2 font-bold transition-colors",
                     d.image_fit === o.value
                       ? "border-primary-600 bg-primary-50 text-primary-700"
                       : "border-border-strong text-muted hover:bg-surface-2"
@@ -839,7 +839,7 @@ export function BannerForm({
                 </button>
               ))}
             </div>
-            <p className="text-muted mt-1 text-[11px]">
+            <p className="text-muted text-caption mt-1">
               {FIT_OPTIONS.find((o) => o.value === d.image_fit)?.hint}
             </p>
 
@@ -860,7 +860,7 @@ export function BannerForm({
                   }
                   className="accent-primary-600 h-2 w-full cursor-pointer"
                 />
-                <p className="text-muted mt-1 text-[11px]">
+                <p className="text-muted text-caption mt-1">
                   0 % = image invisible · 100 % = image bien visible sous le
                   texte. Défaut 30 %.
                 </p>
@@ -918,10 +918,10 @@ export function BannerForm({
       {d.mode === "editorial" ? (
         <ZonesEditor zones={d.zones} onChange={(z) => set("zones", z)} />
       ) : (
-        <div className="border-border-strong space-y-2.5 rounded-[12px] border border-dashed p-3">
+        <div className="border-border-strong space-y-2.5 rounded-md border border-dashed p-3">
           <div>
             <span className={LABEL}>Ciblage géographique</span>
-            <p className="text-muted flex items-start gap-1.5 text-[11px] leading-snug">
+            <p className="text-muted text-caption flex items-start gap-1.5 leading-snug">
               <MapPin className="text-primary-600 mt-0.5 size-3.5 shrink-0" />
               <span>
                 <b>Automatique</b> : la bannière suit la zone du commerçant.
@@ -942,7 +942,7 @@ export function BannerForm({
               onChange={(e) => set("geo_radius_km", e.target.value)}
               placeholder="Auto (portée de livraison du commerçant)"
             />
-            <p className="text-muted mt-1 text-[11px]">
+            <p className="text-muted text-caption mt-1">
               Laisse vide pour utiliser la portée du commerçant. Renseigne une
               valeur pour élargir/restreindre la zone d&apos;affichage.
             </p>
@@ -951,7 +951,7 @@ export function BannerForm({
       )}
 
       {d.mode === "offer" && !d.promotion_id && (
-        <p className="rounded-[10px] border border-amber-200 bg-amber-50 px-3 py-2 text-[12px] font-semibold text-amber-800">
+        <p className="rounded-control text-label border border-amber-200 bg-amber-50 px-3 py-2 font-semibold text-amber-800">
           Sélectionne un commerçant et une de ses offres pour enregistrer.
         </p>
       )}
@@ -961,7 +961,7 @@ export function BannerForm({
           type="button"
           disabled={pending || (d.mode === "offer" && !d.promotion_id)}
           onClick={() => onSubmit(draftToInput(d))}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] px-4 text-sm font-bold text-white transition-colors disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-10 flex-1 items-center justify-center gap-1.5 px-4 text-sm font-bold text-white transition-colors disabled:opacity-60"
         >
           {pending && <Loader2 className="size-4 animate-spin" />}
           Enregistrer
@@ -969,7 +969,7 @@ export function BannerForm({
         <button
           type="button"
           onClick={onCancel}
-          className="border-border-strong text-muted hover:bg-surface-2 inline-flex h-10 items-center justify-center rounded-[10px] border px-4 text-sm font-semibold"
+          className="border-border-strong text-muted hover:bg-surface-2 rounded-control inline-flex h-10 items-center justify-center border px-4 text-sm font-semibold"
         >
           Annuler
         </button>

@@ -57,7 +57,7 @@ export function GuestHeader({
         </Link>
         <span
           className={cn(
-            "inline-flex min-w-0 shrink items-center gap-1.5 rounded-full px-2.5 py-1 text-[11.5px] font-bold",
+            "text-caption-lg inline-flex min-w-0 shrink items-center gap-1.5 rounded-full px-2.5 py-1 font-bold",
             onColor
               ? "bg-white/15 text-white"
               : "bg-primary-50 text-primary-700"

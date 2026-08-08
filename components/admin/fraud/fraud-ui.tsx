@@ -29,7 +29,7 @@ export function SeverityBadge({ severity }: { severity: FraudSeverity }) {
   const meta = FRAUD_SEVERITY_META[severity] ?? FRAUD_SEVERITY_META.low;
   return (
     <span
-      className={`inline-flex items-center rounded-full border px-2.5 py-0.5 text-[11px] font-bold ${meta.badge}`}
+      className={`text-caption inline-flex items-center rounded-full border px-2.5 py-0.5 font-bold ${meta.badge}`}
     >
       {meta.label}
     </span>
@@ -38,7 +38,7 @@ export function SeverityBadge({ severity }: { severity: FraudSeverity }) {
 
 export function KindBadge({ kind }: { kind: FraudActorKind }) {
   return (
-    <span className="border-border text-muted inline-flex items-center rounded-full border bg-white px-2.5 py-0.5 text-[11px] font-semibold">
+    <span className="border-border text-muted text-caption inline-flex items-center rounded-full border bg-white px-2.5 py-0.5 font-semibold">
       {FRAUD_KIND_LABEL[kind] ?? kind}
     </span>
   );
@@ -69,7 +69,7 @@ export function ScorePill({
       <div className="text-base leading-tight font-extrabold tabular-nums">
         {value}
       </div>
-      <div className="text-[10px] font-semibold opacity-80">{label}</div>
+      <div className="text-micro font-semibold opacity-80">{label}</div>
     </div>
   );
 }

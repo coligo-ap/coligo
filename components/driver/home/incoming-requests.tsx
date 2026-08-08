@@ -283,7 +283,7 @@ export function IncomingRequests({
             return (
               <div
                 key={card.id}
-                className="overflow-hidden rounded-[18px] border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
+                className="rounded-sheet-lg overflow-hidden border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
                 style={{
                   borderColor: "var(--line)",
                   background: "var(--surface)",
@@ -295,7 +295,7 @@ export function IncomingRequests({
                   className="flex w-full items-center gap-2.5 px-3 py-2.5 text-start"
                 >
                   <span
-                    className="grid size-9 shrink-0 place-items-center rounded-[11px]"
+                    className="rounded-control-lg grid size-9 shrink-0 place-items-center"
                     style={{ background: "rgba(22,179,100,.14)" }}
                   >
                     <Truck
@@ -305,13 +305,13 @@ export function IncomingRequests({
                   </span>
                   <span className="min-w-0 flex-1">
                     <b
-                      className="block truncate text-[14px] font-extrabold"
+                      className="text-body-lg block truncate font-extrabold"
                       style={{ color: "var(--ink)" }}
                     >
                       {t.name}
                     </b>
                     <small
-                      className="block text-[11.5px] font-semibold"
+                      className="text-caption-lg block font-semibold"
                       style={{ color: "var(--muted)" }}
                     >
                       {t.pending}{" "}
@@ -334,7 +334,7 @@ export function IncomingRequests({
                     <button
                       type="button"
                       onClick={() => router.push("/driver/tournees")}
-                      className="w-full rounded-[13px] py-2.5 text-[13.5px] font-bold text-white transition-transform active:scale-[.98]"
+                      className="rounded-card text-body w-full py-2.5 font-bold text-white transition-transform active:scale-[.98]"
                       style={{ background: "#16b364" }}
                     >
                       {tr("Voir la tournée", "عرض الجولة")}
@@ -351,7 +351,7 @@ export function IncomingRequests({
           return (
             <div
               key={card.id}
-              className="overflow-hidden rounded-[18px] border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
+              className="rounded-sheet-lg overflow-hidden border shadow-[0_10px_30px_-18px_rgba(11,12,18,.32)]"
               style={{
                 borderColor: "var(--line)",
                 background: "var(--surface)",
@@ -363,7 +363,7 @@ export function IncomingRequests({
                 className="flex w-full items-center gap-2.5 px-3 py-2.5 text-start"
               >
                 <span
-                  className="grid size-9 shrink-0 place-items-center rounded-[11px]"
+                  className="rounded-control-lg grid size-9 shrink-0 place-items-center"
                   style={{ background: "rgba(108,43,217,.14)" }}
                 >
                   <Zap
@@ -373,13 +373,13 @@ export function IncomingRequests({
                 </span>
                 <span className="min-w-0 flex-1">
                   <b
-                    className="block truncate text-[14px] font-extrabold"
+                    className="text-body-lg block truncate font-extrabold"
                     style={{ color: "var(--ink)" }}
                   >
                     {o.merchant_name}
                   </b>
                   <small
-                    className="block text-[11.5px] font-semibold"
+                    className="text-caption-lg block font-semibold"
                     style={{ color: "var(--muted)" }}
                   >
                     {card.min != null
@@ -389,13 +389,13 @@ export function IncomingRequests({
                 </span>
                 <span className="shrink-0 text-end">
                   <b
-                    className="block text-[15px] leading-none font-black"
+                    className="text-title-sm block leading-none font-black"
                     style={{ color: "var(--violet)" }}
                   >
                     {card.net} DA
                   </b>
                   <small
-                    className="mt-0.5 inline-block rounded-full px-1.5 py-0.5 text-[9.5px] font-bold"
+                    className="text-nano-lg mt-0.5 inline-block rounded-full px-1.5 py-0.5 font-bold"
                     style={{
                       background: prepaid
                         ? "rgba(22,179,100,.14)"
@@ -421,7 +421,7 @@ export function IncomingRequests({
                 <div className="px-3 pb-3">
                   {/* Trajet : retrait → livraison */}
                   <div
-                    className="mb-2.5 rounded-[12px] px-3 py-2.5"
+                    className="mb-2.5 rounded-md px-3 py-2.5"
                     style={{ background: "var(--soft)" }}
                   >
                     <div className="flex items-start gap-2">
@@ -430,7 +430,7 @@ export function IncomingRequests({
                         style={{ color: "var(--violet)" }}
                       />
                       <span
-                        className="text-[12.5px] font-medium"
+                        className="text-label-lg font-medium"
                         style={{ color: "var(--ink)" }}
                       >
                         {o.delivery_address_text ??
@@ -438,7 +438,7 @@ export function IncomingRequests({
                       </span>
                     </div>
                     <div
-                      className="mt-1.5 flex items-center gap-3 text-[11.5px] font-semibold"
+                      className="text-caption-lg mt-1.5 flex items-center gap-3 font-semibold"
                       style={{ color: "var(--muted)" }}
                     >
                       <span className="inline-flex items-center gap-1">
@@ -460,7 +460,7 @@ export function IncomingRequests({
                     {phone && (
                       <a
                         href={`tel:${phone}`}
-                        className="grid size-11 shrink-0 place-items-center rounded-[12px] border"
+                        className="grid size-11 shrink-0 place-items-center rounded-md border"
                         style={{
                           borderColor: "var(--line)",
                           color: "var(--violet)",
@@ -474,7 +474,7 @@ export function IncomingRequests({
                       type="button"
                       onClick={() => refuse(o.id)}
                       disabled={busyId === o.id}
-                      className="h-11 flex-1 rounded-[13px] border text-[13.5px] font-bold transition-transform active:scale-[.98] disabled:opacity-50"
+                      className="rounded-card text-body h-11 flex-1 border font-bold transition-transform active:scale-[.98] disabled:opacity-50"
                       style={{
                         borderColor: "var(--line)",
                         color: "var(--red)",
@@ -485,7 +485,7 @@ export function IncomingRequests({
                     <button
                       type="button"
                       onClick={() => accept(o.id)}
-                      className="h-11 flex-[1.6] rounded-[13px] text-[13.5px] font-bold text-white transition-transform active:scale-[.98]"
+                      className="rounded-card text-body h-11 flex-[1.6] font-bold text-white transition-transform active:scale-[.98]"
                       style={{ background: "var(--violet)" }}
                     >
                       {tr("Accepter", "قبول")}
@@ -493,7 +493,7 @@ export function IncomingRequests({
                   </div>
                   {refuseErr?.id === o.id && (
                     <p
-                      className="mt-2 text-[12px] font-semibold"
+                      className="text-label mt-2 font-semibold"
                       style={{ color: "var(--red)" }}
                     >
                       {refuseErr.msg}

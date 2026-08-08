@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { haversineKm } from "@/lib/delivery/distance";
 import { useRoute } from "@/lib/delivery/use-route";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import { INK, MAP, withAlpha } from "@/lib/design/tokens";
 
 /**
  * Mini-carte de suivi LIVE côté CLIENT (refonte « suivi v2 », façon Uber) :
@@ -145,8 +146,7 @@ export function CustomerDeliveryMap({
 
         // Marqueur destination (maison du client).
         const destEl = document.createElement("div");
-        destEl.innerHTML =
-          '<div style="background:#16a34a;color:#fff;width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:11px;">🏠</div>';
+        destEl.innerHTML = `<div style="background:${MAP.green};color:${INK.white};width:24px;height:24px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);display:flex;align-items:center;justify-content:center;border:3px solid ${INK.white};box-shadow:0 2px 6px rgba(0,0,0,.3);font-size:11px;">🏠</div>`;
         new Marker({ element: destEl })
           .setLngLat([destination.lng, destination.lat])
           .addTo(map);
@@ -176,7 +176,7 @@ export function CustomerDeliveryMap({
             type: "line",
             source: "route",
             layout: { "line-cap": "round", "line-join": "round" },
-            paint: { "line-color": "#6c2bd9", "line-width": 5 },
+            paint: { "line-color": MAP.route, "line-width": 5 },
           });
         };
         if (map.loaded()) onLoad();
@@ -211,8 +211,7 @@ export function CustomerDeliveryMap({
     void import("maplibre-gl").then(({ Marker, LngLatBounds }) => {
       if (!driverMarkerRef.current) {
         const el = document.createElement("div");
-        el.innerHTML =
-          '<div style="background:#6c2bd9;color:#fff;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid #fff;box-shadow:0 2px 8px rgba(108,43,217,.5);font-size:13px;">🛵</div>';
+        el.innerHTML = `<div style="background:${MAP.me};color:${INK.white};width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:3px solid ${INK.white};box-shadow:0 2px 8px ${withAlpha(MAP.me, 0.5)};font-size:13px;">🛵</div>`;
         driverMarkerRef.current = new Marker({ element: el })
           .setLngLat([driver.lng, driver.lat])
           .addTo(map);
@@ -284,7 +283,7 @@ export function CustomerDeliveryMap({
           .join(" — ") || t("locating");
 
   return (
-    <div className="border-border bg-surface overflow-hidden rounded-[18px] border shadow-sm">
+    <div className="border-border bg-surface rounded-sheet-lg overflow-hidden border shadow-sm">
       {/* carte compacte */}
       <div
         className="bg-surface-2 relative w-full"
@@ -316,20 +315,20 @@ export function CustomerDeliveryMap({
       {/* barre : livreur + en direct + distance/ETA + appel */}
       <div className="flex items-center justify-between gap-2 px-3.5 py-3">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="bg-primary-50 text-primary-700 grid size-8 shrink-0 place-items-center rounded-full text-[13px] font-extrabold">
+          <span className="bg-primary-50 text-primary-700 text-body-sm grid size-8 shrink-0 place-items-center rounded-full font-extrabold">
             {initial}
           </span>
           <div className="min-w-0">
-            <p className="text-foreground flex items-center gap-1.5 text-[13px] leading-tight font-bold">
+            <p className="text-foreground text-body-sm flex items-center gap-1.5 leading-tight font-bold">
               <span className="truncate">{name}</span>
               {!arrived && (
-                <span className="text-success-700 inline-flex shrink-0 items-center gap-1 text-[11px] font-bold">
+                <span className="text-success-700 text-caption inline-flex shrink-0 items-center gap-1 font-bold">
                   <span className="bg-success-500 size-1.5 animate-pulse rounded-full" />
                   {t("live")}
                 </span>
               )}
             </p>
-            <p className="text-muted truncate text-[11px] font-semibold">
+            <p className="text-muted text-caption truncate font-semibold">
               {subline}
             </p>
           </div>
@@ -338,7 +337,7 @@ export function CustomerDeliveryMap({
           <a
             href={`tel:${driverPhone}`}
             aria-label={t("callName", { name })}
-            className="bg-success-50 text-success-700 hover:bg-success-100 grid size-9 shrink-0 place-items-center rounded-[11px] transition-colors"
+            className="bg-success-50 text-success-700 hover:bg-success-100 rounded-control-lg grid size-9 shrink-0 place-items-center transition-colors"
           >
             <Phone className="size-4" />
           </a>

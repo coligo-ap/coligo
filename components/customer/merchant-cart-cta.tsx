@@ -152,7 +152,7 @@ export function MerchantCartCta({
           href="/cart"
           onClick={() => setActiveMerchant(merchantId)}
           className={cn(
-            "bg-primary-600 hover:bg-primary-700 relative block overflow-hidden rounded-[10px] text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
+            "bg-primary-600 hover:bg-primary-700 rounded-control relative block overflow-hidden text-white shadow-[0_20px_42px_-12px_rgba(108,43,217,0.55)] transition-transform",
             hasTab && "rounded-b-none",
             pulse && "scale-[1.02]"
           )}
@@ -166,19 +166,19 @@ export function MerchantCartCta({
           <span className="relative flex items-center gap-3 ps-2.5 pe-3 pt-2.5 pb-2.5">
             <span
               className={cn(
-                "inline-flex h-9 items-center gap-1.5 rounded-[11px] bg-white/15 px-2.5 text-[14px] font-extrabold tabular-nums transition-transform",
+                "rounded-control-lg text-body-lg inline-flex h-9 items-center gap-1.5 bg-white/15 px-2.5 font-extrabold tabular-nums transition-transform",
                 pulse && "bg-coral-500 scale-110"
               )}
             >
               <ShoppingBag className="size-4" />
               {count}
             </span>
-            <span className="min-w-0 flex-1 truncate text-center text-[15px] font-extrabold">
+            <span className="text-title-sm min-w-0 flex-1 truncate text-center font-extrabold">
               {t("viewMyCart")}
             </span>
             <span className="flex shrink-0 flex-col items-end leading-none">
               {hasSavings && (
-                <span className="text-[11px] font-semibold text-white/70 tabular-nums line-through">
+                <span className="text-caption font-semibold text-white/70 tabular-nums line-through">
                   {formatDA(raw)}
                 </span>
               )}
@@ -195,7 +195,7 @@ export function MerchantCartCta({
             vers le minimum en filet VERT à sa base. */}
         {subline && (
           <CtaTab className="justify-center pb-2">
-            <span className="flex min-w-0 items-center gap-1.5 text-[11.5px] font-bold">
+            <span className="text-caption-lg flex min-w-0 items-center gap-1.5 font-bold">
               <subline.Icon className="size-3.5 shrink-0" aria-hidden />
               <span className="truncate">{subline.text}</span>
             </span>
@@ -221,12 +221,12 @@ export function MerchantCartCta({
             <span className="bg-surface/20 grid size-5 shrink-0 place-items-center rounded-full">
               <PartyPopper className="size-3" />
             </span>
-            <span className="min-w-0 flex-1 truncate text-[12.5px] font-bold">
+            <span className="text-label-lg min-w-0 flex-1 truncate font-bold">
               {tc("promosApplied", { count: promoCount })}
             </span>
             {/* Montant du gain en VERT franc (pastille pleine) — impossible à
                 rater, lisible sur charbon comme sur la variante claire. */}
-            <span className="bg-success-600 shrink-0 rounded-full px-2.5 py-0.5 text-[12px] font-black text-white tabular-nums">
+            <span className="bg-success-600 text-label shrink-0 rounded-full px-2.5 py-0.5 font-black text-white tabular-nums">
               −{formatDA(savings)}
             </span>
           </CtaTab>
@@ -251,7 +251,7 @@ function CtaTab({
   return (
     <div
       className={cn(
-        "cg-promo-rise bg-foreground/95 text-surface relative flex items-center gap-2.5 overflow-hidden rounded-b-[16px] px-3.5 py-1.5 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md",
+        "cg-promo-rise bg-foreground/95 text-surface relative flex items-center gap-2.5 overflow-hidden rounded-b-lg px-3.5 py-1.5 shadow-[0_14px_34px_-14px_rgba(10,10,20,0.65)] backdrop-blur-md",
         className
       )}
     >

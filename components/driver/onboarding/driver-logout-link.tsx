@@ -23,7 +23,7 @@ export function DriverLogoutLink() {
             if (r?.error) setError(r.error);
           })
         }
-        className="inline-flex items-center gap-1.5 text-[12.5px] font-bold text-[var(--muted)] disabled:opacity-50"
+        className="text-label-lg inline-flex items-center gap-1.5 font-bold text-[var(--muted)] disabled:opacity-50"
       >
         <LogOut className="size-3.5" />
         {isAr ? "تسجيل الخروج" : "Se déconnecter"}

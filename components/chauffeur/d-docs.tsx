@@ -215,7 +215,7 @@ export function DDocs({
    *  si c'est bien le chemin retenu. */
   const selfieSection = (
     <div className="text-center">
-      <p className="text-[13.5px] font-bold">
+      <p className="text-body font-bold">
         {tr("Photo de votre visage · en direct", "صورة وجهك · مباشرة")}{" "}
         <span style={{ color: RED }}>*</span>
       </p>
@@ -271,7 +271,7 @@ export function DDocs({
           )}
         </div>
       )}
-      <p className="mt-1.5 text-[11px] text-[var(--d-muted)]">
+      <p className="text-caption mt-1.5 text-[var(--d-muted)]">
         {isAr ? (
           <>
             وجه محايد، دون نظارات أو قبعة.{" "}
@@ -297,17 +297,17 @@ export function DDocs({
           type="button"
           onClick={() => router.back()}
           aria-label={tr("Retour", "رجوع")}
-          className="grid size-[42px] place-items-center rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
+          className="rounded-card-lg grid size-[42px] place-items-center border border-[var(--d-line)] bg-[var(--d-surface)] shadow"
         >
           <ChevronLeft className="size-5 rtl:rotate-180" />
         </button>
-        <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-display-sm font-extrabold tracking-[-0.5px]">
           {tr("Mes documents", "وثائقي")}
         </h1>
       </div>
       {rejectedReason && (
         <p
-          className="mb-3 rounded-[13px] px-3 py-2.5 text-xs leading-relaxed font-bold"
+          className="rounded-card mb-3 px-3 py-2.5 text-xs leading-relaxed font-bold"
           style={{ background: "rgba(229,72,77,.1)", color: RED }}
         >
           {isAr
@@ -320,7 +320,7 @@ export function DDocs({
            un seul message. Toute modification passe par l'équipe Coligo
            (rejet avec motif), qui ré-affiche la liste. */
         <div
-          className="mt-3 rounded-[18px] border-[1.5px] px-4 py-6 text-center"
+          className="rounded-sheet-lg mt-3 border-[1.5px] px-4 py-6 text-center"
           style={{ borderColor: GO, background: "rgba(22,179,100,.08)" }}
         >
           <span
@@ -335,7 +335,7 @@ export function DDocs({
               "جميع وثائقك مصادَق عليها ومحدَّثة"
             )}
           </p>
-          <p className="mt-1 text-[12px] text-[var(--d-muted)]">
+          <p className="text-label mt-1 text-[var(--d-muted)]">
             {tr(
               "Rien à faire de votre côté. Si une pièce doit être mise à jour, l'équipe Coligo vous enverra une demande de modification.",
               "لا شيء مطلوب منك. إذا لزم تحديث وثيقة، سيرسل لك فريق Coligo طلب تعديل."
@@ -356,10 +356,10 @@ export function DDocs({
             {selfieSection}
           </IdvVerifyStep>
 
-          <p className="mt-3 mb-1.5 text-[13px] font-bold">
+          <p className="text-body-sm mt-3 mb-1.5 font-bold">
             {tr("Documents du véhicule", "وثائق المركبة")}
           </p>
-          <p className="mb-2.5 text-[12px] text-[var(--d-muted)]">
+          <p className="text-label mb-2.5 text-[var(--d-muted)]">
             {tr(
               "Photos nettes et lisibles, documents en cours de validité.",
               "صور واضحة ومقروءة، ووثائق سارية الصلاحية."
@@ -380,7 +380,7 @@ export function DDocs({
 
           {error && (
             <p
-              className="mt-3 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+              className="mt-3 rounded-md px-3 py-2 text-center text-xs font-bold"
               style={{ background: "rgba(229,72,77,.1)", color: RED }}
             >
               {error}
@@ -419,13 +419,13 @@ export function DDocs({
           onClick={() => setConfirmDelete(null)}
         >
           <div
-            className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
+            className="drive-jakarta rounded-t-panel bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
-            <b className="drive-sora block text-[16px] font-extrabold">
+            <b className="drive-sora text-title block font-extrabold">
               {tr("Supprimer cette photo ?", "حذف هذه الصورة؟")}
             </b>
-            <p className="mt-1 mb-3 text-[13px] text-[var(--d-muted)]">
+            <p className="text-body-sm mt-1 mb-3 text-[var(--d-muted)]">
               {tr(
                 "Vous devrez la reprendre pour valider votre dossier.",
                 "سيتعيّن عليك إعادة التقاطها لإتمام ملفك."
@@ -435,14 +435,14 @@ export function DDocs({
               <button
                 type="button"
                 onClick={() => setConfirmDelete(null)}
-                className="drive-sora h-12 flex-1 rounded-[14px] border border-[var(--d-line)] text-sm font-bold"
+                className="drive-sora rounded-card-lg h-12 flex-1 border border-[var(--d-line)] text-sm font-bold"
               >
                 {tr("Annuler", "إلغاء")}
               </button>
               <button
                 type="button"
                 onClick={() => void doRemove(confirmDelete)}
-                className="drive-sora h-12 flex-1 rounded-[14px] text-sm font-bold text-white"
+                className="drive-sora rounded-card-lg h-12 flex-1 text-sm font-bold text-white"
                 style={{ background: RED }}
               >
                 {tr("Supprimer", "حذف")}
@@ -481,7 +481,7 @@ function StatusChip({
           : "En vérification";
   return (
     <span
-      className={`${center ? "mx-auto" : ""}inline-block max-w-full truncate rounded-full px-2.5 py-1 text-[10px] font-extrabold`}
+      className={`${center ? "mx-auto" : ""}inline-block text-micro max-w-full truncate rounded-full px-2.5 py-1 font-extrabold`}
       style={style}
     >
       {label}
@@ -515,7 +515,7 @@ function DocRow({
   const inputRef = useRef<HTMLInputElement | null>(null);
   return (
     <div
-      className="mb-2 rounded-[16px] border-[1.5px] p-3"
+      className="mb-2 rounded-lg border-[1.5px] p-3"
       style={
         info?.status === "approved"
           ? { borderColor: GO, background: "rgba(22,179,100,.08)" }
@@ -538,7 +538,7 @@ function DocRow({
               ? tr("Voir la photo", "عرض الصورة")
               : tr("Ajouter la photo", "إضافة الصورة")
           }
-          className="grid size-12 shrink-0 place-items-center overflow-hidden rounded-[11px] bg-[var(--d-soft)]"
+          className="rounded-control-lg grid size-12 shrink-0 place-items-center overflow-hidden bg-[var(--d-soft)]"
         >
           {busy ? (
             <Loader2
@@ -557,10 +557,8 @@ function DocRow({
           )}
         </button>
         <span className="min-w-0 flex-1">
-          <b className="block text-[13.5px]">
-            {isAr ? doc.titleAr : doc.title}
-          </b>
-          <small className="text-[11px] text-[var(--d-muted)]">
+          <b className="text-body block">{isAr ? doc.titleAr : doc.title}</b>
+          <small className="text-caption text-[var(--d-muted)]">
             {isAr ? doc.subAr : doc.sub}
           </small>
         </span>
@@ -568,7 +566,7 @@ function DocRow({
           <StatusChip info={info} />
         ) : (
           <span
-            className="shrink-0 rounded-full px-2.5 py-1 text-[10px] font-extrabold"
+            className="text-micro shrink-0 rounded-full px-2.5 py-1 font-extrabold"
             style={
               doc.required
                 ? { background: "rgba(229,72,77,.12)", color: RED }
@@ -663,7 +661,7 @@ function ActionBtn({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-[11px] border-[1.5px] px-2 py-2 text-[11px] font-bold disabled:opacity-50"
+      className="rounded-control-lg text-caption flex flex-1 items-center justify-center gap-1.5 border-[1.5px] px-2 py-2 font-bold disabled:opacity-50"
       style={
         primary
           ? {
@@ -774,7 +772,7 @@ function SelfieCamera({
         </div>
         {err && (
           <p
-            className="absolute right-4 bottom-28 left-4 rounded-[12px] bg-[var(--d-surface)] px-3 py-2 text-center text-xs font-bold"
+            className="absolute right-4 bottom-28 left-4 rounded-md bg-[var(--d-surface)] px-3 py-2 text-center text-xs font-bold"
             style={{ color: RED }}
           >
             {err}

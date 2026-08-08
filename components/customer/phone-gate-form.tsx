@@ -58,7 +58,7 @@ export function PhoneGateForm({
               <Logo variant="amber" size="lg" />
             </div>
 
-            <div className="border-border rounded-[16px] border bg-white p-6 shadow-sm">
+            <div className="border-border rounded-lg border bg-white p-6 shadow-sm">
               <h2 className="text-foreground mb-1 text-2xl font-bold">
                 Dernière étape
               </h2>
@@ -73,7 +73,7 @@ export function PhoneGateForm({
                   <label className="text-foreground text-sm font-medium">
                     Nom et prénom
                   </label>
-                  <div className="border-border bg-surface-2 focus-within:border-primary-400 focus-within:ring-primary-100 flex items-center gap-2.5 rounded-[12px] border px-3.5 py-3 transition focus-within:ring-2">
+                  <div className="border-border bg-surface-2 focus-within:border-primary-400 focus-within:ring-primary-100 flex items-center gap-2.5 rounded-md border px-3.5 py-3 transition focus-within:ring-2">
                     <UserIcon className="text-muted size-4 shrink-0" />
                     <input
                       value={name}
@@ -90,7 +90,7 @@ export function PhoneGateForm({
                   <label className="text-foreground text-sm font-medium">
                     Email
                   </label>
-                  <div className="border-border flex items-center gap-2.5 rounded-[12px] border bg-[var(--surface-2)] px-3.5 py-3 opacity-80">
+                  <div className="border-border flex items-center gap-2.5 rounded-md border bg-[var(--surface-2)] px-3.5 py-3 opacity-80">
                     <Mail className="text-muted size-4 shrink-0" />
                     <span className="text-foreground min-w-0 flex-1 truncate text-sm font-semibold">
                       {email || "—"}
@@ -112,7 +112,7 @@ export function PhoneGateForm({
 
                 {/* Erreur EN LIGNE (ex. email déjà associé) — pas de toast. */}
                 {err && (
-                  <p className="text-danger-600 text-center text-[12.5px] font-semibold">
+                  <p className="text-danger-600 text-label-lg text-center font-semibold">
                     {err}
                   </p>
                 )}
@@ -121,7 +121,7 @@ export function PhoneGateForm({
                   type="button"
                   disabled={!valid || pending}
                   onClick={submit}
-                  className="bg-primary-600 hover:bg-primary-700 mt-1 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
+                  className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm mt-1 inline-flex h-[52px] w-full items-center justify-center gap-2 font-extrabold text-white shadow-[0_10px_24px_-6px_rgba(91,91,230,.45)] transition disabled:opacity-40"
                 >
                   {pending ? (
                     <Loader2 className="size-4 animate-spin" />
@@ -129,7 +129,7 @@ export function PhoneGateForm({
                     "Finaliser mon inscription"
                   )}
                 </button>
-                <p className="text-muted text-center text-[11.5px]">
+                <p className="text-muted text-caption-lg text-center">
                   Un numéro valide est obligatoire (confirmation de commande et
                   contact à la livraison).
                 </p>

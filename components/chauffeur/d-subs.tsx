@@ -219,7 +219,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
       {/* Intro masquée quand la page fournit déjà le héro partagé (SubsHero). */}
       {!hideIntro && (
         <div>
-          <h1 className="drive-sora text-[21px] font-extrabold tracking-[-0.5px]">
+          <h1 className="drive-sora text-display-sm font-extrabold tracking-[-0.5px]">
             {tr("Mon abonnement", "اشتراكي")}
           </h1>
           <p className="text-sm text-[var(--d-muted)]">
@@ -289,7 +289,7 @@ export function DSubs({ hideIntro = false }: { hideIntro?: boolean } = {}) {
               type="button"
               disabled={busy}
               onClick={() => void cancelPending()}
-              className="mt-1.5 flex items-center gap-1 text-[11px] font-extrabold underline"
+              className="text-caption mt-1.5 flex items-center gap-1 font-extrabold underline"
             >
               <X className="size-3" />{" "}
               {tr("Annuler cette tentative", "إلغاء هذه المحاولة")}
@@ -463,7 +463,7 @@ function PlanCard({
             <button
               type="button"
               onClick={onChoose}
-              className="drive-sora w-full rounded-[14px] py-3 text-sm font-bold text-white active:scale-[0.99]"
+              className="drive-sora rounded-card-lg w-full py-3 text-sm font-bold text-white active:scale-[0.99]"
               style={{ background: VIOLET }}
             >
               {subscribeLabel}
@@ -490,7 +490,7 @@ function Banner({
   };
   return (
     <p
-      className={`flex items-center gap-2 rounded-[13px] px-3 py-2.5 text-xs font-bold ${style[tone]}`}
+      className={`rounded-card flex items-center gap-2 px-3 py-2.5 text-xs font-bold ${style[tone]}`}
     >
       {children}
     </p>

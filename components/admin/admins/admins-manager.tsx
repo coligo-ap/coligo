@@ -117,7 +117,7 @@ function CreateForm() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-semibold text-white transition-colors"
+        className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white transition-colors"
       >
         <Plus className="size-4" /> Nouvel administrateur
       </button>
@@ -125,7 +125,7 @@ function CreateForm() {
   }
 
   return (
-    <div className="border-border bg-surface space-y-4 rounded-[16px] border p-4 shadow-sm">
+    <div className="border-border bg-surface space-y-4 rounded-lg border p-4 shadow-sm">
       <h2 className="flex items-center gap-2 text-sm font-bold">
         <UserCog className="size-4" /> Nouvel administrateur (staff)
       </h2>
@@ -138,7 +138,7 @@ function CreateForm() {
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             placeholder="prenom@coligo.app"
-            className="border-border w-full rounded-[10px] border px-3 py-2"
+            className="border-border rounded-control w-full border px-3 py-2"
           />
         </label>
         <label className="block text-sm">
@@ -148,7 +148,7 @@ function CreateForm() {
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             placeholder="Responsable Livraison"
-            className="border-border w-full rounded-[10px] border px-3 py-2"
+            className="border-border rounded-control w-full border px-3 py-2"
           />
         </label>
       </div>
@@ -161,12 +161,12 @@ function CreateForm() {
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             placeholder="min. 8 caractères"
-            className="border-border w-full rounded-[10px] border px-3 py-2 font-mono"
+            className="border-border rounded-control w-full border px-3 py-2 font-mono"
           />
           <button
             type="button"
             onClick={() => setPassword(genPassword())}
-            className="border-border hover:bg-surface-2 shrink-0 rounded-[10px] border px-3 py-2 text-sm font-medium"
+            className="border-border hover:bg-surface-2 rounded-control shrink-0 border px-3 py-2 text-sm font-medium"
           >
             Générer
           </button>
@@ -193,7 +193,7 @@ function CreateForm() {
           type="button"
           disabled={pending}
           onClick={submit}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-2 rounded-[10px] px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -288,7 +288,7 @@ function AdminCard({
   return (
     <div
       className={cn(
-        "border-border bg-surface rounded-[16px] border p-4 shadow-sm",
+        "border-border bg-surface rounded-lg border p-4 shadow-sm",
         !admin.is_active && "opacity-60"
       )}
     >
@@ -349,7 +349,7 @@ function AdminCard({
               <button
                 type="button"
                 onClick={saveDomains}
-                className="bg-primary-600 hover:bg-primary-700 rounded-[8px] px-3 py-1.5 text-sm font-semibold text-white"
+                className="bg-primary-600 hover:bg-primary-700 rounded-sm px-3 py-1.5 text-sm font-semibold text-white"
               >
                 Enregistrer
               </button>
@@ -460,7 +460,7 @@ function ActionBtn({
       type="button"
       onClick={onClick}
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-sm font-medium transition-colors",
+        "inline-flex items-center gap-1.5 rounded-sm px-2.5 py-1.5 text-sm font-medium transition-colors",
         danger
           ? "text-danger-600 hover:bg-danger-50"
           : "text-muted hover:bg-surface-2 hover:text-foreground"

@@ -130,7 +130,7 @@ function PageLink({
   children: React.ReactNode;
 } & Omit<React.HTMLAttributes<HTMLAnchorElement>, "children" | "href">) {
   const className = cn(
-    "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-[8px] border px-2 text-xs font-medium transition-colors",
+    "inline-flex h-8 min-w-8 items-center justify-center gap-1 rounded-sm border px-2 text-xs font-medium transition-colors",
     active
       ? "border-primary-600 bg-primary-600 text-white"
       : disabled

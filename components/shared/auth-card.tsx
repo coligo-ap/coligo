@@ -65,10 +65,10 @@ export function AuthCard({
             switch CSS via data-theme-model sur <html>) + grain. */}
         <ThemeDecor />
         <div className="auth-hero-in relative z-10">
-          <h2 className="text-[22px] leading-tight font-bold drop-shadow-sm">
+          <h2 className="text-display leading-tight font-bold drop-shadow-sm">
             {title}
           </h2>
-          <p className="mx-auto mt-1 max-w-xs text-[13px] leading-snug text-white/85">
+          <p className="text-body-sm mx-auto mt-1 max-w-xs leading-snug text-white/85">
             {subtitle}
           </p>
         </div>
@@ -76,7 +76,7 @@ export function AuthCard({
 
       {/* FEUILLE FORMULAIRE — chevauche le héro (mobile) ; desktop : fondue. */}
       <div className="relative z-10 -mt-9 w-full max-w-md self-center px-4 pb-6 lg:mt-0 lg:px-0 lg:pb-0">
-        <div className="auth-sheet-in rounded-[24px] bg-white p-5 shadow-[0_18px_50px_-20px_rgba(76,27,155,0.45)] lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
+        <div className="auth-sheet-in rounded-panel bg-white p-5 shadow-[0_18px_50px_-20px_rgba(76,27,155,0.45)] lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
           {/* Langue (mobile) — le titre, lui, vit dans le héro. */}
           <div className="-mt-1 mb-2 flex justify-end lg:hidden">
             <LanguageSwitcher compact />

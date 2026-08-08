@@ -8,6 +8,7 @@ import { haversineKm } from "@/lib/delivery/distance";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import { INK, MAP, PARTNER, PRIMARY, withAlpha } from "@/lib/design/tokens";
 
 /**
  * Carte PLEIN ÉCRAN de la course en cours (écran navigation, style Bolt Driver).
@@ -27,8 +28,8 @@ type LatLng = { lat: number; lng: number };
 
 // Code couleur des deux phases (retrait / livraison).
 const PHASE = {
-  pickup: { main: "#6c2bd9", deep: "#4b1fa6", icon: "🏪" },
-  drop: { main: "#16b364", deep: "#0e8c4d", icon: "🏠" },
+  pickup: { main: PRIMARY[600], deep: PRIMARY[700], icon: "🏪" },
+  drop: { main: PARTNER.go, deep: PARTNER.goDark, icon: "🏠" },
 } as const;
 
 export function ExpressRunMap({
@@ -124,7 +125,7 @@ export function ExpressRunMap({
     const map = mapRef.current;
     if (!map) return;
     void import("maplibre-gl").then(({ Marker }) => {
-      const html = `<div style="width:34px;height:34px;border-radius:50%;background:${phase.main};display:grid;place-items:center;border:3px solid #fff;box-shadow:0 2px 6px rgba(11,12,18,.22);font-size:15px">${phase.icon}</div>`;
+      const html = `<div style="width:34px;height:34px;border-radius:50%;background:${phase.main};display:grid;place-items:center;border:3px solid ${INK.white};box-shadow:0 2px 6px rgba(11,12,18,.22);font-size:15px">${phase.icon}</div>`;
       if (!targetMarkerRef.current) {
         const el = document.createElement("div");
         el.innerHTML = html;
@@ -150,8 +151,8 @@ export function ExpressRunMap({
         el.style.cssText = "position:relative;width:20px;height:20px";
         // Pulse et point concentriques (même centre).
         el.innerHTML = `
-          <div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:rgba(108,43,217,.22);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:#6c2bd9;border:3px solid #fff;box-shadow:0 1px 4px rgba(11,12,18,.3)"></div>`;
+          <div style="position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-11px 0 0 -11px;border-radius:50%;background:${withAlpha(MAP.me, 0.22)};animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:${MAP.me};border:3px solid ${INK.white};box-shadow:0 1px 4px rgba(11,12,18,.3)"></div>`;
         meMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);

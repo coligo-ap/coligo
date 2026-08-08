@@ -113,7 +113,7 @@ export function PaymentLine({
 
   return (
     <span
-      className={`inline-flex flex-wrap items-center gap-1.5 text-[11.5px] font-semibold ${className}`}
+      className={`text-caption-lg inline-flex flex-wrap items-center gap-1.5 font-semibold ${className}`}
       style={{ color: abnormal ? "var(--warning-700, #a15c00)" : undefined }}
     >
       {abnormal ? (

@@ -17,7 +17,7 @@ export function AgentsRegistrations({ agents }: { agents: AgentRow[] }) {
         vérifié.
       </p>
 
-      <section className="border-warning-200 bg-warning-50/60 rounded-[16px] border p-4 lg:p-5">
+      <section className="border-warning-200 bg-warning-50/60 rounded-lg border p-4 lg:p-5">
         <h2 className="text-warning-900 mb-3 flex items-center gap-2 text-base font-bold">
           <Clock className="size-4" />
           Demandes à traiter ({pending.length})
@@ -36,7 +36,7 @@ export function AgentsRegistrations({ agents }: { agents: AgentRow[] }) {
       </section>
 
       {rejected.length > 0 && (
-        <section className="border-border bg-surface rounded-[16px] border p-4 lg:p-5">
+        <section className="border-border bg-surface rounded-lg border p-4 lg:p-5">
           <h2 className="text-foreground mb-3 flex items-center gap-2 text-base font-bold">
             <XCircle className="text-danger-500 size-4" />
             Refusées ({rejected.length})

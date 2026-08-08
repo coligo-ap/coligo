@@ -184,14 +184,14 @@ export function CategoriesManager({
       {/* ─── Barre d'outils : segments + recherche + création ─── */}
       <div className="bg-surface sticky top-0 z-10 -mx-1 space-y-2 px-1 pb-2">
         <div className="flex flex-wrap items-center gap-2">
-          <div className="border-border bg-surface-2 flex rounded-[12px] border p-0.5">
+          <div className="border-border bg-surface-2 flex rounded-md border p-0.5">
             {SEGMENTS.map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setSegment(s.id)}
                 className={cn(
-                  "rounded-[10px] px-3 py-1.5 text-xs font-bold transition-colors",
+                  "rounded-control px-3 py-1.5 text-xs font-bold transition-colors",
                   segment === s.id
                     ? "bg-surface text-foreground shadow-sm"
                     : "text-muted hover:text-foreground"
@@ -207,7 +207,7 @@ export function CategoriesManager({
               value={q}
               onChange={(e) => setQ(e.target.value)}
               placeholder="Chercher (libellé, code…)"
-              className="border-border-strong bg-surface h-9 w-full rounded-[10px] border pr-8 pl-8 text-xs"
+              className="border-border-strong bg-surface rounded-control h-9 w-full border pr-8 pl-8 text-xs"
             />
             {q && (
               <button
@@ -223,12 +223,12 @@ export function CategoriesManager({
           <button
             type="button"
             onClick={() => setShowCreate((v) => !v)}
-            className="bg-primary-600 inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white"
+            className="bg-primary-600 rounded-control inline-flex shrink-0 items-center gap-1.5 px-3 py-2 text-xs font-bold text-white"
           >
             <Plus className="size-3.5" /> Nouvelle catégorie
           </button>
         </div>
-        <p className="text-subtle text-[11px]">
+        <p className="text-subtle text-caption">
           {nbTypes} types · {nbFilters} filtres éditoriaux
           {nbHidden > 0
             ? ` · ${nbHidden} masqué${nbHidden > 1 ? "s" : ""}`
@@ -255,7 +255,7 @@ export function CategoriesManager({
       {/* ─── Liste ─── */}
       <ul className="mt-2 space-y-1.5">
         {visible.length === 0 && (
-          <li className="text-muted border-border rounded-[12px] border border-dashed p-6 text-center text-xs">
+          <li className="text-muted border-border rounded-md border border-dashed p-6 text-center text-xs">
             Aucune catégorie ne correspond.
           </li>
         )}

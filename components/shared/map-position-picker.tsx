@@ -25,6 +25,7 @@ import {
 } from "@/app/(customer)/actions";
 import { MAP_STYLE_URL } from "@/lib/config/map";
 import { useGeoClientConfig } from "@/lib/geo/use-geo-client-config";
+import { DRIVE_LIGHT, PRIMARY } from "@/lib/design/tokens";
 
 /**
  * Sélecteur de position sur carte — réutilisable client + commerçant.
@@ -559,7 +560,7 @@ export function MapPositionPicker({
         "bg-surface-2 w-full overflow-hidden",
         fullscreen
           ? "fixed inset-0 z-[120] rounded-none"
-          : "relative rounded-[12px]"
+          : "relative rounded-md"
       )}
       style={{
         height: fullscreen
@@ -632,34 +633,37 @@ export function MapPositionPicker({
             ) : null}
           </div>
           {searchOpen && searchResults.length > 0 && (
-            <ul className="bg-surface border-border mt-1.5 max-h-44 overflow-auto rounded-[14px] border py-1 shadow-xl">
+            <ul className="bg-surface border-border rounded-card-lg mt-1.5 max-h-44 overflow-auto border py-1 shadow-xl">
               {searchResults.map((r, i) => (
                 <li key={i} className="flex items-center">
                   <button
                     type="button"
                     onClick={() => flyToResult(r)}
-                    className="hover:bg-surface-2 flex min-w-0 flex-1 items-start gap-2 px-3 py-2 text-left text-[13px]"
+                    className="hover:bg-surface-2 text-body-sm flex min-w-0 flex-1 items-start gap-2 px-3 py-2 text-left"
                   >
                     <MapPin className="text-primary-600 mt-0.5 size-4 shrink-0" />
                     <span className="min-w-0 flex-1">
                       {r.display}
                       {r.secondary && (
-                        <small className="text-subtle block text-[11px]">
+                        <small className="text-subtle text-caption block">
                           {r.secondary}
                         </small>
                       )}
                     </span>
                     {r.kind === "merchant" && (
                       <span
-                        className="mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide"
-                        style={{ background: "#EEEEFD", color: "#6C2BD9" }}
+                        className="text-nano-lg mt-0.5 shrink-0 rounded-full px-1.5 py-0.5 font-extrabold tracking-wide"
+                        style={{
+                          background: DRIVE_LIGHT.accent,
+                          color: PRIMARY[600],
+                        }}
                       >
                         Coligo
                       </span>
                     )}
                     {r.kind === "google" && (
                       <span
-                        className="mt-0.5 shrink-0 rounded-full border border-[#e0e0e0] bg-white px-1.5 py-0.5 text-[9.5px] font-extrabold tracking-wide text-[#5f6368]"
+                        className="text-nano-lg mt-0.5 shrink-0 rounded-full border border-[#e0e0e0] bg-white px-1.5 py-0.5 font-extrabold tracking-wide text-[#5f6368]"
                         title="Résultat Google Maps"
                       >
                         Google
@@ -672,7 +676,7 @@ export function MapPositionPicker({
                       aria-label="Favori"
                       onClick={() => toggleFav(r)}
                       className="shrink-0 px-2.5 py-2"
-                      style={{ color: "#6C2BD9" }}
+                      style={{ color: PRIMARY[600] }}
                     >
                       <Star
                         className="size-4"
@@ -694,9 +698,9 @@ export function MapPositionPicker({
             favOpen &&
             searchQ.trim() === "" &&
             (favorites.length > 0 || recentPlaces.length > 0) && (
-              <ul className="bg-surface border-border mt-1.5 max-h-44 overflow-auto rounded-[14px] border py-1 shadow-xl">
+              <ul className="bg-surface border-border rounded-card-lg mt-1.5 max-h-44 overflow-auto border py-1 shadow-xl">
                 <li className="flex items-center justify-between px-3 pt-1.5 pb-1">
-                  <span className="text-subtle text-[10px] font-extrabold tracking-wide uppercase">
+                  <span className="text-subtle text-micro font-extrabold tracking-wide uppercase">
                     Tes lieux
                   </span>
                   <button
@@ -719,11 +723,11 @@ export function MapPositionPicker({
                           lng: f.lng,
                         })
                       }
-                      className="hover:bg-surface-2 flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-[13px]"
+                      className="hover:bg-surface-2 text-body-sm flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
                     >
                       <Star
                         className="size-4 shrink-0"
-                        style={{ color: "#6C2BD9" }}
+                        style={{ color: PRIMARY[600] }}
                         fill="currentColor"
                       />
                       <span className="min-w-0 flex-1 truncate">{f.label}</span>
@@ -745,7 +749,7 @@ export function MapPositionPicker({
                 {recentPlaces.filter((r) => !favCells.has(favKey(r.lat, r.lng)))
                   .length > 0 && (
                   <li className="px-3 pt-2 pb-1">
-                    <span className="text-subtle text-[10px] font-extrabold tracking-wide uppercase">
+                    <span className="text-subtle text-micro font-extrabold tracking-wide uppercase">
                       Récents
                     </span>
                   </li>
@@ -763,7 +767,7 @@ export function MapPositionPicker({
                             lng: r.lng,
                           })
                         }
-                        className="hover:bg-surface-2 flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left text-[13px]"
+                        className="hover:bg-surface-2 text-body-sm flex min-w-0 flex-1 items-center gap-2 px-3 py-2 text-left"
                       >
                         <Clock className="text-subtle size-4 shrink-0" />
                         <span className="min-w-0 flex-1 truncate">
@@ -781,7 +785,7 @@ export function MapPositionPicker({
                           })
                         }
                         className="shrink-0 px-2.5 py-2"
-                        style={{ color: "#6C2BD9" }}
+                        style={{ color: PRIMARY[600] }}
                       >
                         <Star className="size-4" fill="none" />
                       </button>
@@ -838,7 +842,7 @@ export function MapPositionPicker({
       {geoErr && (
         <div
           className={cn(
-            "border-danger-200 bg-danger-50 text-danger-700 absolute left-1/2 z-20 max-w-[calc(100%-1rem)] -translate-x-1/2 rounded-full border px-3.5 py-2 text-center text-[12px] font-semibold shadow",
+            "border-danger-200 bg-danger-50 text-danger-700 text-label absolute left-1/2 z-20 max-w-[calc(100%-1rem)] -translate-x-1/2 rounded-full border px-3.5 py-2 text-center font-semibold shadow",
             fullscreen ? "bottom-36" : "bottom-14"
           )}
         >
@@ -872,7 +876,7 @@ export function MapPositionPicker({
           type="button"
           onClick={() => setFullscreen(true)}
           aria-label="Agrandir la carte"
-          className="bg-surface border-border text-foreground absolute bottom-2 left-2 grid size-8 place-items-center rounded-[9px] border shadow"
+          className="bg-surface border-border text-foreground rounded-chip absolute bottom-2 left-2 grid size-8 place-items-center border shadow"
         >
           <Maximize2 className="size-4" />
         </button>
@@ -886,7 +890,7 @@ export function MapPositionPicker({
             type="button"
             onClick={confirmFullscreen}
             disabled={confirming}
-            className="bg-foreground inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-base font-bold text-white shadow-xl disabled:opacity-90"
+            className="bg-foreground rounded-card-lg inline-flex h-[52px] w-full items-center justify-center gap-2 text-base font-bold text-white shadow-xl disabled:opacity-90"
           >
             {confirming ? (
               <>

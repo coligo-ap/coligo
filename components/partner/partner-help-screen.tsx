@@ -12,7 +12,7 @@ import { ArrowDownToLine, Gift, Send } from "lucide-react";
 
 export function PartnerHelpScreen() {
   return (
-    <div className="border-border bg-surface space-y-3 rounded-[16px] border p-4">
+    <div className="border-border bg-surface space-y-3 rounded-lg border p-4">
       <Step
         n={1}
         icon={<ArrowDownToLine className="size-4" />}
@@ -50,7 +50,7 @@ function Step({
     <div className="flex gap-3">
       <span className="bg-primary-50 text-primary-600 relative flex size-9 shrink-0 items-center justify-center rounded-full">
         {icon}
-        <span className="bg-primary-600 absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full text-[9px] font-bold text-white">
+        <span className="bg-primary-600 text-nano absolute -top-1 -right-1 flex size-4 items-center justify-center rounded-full font-bold text-white">
           {n}
         </span>
       </span>

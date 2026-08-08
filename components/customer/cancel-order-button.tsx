@@ -43,7 +43,7 @@ export function CancelOrderButton({
   // remboursements atteint). On informe directement, pas de bouton.
   if (onlinePaid && refundBlocked) {
     return (
-      <p className="text-muted bg-surface-2 mt-2.5 flex items-start gap-1.5 rounded-[10px] p-2.5 text-[11.5px] font-medium">
+      <p className="text-muted bg-surface-2 rounded-control text-caption-lg mt-2.5 flex items-start gap-1.5 p-2.5 font-medium">
         <ShieldAlert className="text-warning-600 mt-0.5 size-4 shrink-0" />
         {t("refundBlockedNotice")}
       </p>
@@ -79,7 +79,7 @@ export function CancelOrderButton({
       <button
         type="button"
         onClick={() => setConfirming(true)}
-        className="border-danger-200 text-danger-700 hover:bg-danger-50 mt-2.5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-[12px] border text-[13px] font-bold"
+        className="border-danger-200 text-danger-700 hover:bg-danger-50 text-body-sm mt-2.5 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md border font-bold"
       >
         <X className="size-4" />
         {t("cancelMyOrder")}
@@ -88,12 +88,12 @@ export function CancelOrderButton({
   }
 
   return (
-    <div className="border-danger-200 bg-danger-50 mt-2.5 rounded-[12px] border p-3">
-      <p className="text-danger-800 text-[12.5px] font-semibold">
+    <div className="border-danger-200 bg-danger-50 mt-2.5 rounded-md border p-3">
+      <p className="text-danger-800 text-label-lg font-semibold">
         {t("cancelConfirm")}
       </p>
       {onlinePaid && (
-        <p className="text-primary-800 bg-primary-50 mt-2 flex items-start gap-1.5 rounded-[10px] p-2.5 text-[12px] font-semibold">
+        <p className="text-primary-800 bg-primary-50 rounded-control text-label mt-2 flex items-start gap-1.5 p-2.5 font-semibold">
           <Wallet className="text-primary-600 mt-0.5 size-4 shrink-0" />
           {t("cancelRefundIntro")} <strong>{t("cancelRefundStrong")}</strong>{" "}
           {t("cancelRefundOutro")}
@@ -105,7 +105,7 @@ export function CancelOrderButton({
           type="button"
           onClick={() => setConfirming(false)}
           disabled={pending || done}
-          className="border-border text-foreground hover:bg-surface-2 inline-flex h-10 flex-1 items-center justify-center rounded-[10px] border bg-white text-[13px] font-bold disabled:opacity-50"
+          className="border-border text-foreground hover:bg-surface-2 rounded-control text-body-sm inline-flex h-10 flex-1 items-center justify-center border bg-white font-bold disabled:opacity-50"
         >
           {t("back")}
         </button>
@@ -113,7 +113,7 @@ export function CancelOrderButton({
           type="button"
           onClick={doCancel}
           disabled={pending || done}
-          className="bg-danger-600 hover:bg-danger-700 inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-bold text-white disabled:opacity-60"
+          className="bg-danger-600 hover:bg-danger-700 rounded-control text-body-sm inline-flex h-10 flex-1 items-center justify-center gap-1.5 font-bold text-white disabled:opacity-60"
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" />

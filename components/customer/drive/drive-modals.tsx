@@ -66,7 +66,7 @@ export function Sheet({
         onClick={onClose}
       >
         <div
-          className="drive-up w-full rounded-t-[26px] bg-[var(--d-surface)] px-5 pt-[18px] pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-[var(--d-ink)]"
+          className="drive-up rounded-t-panel-lg w-full bg-[var(--d-surface)] px-5 pt-[18px] pb-[calc(1.5rem+env(safe-area-inset-bottom))] text-[var(--d-ink)]"
           onClick={(e) => e.stopPropagation()}
         >
           {children}
@@ -85,7 +85,7 @@ export function SheetTitle({
 }) {
   return (
     <h2
-      className="drive-sora mb-1 text-[18px] font-extrabold tracking-[-0.5px]"
+      className="drive-sora text-heading-sm mb-1 font-extrabold tracking-[-0.5px]"
       style={danger ? { color: RED } : undefined}
     >
       {children}
@@ -135,7 +135,7 @@ export function PrimaryBtn({
       className={cn(
         // Flat façon Bolt Food : rayon contenu, AUCUNE ombre portée (demande
         // explicite — pas d'effet 3D sur les boutons Drive).
-        "drive-sora mt-2 flex h-[54px] w-full items-center justify-center gap-2 rounded-[12px] text-base font-bold text-white disabled:pointer-events-none disabled:opacity-40",
+        "drive-sora mt-2 flex h-[54px] w-full items-center justify-center gap-2 rounded-md text-base font-bold text-white disabled:pointer-events-none disabled:opacity-40",
         className
       )}
       style={{ background: color }}
@@ -176,7 +176,7 @@ export function CancelModal({
       <SheetTitle>{t(`${ctx}.title`)}</SheetTitle>
       {warn && (
         <div
-          className="my-2.5 flex items-start gap-2 rounded-[13px] px-3 py-2.5 text-[11.5px] leading-snug font-semibold"
+          className="rounded-card text-caption-lg my-2.5 flex items-start gap-2 px-3 py-2.5 leading-snug font-semibold"
           style={{ background: "rgba(229,72,77,.1)", color: RED }}
         >
           <AlertTriangle className="mt-0.5 size-4 shrink-0" />
@@ -189,7 +189,7 @@ export function CancelModal({
             key={r}
             type="button"
             onClick={() => setSel(r)}
-            className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-1 py-3 text-left text-[13.5px] font-semibold last:border-b-0"
+            className="text-body flex w-full items-center gap-3 border-b border-[var(--d-line)] px-1 py-3 text-left font-semibold last:border-b-0"
             style={sel === r ? { color: VIOLET } : undefined}
           >
             <span
@@ -287,10 +287,10 @@ export function SOSModal({
     <button
       type="button"
       onClick={onClick}
-      className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
+      className="rounded-card-xl text-body mb-2 flex w-full items-center gap-3 border-[1.5px] border-[var(--d-line)] p-3 text-left font-bold"
     >
       <span
-        className="grid size-[38px] shrink-0 place-items-center rounded-[12px]"
+        className="grid size-[38px] shrink-0 place-items-center rounded-md"
         style={{
           background: red ? "rgba(229,72,77,.12)" : "var(--d-accent)",
           color: red ? RED : VIOLET,
@@ -300,7 +300,7 @@ export function SOSModal({
       </span>
       <span>
         {title}
-        <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
+        <small className="text-caption mt-0.5 block font-medium text-[var(--d-muted)]">
           {sub}
         </small>
       </span>
@@ -310,7 +310,7 @@ export function SOSModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle danger>{t("title")}</SheetTitle>
-      <p className="mb-3 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+      <p className="text-body-sm mb-3 text-[var(--d-muted)]">{t("sub")}</p>
       <Item
         red
         icon={<Phone className="size-5" />}
@@ -358,7 +358,7 @@ export function SOSModal({
         <button
           type="button"
           onClick={onManageContacts}
-          className="mb-1.5 block w-full text-center text-[12px] font-bold"
+          className="text-label mb-1.5 block w-full text-center font-bold"
           style={{ color: VIOLET }}
         >
           {t("manageContacts")}
@@ -366,13 +366,13 @@ export function SOSModal({
       )}
       {done ? (
         <p
-          className="rounded-[13px] px-3 py-2.5 text-center text-xs font-bold"
+          className="rounded-card px-3 py-2.5 text-center text-xs font-bold"
           style={{ background: "rgba(22,179,100,.12)", color: GO }}
         >
           {done}
         </p>
       ) : (
-        <p className="mt-1.5 text-center text-[11px] text-[var(--d-muted)]">
+        <p className="text-caption mt-1.5 text-center text-[var(--d-muted)]">
           {side === "driver" ? t("noteDriver") : t("noteClient")}
         </p>
       )}
@@ -409,8 +409,8 @@ export function ShareModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-1 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
-      <div className="my-3 rounded-[16px] bg-[var(--d-soft)] p-3.5">
+      <p className="text-body-sm mb-1 text-[var(--d-muted)]">{t("sub")}</p>
+      <div className="my-3 rounded-lg bg-[var(--d-soft)] p-3.5">
         <div className="mb-2.5 flex items-center gap-3">
           <span
             className="drive-sora grid size-[42px] shrink-0 place-items-center rounded-full text-white"
@@ -419,23 +419,23 @@ export function ShareModal({
             {chName[0]?.toUpperCase()}
           </span>
           <span>
-            <b className="block text-[13.5px]">
+            <b className="text-body block">
               {chName}
               {chRating ? ` · ★ ${chRating}` : ""}
             </b>
-            <small className="text-[11px] text-[var(--d-muted)]">
+            <small className="text-caption text-[var(--d-muted)]">
               {[chCar, chPlate].filter(Boolean).join(" · ")}
             </small>
           </span>
         </div>
-        <div className="overflow-hidden rounded-[11px] border border-dashed border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 font-mono text-[11px] whitespace-nowrap text-[var(--d-muted)]">
+        <div className="rounded-control-lg text-caption overflow-hidden border border-dashed border-[var(--d-line)] bg-[var(--d-surface)] px-3 py-2 font-mono whitespace-nowrap text-[var(--d-muted)]">
           {shareUrl.replace(/^https?:\/\//, "")} · {t("livePosition")}
         </div>
       </div>
       <div className="flex gap-2">
         <button
           type="button"
-          className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] text-[13.5px] font-bold text-white"
+          className="drive-sora rounded-card-lg text-body flex h-12 flex-1 items-center justify-center gap-2 font-bold text-white"
           style={{ background: GO }}
           onClick={() =>
             window.open(
@@ -448,7 +448,7 @@ export function ShareModal({
         </button>
         <button
           type="button"
-          className="drive-sora flex h-12 flex-1 items-center justify-center gap-2 rounded-[14px] bg-[var(--d-soft)] text-[13.5px] font-bold"
+          className="drive-sora rounded-card-lg text-body flex h-12 flex-1 items-center justify-center gap-2 bg-[var(--d-soft)] font-bold"
           onClick={() =>
             window.open(`sms:?body=${encodeURIComponent(text)}`, "_self")
           }
@@ -459,7 +459,7 @@ export function ShareModal({
       {/* Copier le lien de suivi (partage libre : Telegram, e-mail…) */}
       <button
         type="button"
-        className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[13.5px] font-bold"
+        className="drive-sora rounded-card-lg text-body mt-2 flex h-12 w-full items-center justify-center gap-2 border-[1.5px] font-bold"
         style={
           copied
             ? { borderColor: GO, color: GO }
@@ -479,7 +479,7 @@ export function ShareModal({
       {emergencyContacts.length > 0 && (
         <button
           type="button"
-          className="drive-sora mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] border-[1.5px] text-[13.5px] font-bold"
+          className="drive-sora rounded-card-lg text-body mt-2 flex h-12 w-full items-center justify-center gap-2 border-[1.5px] font-bold"
           style={{ borderColor: RED, color: RED }}
           onClick={() =>
             window.open(
@@ -496,7 +496,7 @@ export function ShareModal({
           })}
         </button>
       )}
-      <p className="mt-2 text-center text-[11px] text-[var(--d-muted)]">
+      <p className="text-caption mt-2 text-center text-[var(--d-muted)]">
         {t("note")}
       </p>
       <GhostBtn onClick={onClose}>{t("close")}</GhostBtn>
@@ -528,14 +528,14 @@ export function ReportModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-1.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+      <p className="text-body-sm mb-1.5 text-[var(--d-muted)]">{t("sub")}</p>
       <div>
         {reasons.map((r) => (
           <button
             key={r}
             type="button"
             onClick={() => setSel(r)}
-            className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-1 py-3 text-left text-[13.5px] font-semibold last:border-b-0"
+            className="text-body flex w-full items-center gap-3 border-b border-[var(--d-line)] px-1 py-3 text-left font-semibold last:border-b-0"
             style={sel === r ? { color: VIOLET } : undefined}
           >
             <span
@@ -582,21 +582,21 @@ export function ProxModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+      <p className="text-body-sm mb-2.5 text-[var(--d-muted)]">{t("sub")}</p>
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder={t("namePh")}
-        className="mb-2 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+        className="rounded-card-lg mb-2 w-full border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
       />
       <input
         value={phone}
         onChange={(e) => setPhone(e.target.value)}
         inputMode="tel"
         placeholder={t("phonePh")}
-        className="mb-1 w-full rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+        className="rounded-card-lg mb-1 w-full border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-sm font-semibold outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
       />
-      <p className="text-[11px] text-[var(--d-muted)]">{t("note")}</p>
+      <p className="text-caption text-[var(--d-muted)]">{t("note")}</p>
       <PrimaryBtn
         disabled={!name.trim() || phone.trim().length < 9}
         onClick={() => onConfirm(name.trim(), phone.trim())}
@@ -625,21 +625,21 @@ export function DepModal({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+      <p className="text-body-sm mb-2.5 text-[var(--d-muted)]">{t("sub")}</p>
       <button
         type="button"
         onClick={onGps}
-        className="mb-2 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
+        className="rounded-card-xl text-body mb-2 flex w-full items-center gap-3 border-[1.5px] border-[var(--d-line)] p-3 text-left font-bold"
       >
         <span
-          className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[var(--d-accent)]"
+          className="grid size-[38px] shrink-0 place-items-center rounded-md bg-[var(--d-accent)]"
           style={{ color: VIOLET }}
         >
           <Crosshair className="size-5" />
         </span>
         <span>
           {t("gps")}
-          <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
+          <small className="text-caption mt-0.5 block font-medium text-[var(--d-muted)]">
             {t("gpsSub")}
           </small>
         </span>
@@ -647,17 +647,17 @@ export function DepModal({
       <button
         type="button"
         onClick={onMap}
-        className="mb-1 flex w-full items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3 text-left text-[13.5px] font-bold"
+        className="rounded-card-xl text-body mb-1 flex w-full items-center gap-3 border-[1.5px] border-[var(--d-line)] p-3 text-left font-bold"
       >
         <span
-          className="grid size-[38px] shrink-0 place-items-center rounded-[12px] bg-[var(--d-accent)]"
+          className="grid size-[38px] shrink-0 place-items-center rounded-md bg-[var(--d-accent)]"
           style={{ color: VIOLET }}
         >
           <MapPin className="size-5" />
         </span>
         <span>
           {t("map")}
-          <small className="mt-0.5 block text-[11px] font-medium text-[var(--d-muted)]">
+          <small className="text-caption mt-0.5 block font-medium text-[var(--d-muted)]">
             {t("mapSub")}
           </small>
         </span>
@@ -716,16 +716,16 @@ export function SosContactsSheet({
   return (
     <Sheet open={open} onClose={onClose}>
       <SheetTitle>{t("title")}</SheetTitle>
-      <p className="mb-2.5 text-[13px] text-[var(--d-muted)]">{t("sub")}</p>
+      <p className="text-body-sm mb-2.5 text-[var(--d-muted)]">{t("sub")}</p>
 
       {list.map((c) => (
         <div
           key={c.phone}
-          className="mb-2 flex items-center gap-3 rounded-[15px] border-[1.5px] border-[var(--d-line)] p-3"
+          className="rounded-card-xl mb-2 flex items-center gap-3 border-[1.5px] border-[var(--d-line)] p-3"
         >
           <span className="min-w-0 flex-1">
-            <b className="block text-[13.5px]">{c.name}</b>
-            <small className="text-[11px] text-[var(--d-muted)] tabular-nums">
+            <b className="text-body block">{c.name}</b>
+            <small className="text-caption text-[var(--d-muted)] tabular-nums">
               {c.phone}
             </small>
           </span>
@@ -753,7 +753,7 @@ export function SosContactsSheet({
         </div>
       ))}
       {list.length === 0 && (
-        <p className="mb-2 rounded-[13px] bg-[var(--d-soft)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)]">
+        <p className="rounded-card mb-2 bg-[var(--d-soft)] px-3 py-2.5 text-center text-xs font-semibold text-[var(--d-muted)]">
           {t("empty")}
         </p>
       )}
@@ -764,14 +764,14 @@ export function SosContactsSheet({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder={t("namePh")}
-            className="h-11 min-w-0 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-sm font-semibold outline-none"
+            className="rounded-card-lg h-11 min-w-0 flex-1 border border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-sm font-semibold outline-none"
           />
           <input
             value={phone}
             onChange={(e) => setPhone(e.target.value)}
             inputMode="tel"
             placeholder={t("phonePh")}
-            className="h-11 min-w-0 flex-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-sm font-semibold outline-none"
+            className="rounded-card-lg h-11 min-w-0 flex-1 border border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-sm font-semibold outline-none"
           />
           <button
             type="button"
@@ -784,7 +784,7 @@ export function SosContactsSheet({
               setName("");
               setPhone("");
             }}
-            className="grid size-11 shrink-0 place-items-center rounded-[14px] text-xl font-bold text-white disabled:opacity-40"
+            className="rounded-card-lg grid size-11 shrink-0 place-items-center text-xl font-bold text-white disabled:opacity-40"
             style={{ background: VIOLET }}
           >
             +

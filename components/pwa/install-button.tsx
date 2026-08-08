@@ -40,7 +40,7 @@ export function InstallButton({
         <button
           type="button"
           onClick={handleClick}
-          className="text-muted hover:bg-surface-2 hover:text-foreground flex min-h-[44px] w-full items-center gap-3 rounded-[10px] px-3 py-2 text-sm transition-colors"
+          className="text-muted hover:bg-surface-2 hover:text-foreground rounded-control flex min-h-[44px] w-full items-center gap-3 px-3 py-2 text-sm transition-colors"
         >
           <Download className="size-5 shrink-0" />
           <span className="flex-1 text-left">Installer l&apos;application</span>
@@ -50,7 +50,7 @@ export function InstallButton({
           type="button"
           onClick={handleClick}
           className={cn(
-            "border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-9 items-center gap-2 rounded-[10px] border bg-white px-3 text-sm font-medium transition-colors"
+            "border-primary-200 text-primary-700 hover:bg-primary-50 rounded-control inline-flex h-9 items-center gap-2 border bg-white px-3 text-sm font-medium transition-colors"
           )}
         >
           <Download className="size-4" />

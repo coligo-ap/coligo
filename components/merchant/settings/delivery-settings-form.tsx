@@ -97,7 +97,7 @@ export function DeliverySettingsForm({
       {enabled && (
         <>
           {/* Modes */}
-          <div className="border-border space-y-3 rounded-[12px] border p-4">
+          <div className="border-border space-y-3 rounded-md border p-4">
             <p className="text-sm font-semibold">Modes de livraison</p>
             <Switch
               name="express_enabled"
@@ -123,7 +123,7 @@ export function DeliverySettingsForm({
           </div>
 
           {/* Position du commerçant (obligatoire pour la livraison) */}
-          <div className="border-border space-y-3 rounded-[12px] border p-4">
+          <div className="border-border space-y-3 rounded-md border p-4">
             <div>
               <p className="flex items-center gap-2 text-sm font-semibold">
                 <MapPin className="size-4" />
@@ -135,7 +135,7 @@ export function DeliverySettingsForm({
               </p>
             </div>
             {positionMissing && (
-              <p className="border-warning-200 bg-warning-50 text-warning-700 flex items-start gap-2 rounded-[10px] border px-3 py-2 text-xs">
+              <p className="border-warning-200 bg-warning-50 text-warning-700 rounded-control flex items-start gap-2 border px-3 py-2 text-xs">
                 <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
                 Position non définie — confirme l&apos;emplacement de ta
                 boutique pour enregistrer la livraison.
@@ -157,7 +157,7 @@ export function DeliverySettingsForm({
           </div>
 
           {/* Rayon */}
-          <div className="border-border space-y-3 rounded-[12px] border p-4">
+          <div className="border-border space-y-3 rounded-md border p-4">
             <div className="flex items-baseline justify-between gap-3">
               <Label htmlFor="delivery_radius_km">Rayon de livraison</Label>
               <span className="text-sm font-semibold tabular-nums">
@@ -184,7 +184,7 @@ export function DeliverySettingsForm({
 
           {/* Tarifs de TOURNÉE par zone (le commerçant fixe son prix ≤ plafond) */}
           {tours && (
-            <div className="border-border space-y-3 rounded-[12px] border p-4">
+            <div className="border-border space-y-3 rounded-md border p-4">
               <div className="flex items-center gap-2">
                 <Calendar className="size-4" />
                 <p className="text-sm font-semibold">
@@ -247,7 +247,7 @@ export function DeliverySettingsForm({
 
           {/* Barème (lecture seule) + simulateur — repliés par défaut, info
               secondaire que la plupart des commerçants ne consultent qu'une fois. */}
-          <details className="bg-surface-2 border-border rounded-[12px] border p-4">
+          <details className="bg-surface-2 border-border rounded-md border p-4">
             <summary className="flex cursor-pointer items-center gap-2 select-none">
               <Truck className="size-4" />
               <p className="text-sm font-semibold">

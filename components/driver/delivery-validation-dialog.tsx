@@ -344,7 +344,7 @@ export function DeliveryValidationDialog({
           <QrScanner
             onScan={handleScannedText}
             oneShot={false}
-            className="size-full rounded-[20px]"
+            className="size-full rounded-xl"
           />
         </div>
 

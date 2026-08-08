@@ -119,7 +119,7 @@ export default async function AdminReportsPage() {
 
       <section
         data-alert-focus="driver_refund_pending"
-        className="mb-8 rounded-[16px]"
+        className="mb-8 rounded-lg"
       >
         <h2 className="mb-2 text-lg font-semibold">
           Avances no-show à valider
@@ -133,20 +133,14 @@ export default async function AdminReportsPage() {
         <AdminRefundClaims rows={claims} />
       </section>
 
-      <section
-        data-alert-focus="delivery_reports_open"
-        className="rounded-[16px]"
-      >
+      <section data-alert-focus="delivery_reports_open" className="rounded-lg">
         <h2 className="mb-2 text-lg font-semibold">
           Signalements de livraison
         </h2>
         <AdminReportsList rows={rows} />
       </section>
 
-      <section
-        data-alert-focus="ride_reports_open"
-        className="mt-8 rounded-[16px]"
-      >
+      <section data-alert-focus="ride_reports_open" className="mt-8 rounded-lg">
         <h2 className="mb-2 text-lg font-semibold">
           Signalements de course (Coligo Drive)
         </h2>

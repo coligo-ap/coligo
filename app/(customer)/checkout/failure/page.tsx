@@ -79,7 +79,7 @@ export default async function CheckoutFailurePage({
           <p className="text-muted mt-2 text-sm">{reason.hint}</p>
         )}
 
-        <div className="border-primary-100 bg-primary-50 text-primary-800 mt-5 rounded-[12px] border px-4 py-3 text-sm">
+        <div className="border-primary-100 bg-primary-50 text-primary-800 mt-5 rounded-md border px-4 py-3 text-sm">
           <p className="font-semibold">{t("cartIntactTitle")}</p>
           <p className="text-primary-700 mt-1 text-xs">{t("cartIntactBody")}</p>
         </div>
@@ -87,7 +87,7 @@ export default async function CheckoutFailurePage({
         <div className="mt-6 flex flex-col gap-2">
           <Link
             href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-md px-5 text-sm font-semibold text-white"
           >
             {t("backToCheckout")}
           </Link>
@@ -123,7 +123,7 @@ async function FailureFallback() {
         <div className="mt-6 flex flex-col gap-2">
           <Link
             href="/checkout"
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-[12px] px-5 text-sm font-semibold text-white"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex h-11 items-center justify-center rounded-md px-5 text-sm font-semibold text-white"
           >
             {t("backToCheckout")}
           </Link>

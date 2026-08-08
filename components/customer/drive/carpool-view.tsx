@@ -308,7 +308,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
               key={k}
               type="button"
               onClick={() => setTab(k)}
-              className="drive-sora flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12.5px] font-bold transition"
+              className="drive-sora text-label-lg flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 font-bold transition"
               style={
                 active
                   ? { background: "var(--d-surface)", color: VIOLET }
@@ -317,7 +317,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
             >
               {label}
               <span
-                className="rounded-full px-1.5 text-[10.5px] font-bold tabular-nums"
+                className="text-micro-lg rounded-full px-1.5 font-bold tabular-nums"
                 style={
                   active
                     ? { background: "#F1E9FC", color: VIOLET }
@@ -333,7 +333,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
 
       {blockedMsg && (
         <p
-          className="mt-2.5 rounded-[10px] px-3 py-2.5 text-[12px] font-semibold"
+          className="rounded-control text-label mt-2.5 px-3 py-2.5 font-semibold"
           style={{ background: "rgba(108,43,217,.08)", color: VIOLET }}
         >
           {blockedMsg}
@@ -347,12 +347,12 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
             className={
               embedded
                 ? "mt-2.5"
-                : "mt-2.5 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
+                : "mt-2.5 rounded-md border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
             }
           >
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                <div className="rounded-control border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
                   <PlaceField
                     value={fromPick}
                     onChange={setFromPick}
@@ -365,7 +365,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   aria-hidden
                   className="ms-[19px] block h-3 w-0 border-s-2 border-dashed border-[var(--d-line)]"
                 />
-                <div className="rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                <div className="rounded-control border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
                   <PlaceField
                     value={toPick}
                     onChange={setToPick}
@@ -382,7 +382,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 onClick={swap}
                 aria-label={t("carpool.swap")}
                 title={t("carpool.swap")}
-                className="grid size-10 shrink-0 place-items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+                className="rounded-control grid size-10 shrink-0 place-items-center border border-[var(--d-line)] bg-[var(--d-surface)]"
                 style={{ color: VIOLET }}
               >
                 <ArrowUpDown className="size-[18px]" />
@@ -396,7 +396,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   key={c.key || "any"}
                   type="button"
                   onClick={() => setDate(c.key)}
-                  className="drive-sora flex h-8 shrink-0 items-center rounded-full border px-3 text-[11px] font-bold whitespace-nowrap"
+                  className="drive-sora text-caption flex h-8 shrink-0 items-center rounded-full border px-3 font-bold whitespace-nowrap"
                   style={
                     date === c.key
                       ? {
@@ -418,7 +418,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 value={customDate ? date : ""}
                 min={algiersDay(0)}
                 onChange={(e) => setDate(e.target.value)}
-                className="h-8 shrink-0 rounded-full border px-2 text-[11px] font-bold outline-none"
+                className="text-caption h-8 shrink-0 rounded-full border px-2 font-bold outline-none"
                 style={
                   customDate
                     ? {
@@ -438,16 +438,16 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
 
             {/* Passagers + Rechercher */}
             <div className="mt-2.5 flex items-center gap-2">
-              <div className="flex h-11 shrink-0 items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)]">
+              <div className="rounded-control flex h-11 shrink-0 items-center border border-[var(--d-line)] bg-[var(--d-soft)]">
                 <button
                   type="button"
                   onClick={() => setPax((p) => Math.max(1, p - 1))}
                   aria-label="−"
-                  className="drive-sora h-full w-9 text-[16px] font-extrabold"
+                  className="drive-sora text-title h-full w-9 font-extrabold"
                 >
                   −
                 </button>
-                <span className="drive-sora flex min-w-[46px] items-center justify-center gap-1 text-[14px] font-extrabold">
+                <span className="drive-sora text-body-lg flex min-w-[46px] items-center justify-center gap-1 font-extrabold">
                   <UsersRound className="size-4" />
                   {pax}
                 </span>
@@ -455,7 +455,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   type="button"
                   onClick={() => setPax((p) => Math.min(4, p + 1))}
                   aria-label="+"
-                  className="drive-sora h-full w-9 text-[16px] font-extrabold"
+                  className="drive-sora text-title h-full w-9 font-extrabold"
                 >
                   +
                 </button>
@@ -463,7 +463,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
               <button
                 type="button"
                 onClick={search}
-                className="drive-sora flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] text-[14px] font-extrabold text-white"
+                className="drive-sora rounded-control text-body-lg flex h-11 flex-1 items-center justify-center gap-2 font-extrabold text-white"
                 style={{ background: VIOLET }}
               >
                 <Search className="size-4" /> {t("carpool.search")}
@@ -482,7 +482,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
           ) : (
             <>
               <div className="mt-3 flex items-center gap-1.5 overflow-x-auto">
-                <p className="me-auto shrink-0 text-[11.5px] font-bold text-[var(--d-muted)]">
+                <p className="text-caption-lg me-auto shrink-0 font-bold text-[var(--d-muted)]">
                   {t("carpool.results", { count: shownTrips.length })}
                 </p>
                 {(
@@ -495,7 +495,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     key={k}
                     type="button"
                     onClick={() => setSort(k)}
-                    className="drive-sora flex h-7 shrink-0 items-center rounded-full border px-2.5 text-[10px] font-bold whitespace-nowrap"
+                    className="drive-sora text-micro flex h-7 shrink-0 items-center rounded-full border px-2.5 font-bold whitespace-nowrap"
                     style={
                       sort === k
                         ? {
@@ -529,7 +529,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 return (
                   <div
                     key={trip.id}
-                    className="mt-2 overflow-hidden rounded-[12px] border bg-[var(--d-surface)]"
+                    className="mt-2 overflow-hidden rounded-md border bg-[var(--d-surface)]"
                     style={{
                       borderColor: openRow ? VIOLET : "var(--d-line)",
                     }}
@@ -544,19 +544,19 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                       className="flex w-full items-center gap-2.5 p-3 text-start"
                     >
                       <span className="shrink-0 text-center">
-                        <span className="drive-sora block text-[15px] leading-none font-extrabold">
+                        <span className="drive-sora text-title-sm block leading-none font-extrabold">
                           {fmtTime(trip.seg_departure_at)}
                         </span>
-                        <span className="mt-0.5 block text-[9px] font-semibold text-[var(--d-muted)]">
+                        <span className="text-nano mt-0.5 block font-semibold text-[var(--d-muted)]">
                           {fmtDay(trip.seg_departure_at)}
                         </span>
                       </span>
                       <span className="min-w-0 flex-1">
-                        <span className="block truncate text-[12.5px] font-extrabold">
+                        <span className="text-label-lg block truncate font-extrabold">
                           {stopLabel(trip.seg_from_text, trip.seg_from_wilaya)}{" "}
                           → {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
                         </span>
-                        <span className="block truncate text-[10px] font-medium text-[var(--d-muted)]">
+                        <span className="text-micro block truncate font-medium text-[var(--d-muted)]">
                           {durLabel(trip.seg_km)} · {trip.chauffeur_name}
                           {trip.chauffeur_rating != null &&
                             ` · ★ ${String(trip.chauffeur_rating).replace(".", ",")}`}
@@ -566,10 +566,10 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                         </span>
                       </span>
                       <span className="shrink-0 text-end">
-                        <span className="drive-sora block text-[15px] leading-none font-extrabold">
+                        <span className="drive-sora text-title-sm block leading-none font-extrabold">
                           {trip.seg_price_da}
                         </span>
-                        <span className="block text-[9px] font-semibold text-[var(--d-muted)]">
+                        <span className="text-nano block font-semibold text-[var(--d-muted)]">
                           {t("carpool.perSeat")}
                         </span>
                       </span>
@@ -593,33 +593,33 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                             <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
                           </div>
                           <div className="min-w-0 flex-1">
-                            <p className="truncate text-[13.5px] font-extrabold">
+                            <p className="text-body truncate font-extrabold">
                               {stopLabel(
                                 trip.seg_from_text,
                                 trip.seg_from_wilaya
                               )}
                             </p>
-                            <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
+                            <p className="text-micro truncate font-medium text-[var(--d-muted)]">
                               {wname(trip.seg_from_wilaya)}
                             </p>
-                            <p className="mt-1.5 truncate text-[13.5px] font-extrabold">
+                            <p className="text-body mt-1.5 truncate font-extrabold">
                               {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
                             </p>
-                            <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
+                            <p className="text-micro truncate font-medium text-[var(--d-muted)]">
                               {wname(trip.seg_to_wilaya)}
                             </p>
                           </div>
                           <div className="shrink-0 text-end">
-                            <p className="text-[9px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                            <p className="text-nano font-bold tracking-wide text-[var(--d-muted)] uppercase">
                               {t("carpool.boardAt")}
                             </p>
-                            <p className="drive-sora text-[13px] font-extrabold">
+                            <p className="drive-sora text-body-sm font-extrabold">
                               {fmtTime(trip.seg_departure_at)}
                             </p>
-                            <p className="mt-1 text-[9px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                            <p className="text-nano mt-1 font-bold tracking-wide text-[var(--d-muted)] uppercase">
                               {t("carpool.alightAt")}
                             </p>
-                            <p className="drive-sora text-[13px] font-extrabold">
+                            <p className="drive-sora text-body-sm font-extrabold">
                               ≈{" "}
                               {arrivalTime(trip.seg_departure_at, trip.seg_km)}
                             </p>
@@ -629,7 +629,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                         {/* Trajet complet du chauffeur quand on monte en route */}
                         {viaNames && (
                           <p
-                            className="mt-1.5 truncate text-[10.5px] font-semibold"
+                            className="text-micro-lg mt-1.5 truncate font-semibold"
                             style={{ color: GO }}
                           >
                             {t("carpool.via", { stops: viaNames })}
@@ -639,7 +639,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                         {/* Chauffeur + places + action */}
                         <div className="mt-2.5 flex items-center gap-2 border-t border-[var(--d-line)] pt-2.5">
                           <span
-                            className="drive-sora grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-extrabold text-white"
+                            className="drive-sora text-label grid size-8 shrink-0 place-items-center rounded-full font-extrabold text-white"
                             style={{
                               background: trip.female_only
                                 ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
@@ -649,10 +649,10 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                             {trip.chauffeur_name[0]?.toUpperCase()}
                           </span>
                           <span className="min-w-0 flex-1">
-                            <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold">
+                            <span className="text-label flex flex-wrap items-center gap-1.5 font-bold">
                               {trip.chauffeur_name}
                               {trip.chauffeur_rating != null && (
-                                <span className="text-[10px] text-[#E8B53C]">
+                                <span className="text-micro text-[#E8B53C]">
                                   ★{" "}
                                   {String(trip.chauffeur_rating).replace(
                                     ".",
@@ -673,7 +673,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                               )}
                             </span>
                             <span
-                              className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                              className="text-nano-lg mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-extrabold"
                               style={{
                                 background: "rgba(22,179,100,.12)",
                                 color: GO,
@@ -689,7 +689,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                             <button
                               type="button"
                               onClick={() => setTab("mine")}
-                              className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] px-3.5 text-[12px] font-extrabold"
+                              className="drive-sora text-label flex h-9 shrink-0 items-center gap-1.5 rounded-sm px-3.5 font-extrabold"
                               style={{ background: "#F1E9FC", color: VIOLET }}
                             >
                               <Check className="size-3.5" />{" "}
@@ -699,7 +699,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                             <button
                               type="button"
                               onClick={() => openBook(trip)}
-                              className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[8px] px-4 text-[12.5px] font-extrabold text-white"
+                              className="drive-sora text-label-lg flex h-9 shrink-0 items-center gap-1.5 rounded-sm px-4 font-extrabold text-white"
                               style={{ background: VIOLET }}
                             >
                               {t("carpool.book")}
@@ -739,7 +739,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
             return (
               <div
                 key={b.id}
-                className="mb-2.5 rounded-[12px] border bg-[var(--d-surface)] p-3.5"
+                className="mb-2.5 rounded-md border bg-[var(--d-surface)] p-3.5"
                 style={{
                   borderColor: active
                     ? "rgba(108,43,217,.35)"
@@ -747,11 +747,11 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 }}
               >
                 <div className="flex items-center gap-2">
-                  <p className="drive-sora min-w-0 flex-1 truncate text-[13.5px] font-extrabold">
+                  <p className="drive-sora text-body min-w-0 flex-1 truncate font-extrabold">
                     {isAr ? `${segFrom} ← ${segTo}` : `${segFrom} → ${segTo}`}
                   </p>
                   <span
-                    className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-extrabold"
+                    className="text-nano shrink-0 rounded-full px-2 py-0.5 font-extrabold"
                     style={
                       b.status === "boarded" || b.status === "completed"
                         ? { background: "rgba(22,179,100,.12)", color: GO }
@@ -766,7 +766,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     {t(`carpool.status.${b.status}`)}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[11px] text-[var(--d-muted)]">
+                <p className="text-caption mt-0.5 text-[var(--d-muted)]">
                   {fmtDay(when)} {fmtTime(when)} · {b.chauffeur_name} ·{" "}
                   {b.seats} × {Math.round(b.amount_da / Math.max(1, b.seats))} ={" "}
                   <b>{b.amount_da}</b> {isAr ? "دج" : "DA"}{" "}
@@ -778,7 +778,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 </p>
                 {b.trip_status === "cancelled" && (
                   <p
-                    className="mt-1 text-[11px] font-bold"
+                    className="text-caption mt-1 font-bold"
                     style={{ color: RED }}
                   >
                     {t("carpool.tripCancelled")}
@@ -786,7 +786,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 )}
                 {active && (
                   <div
-                    className="mt-2.5 flex items-center gap-2.5 rounded-[10px] px-3 py-2.5"
+                    className="rounded-control mt-2.5 flex items-center gap-2.5 px-3 py-2.5"
                     style={{ background: "rgba(108,43,217,.07)" }}
                   >
                     <Ticket
@@ -794,11 +794,11 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                       style={{ color: VIOLET }}
                     />
                     <span className="min-w-0 flex-1">
-                      <b className="block text-[10px] tracking-wide text-[var(--d-muted)] uppercase">
+                      <b className="text-micro block tracking-wide text-[var(--d-muted)] uppercase">
                         {t("carpool.pinTitle")}
                       </b>
                       <span
-                        className="drive-sora text-[22px] font-extrabold tracking-[6px]"
+                        className="drive-sora text-display font-extrabold tracking-[6px]"
                         style={{ color: VIOLET }}
                       >
                         {b.pin}
@@ -812,7 +812,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                 {active && b.chauffeur_phone && (
                   <a
                     href={`tel:${b.chauffeur_phone}`}
-                    className="drive-sora mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-[8px] border-[1.5px] text-[12px] font-extrabold"
+                    className="drive-sora text-label mt-2 flex h-10 w-full items-center justify-center gap-1.5 rounded-sm border-[1.5px] font-extrabold"
                     style={{ borderColor: VIOLET, color: VIOLET }}
                   >
                     <Phone className="size-3.5" />
@@ -826,7 +826,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     onClick={() =>
                       cancelArm === b.id ? void doCancel(b) : setCancelArm(b.id)
                     }
-                    className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[8px] border text-[11.5px] font-semibold disabled:opacity-60"
+                    className="text-caption-lg mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-sm border font-semibold disabled:opacity-60"
                     style={{
                       borderColor: cancelArm === b.id ? RED : "var(--d-line)",
                       color: cancelArm === b.id ? RED : "var(--d-muted)",
@@ -853,7 +853,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
         portalEl &&
         createPortal(
           <div className="fixed inset-0 z-[60] flex items-end justify-center bg-black/45">
-            <div className="w-full max-w-[560px] rounded-t-[16px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+            <div className="w-full max-w-[560px] rounded-t-lg border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
               {pinResult ? (
                 /* Billet émis : PIN en évidence, à donner au chauffeur. */
                 <div className="text-center">
@@ -863,7 +863,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   >
                     <Ticket className="size-7" style={{ color: GO }} />
                   </span>
-                  <h2 className="drive-sora mt-2 text-[17px] font-extrabold">
+                  <h2 className="drive-sora text-title-lg mt-2 font-extrabold">
                     {t("carpool.pinTitle")}
                   </h2>
                   <p
@@ -872,7 +872,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   >
                     {pinResult}
                   </p>
-                  <p className="mt-1 text-[12px] text-[var(--d-muted)]">
+                  <p className="text-label mt-1 text-[var(--d-muted)]">
                     {t("carpool.pinHint")}
                   </p>
                   <button
@@ -881,7 +881,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                       setBookTrip(null);
                       setTab("mine");
                     }}
-                    className="drive-sora mt-4 flex h-[48px] w-full items-center justify-center rounded-[10px] text-[14.5px] font-extrabold text-white"
+                    className="drive-sora rounded-control text-body-xl mt-4 flex h-[48px] w-full items-center justify-center font-extrabold text-white"
                     style={{ background: VIOLET }}
                   >
                     {t("carpool.ok")}
@@ -908,13 +908,13 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     </button>
                   </div>
                   {/* Timeline MONTÉE / DESCENTE — où et quand, sans ambiguïté. */}
-                  <div className="mt-1 rounded-[10px] bg-[var(--d-soft)] px-3 py-2.5">
-                    <div className="flex items-center gap-2 text-[11.5px] font-semibold">
+                  <div className="rounded-control mt-1 bg-[var(--d-soft)] px-3 py-2.5">
+                    <div className="text-caption-lg flex items-center gap-2 font-semibold">
                       <span
                         className="size-[9px] shrink-0 rounded-full border-[2.5px]"
                         style={{ borderColor: VIOLET }}
                       />
-                      <span className="w-14 shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      <span className="text-nano-lg w-14 shrink-0 font-bold tracking-wide text-[var(--d-muted)] uppercase">
                         {t("carpool.boardAt")}
                       </span>
                       <span className="min-w-0 flex-1 truncate">
@@ -927,9 +927,9 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                         {fmtTime(bookTrip.seg_departure_at)}
                       </b>
                     </div>
-                    <div className="mt-1.5 flex items-center gap-2 text-[11.5px] font-semibold">
+                    <div className="text-caption-lg mt-1.5 flex items-center gap-2 font-semibold">
                       <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
-                      <span className="w-14 shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      <span className="text-nano-lg w-14 shrink-0 font-bold tracking-wide text-[var(--d-muted)] uppercase">
                         {t("carpool.alightAt")}
                       </span>
                       <span className="min-w-0 flex-1 truncate">
@@ -946,25 +946,25 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                         )}
                       </b>
                     </div>
-                    <p className="mt-1.5 text-[10px] font-medium text-[var(--d-muted)]">
+                    <p className="text-micro mt-1.5 font-medium text-[var(--d-muted)]">
                       {fmtDay(bookTrip.seg_departure_at)} ·{" "}
                       {bookTrip.chauffeur_name} · {durLabel(bookTrip.seg_km)}
                     </p>
                   </div>
 
                   <div className="mt-3">
-                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {t("carpool.seats")}
                     </span>
-                    <div className="flex h-12 items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-soft)]">
+                    <div className="rounded-control flex h-12 items-center border border-[var(--d-line)] bg-[var(--d-soft)]">
                       <button
                         type="button"
                         onClick={() => setSeats((s) => Math.max(1, s - 1))}
-                        className="drive-sora h-full w-12 text-[18px] font-extrabold"
+                        className="drive-sora text-heading-sm h-full w-12 font-extrabold"
                       >
                         −
                       </button>
-                      <span className="drive-sora flex-1 text-center text-[17px] font-extrabold">
+                      <span className="drive-sora text-title-lg flex-1 text-center font-extrabold">
                         <UsersRound className="me-1 inline size-4 align-[-2px]" />
                         {seats}
                       </span>
@@ -975,7 +975,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                             Math.min(Math.min(4, bookTrip.seats_left), s + 1)
                           )
                         }
-                        className="drive-sora h-full w-12 text-[18px] font-extrabold"
+                        className="drive-sora text-heading-sm h-full w-12 font-extrabold"
                       >
                         +
                       </button>
@@ -983,7 +983,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   </div>
 
                   <div className="mt-2.5">
-                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    <span className="text-micro-lg mb-1 block font-bold tracking-wide text-[var(--d-muted)] uppercase">
                       {t("carpool.payment")}
                     </span>
                     <div className="flex gap-2">
@@ -997,7 +997,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                           key={k}
                           type="button"
                           onClick={() => setPayment(k)}
-                          className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[10px] border text-[12px] font-bold"
+                          className="rounded-control text-label flex h-11 flex-1 items-center justify-center gap-1.5 border font-bold"
                           style={
                             payment === k
                               ? {
@@ -1019,7 +1019,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
 
                   {bookError && (
                     <p
-                      className="mt-2.5 text-center text-[11.5px] font-bold"
+                      className="text-caption-lg mt-2.5 text-center font-bold"
                       style={{ color: RED }}
                     >
                       {bookError}
@@ -1030,7 +1030,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     type="button"
                     onClick={() => void submitBook()}
                     disabled={bookPending}
-                    className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[10px] text-[15px] font-extrabold text-white disabled:opacity-60"
+                    className="drive-sora rounded-control text-title-sm mt-3 flex h-[50px] w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-60"
                     style={{ background: GO }}
                   >
                     {bookPending && <Loader2 className="size-5 animate-spin" />}
@@ -1067,15 +1067,15 @@ export function CarpoolView() {
           <Link
             href="/drive"
             aria-label={t("carpool.title")}
-            className="grid size-9 shrink-0 place-items-center rounded-[10px] bg-white/15 text-white"
+            className="rounded-control grid size-9 shrink-0 place-items-center bg-white/15 text-white"
           >
             <ChevronLeft className="size-5 rtl:rotate-180" />
           </Link>
           <div className="min-w-0">
-            <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+            <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
               {t("carpool.title")}
             </h1>
-            <p className="truncate text-[10.5px] font-medium text-white/75">
+            <p className="text-micro-lg truncate font-medium text-white/75">
               {t("carpool.subtitle")}
             </p>
           </div>

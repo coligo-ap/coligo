@@ -67,7 +67,7 @@ export function CartConflictModal({ current, others, onResolved }: Props) {
       aria-modal
       aria-labelledby="cart-conflict-title"
     >
-      <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
+      <div className="bg-surface flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
         <header className="border-border flex items-start justify-between gap-3 border-b px-5 py-4">
           <div>
             <h2
@@ -108,7 +108,7 @@ export function CartConflictModal({ current, others, onResolved }: Props) {
           ))}
 
           {/* Petit rappel du panier en cours (B), pour orientation. */}
-          <div className="border-border bg-primary-50/40 mt-2 rounded-[14px] border border-dashed p-3 text-xs">
+          <div className="border-border bg-primary-50/40 rounded-card-lg mt-2 border border-dashed p-3 text-xs">
             <p className="text-muted">
               {t("currentCheckoutPrefix")}{" "}
               <strong className="text-foreground">
@@ -154,7 +154,7 @@ function CartCard({
   return (
     <div
       className={cn(
-        "border-border rounded-[14px] border p-3",
+        "border-border rounded-card-lg border p-3",
         highlight ? "bg-primary-50" : "bg-surface"
       )}
     >
@@ -191,14 +191,14 @@ function CartCard({
         <button
           type="button"
           onClick={onContinue}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex flex-1 items-center justify-center gap-1.5 rounded-[10px] px-3 py-2.5 text-sm font-semibold text-white transition-colors"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex flex-1 items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-semibold text-white transition-colors"
         >
           {t("continueWith", { name: cart.merchant_name ?? t("thisMerchant") })}
         </button>
         <button
           type="button"
           onClick={onAbandon}
-          className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 inline-flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2.5 text-xs font-semibold transition-colors sm:text-sm"
+          className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 rounded-control inline-flex flex-1 items-center justify-center gap-1.5 border px-3 py-2.5 text-xs font-semibold transition-colors sm:text-sm"
         >
           {t("abandonAndOrder", { name: currentName })}
         </button>

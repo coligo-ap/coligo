@@ -35,8 +35,8 @@ export function RevenueChart({ data }: { data: Bucket[] }) {
                 aria-label={`${d.label} : ${formatDA(d.ca)}`}
               >
                 {active === i && (
-                  <span className="border-border pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 rounded-[10px] border bg-white px-2.5 py-1.5 text-center whitespace-nowrap shadow-md">
-                    <span className="text-muted block text-[10px]">
+                  <span className="border-border rounded-control pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 -translate-x-1/2 border bg-white px-2.5 py-1.5 text-center whitespace-nowrap shadow-md">
+                    <span className="text-muted text-micro block">
                       {d.label}
                     </span>
                     <span className="text-foreground block text-xs font-semibold tabular-nums">
@@ -57,7 +57,7 @@ export function RevenueChart({ data }: { data: Bucket[] }) {
         </div>
 
         {/* Axe X (étiquettes espacées) */}
-        <div className="text-subtle mt-2 flex gap-1 text-[10px]">
+        <div className="text-subtle text-micro mt-2 flex gap-1">
           {data.map((d, i) => (
             <span key={i} className="flex-1 text-center">
               {i % labelStep === 0 ? d.label : ""}

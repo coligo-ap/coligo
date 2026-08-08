@@ -81,7 +81,7 @@ export function DriverWelcomeView({
         <ColigoCelebration variant="verified" />
 
         <span
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-bold"
+          className="text-caption inline-flex items-center gap-1.5 rounded-full px-3 py-1 font-bold"
           style={{ background: "var(--go-soft)", color: BRAND_GO }}
         >
           <BadgeCheck className="size-3.5" />
@@ -96,7 +96,7 @@ export function DriverWelcomeView({
             ? `تهانينا${firstName ? ` يا ${firstName}` : ""}!`
             : `Félicitations${firstName ? `, ${firstName}` : ""} !`}
         </h2>
-        <p className="mx-auto mt-2.5 max-w-[320px] text-[13.5px] leading-relaxed text-[var(--muted)]">
+        <p className="text-body mx-auto mt-2.5 max-w-[320px] leading-relaxed text-[var(--muted)]">
           {tr(
             "L'équipe Coligo a vérifié votre compte. Vous pouvez désormais commencer à générer des revenus immédiatement.",
             "تحقق فريق كوليغو من حسابك. يمكنك الآن البدء في تحقيق مداخيل فورًا."
@@ -106,7 +106,7 @@ export function DriverWelcomeView({
         <button
           type="button"
           onClick={() => setPhase("mode")}
-          className="mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white"
+          className="text-title-sm mt-6 flex h-[52px] w-full items-center justify-center gap-2 rounded-lg font-extrabold text-white"
           style={{ background: BRAND_VIOLET, fontFamily: SORA }}
         >
           {tr("Commencer", "ابدأ")}
@@ -127,12 +127,12 @@ export function DriverWelcomeView({
     >
       <header className="mb-1 text-center">
         <h2
-          className="text-[21px] leading-tight font-extrabold text-[var(--ink)]"
+          className="text-display-sm leading-tight font-extrabold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
           {tr("Comment souhaitez-vous travailler ?", "كيف تودّ العمل؟")}
         </h2>
-        <p className="mx-auto mt-1.5 max-w-[320px] text-[13px] leading-relaxed text-[var(--muted)]">
+        <p className="text-body-sm mx-auto mt-1.5 max-w-[320px] leading-relaxed text-[var(--muted)]">
           {tr(
             "Choisissez votre mode d'activité pour commencer.",
             "اختر نمط نشاطك للبدء."
@@ -170,11 +170,11 @@ export function DriverWelcomeView({
         type="button"
         onClick={() => setPhase("tour")}
         disabled={pending}
-        className="w-full pt-1 text-[12.5px] font-bold text-[var(--muted)] underline disabled:opacity-50"
+        className="text-label-lg w-full pt-1 font-bold text-[var(--muted)] underline disabled:opacity-50"
       >
         {tr("Découvrir l'application en 4 écrans", "اكتشف التطبيق في 4 شاشات")}
       </button>
-      <p className="text-center text-[11.5px] text-[var(--muted)]">
+      <p className="text-caption-lg text-center text-[var(--muted)]">
         {tr(
           "Vous pourrez changer de mode à tout moment depuis votre compte.",
           "يمكنك تغيير النمط في أي وقت من حسابك."
@@ -206,14 +206,14 @@ function ModeCard({
       type="button"
       onClick={onClick}
       disabled={pending}
-      className="flex w-full items-start gap-3 rounded-[18px] border bg-[var(--surface)] p-4 text-start disabled:opacity-60"
+      className="rounded-sheet-lg flex w-full items-start gap-3 border bg-[var(--surface)] p-4 text-start disabled:opacity-60"
       style={{
         borderColor: highlight ? BRAND_VIOLET : "var(--line)",
         boxShadow: highlight ? "var(--pill-shadow)" : undefined,
       }}
     >
       <span
-        className="grid size-11 shrink-0 place-items-center rounded-[14px]"
+        className="rounded-card-lg grid size-11 shrink-0 place-items-center"
         style={{
           background: highlight ? BRAND_VIOLET : "var(--soft)",
           color: highlight ? "#fff" : BRAND_VIOLET,
@@ -223,16 +223,16 @@ function ModeCard({
       </span>
       <span className="min-w-0 flex-1">
         <b
-          className="block text-[14.5px] font-extrabold text-[var(--ink)]"
+          className="text-body-xl block font-extrabold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
           {title}
         </b>
-        <small className="mt-1 block text-[12px] leading-relaxed text-[var(--muted)]">
+        <small className="text-label mt-1 block leading-relaxed text-[var(--muted)]">
           {text}
         </small>
         <span
-          className="mt-2 inline-flex items-center gap-1 text-[12.5px] font-bold"
+          className="text-label-lg mt-2 inline-flex items-center gap-1 font-bold"
           style={{ color: BRAND_VIOLET }}
         >
           {pending ? <Loader2 className="size-3.5 animate-spin" /> : null}
@@ -298,12 +298,12 @@ function OnboardingTour({ onDone }: { onDone: () => void }) {
         {slide.icon}
       </span>
       <h2
-        className="mt-3 text-[19px] font-extrabold text-[var(--ink)]"
+        className="text-heading mt-3 font-extrabold text-[var(--ink)]"
         style={{ fontFamily: SORA }}
       >
         {isAr ? slide.titleAr : slide.title}
       </h2>
-      <p className="mx-auto mt-2 max-w-[320px] text-[13px] leading-relaxed text-[var(--muted)]">
+      <p className="text-body-sm mx-auto mt-2 max-w-[320px] leading-relaxed text-[var(--muted)]">
         {isAr ? slide.textAr : slide.text}
       </p>
 
@@ -323,7 +323,7 @@ function OnboardingTour({ onDone }: { onDone: () => void }) {
       <button
         type="button"
         onClick={() => (last ? onDone() : setI(i + 1))}
-        className="mt-5 flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white"
+        className="text-title-sm mt-5 flex h-[50px] w-full items-center justify-center gap-2 rounded-lg font-extrabold text-white"
         style={{ background: BRAND_VIOLET, fontFamily: SORA }}
       >
         {last ? tr("J'ai compris", "فهمت") : tr("Suivant", "التالي")}
@@ -332,7 +332,7 @@ function OnboardingTour({ onDone }: { onDone: () => void }) {
       <button
         type="button"
         onClick={onDone}
-        className="mt-2.5 text-[12.5px] font-bold text-[var(--muted)] underline"
+        className="text-label-lg mt-2.5 font-bold text-[var(--muted)] underline"
       >
         {tr(
           "Passer — je connais déjà l'application",

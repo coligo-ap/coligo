@@ -10,82 +10,10 @@
  * (artefacts de maquette, cf. prompt).
  * ========================================================================== */
 
-[data-space="driver"] {
-  --violet: #6c2bd9;
-  --violet-l: #8a4dff;
-  --violet-d: #4b1fa6;
-  --violet-soft: #f3edfc;
-  --violet-glow: rgba(108, 43, 217, 0.45);
-  --go: #16b364;
-  --go-l: #28d27c;
-  --go-d: #0e8c4d;
-  --go-glow: rgba(22, 179, 100, 0.45);
-  --go-soft: rgba(22, 179, 100, 0.12);
-  --red: #e5484d;
-  --red-soft: rgba(229, 72, 77, 0.12);
-  --amber: #f59e0b;
-  --amber-d: #c2790a;
-  --page: #e9ebf1;
-  --surface: #ffffff;
-  --ink: #0b0c12;
-  --muted: #6b7280;
-  --line: #eef0f4;
-  --soft: #f4f5f9;
-  --mq-map: radial-gradient(120% 80% at 60% 22%, #fbfbfe, #eceef5 60%, #e6e8f0);
-  --street-major: #ffffff;
-  --street-minor: #ffffff;
-  --street: #ffffff;
-  --block: #e7e9f1;
-  --park: #e2efe6;
-  --statics: #0b0c12;
-  --pill-shadow: 0 14px 34px -12px rgba(20, 22, 40, 0.3);
-
-  /* Pont design system PARTAGÉ livreur/chauffeur : les primitives partagées
-     (components/shared/partner-ui.tsx) sont écrites en tokens `--d-*` (espace
-     chauffeur / Drive). On les aliase ici vers la palette livreur → un même
-     composant rend nativement dans les DEUX espaces, clair ET sombre (les
-     alias référencent des vars redéfinies par [data-space="driver"].dark). */
-  --d-page: var(--page);
-  --d-surface: var(--surface);
-  --d-ink: var(--ink);
-  --d-muted: var(--muted);
-  --d-line: var(--line);
-  --d-soft: var(--soft);
-  --d-accent: var(--violet-soft);
-  --d-field: var(--violet-soft);
-  --d-violet: var(--violet);
-
-  font-family:
-    var(--font-jakarta),
-    "Plus Jakarta Sans",
-    system-ui,
-    -apple-system,
-    "Segoe UI",
-    sans-serif;
-  color: var(--ink);
-}
-
-[data-space="driver"].dark {
-  --page: #06070b;
-  --surface: #161823;
-  --ink: #ffffff;
-  --muted: #9ca0b3;
-  --line: #262838;
-  --soft: #1f2230;
-  --mq-map: radial-gradient(120% 80% at 60% 25%, #1a1c28, #0f1018 60%, #0a0b11);
-  --street-major: #232536;
-  --street-minor: #1b1d2b;
-  --street: #232536;
-  --block: #13141d;
-  --park: #10231a;
-  --statics: #ffffff;
-  --pill-shadow: 0 14px 34px -10px rgba(0, 0, 0, 0.6);
-  /* Alias partagés : accents violets pâles assombris (mêmes valeurs que le
-     mode sombre chauffeur) — --violet-soft reste clair, inutilisable ici. */
-  --d-accent: rgba(138, 77, 255, 0.16);
-  --d-field: rgba(138, 77, 255, 0.12);
-  --d-violet: #b493f9;
-}
+/* Les VARIABLES de l'espace livreur (palette claire + sombre, alias --d-*,
+   police) ne vivent plus ici : elles sont déclarées dans app/design-tokens.css
+   (couche 3), source unique du design system. Ce fichier ne garde que les
+   RÈGLES de composants de la maquette, qui les consomment. */
 
 [data-space="driver"] .mq-sora {
   font-family: var(--font-sora), "Sora", system-ui, sans-serif;

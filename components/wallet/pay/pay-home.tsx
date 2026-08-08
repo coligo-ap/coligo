@@ -141,20 +141,20 @@ export function PayHome({ base }: { base: PayBase }) {
     <PayScreen dir={dir}>
       {/* HERO portefeuille */}
       <div
-        className="rounded-[22px] p-5 text-white"
+        className="rounded-sheet-xl p-5 text-white"
         style={{
           background: `linear-gradient(135deg, ${BRAND_VIOLET}, ${BRAND_VIOLET_D})`,
           boxShadow: "0 18px 40px -14px rgba(108,43,217,.45)",
         }}
       >
         <div className="flex items-center gap-2.5">
-          <span className="grid size-9 place-items-center rounded-[12px] bg-white/15">
+          <span className="grid size-9 place-items-center rounded-md bg-white/15">
             <Wallet className="size-[18px]" />
           </span>
-          <span className="flex-1 text-[12.5px] font-semibold opacity-90">
+          <span className="text-label-lg flex-1 font-semibold opacity-90">
             {t.myWallet}
           </span>
-          <span className="rounded-full bg-white/15 px-2.5 py-1 text-[10.5px] font-bold">
+          <span className="text-micro-lg rounded-full bg-white/15 px-2.5 py-1 font-bold">
             {OWNER_BADGE[lang][owner]}
           </span>
           {/* Paramètres financiers — action contextuelle du portefeuille
@@ -163,7 +163,7 @@ export function PayHome({ base }: { base: PayBase }) {
             href={payHref(base, "/parametres")}
             prefetch
             aria-label={t.settings}
-            className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15"
+            className="rounded-control grid size-8 shrink-0 place-items-center bg-white/15"
           >
             <Settings2 className="size-4" />
           </Link>
@@ -178,7 +178,7 @@ export function PayHome({ base }: { base: PayBase }) {
             ) : (
               <>
                 {groupNum(state.effectiveBalanceDa)}{" "}
-                <small className="text-[15px] font-bold opacity-85">DA</small>
+                <small className="text-title-sm font-bold opacity-85">DA</small>
               </>
             )}
           </span>
@@ -186,7 +186,7 @@ export function PayHome({ base }: { base: PayBase }) {
             type="button"
             onClick={toggle}
             aria-label={t.hideBalance}
-            className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15"
+            className="rounded-control grid size-8 shrink-0 place-items-center bg-white/15"
           >
             {hidden ? (
               <Eye className="size-4" />
@@ -195,7 +195,7 @@ export function PayHome({ base }: { base: PayBase }) {
             )}
           </button>
           <span className="flex-1" />
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[10.5px] font-bold">
+          <span className="text-micro-lg inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 font-bold">
             <i
               className="size-1.5 rounded-full"
               style={{ background: state.canOperate ? "#6ef0ae" : "#ffb3b6" }}
@@ -203,7 +203,7 @@ export function PayHome({ base }: { base: PayBase }) {
             {state.canOperate ? t.active : t.blocked}
           </span>
         </div>
-        <p className="mt-3 flex items-start gap-1.5 text-[11px] leading-snug opacity-85">
+        <p className="text-caption mt-3 flex items-start gap-1.5 leading-snug opacity-85">
           <Info className="mt-[1px] size-3.5 shrink-0" />
           {OWNER_CTX[lang][owner]}
         </p>
@@ -226,7 +226,7 @@ export function PayHome({ base }: { base: PayBase }) {
             key={a.href}
             href={a.href}
             prefetch
-            className="flex flex-col items-center gap-1.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] py-3"
+            className="flex flex-col items-center gap-1.5 rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] py-3"
           >
             <span
               className="grid size-10 place-items-center rounded-full"
@@ -237,7 +237,7 @@ export function PayHome({ base }: { base: PayBase }) {
             >
               <a.Icon className="size-[18px]" />
             </span>
-            <span className="text-[11.5px] font-bold text-[var(--d-ink)]">
+            <span className="text-caption-lg font-bold text-[var(--d-ink)]">
               {a.label}
             </span>
           </Link>
@@ -250,7 +250,7 @@ export function PayHome({ base }: { base: PayBase }) {
           {/* Un seul chemin vers l'historique : l'action « Historique »
               ci-dessus (pas de « Voir tout » doublon). */}
           <div className="px-3.5 pt-3 pb-1">
-            <p className="text-[12px] font-bold text-[var(--d-muted)]">
+            <p className="text-label font-bold text-[var(--d-muted)]">
               {t.monthOverview}
             </p>
           </div>
@@ -260,22 +260,22 @@ export function PayHome({ base }: { base: PayBase }) {
               className="flex items-center gap-2.5 border-b border-[var(--d-line)] px-3.5 py-2.5 last:border-b-0"
             >
               {r.Icon && (
-                <span className="grid size-7 shrink-0 place-items-center rounded-[9px] bg-[var(--d-soft)] text-[var(--d-muted)]">
+                <span className="rounded-chip grid size-7 shrink-0 place-items-center bg-[var(--d-soft)] text-[var(--d-muted)]">
                   <r.Icon className="size-3.5" />
                 </span>
               )}
-              <span className="flex-1 text-[12.5px] font-semibold text-[var(--d-ink)]">
+              <span className="text-label-lg flex-1 font-semibold text-[var(--d-ink)]">
                 {kindLabelShort(r.kind, lang)}
               </span>
               <PayAmount amountDa={r.sum} size={12.5} />
             </div>
           ))}
           <div className="flex items-center justify-between border-t border-[var(--d-line)] px-3.5 py-2.5">
-            <span className="text-[12.5px] font-extrabold text-[var(--d-ink)]">
+            <span className="text-label-lg font-extrabold text-[var(--d-ink)]">
               Net
             </span>
             <span
-              className="text-[13.5px] font-extrabold"
+              className="text-body font-extrabold"
               style={{
                 color: month.net >= 0 ? BRAND_GO : BRAND_RED,
                 fontFamily: SORA,

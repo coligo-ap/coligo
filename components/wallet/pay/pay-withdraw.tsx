@@ -124,16 +124,16 @@ export function PayWithdraw({ base }: { base: PayBase }) {
             <Clock3 className="size-5" />
           </span>
           <p
-            className="mt-3 text-[16px] font-extrabold text-[var(--d-ink)]"
+            className="text-title mt-3 font-extrabold text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
             {t.wPendingTitle}
           </p>
-          <p className="mt-1 text-[12px] font-medium text-[var(--d-muted)]">
+          <p className="text-label mt-1 font-medium text-[var(--d-muted)]">
             {t.wPendingSub}
           </p>
           {w && (
-            <div className="mt-4 border-t border-dashed border-[var(--d-line)] text-[12.5px]">
+            <div className="text-label-lg mt-4 border-t border-dashed border-[var(--d-line)]">
               <Row k={t.wAmountLabel} v={`${groupNum(w.amountDa)} DA`} strong />
               <Row k={t.opType} v={methodLabel(w.method)} />
               <Row k={t.wDestination} v={w.destination} />
@@ -155,7 +155,7 @@ export function PayWithdraw({ base }: { base: PayBase }) {
         {/* Pas de bouton retour navigateur ici : « Modifier » ramène au
             formulaire sans quitter la page (état local). */}
         <h1
-          className="mb-4 text-[19px] font-extrabold tracking-[-0.4px] text-[var(--d-ink)]"
+          className="text-heading mb-4 font-extrabold tracking-[-0.4px] text-[var(--d-ink)]"
           style={{ fontFamily: SORA }}
         >
           {t.wReview}
@@ -165,7 +165,7 @@ export function PayWithdraw({ base }: { base: PayBase }) {
           <Row k={t.opType} v={methodLabel(method)} />
           <Row k={t.wDestination} v={destination.trim()} />
           {destName.trim() && <Row k={t.wDestName} v={destName.trim()} />}
-          <p className="mt-3 text-[11.5px] leading-snug font-medium text-[var(--d-muted)]">
+          <p className="text-caption-lg mt-3 leading-snug font-medium text-[var(--d-muted)]">
             {t.wReviewNote}
           </p>
           <div className="mt-3 space-y-2">
@@ -176,7 +176,7 @@ export function PayWithdraw({ base }: { base: PayBase }) {
             <button
               type="button"
               onClick={() => setStep("form")}
-              className="flex w-full items-center justify-center rounded-[14px] border border-[var(--d-line)] py-3 text-[13px] font-bold text-[var(--d-ink)]"
+              className="rounded-card-lg text-body-sm flex w-full items-center justify-center border border-[var(--d-line)] py-3 font-bold text-[var(--d-ink)]"
             >
               {t.wEdit}
             </button>
@@ -198,20 +198,20 @@ export function PayWithdraw({ base }: { base: PayBase }) {
 
       {/* Solde disponible — le plafond du retrait */}
       <div
-        className="mb-3 flex items-center gap-3 rounded-[16px] p-3.5"
+        className="mb-3 flex items-center gap-3 rounded-lg p-3.5"
         style={{ background: "var(--d-accent)" }}
       >
         <span
-          className="grid size-9 place-items-center rounded-[12px] bg-[var(--d-surface)]"
+          className="grid size-9 place-items-center rounded-md bg-[var(--d-surface)]"
           style={{ color: "var(--d-violet)" }}
         >
           <Wallet className="size-4" />
         </span>
-        <span className="flex-1 text-[12.5px] font-bold text-[var(--d-ink)]">
+        <span className="text-label-lg flex-1 font-bold text-[var(--d-ink)]">
           {t.availableBalance}
         </span>
         <span
-          className="text-[15px] font-extrabold text-[var(--d-ink)]"
+          className="text-title-sm font-extrabold text-[var(--d-ink)]"
           style={{ fontFamily: SORA }}
         >
           {groupNum(available)} DA
@@ -219,7 +219,7 @@ export function PayWithdraw({ base }: { base: PayBase }) {
       </div>
 
       <PayCard className="p-3.5">
-        <p className="mb-2 text-[12.5px] font-bold text-[var(--d-muted)]">
+        <p className="text-label-lg mb-2 font-bold text-[var(--d-muted)]">
           {t.wMethodLabel}
         </p>
         <PartnerSegmented<WMethod>
@@ -230,7 +230,7 @@ export function PayWithdraw({ base }: { base: PayBase }) {
           value={method}
           onChange={setMethod}
         />
-        <div className="mt-3 flex items-center gap-2 text-[12px] font-semibold text-[var(--d-muted)]">
+        <div className="text-label mt-3 flex items-center gap-2 font-semibold text-[var(--d-muted)]">
           {method === "ccp" ? (
             <Landmark className="size-3.5" />
           ) : (
@@ -239,23 +239,23 @@ export function PayWithdraw({ base }: { base: PayBase }) {
           {method === "ccp" ? t.wDestCcp : t.wDestRip}
         </div>
         <input
-          className="mt-1.5 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 text-[13.5px] font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          className="text-body mt-1.5 w-full rounded-md border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           value={destination}
           onChange={(e) => setDestination(e.target.value.slice(0, 40))}
           inputMode="numeric"
           placeholder={method === "ccp" ? "3333 3333 33 · clé 33" : "00799999…"}
         />
         <input
-          className="mt-2 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 text-[13.5px] font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          className="text-body mt-2 w-full rounded-md border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           value={destName}
           onChange={(e) => setDestName(e.target.value)}
           placeholder={t.wDestName}
         />
-        <p className="mt-3 mb-1.5 text-[12.5px] font-bold text-[var(--d-muted)]">
+        <p className="text-label-lg mt-3 mb-1.5 font-bold text-[var(--d-muted)]">
           {t.wAmountLabel}
         </p>
         <input
-          className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 text-[13.5px] font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
+          className="text-body w-full rounded-md border border-[var(--d-line)] bg-[var(--d-field)] px-3.5 py-3 font-bold text-[var(--d-ink)] outline-none placeholder:font-medium placeholder:text-[var(--d-muted)]"
           value={amount}
           onChange={(e) => setAmount(e.target.value.replace(/[^0-9]/g, ""))}
           inputMode="numeric"
@@ -289,11 +289,11 @@ export function PayWithdraw({ base }: { base: PayBase }) {
 function Row({ k, v, strong }: { k: string; v: string; strong?: boolean }) {
   return (
     <div className="flex items-center justify-between gap-3 border-b border-[var(--d-line)] py-2.5 last:border-b-0">
-      <span className="text-[12px] font-semibold text-[var(--d-muted)]">
+      <span className="text-label font-semibold text-[var(--d-muted)]">
         {k}
       </span>
       <span
-        className="min-w-0 truncate text-[12.5px] font-bold text-[var(--d-ink)]"
+        className="text-label-lg min-w-0 truncate font-bold text-[var(--d-ink)]"
         style={strong ? { fontFamily: SORA, fontSize: 14 } : undefined}
       >
         {v}
@@ -315,7 +315,7 @@ function PastList({
 }) {
   return (
     <PayCard className="mt-3">
-      <p className="px-3.5 pt-3 pb-1 text-[12px] font-bold text-[var(--d-muted)]">
+      <p className="text-label px-3.5 pt-3 pb-1 font-bold text-[var(--d-muted)]">
         {t.wPast}
       </p>
       {past.map((w) => (
@@ -324,10 +324,10 @@ function PastList({
           className="flex items-center gap-3 border-b border-[var(--d-line)] px-3.5 py-3 last:border-b-0"
         >
           <span className="min-w-0 flex-1">
-            <span className="block text-[13px] font-bold text-[var(--d-ink)]">
+            <span className="text-body-sm block font-bold text-[var(--d-ink)]">
               {groupNum(w.amountDa)} DA · {methodLabel(w.method)}
             </span>
-            <span className="block text-[11px] font-medium text-[var(--d-muted)]">
+            <span className="text-caption block font-medium text-[var(--d-muted)]">
               {fmtDay(w.createdAt, lang)}
               {w.status === "rejected" && w.reviewNote
                 ? ` · ${w.reviewNote}`

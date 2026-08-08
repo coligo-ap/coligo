@@ -51,7 +51,7 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
       <Section title="Barème du prix recommandé (par gamme)">
         <div className="grid gap-3 sm:grid-cols-3">
           {(["classic", "confort", "moto"] as const).map((g) => (
-            <div key={g} className="border-border rounded-[12px] border p-3">
+            <div key={g} className="border-border rounded-md border p-3">
               <p className="mb-2 text-sm font-bold capitalize">{g}</p>
               <Num
                 label="Base (DA)"
@@ -437,12 +437,12 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
       </Section>
 
       {msg.error && (
-        <p className="text-danger-700 bg-danger-50 rounded-[10px] px-3 py-2 text-sm font-semibold">
+        <p className="text-danger-700 bg-danger-50 rounded-control px-3 py-2 text-sm font-semibold">
           {msg.error}
         </p>
       )}
       {msg.ok && (
-        <p className="text-success-700 bg-success-50 rounded-[10px] px-3 py-2 text-sm font-semibold">
+        <p className="text-success-700 bg-success-50 rounded-control px-3 py-2 text-sm font-semibold">
           {msg.ok}
         </p>
       )}
@@ -450,7 +450,7 @@ export function DriveConfigForm({ initial }: { initial: DriveConfig }) {
         type="button"
         disabled={pending || losing}
         onClick={save}
-        className="bg-primary-700 inline-flex h-11 items-center gap-2 rounded-[12px] px-5 text-sm font-bold text-white disabled:opacity-50"
+        className="bg-primary-700 inline-flex h-11 items-center gap-2 rounded-md px-5 text-sm font-bold text-white disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />
@@ -471,7 +471,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="bg-surface border-border rounded-[14px] border p-4">
+    <section className="bg-surface border-border rounded-card-lg border p-4">
       <h2 className="mb-3 text-sm font-bold uppercase">{title}</h2>
       {children}
     </section>
@@ -506,7 +506,7 @@ function Num({
         step={step}
         value={Number.isFinite(value) ? value : 0}
         onChange={(e) => onChange(Number(e.target.value))}
-        className="border-border w-full rounded-[10px] border px-2.5 py-2 text-sm tabular-nums"
+        className="border-border rounded-control w-full border px-2.5 py-2 text-sm tabular-nums"
       />
     </label>
   );
@@ -527,7 +527,7 @@ function Txt({
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="border-border w-full rounded-[10px] border px-2.5 py-2 text-sm"
+        className="border-border rounded-control w-full border px-2.5 py-2 text-sm"
       />
     </label>
   );

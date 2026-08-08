@@ -100,17 +100,17 @@ export function CartMonoProvider({ children }: { children: React.ReactNode }) {
           onClick={() => setPending(null)}
         >
           <div
-            className="bg-surface animate-fade-in w-full max-w-[420px] rounded-t-[26px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:rounded-[26px] sm:pb-6"
+            className="bg-surface animate-fade-in rounded-t-panel-lg sm:rounded-panel-lg w-full max-w-[420px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:pb-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />
-            <div className="mx-auto mb-3.5 grid size-[54px] place-items-center rounded-[16px] bg-[#FFF0EE] text-[#FF5A3C]">
+            <div className="mx-auto mb-3.5 grid size-[54px] place-items-center rounded-lg bg-[#FFF0EE] text-[#FF5A3C]">
               <ShoppingBag className="size-[26px]" />
             </div>
-            <h3 className="text-foreground text-center text-[18px] font-extrabold tracking-[-0.4px]">
+            <h3 className="text-foreground text-heading-sm text-center font-extrabold tracking-[-0.4px]">
               {t("monoTitle")}
             </h3>
-            <p className="text-muted mx-auto mt-2 max-w-[340px] text-center text-[13.5px] leading-relaxed font-semibold">
+            <p className="text-muted text-body mx-auto mt-2 max-w-[340px] text-center leading-relaxed font-semibold">
               {t.rich("monoBody", {
                 current: pending.otherName,
                 b: (chunks) => (
@@ -122,14 +122,14 @@ export function CartMonoProvider({ children }: { children: React.ReactNode }) {
               <button
                 type="button"
                 onClick={confirmSwitch}
-                className="bg-primary-600 hover:bg-primary-700 rounded-[14px] px-4 py-4 text-[15px] font-extrabold text-white transition active:scale-[0.98]"
+                className="bg-primary-600 hover:bg-primary-700 rounded-card-lg text-title-sm px-4 py-4 font-extrabold text-white transition active:scale-[0.98]"
               >
                 {t("monoConfirm", { name: pending.merchant.name })}
               </button>
               <button
                 type="button"
                 onClick={() => setPending(null)}
-                className="text-muted hover:text-foreground rounded-[12px] py-3 text-sm font-bold transition"
+                className="text-muted hover:text-foreground rounded-md py-3 text-sm font-bold transition"
               >
                 {t("monoKeep")}
               </button>

@@ -19,7 +19,7 @@ export async function AgentsDirectoryView() {
         </p>
       </header>
       {/* Cible de l'alerte « agents à valider (pièces) » (?focus=…). */}
-      <div data-alert-focus="partner_docs_pending" className="rounded-[16px]">
+      <div data-alert-focus="partner_docs_pending" className="rounded-lg">
         <AgentsDirectory initialAgents={rows} initialTotal={total} />
       </div>
       <ModulePaymentAccount scope="partner" />

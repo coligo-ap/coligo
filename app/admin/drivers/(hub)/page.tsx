@@ -26,7 +26,7 @@ export default async function AdminDriversPage() {
       {pendingReg > 0 && (
         <Link
           href="/admin/drivers/inscriptions"
-          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-[12px] border px-4 py-3 text-sm font-medium transition-colors"
+          className="border-warning-200 bg-warning-50/60 text-warning-900 hover:bg-warning-100 flex items-center gap-2 rounded-md border px-4 py-3 text-sm font-medium transition-colors"
         >
           {pendingReg} livreur{pendingReg > 1 ? "s" : ""} avec des pièces à
           valider — ouvrir l&apos;onglet Inscriptions →
@@ -34,7 +34,7 @@ export default async function AdminDriversPage() {
       )}
       {/* Cible de l'alerte « livreurs bloqués en course » (?focus=…) :
           l'annuaire, où se libère la disponibilité d'un livreur. */}
-      <div data-alert-focus="ghost_busy_drivers" className="rounded-[16px]">
+      <div data-alert-focus="ghost_busy_drivers" className="rounded-lg">
         <DriverList initialRows={rows} initialTotal={total} />
       </div>
     </div>

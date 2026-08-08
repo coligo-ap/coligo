@@ -184,15 +184,15 @@ export function BarcodeScanButton({
                   mode="barcode"
                   oneShot={false}
                   onScan={(text) => void handleScan(text)}
-                  className="aspect-[7/5] w-full max-w-none overflow-hidden rounded-[24px]"
+                  className="rounded-panel aspect-[7/5] w-full max-w-none overflow-hidden"
                 />
                 {detected && (
-                  <div className="ring-success-500 pointer-events-none absolute inset-0 z-10 grid animate-[bsFlashIn_.15s_ease] place-items-center rounded-[24px] bg-black/45 ring-4 ring-inset">
+                  <div className="ring-success-500 rounded-panel pointer-events-none absolute inset-0 z-10 grid animate-[bsFlashIn_.15s_ease] place-items-center bg-black/45 ring-4 ring-inset">
                     <div className="flex flex-col items-center gap-2.5">
                       <span className="bg-success-500 grid size-14 animate-[bsPop_.3s_ease] place-items-center rounded-full text-white">
                         <Check className="size-8" strokeWidth={3} />
                       </span>
-                      <p className="text-[16px] font-extrabold text-white">
+                      <p className="text-title font-extrabold text-white">
                         {t("detected")}
                       </p>
                     </div>
@@ -206,18 +206,18 @@ export function BarcodeScanButton({
                 scan, elle ne montre que la consigne + les scans récents. */}
             <div
               key={panel.kind === "scanning" ? "idle" : "result"}
-              className="absolute inset-x-0 bottom-0 z-10 flex max-h-[55dvh] animate-[bsSheetUp_.32s_cubic-bezier(.16,1,.3,1)] flex-col rounded-t-[24px] bg-white shadow-[0_-8px_30px_rgba(0,0,0,.35)]"
+              className="rounded-t-panel absolute inset-x-0 bottom-0 z-10 flex max-h-[55dvh] animate-[bsSheetUp_.32s_cubic-bezier(.16,1,.3,1)] flex-col bg-white shadow-[0_-8px_30px_rgba(0,0,0,.35)]"
             >
               <span className="bg-border mx-auto mt-2 h-1 w-10 shrink-0 rounded-full" />
               <div className="min-h-0 flex-1 overflow-y-auto px-4 pt-2 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
                 {panel.kind === "scanning" && (
                   <>
-                    <p className="text-muted py-3 text-center text-[13px] font-semibold">
+                    <p className="text-muted text-body-sm py-3 text-center font-semibold">
                       {t("hint")}
                     </p>
                     {recent.length > 0 && (
                       <>
-                        <p className="text-subtle mt-1 mb-1 text-[11px] font-extrabold tracking-wide uppercase">
+                        <p className="text-subtle text-caption mt-1 mb-1 font-extrabold tracking-wide uppercase">
                           {t("recent")}
                         </p>
                         <ul className="divide-border divide-y">
@@ -236,7 +236,7 @@ export function BarcodeScanButton({
                 )}
 
                 {panel.kind === "searching" && (
-                  <p className="text-foreground inline-flex w-full items-center justify-center gap-2 py-3 text-[13.5px] font-bold">
+                  <p className="text-foreground text-body inline-flex w-full items-center justify-center gap-2 py-3 font-bold">
                     <Loader2 className="text-primary-600 size-4 animate-spin" />
                     {t("searching")}
                   </p>
@@ -244,10 +244,10 @@ export function BarcodeScanButton({
 
                 {panel.kind === "found" && (
                   <>
-                    <p className="text-foreground text-[14px] font-extrabold">
+                    <p className="text-foreground text-body-lg font-extrabold">
                       {panel.name}
                     </p>
-                    <p className="text-muted mb-2 text-[11.5px] font-medium">
+                    <p className="text-muted text-caption-lg mb-2 font-medium">
                       {t("foundCount", { count: panel.products.length })}
                     </p>
                     <ul className="divide-border divide-y">
@@ -265,7 +265,7 @@ export function BarcodeScanButton({
 
                 {panel.kind === "no-match" && (
                   <div className="py-2 text-center">
-                    <p className="text-foreground text-[13.5px] font-bold">
+                    <p className="text-foreground text-body font-bold">
                       {t("noMatch", { name: panel.name })}
                     </p>
                     <button
@@ -274,7 +274,7 @@ export function BarcodeScanButton({
                         setOpen(false);
                         onFound(panel.name);
                       }}
-                      className="text-primary-700 mt-2 text-[13px] font-bold underline"
+                      className="text-primary-700 text-body-sm mt-2 font-bold underline"
                     >
                       {t("searchInstead", { name: panel.name })}
                     </button>
@@ -282,7 +282,7 @@ export function BarcodeScanButton({
                 )}
 
                 {panel.kind === "not-found" && (
-                  <p className="text-foreground py-2 text-center text-[13.5px] font-bold">
+                  <p className="text-foreground text-body py-2 text-center font-bold">
                     {t("notFound", { ean: panel.ean })}
                   </p>
                 )}
@@ -291,7 +291,7 @@ export function BarcodeScanButton({
                   <button
                     type="button"
                     onClick={reset}
-                    className="border-border text-foreground mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border text-[13.5px] font-extrabold"
+                    className="border-border text-foreground text-body mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-full border font-extrabold"
                   >
                     <ScanBarcode className="size-4" />
                     {t("scanAgain")}
@@ -367,23 +367,23 @@ function ResultRow({
         <img
           src={product.image_url}
           alt=""
-          className="bg-surface-2 size-11 shrink-0 rounded-[10px] object-contain"
+          className="bg-surface-2 rounded-control size-11 shrink-0 object-contain"
         />
       ) : (
-        <span className="bg-surface-2 text-subtle grid size-11 shrink-0 place-items-center rounded-[10px]">
+        <span className="bg-surface-2 text-subtle rounded-control grid size-11 shrink-0 place-items-center">
           <ShoppingBag className="size-5" />
         </span>
       )}
       <span className="min-w-0 flex-1">
-        <span className="text-foreground line-clamp-1 text-[13.5px] font-bold">
+        <span className="text-foreground text-body line-clamp-1 font-bold">
           {product.name_fr}
         </span>
         {surface === "marketplace" && (
-          <span className="text-muted line-clamp-1 text-[11.5px] font-medium">
+          <span className="text-muted text-caption-lg line-clamp-1 font-medium">
             {t("atMerchant", { name: product.merchant.name })}
           </span>
         )}
-        <span className="text-primary-700 text-[13px] font-extrabold tabular-nums">
+        <span className="text-primary-700 text-body-sm font-extrabold tabular-nums">
           {formatDA(product.price_da)}
         </span>
       </span>
@@ -393,7 +393,7 @@ function ResultRow({
           onClick={addToCart}
           disabled={added}
           className={cn(
-            "inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 text-[12.5px] font-extrabold text-white transition-colors",
+            "text-label-lg inline-flex h-9 shrink-0 items-center gap-1 rounded-full px-3.5 font-extrabold text-white transition-colors",
             added ? "bg-success-600" : "bg-primary-600 hover:bg-primary-700"
           )}
         >
@@ -410,7 +410,7 @@ function ResultRow({
         <button
           type="button"
           onClick={view}
-          className="border-border text-foreground inline-flex h-9 shrink-0 items-center gap-0.5 rounded-full border px-3 text-[12.5px] font-extrabold"
+          className="border-border text-foreground text-label-lg inline-flex h-9 shrink-0 items-center gap-0.5 rounded-full border px-3 font-extrabold"
         >
           {t("view")}
           <ChevronRight className="size-3.5 rtl:rotate-180" />

@@ -10,8 +10,8 @@ export default function DeleteAccountLoading() {
         <div className="bg-surface-2 h-5 w-44 rounded" />
       </div>
       <div className="mx-auto max-w-2xl space-y-4 px-4 py-5">
-        <div className="bg-danger-50 h-40 animate-pulse rounded-[16px]" />
-        <div className="bg-surface h-32 animate-pulse rounded-[16px]" />
+        <div className="bg-danger-50 h-40 animate-pulse rounded-lg" />
+        <div className="bg-surface h-32 animate-pulse rounded-lg" />
       </div>
     </div>
   );

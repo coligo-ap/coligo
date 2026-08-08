@@ -225,7 +225,7 @@ export function DriverCancelWatch() {
       style={{ background: "rgba(15,18,30,.55)", backdropFilter: "blur(2px)" }}
     >
       <div
-        className="w-full max-w-sm rounded-[20px] bg-[var(--surface)] p-5 text-center text-[var(--ink)]"
+        className="w-full max-w-sm rounded-xl bg-[var(--surface)] p-5 text-center text-[var(--ink)]"
         style={{ boxShadow: "0 24px 60px -20px rgba(20,18,50,.5)" }}
       >
         <div
@@ -266,16 +266,16 @@ export function DriverCancelWatch() {
             </svg>
           )}
         </div>
-        <h2 className="text-[17px] font-extrabold text-[#101828]">
+        <h2 className="text-title-lg font-extrabold text-[#101828]">
           {copy.title}
         </h2>
-        <p className="mt-1.5 text-[13.5px] leading-relaxed text-[#475467]">
+        <p className="text-body mt-1.5 leading-relaxed text-[#475467]">
           {copy.body}
         </p>
         <button
           type="button"
           onClick={close}
-          className="mt-4 w-full rounded-[12px] py-3 text-[15px] font-bold text-white"
+          className="text-title-sm mt-4 w-full rounded-md py-3 font-bold text-white"
           style={{ background: "#101828" }}
         >
           {isAr ? "فهمت" : "J'ai compris"}

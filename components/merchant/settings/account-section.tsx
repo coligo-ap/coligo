@@ -44,7 +44,7 @@ export function AccountSection({
     <div className="space-y-5">
       <EmailChange initialEmail={email} />
 
-      <div className="border-border bg-surface-2 rounded-[12px] border p-4">
+      <div className="border-border bg-surface-2 rounded-md border p-4">
         <p className="text-foreground text-sm font-semibold">
           Taux de commission appliqué
         </p>
@@ -145,14 +145,14 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
               setOkMsg(null);
               setStep("editing");
             }}
-            className="text-primary-700 shrink-0 text-[13px] font-semibold"
+            className="text-primary-700 text-body-sm shrink-0 font-semibold"
           >
             Modifier
           </button>
         </div>
       )}
       {step === "idle" && okMsg && (
-        <p className="text-[12px] font-semibold text-[#16b364]">{okMsg}</p>
+        <p className="text-label font-semibold text-[#16b364]">{okMsg}</p>
       )}
 
       {step === "editing" && (
@@ -169,9 +169,9 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
             disabled={pending}
           />
           {err ? (
-            <p className="text-danger-600 text-[12px] font-semibold">{err}</p>
+            <p className="text-danger-600 text-label font-semibold">{err}</p>
           ) : (
-            <p className="text-muted text-[12px]">
+            <p className="text-muted text-label">
               Un code à 6 chiffres sera envoyé à la nouvelle adresse.
             </p>
           )}
@@ -179,7 +179,7 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
             <button
               type="button"
               onClick={() => setStep("idle")}
-              className="border-border text-muted h-10 flex-1 rounded-[10px] border text-sm font-semibold"
+              className="border-border text-muted rounded-control h-10 flex-1 border text-sm font-semibold"
             >
               Annuler
             </button>
@@ -199,7 +199,7 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
                   }
                 })
               }
-              className="bg-foreground text-background inline-flex h-10 flex-1 items-center justify-center rounded-[10px] text-sm font-semibold disabled:opacity-40"
+              className="bg-foreground text-background rounded-control inline-flex h-10 flex-1 items-center justify-center text-sm font-semibold disabled:opacity-40"
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -232,7 +232,7 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
             }
           />
           {err && (
-            <p className="text-danger-600 text-[12px] font-semibold">{err}</p>
+            <p className="text-danger-600 text-label font-semibold">{err}</p>
           )}
           <div className="flex gap-2">
             <button
@@ -241,7 +241,7 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
                 setErr(null);
                 setStep("editing");
               }}
-              className="border-border text-muted h-10 flex-1 rounded-[10px] border text-sm font-semibold"
+              className="border-border text-muted rounded-control h-10 flex-1 border text-sm font-semibold"
             >
               Retour
             </button>
@@ -264,7 +264,7 @@ function EmailChange({ initialEmail }: { initialEmail: string }) {
                   }
                 })
               }
-              className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-sm font-semibold text-white disabled:opacity-40"
+              className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-10 flex-1 items-center justify-center gap-1.5 text-sm font-semibold text-white disabled:opacity-40"
             >
               {pending ? (
                 <Loader2 className="size-4 animate-spin" />
@@ -288,7 +288,7 @@ function LogoutButton() {
     <button
       type="submit"
       disabled={pending}
-      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 inline-flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
+      className="border-danger-200 bg-danger-50 text-danger-700 hover:bg-danger-100 hover:border-danger-300 rounded-control inline-flex items-center gap-2 border px-3 py-2 text-sm font-semibold transition-colors disabled:opacity-60"
     >
       {pending ? (
         <Loader2 className="size-4 animate-spin" />

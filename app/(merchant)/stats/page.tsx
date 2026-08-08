@@ -169,7 +169,7 @@ export default async function StatsPage({
         <p className="text-muted mt-1 text-sm">
           Vos ventes produits — {periodLabel.toLowerCase()}.
         </p>
-        <nav className="bg-surface-3 mt-3 inline-flex max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-[12px] p-1 [&::-webkit-scrollbar]:hidden">
+        <nav className="bg-surface-3 mt-3 inline-flex max-w-full [scrollbar-width:none] gap-0.5 overflow-x-auto rounded-md p-1 [&::-webkit-scrollbar]:hidden">
           {STATS_PERIODS.map((p) => (
             <PeriodTab
               key={p.key}
@@ -219,7 +219,7 @@ export default async function StatsPage({
           {/* Graphique CA — `min-w-0` indispensable : sans lui, le contenu
               large (30 j / 12 mois) force la colonne et casse la mise en page
               mobile au lieu de scroller dans la carte. */}
-          <section className="border-border bg-surface min-w-0 overflow-hidden rounded-[16px] border p-4 lg:p-5">
+          <section className="border-border bg-surface min-w-0 overflow-hidden rounded-lg border p-4 lg:p-5">
             <header className="mb-4 flex items-baseline justify-between gap-2">
               <h2 className="text-base font-semibold">
                 Évolution du chiffre d&apos;affaires
@@ -234,7 +234,7 @@ export default async function StatsPage({
           {/* Top produits — ce qui se vend le mieux, info la plus actionnable */}
           <section
             id="top"
-            className="border-border bg-surface min-w-0 rounded-[16px] border p-4 lg:p-5"
+            className="border-border bg-surface min-w-0 rounded-lg border p-4 lg:p-5"
           >
             <header className="mb-3 flex items-center justify-between gap-3">
               <h2 className="text-base font-semibold">Meilleures ventes</h2>
@@ -303,7 +303,7 @@ function PeriodTab({
     <Link
       href={`/stats?period=${period}`}
       className={cn(
-        "rounded-[9px] px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
+        "rounded-chip px-3 py-1.5 text-xs font-medium whitespace-nowrap transition-colors",
         isActive
           ? "text-primary-700 bg-white shadow-sm"
           : "text-muted hover:text-foreground"
@@ -328,7 +328,7 @@ function Kpi({
   tone?: "danger";
 }) {
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-4 shadow-sm lg:p-5">
+    <div className="border-border bg-surface rounded-lg border p-4 shadow-sm lg:p-5">
       <div className="mb-2 flex items-center justify-between">
         <span className="text-muted text-xs font-medium">{label}</span>
         <Icon
@@ -368,7 +368,7 @@ function Variation({ pct }: { pct: number | null }) {
 
 function EmptyState() {
   return (
-    <div className="border-border bg-surface flex flex-col items-center justify-center rounded-[16px] border border-dashed py-16 text-center">
+    <div className="border-border bg-surface flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
       <div className="bg-primary-50 text-primary-600 mb-4 flex size-14 items-center justify-center rounded-2xl">
         <BarChart3 className="size-7" />
       </div>

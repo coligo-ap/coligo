@@ -91,7 +91,7 @@ export function ProductCarousel({
         {icon}
         <span className="truncate">{title}</span>
         {collapsed && (
-          <span className="text-subtle shrink-0 text-[12px] font-bold">
+          <span className="text-subtle text-label shrink-0 font-bold">
             {t("productCount", { count: products.length })}
           </span>
         )}
@@ -224,7 +224,7 @@ export function PopCard({
     >
       {/* Cadre façon Yassir : la bordure n'entoure QUE la photo (fond blanc,
           produit entier) ; le texte vit dessous, hors cadre. */}
-      <div className="border-border relative h-[132px] w-full overflow-hidden rounded-[8px] border bg-white">
+      <div className="border-border relative h-[132px] w-full overflow-hidden rounded-sm border bg-white">
         {product.image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -249,12 +249,12 @@ export function PopCard({
         {/* Badges (haut-start) : réduction % et/ou « offert » (empilés). */}
         <div className="absolute start-2 top-2 flex flex-col items-start gap-1">
           {hasPromo && promoPct > 0 && (
-            <span className="bg-accent-600 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+            <span className="bg-accent-600 text-nano-lg rounded-full px-2 py-0.5 font-extrabold text-white shadow-sm">
               −{promoPct}%
             </span>
           )}
           {quantityOffer && (
-            <span className="bg-accent-600 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold text-white shadow-sm">
+            <span className="bg-accent-600 text-nano-lg inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-extrabold text-white shadow-sm">
               <Gift className="size-3" />
               {t("offered")}
             </span>
@@ -277,7 +277,7 @@ export function PopCard({
         )}
       </div>
       <div className="px-1 pt-2 pb-1">
-        <div className="text-foreground line-clamp-2 min-h-8 text-[13px] leading-tight font-semibold">
+        <div className="text-foreground text-body-sm line-clamp-2 min-h-8 leading-tight font-semibold">
           {product.name_fr}
         </div>
         <div className="mt-1.5 flex items-center gap-1.5">
@@ -289,14 +289,14 @@ export function PopCard({
           )}
           <span
             className={cn(
-              "text-[15px] font-black tabular-nums",
+              "text-title-sm font-black tabular-nums",
               hasPromo ? "text-accent-600" : "text-foreground"
             )}
           >
             {formatDA(price)}
           </span>
           {hasPromo && (
-            <span className="text-subtle text-[11px] tabular-nums line-through">
+            <span className="text-subtle text-caption tabular-nums line-through">
               {formatDA(product.price_da)}
             </span>
           )}
@@ -304,7 +304,7 @@ export function PopCard({
         {offerLabel && (
           // Étiquette IDENTIQUE à « Offert » : fond rose foncé + texte blanc
           // (jamais de rose sur fond rose — demande explicite user).
-          <div className="bg-accent-600 mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 text-[10.5px] leading-tight font-extrabold text-white">
+          <div className="bg-accent-600 text-micro-lg mt-1 inline-flex items-center gap-1 rounded-md px-1.5 py-0.5 leading-tight font-extrabold text-white">
             <Gift className="size-3 shrink-0" />
             {offerLabel}
           </div>

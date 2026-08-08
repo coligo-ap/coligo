@@ -96,13 +96,13 @@ export function ChauffeurList({
       </p>
 
       {rows.length === 0 ? (
-        <div className="bg-surface border-border text-muted rounded-[14px] border p-8 text-center text-sm">
+        <div className="bg-surface border-border text-muted rounded-card-lg border p-8 text-center text-sm">
           {query
             ? `Aucun chauffeur ne correspond à « ${query} ».`
             : "Aucun chauffeur inscrit pour l'instant."}
         </div>
       ) : (
-        <div className="bg-surface border-border overflow-x-auto rounded-[14px] border">
+        <div className="bg-surface border-border rounded-card-lg overflow-x-auto border">
           <table className="w-full text-sm">
             <thead className="bg-surface-2 text-muted text-xs uppercase">
               <tr>
@@ -170,7 +170,7 @@ export function ChauffeurList({
           type="button"
           disabled={busy}
           onClick={() => void load(query, rows.length)}
-          className="border-border text-foreground hover:bg-surface-2 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
+          className="border-border text-foreground hover:bg-surface-2 w-full rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors disabled:opacity-60"
         >
           {busy
             ? "Chargement…"

@@ -277,7 +277,7 @@ export function MarketplaceGrid({
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-foreground text-[21px] font-extrabold tracking-[-0.6px]">
+        <h2 className="text-foreground text-display-sm font-extrabold tracking-[-0.6px]">
           {heading}
         </h2>
         <div className="flex items-center gap-2">
@@ -307,7 +307,7 @@ export function MarketplaceGrid({
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="animate-pulse">
-              <div className="bg-surface-3 h-[150px] rounded-[16px]" />
+              <div className="bg-surface-3 h-[150px] rounded-lg" />
               <div className="bg-surface-3 mt-2.5 h-4 w-2/3 rounded" />
               <div className="bg-surface-3 mt-1.5 h-3 w-1/2 rounded" />
             </div>
@@ -315,7 +315,7 @@ export function MarketplaceGrid({
         </div>
       ) : visible.length === 0 ? (
         hasActiveFilter ? (
-          <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
+          <div className="border-border bg-surface text-muted rounded-lg border px-6 py-12 text-center text-sm">
             {t("noResults")}
             <p className="mt-3">
               <button
@@ -333,7 +333,7 @@ export function MarketplaceGrid({
              de LocationPicker incrusté ici — une seule UX de changement de
              zone). Le refetch efface cet état dès qu'une zone servie est
              choisie. */
-          <div className="border-border bg-surface rounded-[16px] border px-6 py-8 text-center text-sm">
+          <div className="border-border bg-surface rounded-lg border px-6 py-8 text-center text-sm">
             <MapPin className="text-subtle mx-auto mb-2 size-6" />
             <p className="text-foreground font-extrabold">
               {t("noMerchantsYourZone")}
@@ -347,7 +347,7 @@ export function MarketplaceGrid({
             </button>
           </div>
         ) : (
-          <div className="border-border bg-surface text-muted rounded-[16px] border px-6 py-12 text-center text-sm">
+          <div className="border-border bg-surface text-muted rounded-lg border px-6 py-12 text-center text-sm">
             <MapPin className="text-subtle mx-auto mb-2 size-6" />
             {t("noActiveMerchants")}
           </div>

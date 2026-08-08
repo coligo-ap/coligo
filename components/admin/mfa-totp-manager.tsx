@@ -153,7 +153,7 @@ export function MfaTotpManager({ activeFactor }: Props) {
   // ─── État 3 : factor verified actif ──────────────────────────────────
   if (activeFactor && !enroll) {
     return (
-      <div className="border-success-200 bg-success-50 rounded-[16px] border p-5">
+      <div className="border-success-200 bg-success-50 rounded-lg border p-5">
         <div className="flex items-start gap-3">
           <ShieldCheck className="text-success-600 mt-0.5 size-5 shrink-0" />
           <div className="flex-1">
@@ -199,7 +199,7 @@ export function MfaTotpManager({ activeFactor }: Props) {
   // ─── État 2 : enroll en cours, attente du code ───────────────────────
   if (enroll) {
     return (
-      <div className="border-border bg-surface rounded-[16px] border p-5">
+      <div className="border-border bg-surface rounded-lg border p-5">
         <h2 className="font-semibold">Scanner avec votre application 2FA</h2>
         <p className="text-muted mt-1 text-sm">
           Utilisez Google Authenticator, Authy, ou 1Password. Scannez le QR ou
@@ -214,7 +214,7 @@ export function MfaTotpManager({ activeFactor }: Props) {
           />
           <div className="text-center">
             <p className="text-muted text-xs">Clé manuelle (base32)</p>
-            <code className="bg-surface-2 mt-1 inline-block rounded-[8px] px-3 py-1 font-mono text-xs tracking-widest">
+            <code className="bg-surface-2 mt-1 inline-block rounded-sm px-3 py-1 font-mono text-xs tracking-widest">
               {enroll.secret}
             </code>
           </div>
@@ -237,7 +237,7 @@ export function MfaTotpManager({ activeFactor }: Props) {
             autoFocus
             disabled={pending}
             placeholder="000000"
-            className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 mt-2 block w-full rounded-[12px] border px-4 py-2.5 text-center text-xl font-semibold tracking-[0.4em] tabular-nums focus:ring-2 focus:outline-none disabled:opacity-50"
+            className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 mt-2 block w-full rounded-md border px-4 py-2.5 text-center text-xl font-semibold tracking-[0.4em] tabular-nums focus:ring-2 focus:outline-none disabled:opacity-50"
           />
 
           {error && <p className="text-danger-600 mt-2 text-xs">{error}</p>}
@@ -272,7 +272,7 @@ export function MfaTotpManager({ activeFactor }: Props) {
 
   // ─── État 1 : pas de 2FA active ───────────────────────────────────────
   return (
-    <div className="border-warning-200 bg-warning-50 rounded-[16px] border p-5">
+    <div className="border-warning-200 bg-warning-50 rounded-lg border p-5">
       <div className="flex items-start gap-3">
         <ShieldAlert className="text-warning-700 mt-0.5 size-5 shrink-0" />
         <div className="flex-1">

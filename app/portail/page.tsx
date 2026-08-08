@@ -87,7 +87,7 @@ function PortailContent() {
             </div>
 
             {(state.error || urlErrorMsg) && (
-              <div className="rounded-[10px] border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-300">
+              <div className="rounded-control border border-rose-500/30 bg-rose-500/10 px-3 py-2.5 text-sm text-rose-300">
                 {state.error ?? urlErrorMsg}
               </div>
             )}
@@ -95,7 +95,7 @@ function PortailContent() {
             <button
               type="submit"
               disabled={pending}
-              className="bg-primary-600 hover:bg-primary-500 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
+              className="bg-primary-600 hover:bg-primary-500 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md px-4 text-sm font-semibold text-white shadow-sm disabled:opacity-60"
             >
               {pending ? (
                 <>

@@ -137,7 +137,7 @@ export function LanguageSwitcher({
           // SANS cadre : pas de bordure ni de fond, juste le texte + chevron.
           // min-h 44px + marges négatives : cible tactile réglementaire SANS
           // grossir l'encombrement visuel (audit Playwright : 28px avant).
-          "-my-2 inline-flex min-h-[44px] items-center gap-1.5 bg-transparent px-1 py-1 text-[13px] font-semibold transition-colors",
+          "text-body-sm -my-2 inline-flex min-h-[44px] items-center gap-1.5 bg-transparent px-1 py-1 font-semibold transition-colors",
           onColor
             ? "text-white hover:text-white/90"
             : "text-muted hover:text-foreground",
@@ -172,7 +172,7 @@ export function LanguageSwitcher({
                   aria-selected={active === loc}
                   onClick={() => choose(loc)}
                   className={cn(
-                    "flex w-full items-center gap-2.5 px-3 py-2 text-start text-[13px] transition-colors",
+                    "text-body-sm flex w-full items-center gap-2.5 px-3 py-2 text-start transition-colors",
                     active === loc
                       ? "text-foreground font-bold"
                       : "text-muted hover:text-foreground hover:bg-surface-2"

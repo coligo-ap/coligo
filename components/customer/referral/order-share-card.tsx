@@ -18,6 +18,7 @@ import {
   siWhatsapp,
 } from "simple-icons";
 import { isNative } from "@/lib/native/context";
+import { ACCENT, INK, PRIMARY } from "@/lib/design/tokens";
 import type { StoryDesign } from "@/lib/data/share-story";
 
 // =============================================================================
@@ -44,12 +45,16 @@ type ReferralLite = {
   enabled: boolean;
 } | null;
 
-/** Palettes du canvas par design (dégradé haut → bas). */
+/**
+ * Palettes du canvas par design (dégradé haut → bas). Les violets/roses de
+ * MARQUE viennent des design tokens ; les autres teintes sont une palette de
+ * CONTENU (ambiances), sans équivalent dans l'échelle Coligo.
+ */
 const STORY_COLORS: Record<StoryDesign, [string, string, string]> = {
-  violet: ["#8A4DFF", "#6C2BD9", "#4B1FA6"],
-  rose: ["#FF2D7A", "#C2338F", "#6C2BD9"],
-  nuit: ["#191036", "#2A1458", "#4B1FA6"],
-  ambre: ["#F59E0B", "#F97316", "#FF2D7A"],
+  violet: [PRIMARY[400], PRIMARY[600], PRIMARY[700]],
+  rose: [ACCENT[500], "#C2338F", PRIMARY[600]],
+  nuit: ["#191036", "#2A1458", PRIMARY[700]],
+  ambre: ["#F59E0B", "#F97316", ACCENT[500]],
   emeraude: ["#34D399", "#0D9488", "#064E3B"],
   ocean: ["#38BDF8", "#2563EB", "#1E3A8A"],
   corail: ["#FB7185", "#F43F5E", "#881337"],
@@ -192,12 +197,12 @@ async function drawStory(
     }
 
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = INK.white;
 
     // Marque.
     ctx.font = "900 96px system-ui, sans-serif";
     ctx.fillText("coligo", W / 2, 280);
-    ctx.fillStyle = "#FF2D7A";
+    ctx.fillStyle = ACCENT[500];
     ctx.beginPath();
     ctx.arc(W / 2 + 168, 276, 14, 0, Math.PI * 2);
     ctx.fill();
@@ -206,7 +211,7 @@ async function drawStory(
     ctx.fillStyle = "rgba(255,255,255,0.85)";
     ctx.font = "700 52px system-ui, sans-serif";
     ctx.fillText("Je viens de commander chez", W / 2, 560);
-    ctx.fillStyle = "#ffffff";
+    ctx.fillStyle = INK.white;
     ctx.font = "900 84px system-ui, sans-serif";
     const name =
       merchantName.length > 22 ? merchantName.slice(0, 21) + "…" : merchantName;
@@ -223,11 +228,11 @@ async function drawStory(
       ctx.fillStyle = "rgba(255,255,255,0.75)";
       ctx.font = "700 40px system-ui, sans-serif";
       ctx.fillText("MON CODE", W / 2, 895);
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = INK.white;
       ctx.font = "900 92px ui-monospace, monospace";
       ctx.fillText(code, W / 2, 1000);
 
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = INK.white;
       ctx.font = "800 56px system-ui, sans-serif";
       ctx.fillText(`${rewardDa} DA offerts sur ta 1ʳᵉ commande`, W / 2, 1140);
     }
@@ -238,7 +243,7 @@ async function drawStory(
       const box = 400;
       const bx = (W - box) / 2;
       const by = code ? 1250 : 1000;
-      ctx.fillStyle = "#ffffff";
+      ctx.fillStyle = INK.white;
       ctx.beginPath();
       ctx.roundRect(bx, by, box, box, 28);
       ctx.fill();
@@ -514,9 +519,9 @@ export function OrderShareCard({
 
   return (
     <section
-      className={`mt-2.5 overflow-hidden rounded-[16px] bg-gradient-to-br p-4 text-white ${CARD_GRADIENT[design] ?? CARD_GRADIENT.violet}`}
+      className={`mt-2.5 overflow-hidden rounded-lg bg-gradient-to-br p-4 text-white ${CARD_GRADIENT[design] ?? CARD_GRADIENT.violet}`}
     >
-      <p className="text-[15px] leading-snug font-extrabold">
+      <p className="text-title-sm leading-snug font-extrabold">
         {t("shareCardTitle", { merchant: merchantName })}
       </p>
 
@@ -524,22 +529,22 @@ export function OrderShareCard({
           réglés par l'équipe (Marketing > Parrainage). */}
       {code ? (
         <div className="mt-2 flex flex-wrap items-center gap-1.5">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-bold">
+          <span className="text-label inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 font-bold">
             <Gift className="size-3.5" />
             {t("shareFriendGets", { amount: rewardFriend })}
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 text-[12px] font-bold">
+          <span className="text-label inline-flex items-center gap-1.5 rounded-full bg-white/15 px-2.5 py-1 font-bold">
             <PartyPopper className="size-3.5" />
             {t("shareYouGet", { amount: rewardMe })}
           </span>
           {minOrder > 0 && (
-            <span className="text-[11px] font-medium text-white/70">
+            <span className="text-caption font-medium text-white/70">
               {t("shareMinOrder", { amount: minOrder })}
             </span>
           )}
         </div>
       ) : (
-        <p className="mt-1 text-[12.5px] font-medium text-white/85">
+        <p className="text-label-lg mt-1 font-medium text-white/85">
           {t("shareCardBodyPlain")}
         </p>
       )}
@@ -549,7 +554,7 @@ export function OrderShareCard({
           type="button"
           onClick={() => void shareVia("main", t("shareTargetStory"))}
           disabled={busy === "main"}
-          className="text-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-[12px] bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition-transform active:scale-[.98] disabled:opacity-80"
+          className="text-primary-700 inline-flex w-full items-center justify-center gap-2 rounded-md bg-white px-4 py-3 text-sm font-extrabold shadow-sm transition-transform active:scale-[.98] disabled:opacity-80"
         >
           {busy === "main" ? (
             <Loader2 className="size-4 animate-spin" />
@@ -571,11 +576,11 @@ export function OrderShareCard({
               type="button"
               onClick={onClick}
               aria-label={label}
-              className="flex flex-col items-center gap-1 rounded-[12px] bg-white/10 py-2 transition-colors hover:bg-white/20 active:scale-95"
+              className="flex flex-col items-center gap-1 rounded-md bg-white/10 py-2 transition-colors hover:bg-white/20 active:scale-95"
             >
               <span
                 className="inline-flex size-8 items-center justify-center rounded-full"
-                style={{ backgroundColor: chip, color: glyph ?? "#ffffff" }}
+                style={{ backgroundColor: chip, color: glyph ?? INK.white }}
               >
                 {busy === key ? (
                   <Loader2 className="size-4 animate-spin" />
@@ -583,7 +588,7 @@ export function OrderShareCard({
                   <BrandIcon path={path} className="size-[18px]" />
                 )}
               </span>
-              <span className="text-[9.5px] font-semibold text-white/85">
+              <span className="text-nano-lg font-semibold text-white/85">
                 {label}
               </span>
             </button>
@@ -592,7 +597,7 @@ export function OrderShareCard({
 
         {/* Résultat inline — le clic écrit TOUJOURS ce qui s'est passé. */}
         {status && (
-          <p className="rounded-[10px] bg-white/15 px-3 py-2 text-[12px] leading-snug font-semibold">
+          <p className="rounded-control text-label bg-white/15 px-3 py-2 leading-snug font-semibold">
             {status}
           </p>
         )}

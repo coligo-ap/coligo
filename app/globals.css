@@ -1,120 +1,10 @@
 @import "tailwindcss";
 
-@theme {
-  /* Typo storefront (prompt 20) :
-     - Corps + UI : Plus Jakarta Sans  (--font-sans-body)
-     - Titres    : Sora                 (--font-display, classe font-display)
-     Les variables sont injectées par next/font (cf. app/layout.tsx). */
-  --font-sans:
-    var(--font-sans-body), system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-display:
-    var(--font-display), var(--font-sans-body), system-ui, sans-serif;
-  --font-mono: ui-monospace, "SF Mono", "Cascadia Code", monospace;
-
-  /* === Palette violette/indigo (kit e-commerce) === */
-  --color-violet-50: #eeeefb;
-  --color-violet-100: #e0e0f8;
-  --color-violet-200: #c4c4f1;
-  --color-violet-300: #a3a3e8;
-  --color-violet-400: #8a4dff;
-  --color-violet-500: #7a3aec;
-  --color-violet-600: #6c2bd9;
-  --color-violet-700: #4a4ac4;
-  --color-violet-800: #3c3c9e;
-  --color-violet-900: #313178;
-
-  /* Couleur primaire = violet de marque Coligo (#6C2BD9) */
-  --color-primary-50: #f4eefe;
-  --color-primary-100: #e9ddfd;
-  --color-primary-200: #d2bcfb;
-  --color-primary-300: #b493f9;
-  --color-primary-400: #8a4dff;
-  --color-primary-500: #7a3aec;
-  --color-primary-600: #6c2bd9;
-  --color-primary-700: #4b1fa6;
-  --color-primary-800: #3a1880;
-  --color-primary-900: #2b1160;
-
-  /* Accents sémantiques */
-  --color-success-50: #ecfdf5;
-  --color-success-100: #d1fae5;
-  --color-success-500: #10b981;
-  --color-success-600: #059669;
-  --color-success-700: #047857;
-
-  --color-warning-50: #fffbeb;
-  --color-warning-100: #fef3c7;
-  --color-warning-500: #f59e0b;
-  --color-warning-600: #d97706;
-  --color-warning-700: #b45309;
-
-  --color-danger-50: #fef2f2;
-  --color-danger-100: #fee2e2;
-  --color-danger-500: #ef4444;
-  --color-danger-600: #dc2626;
-  --color-danger-700: #b91c1c;
-
-  /* === Accents storefront (prompt 20 redesign) ===
-     Usage intentionnel et sobre :
-     - coral  : badge promo, cœur favori actif, pastille panier
-     - mint   : badge "Ouvert", mention "Retrait gratuit"
-     - amber  : étoiles de note UNIQUEMENT (si rating disponible)
-     - violet-accent : fonds de tags / hover (déjà couvert par primary-50/100) */
-  --color-coral-50: #fff1ee;
-  --color-coral-100: #ffd9d1;
-  --color-coral-300: #ff9a86;
-  --color-coral-500: #ff6b5c;
-  --color-coral-600: #ec4f3e;
-  --color-coral-700: #c63a2b;
-
-  --color-mint-50: #ecfdf5;
-  --color-mint-100: #d1fae5;
-  --color-mint-300: #6ee7b7;
-  --color-mint-500: #10c98d;
-  --color-mint-600: #0fa978;
-  --color-mint-700: #0c855e;
-
-  --color-amber-50: #fff8eb;
-  --color-amber-100: #fdecc8;
-  --color-amber-400: #f7bf4f;
-  --color-amber-500: #f0a92c;
-  --color-amber-600: #d18d18;
-
-  /* === Accent rose de marque Coligo (#FF2D7A) ===
-     Couleur OFFICIELLE de la charte (avec le violet primaire) réservée aux
-     PROMOTIONS : badges « −X% », « 2 achetés = 1 offert », prix promo, codes
-     promo, cartes de réduction. Rose vif et lumineux (≠ l'ancien `rose` rouge
-     terne de Tailwind). Le 600 garde ≥ 4,5:1 de contraste (texte blanc sur
-     fond / texte sur blanc) pour la lisibilité. */
-  --color-accent-50: #fff0f6;
-  --color-accent-100: #ffdcea;
-  --color-accent-200: #ffb8d5;
-  --color-accent-300: #ff8abb;
-  --color-accent-400: #ff5499;
-  --color-accent-500: #ff2d7a;
-  --color-accent-600: #e6007a;
-  --color-accent-700: #c00068;
-  --color-accent-800: #990052;
-  --color-accent-900: #7a0042;
-  --color-accent-950: #4d0029;
-
-  /* Neutres (gris du kit) */
-  --color-background: #ffffff;
-  --color-surface: #ffffff;
-  --color-surface-2: #f7f7fb;
-  --color-surface-3: #efeff5;
-  --color-foreground: #1a1a2e;
-  --color-muted: #6b6b80;
-  --color-subtle: #9b9bb0;
-  --color-border: #ececf2;
-  --color-border-strong: #dcdce6;
-
-  --radius-sm: 8px;
-  --radius-md: 12px;
-  --radius-lg: 16px;
-  --radius-xl: 20px;
-  --radius-2xl: 28px;
-}
+/* SOURCE UNIQUE de l'identité visuelle : palettes, typo, rayons, ombres,
+   mouvements et tokens d'espace (--d-*, livreur, Drive, sombre). Ce fichier-ci
+   ne garde plus que les COMPORTEMENTS : keyframes, remaps de compatibilité,
+   utilitaires de zone sûre. Aucun token ne se déclare hors design-tokens.css. */
+@import "./design-tokens.css";
 
 * {
   border-color: var(--color-border);
@@ -213,43 +103,10 @@ body {
   );
 }
 
-/* =============================================================================
- * ESPACE LIVREUR — design system « style Uber » (refonte 2026)
- * Scopé sous [data-space="driver"] (cf. app/(driver)/layout.tsx) pour NE PAS
- * impacter le reste de l'app (commerçant / client / admin) ni le @theme global.
- *   - Police : Inter (var --font-inter, injectée par next/font dans le layout)
- *   - Palette : fond gris, cards blanches, encre noire, violet #6c2bd9 RARE
- * Les écrans livreur consomment ces tokens via Tailwind arbitrary values
- * (ex. bg-[var(--d-bg)]) ou hex direct quand la valeur est figée.
- * ============================================================================= */
-[data-space="driver"] {
-  --d-bg: #f2f2f2;
-  --d-card: #ffffff;
-  --d-ink: #0a0a0a;
-  --d-txt: #1a1a1a;
-  --d-muted: #757575;
-  --d-hint: #9e9e9e;
-  --d-bd: #eeeeee;
-  --d-bd2: #e5e5e5;
-  --d-p: #6c2bd9;
-  --d-p-d: #4b1fa6;
-  --d-mint: #00a86b;
-  --d-coral: #e53935;
-  --d-amber: #f39c12;
-
-  /* Refonte « 100 % maquette » : Plus Jakarta Sans (corps) + Sora (titres,
-     classe .mq-sora) — cf. app/(driver)/maquette.css. */
-  font-family:
-    var(--font-jakarta),
-    "Plus Jakarta Sans",
-    var(--font-inter),
-    "Inter",
-    -apple-system,
-    BlinkMacSystemFont,
-    "Segoe UI",
-    sans-serif;
-  -webkit-font-smoothing: antialiased;
-}
+/* Les tokens et la police de l'espace livreur ([data-space="driver"]) vivent
+   désormais dans app/design-tokens.css (couche 3). Ils y sont déclarés UNE
+   fois : avant, --d-ink/--d-muted étaient définis deux fois sur le même
+   sélecteur (ici et dans maquette.css) et seul l'ordre de bundling tranchait. */
 
 /* Pulse violet de la position du livreur sur la carte (écrans 1 & 3). */
 @keyframes driver-me-pulse {
@@ -999,57 +856,9 @@ body {
   }
 }
 
-/* ── Drive : thème clair/sombre (tokens maquette :root / body.dark) ──
-   Les écrans Drive consomment ces variables ; le mode sombre suit le
-   réglage système (équivalent du toggle Clair/Sombre de la maquette). */
-:root {
-  --d-page: #e9ebf1;
-  --d-surface: #fff;
-  --d-ink: #0b0c12;
-  --d-muted: #6b7280;
-  --d-line: #eef0f4;
-  --d-soft: #f4f5f9;
-  /* Accents violets pâles (badges/tuiles « Coligo », champs de saisie Drive).
-     Tokenisés pour basculer en sombre — avant, ces tons étaient écrits en dur
-     (#EEEEFD / #F6F3FE) en style inline, donc figés clairs en mode sombre. */
-  --d-accent: #eeeefd;
-  --d-field: #f6f3fe;
-  /* Violet d'accent LISIBLE dans les deux thèmes (textes/bordures) : #6C2BD9
-     est trop sombre sur fond sombre → éclairci en dark (même teinte que la
-     remappe .text-primary-600/700 du client). */
-  --d-violet: #6c2bd9;
-}
-.drive-jakarta {
-  --d-page: #e9ebf1;
-  --d-surface: #fff;
-  --d-ink: #0b0c12;
-  --d-muted: #6b7280;
-  --d-line: #eef0f4;
-  --d-soft: #f4f5f9;
-  --d-accent: #eeeefd;
-  --d-field: #f6f3fe;
-  --d-violet: #6c2bd9;
-  color: var(--d-ink);
-}
-/* Mode sombre = CHOIX utilisateur (interrupteur du header, cookie
-   coligo_theme) — plus de suivi du réglage système : clair par défaut.
-   On applique AUSSI les tokens sombres au <body> : les feuilles/modales Drive
-   passent par un <Portal> monté sur document.body, HORS de `.drive-jakarta`.
-   Sans ça, `--d-surface` / `--d-ink` y retombaient sur les valeurs CLAIRES de
-   `:root` → surface blanche + texte clair = libellés invisibles (bug « Point de
-   départ »). Le scope reste sûr : ces tokens ne sont consommés que par les
-   écrans Drive/chauffeur, et `.theme-dark` n'est posé que dans ces espaces. */
-.theme-dark :is(.drive-jakarta, body) {
-  --d-page: #06070b;
-  --d-surface: #161823;
-  --d-ink: #fff;
-  --d-muted: #9ca0b3;
-  --d-line: #262838;
-  --d-soft: #1f2230;
-  --d-accent: rgba(138, 77, 255, 0.16);
-  --d-field: rgba(138, 77, 255, 0.12);
-  --d-violet: #b493f9;
-}
+/* Les tokens Drive (--d-* clair/sombre, :root + .drive-jakarta + le miroir sur
+   <body> pour les Portals) sont déclarés dans app/design-tokens.css (couche 2). */
+
 /* Plaque d'immatriculation : fixe (blanc/noir) dans LES DEUX thèmes (maquette .plate). */
 .drive-plate {
   background: #fff;
@@ -1062,18 +871,7 @@ body {
    son wrapper ET miroité sur <body> pour les portails Radix) : les espaces
    commerçant / livreur / admin restent clairs, ils n'ont pas l'interrupteur.
    Les écrans Drive gardent leurs propres tokens --d-* (bloc ci-dessus). */
-.theme-dark :is([data-space="client"], .drive-jakarta) {
-  --color-background: #0b0c12;
-  --color-surface: #161823;
-  --color-surface-2: #0e0f16;
-  --color-surface-3: #1f2230;
-  --color-foreground: #f4f5fa;
-  --color-muted: #9ca0b3;
-  --color-subtle: #80849a;
-  --color-border: #262838;
-  --color-border-strong: #343852;
-  color-scheme: dark;
-}
+/* (les tokens --color-* sombres du client sont dans design-tokens.css, couche 2) */
 /* Compat : surfaces « blanc dur » (cartes, feuilles) suivent la surface du
    thème. Les variantes translucides (bg-white/95…) et text-white sur boutons
    colorés ne sont pas concernées. */
@@ -1227,18 +1025,7 @@ body {
    border-border…) s'adaptent au sombre SANS édition fichier par fichier. Les
    valeurs sont alignées sur la palette sombre de la maquette livreur
    (cf. (driver)/maquette.css : --page/--surface/--line/--soft). */
-[data-space="driver"].dark {
-  --color-background: #06070b;
-  --color-surface: #161823;
-  --color-surface-2: #1f2230;
-  --color-surface-3: #262838;
-  --color-foreground: #f4f5fa;
-  --color-muted: #9ca0b3;
-  --color-subtle: #80849a;
-  --color-border: #262838;
-  --color-border-strong: #343852;
-  color-scheme: dark;
-}
+/* (les tokens --color-* sombres du livreur sont dans design-tokens.css, couche 3) */
 /* Surfaces « blanc dur » → surface du thème (cartes/feuilles). Les variantes
    translucides (bg-white/95…) et text-white sur boutons colorés sont exclues. */
 [data-space="driver"].dark :where(.bg-white) {
@@ -1420,16 +1207,8 @@ body {
  *     `66px + env(safe-area-inset-bottom)` (cf. `PartnerTabbar`).
  */
 
-/*
- * HAUTEUR RÉELLE de la barre d'onglets partenaire (`PartnerTabbar`) : 66 px de
- * contenu, plus la zone sûre du bas. TOUT ce qui flotte au-dessus d'elle s'y
- * réfère — bandeau « course en cours », barre « En ligne », carte « Hors ligne »,
- * proposition de course. Sans cette variable, chacun codait `bottom-[78px]` en
- * dur et se retrouvait SOUS la barre dès qu'un téléphone ajoutait sa gesture bar.
- */
-:root {
-  --partner-nav-h: calc(66px + env(safe-area-inset-bottom));
-}
+/* La hauteur réelle de la barre d'onglets partenaire (--partner-nav-h, base de
+   .pb-safe-nav / .above-nav / .over-nav) est déclarée dans design-tokens.css. */
 
 .pt-safe {
   padding-top: calc(1rem + env(safe-area-inset-top));

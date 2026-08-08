@@ -183,7 +183,7 @@ export function RechargePointsMap({
 
   return (
     <div
-      className="bg-surface-2 relative w-full overflow-hidden rounded-[16px]"
+      className="bg-surface-2 relative w-full overflow-hidden rounded-lg"
       style={{ height }}
     >
       <div ref={containerRef} className="h-full w-full" />

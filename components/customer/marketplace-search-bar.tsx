@@ -98,7 +98,7 @@ export function MarketplaceSearchBar({
         >
           <div
             className={cn(
-              "flex items-center gap-2.5 rounded-[14px] px-4 py-3 transition-shadow focus-within:ring-2",
+              "rounded-card-lg flex items-center gap-2.5 px-4 py-3 transition-shadow focus-within:ring-2",
               onHero
                 ? // Socle CLAIR fixe (hex littéraux, immunisés contre le remap
                   // des tokens en dark) : pilule blanche lisible sur le dégradé
@@ -120,7 +120,7 @@ export function MarketplaceSearchBar({
               placeholder={t("searchPlaceholder")}
               aria-label={t("searchPlaceholder")}
               className={cn(
-                "w-full bg-transparent text-[15px] font-medium outline-none",
+                "text-title-sm w-full bg-transparent font-medium outline-none",
                 onHero
                   ? "text-[#111827] placeholder:text-[#6b7280]"
                   : "text-foreground placeholder:text-muted"

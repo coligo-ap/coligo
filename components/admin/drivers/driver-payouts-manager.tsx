@@ -69,13 +69,13 @@ export function DriverPayoutsManager({
       {methods.map((m) => (
         <div
           key={m.id}
-          className="border-border flex items-start justify-between gap-3 rounded-[12px] border p-3"
+          className="border-border flex items-start justify-between gap-3 rounded-md border p-3"
         >
           <div className="min-w-0 text-sm">
             <p className="flex items-center gap-1.5 font-semibold">
               {methodLabel(m.method)}
               {m.is_default && (
-                <span className="bg-primary-50 text-primary-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[10px] font-bold">
+                <span className="bg-primary-50 text-primary-700 text-micro inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold">
                   <Star className="size-3" /> Défaut
                 </span>
               )}
@@ -89,7 +89,7 @@ export function DriverPayoutsManager({
           <button
             type="button"
             aria-label="Supprimer"
-            className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+            className="text-danger-600 hover:bg-danger-50 rounded-sm p-1.5"
             disabled={delPending}
             onClick={async () => {
               if (
@@ -116,7 +116,7 @@ export function DriverPayoutsManager({
       {adding ? (
         <form
           action={formAction}
-          className="border-border space-y-3 rounded-[12px] border border-dashed p-3"
+          className="border-border space-y-3 rounded-md border border-dashed p-3"
         >
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
@@ -127,7 +127,7 @@ export function DriverPayoutsManager({
                 id="method"
                 name="method"
                 required
-                className="border-border bg-surface h-10 w-full rounded-[10px] border px-3 text-sm"
+                className="border-border bg-surface rounded-control h-10 w-full border px-3 text-sm"
               >
                 {METHODS.map(([v, l]) => (
                   <option key={v} value={v}>

@@ -456,7 +456,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
    *   • identité vérifiée (ou voie manuelle) → « Continuer »
    */
   const primaryCls =
-    "flex h-[52px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white transition-opacity disabled:opacity-40";
+    "flex h-[52px] w-full items-center justify-center gap-2 rounded-lg text-title-sm font-extrabold text-white transition-opacity disabled:opacity-40";
   const primaryStyle = { background: BRAND_VIOLET, fontFamily: SORA };
   const spinnerOr = (icon: React.ReactNode) =>
     busy ? <Loader2 className="size-4 animate-spin" /> : icon;
@@ -500,24 +500,24 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
       {/* Dossier refusé : le motif remonte tout en haut, avant tout le reste. */}
       {data.rejectionReason && (
         <div
-          className="rounded-[16px] border p-4"
+          className="rounded-lg border p-4"
           style={{ borderColor: BRAND_RED, background: "var(--red-soft)" }}
         >
           <b
-            className="flex items-center gap-2 text-[14px]"
+            className="text-body-lg flex items-center gap-2"
             style={{ color: BRAND_RED, fontFamily: SORA }}
           >
             <AlertTriangle className="size-4" />
             {tr("Dossier à corriger", "ملف بحاجة إلى تصحيح")}
           </b>
-          <p className="mt-1 text-[12.5px] text-[var(--ink)]">
+          <p className="text-label-lg mt-1 text-[var(--ink)]">
             {tr(
               "L'équipe Coligo n'a pas pu valider votre dossier :",
               "لم يتمكن فريق كوليغو من المصادقة على ملفك:"
             )}{" "}
             <b>{data.rejectionReason}</b>
           </p>
-          <p className="mt-1 text-[12px] text-[var(--muted)]">
+          <p className="text-label mt-1 text-[var(--muted)]">
             {tr(
               "Corrigez les éléments concernés puis transmettez-le à nouveau.",
               "صحّح العناصر المعنية ثم أرسله من جديد."
@@ -530,7 +530,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 
       <form
         onSubmit={(e) => e.preventDefault()}
-        className="space-y-3 rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-4"
+        className="rounded-sheet-lg space-y-3 border border-[var(--line)] bg-[var(--surface)] p-4"
       >
         {step === 0 && pane === 0 && (
           <PaneQuestion
@@ -723,7 +723,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                     onClick={() =>
                       setProfile((p) => ({ ...p, vehicle_type: v.value }))
                     }
-                    className="rounded-[16px] border p-3.5 text-start transition-colors"
+                    className="rounded-lg border p-3.5 text-start transition-colors"
                     style={{
                       borderColor: active ? BRAND_VIOLET : "var(--line)",
                       background: active
@@ -734,10 +734,10 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
                         : undefined,
                     }}
                   >
-                    <p className="text-[14px] font-bold">
+                    <p className="text-body-lg font-bold">
                       {isAr ? (VEHICLE_LABELS_AR[v.value] ?? v.label) : v.label}
                     </p>
-                    <p className="mt-0.5 text-[11px] text-[var(--muted)]">
+                    <p className="text-caption mt-0.5 text-[var(--muted)]">
                       {v.motorized
                         ? tr(
                             "Permis, carte grise, assurance",
@@ -750,7 +750,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
               })}
             </div>
             {showErrors && errorFor("vehicle_type") && (
-              <p className="text-[12px] font-semibold text-red-600">
+              <p className="text-label font-semibold text-red-600">
                 {tr("Choisissez votre véhicule.", "اختر مركبتك.")}
               </p>
             )}
@@ -882,7 +882,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
               type="button"
               onClick={onBack}
               disabled={busy}
-              className="inline-flex h-[46px] flex-1 items-center justify-center gap-1.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] text-[13.5px] font-bold text-[var(--ink)] disabled:opacity-50"
+              className="rounded-card-lg text-body inline-flex h-[46px] flex-1 items-center justify-center gap-1.5 border border-[var(--line)] bg-[var(--surface)] font-bold text-[var(--ink)] disabled:opacity-50"
             >
               <ArrowLeft className="size-3.5 rtl:rotate-180" />
               {tr("Retour", "رجوع")}
@@ -892,7 +892,7 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
             type="button"
             onClick={onSave}
             disabled={busy}
-            className="h-[46px] flex-[2] rounded-[14px] border border-[var(--line)] bg-[var(--surface)] text-[13.5px] font-bold text-[var(--ink)] disabled:opacity-50"
+            className="rounded-card-lg text-body h-[46px] flex-[2] border border-[var(--line)] bg-[var(--surface)] font-bold text-[var(--ink)] disabled:opacity-50"
           >
             {saved
               ? tr("✓ Brouillon enregistré", "✓ حُفظت المسودة")
@@ -907,11 +907,11 @@ export function DriverKycForm({ data }: { data: DriverKycData }) {
 /* ───────────────────────── Sous-composants ───────────────────────── */
 
 const inputCls =
-  "h-[44px] w-full rounded-[12px] border border-[var(--line)] bg-[var(--surface)] px-3 text-[14px] font-medium text-[var(--ink)] outline-none focus:border-[var(--violet)]";
+  "h-[44px] w-full rounded-md border border-[var(--line)] bg-[var(--surface)] px-3 text-body-lg font-medium text-[var(--ink)] outline-none focus:border-[var(--violet)]";
 
 /** Champs GÉNÉREUX (cibles tactiles confortables, style néobanque). */
 const bigInputCls =
-  "h-[52px] w-full rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3.5 text-[15px] font-medium text-[var(--ink)] outline-none focus:border-[var(--violet)]";
+  "h-[52px] w-full rounded-card-lg border border-[var(--line)] bg-[var(--surface)] px-3.5 text-title-sm font-medium text-[var(--ink)] outline-none focus:border-[var(--violet)]";
 
 /** Volet = UNE question, quelques champs, rien d'autre : l'écran tient sans
  *  défilement, même sur un petit téléphone. */
@@ -928,13 +928,13 @@ function PaneQuestion({
     <div className="space-y-3">
       <div>
         <h2
-          className="text-[19px] leading-tight font-extrabold tracking-[-0.4px]"
+          className="text-heading leading-tight font-extrabold tracking-[-0.4px]"
           style={{ fontFamily: SORA }}
         >
           {title}
         </h2>
         {hint && (
-          <p className="mt-1 text-[12.5px] text-[var(--muted)]">{hint}</p>
+          <p className="text-label-lg mt-1 text-[var(--muted)]">{hint}</p>
         )}
       </div>
       {children}
@@ -963,13 +963,13 @@ function Review({
     <div className="space-y-3">
       <div className="flex items-baseline justify-between">
         <b
-          className="text-[13px] font-bold text-[var(--ink)]"
+          className="text-body-sm font-bold text-[var(--ink)]"
           style={{ fontFamily: SORA }}
         >
           {tr("Avancement du dossier", "تقدّم الملف")}
         </b>
         <span
-          className="text-[20px] font-extrabold tabular-nums"
+          className="text-heading-lg font-extrabold tabular-nums"
           style={{
             fontFamily: SORA,
             color: report.complete ? BRAND_GO : BRAND_VIOLET,
@@ -989,7 +989,7 @@ function Review({
         />
       </div>
 
-      <p className="text-[12px] text-[var(--muted)]">
+      <p className="text-label text-[var(--muted)]">
         {report.complete
           ? tr(
               "Tout y est. Vous pouvez transmettre votre dossier à l'équipe Coligo.",
@@ -1010,7 +1010,7 @@ function Review({
                 type="button"
                 onClick={() => target >= 0 && onGo(target)}
                 disabled={item.done || target < 0}
-                className="flex w-full items-center gap-2.5 rounded-[12px] px-2.5 py-2 text-start disabled:cursor-default"
+                className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-2 text-start disabled:cursor-default"
                 style={{
                   background: item.done ? "transparent" : "var(--soft)",
                 }}
@@ -1026,7 +1026,7 @@ function Review({
                   {item.done && <Check className="size-3" strokeWidth={3} />}
                 </span>
                 <span
-                  className="flex-1 text-[12.5px] font-semibold"
+                  className="text-label-lg flex-1 font-semibold"
                   style={{
                     color: item.done ? "var(--muted)" : "var(--ink)",
                   }}
@@ -1035,7 +1035,7 @@ function Review({
                 </span>
                 {!item.done && (
                   <span
-                    className="text-[11px] font-bold"
+                    className="text-caption font-bold"
                     style={{ color: BRAND_VIOLET }}
                   >
                     {tr("Compléter", "استكمال")}
@@ -1076,24 +1076,24 @@ function Field({
   return (
     <label className="block">
       <span className="mb-1.5 flex items-baseline gap-1.5">
-        <span className="text-[11.5px] font-bold text-[var(--muted)]">
+        <span className="text-caption-lg font-bold text-[var(--muted)]">
           {label}
         </span>
         {locked ? null : required ? (
           <span
-            className="text-[11px] font-bold"
+            className="text-caption font-bold"
             style={{ color: BRAND_VIOLET }}
           >
             {isAr ? "إلزامي" : "obligatoire"}
           </span>
         ) : (
-          <span className="text-[11px] text-[var(--muted)]">
+          <span className="text-caption text-[var(--muted)]">
             {isAr ? "اختياري" : "facultatif"}
           </span>
         )}
       </span>
       <span
-        className="block rounded-[12px]"
+        className="block rounded-md"
         style={error ? { boxShadow: `0 0 0 2px ${BRAND_RED}` } : undefined}
       >
         {children}
@@ -1101,14 +1101,14 @@ function Field({
       {error ? (
         <span
           role="alert"
-          className="mt-1 flex items-center gap-1 text-[11px] font-bold"
+          className="text-caption mt-1 flex items-center gap-1 font-bold"
           style={{ color: BRAND_RED }}
         >
           <AlertTriangle className="size-3" />
           {error}
         </span>
       ) : hint ? (
-        <span className="mt-1 block text-[11px] text-[var(--muted)]">
+        <span className="text-caption mt-1 block text-[var(--muted)]">
           {hint}
         </span>
       ) : null}
@@ -1147,7 +1147,7 @@ function DocSlot({
   const filled = doc != null;
   return (
     <div
-      className="rounded-[14px] border p-3"
+      className="rounded-card-lg border p-3"
       style={{
         borderColor: error
           ? BRAND_RED
@@ -1159,7 +1159,7 @@ function DocSlot({
     >
       <div className="flex items-center gap-3">
         <span
-          className="grid size-10 shrink-0 place-items-center rounded-[12px] bg-[var(--surface)]"
+          className="grid size-10 shrink-0 place-items-center rounded-md bg-[var(--surface)]"
           style={{ color: filled ? BRAND_GO : BRAND_VIOLET }}
         >
           {busy ? (
@@ -1173,13 +1173,13 @@ function DocSlot({
           )}
         </span>
         <div className="min-w-0 flex-1">
-          <b className="flex items-baseline gap-1.5 text-[13.5px] font-bold text-[var(--ink)]">
+          <b className="text-body flex items-baseline gap-1.5 font-bold text-[var(--ink)]">
             {label ??
               (isAr
                 ? (DOC_LABELS_AR[docType] ?? DOC_LABELS[docType])
                 : DOC_LABELS[docType])}
             <span
-              className="text-[10.5px] font-bold"
+              className="text-micro-lg font-bold"
               style={{ color: required ? BRAND_VIOLET : "var(--muted)" }}
             >
               {required
@@ -1187,7 +1187,7 @@ function DocSlot({
                 : tr("facultatif", "اختياري")}
             </span>
           </b>
-          <small className="block text-[11.5px] text-[var(--muted)]">
+          <small className="text-caption-lg block text-[var(--muted)]">
             {busy
               ? tr("Envoi en cours…", "جارٍ الإرسال…")
               : filled
@@ -1203,7 +1203,7 @@ function DocSlot({
       <div className="mt-2.5 flex flex-wrap items-center gap-3">
         <label
           htmlFor={inputId}
-          className="cursor-pointer text-[12px] font-bold"
+          className="text-label cursor-pointer font-bold"
           style={{ color: BRAND_VIOLET, opacity: busy ? 0.5 : 1 }}
         >
           <span className="inline-flex items-center gap-1.5">
@@ -1233,7 +1233,7 @@ function DocSlot({
             href={doc.scanUrl}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[12px] font-bold text-[var(--muted)] underline"
+            className="text-label font-bold text-[var(--muted)] underline"
           >
             {tr("Voir", "عرض")}
           </a>
@@ -1243,7 +1243,7 @@ function DocSlot({
             type="button"
             onClick={() => onRemove(docType)}
             disabled={busy}
-            className="inline-flex items-center gap-1.5 text-[12px] font-bold disabled:opacity-50"
+            className="text-label inline-flex items-center gap-1.5 font-bold disabled:opacity-50"
             style={{ color: BRAND_RED }}
           >
             <Trash2 className="size-3.5" />
@@ -1255,7 +1255,7 @@ function DocSlot({
       {error && (
         <p
           role="alert"
-          className="mt-2 flex items-center gap-1 text-[11px] font-bold"
+          className="text-caption mt-2 flex items-center gap-1 font-bold"
           style={{ color: BRAND_RED }}
         >
           <AlertTriangle className="size-3" />

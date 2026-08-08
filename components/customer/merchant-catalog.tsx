@@ -312,7 +312,7 @@ export function MerchantCatalog({
 
   if (products.length === 0) {
     return (
-      <div className="border-border bg-surface text-muted rounded-[12px] border px-6 py-10 text-center text-sm">
+      <div className="border-border bg-surface text-muted rounded-md border px-6 py-10 text-center text-sm">
         {t("emptyCatalog")}
       </div>
     );
@@ -360,7 +360,7 @@ export function MerchantCatalog({
                     <button
                       type="button"
                       onClick={() => setOpenCat(null)}
-                      className="bg-surface-2 text-foreground hover:bg-surface-3 inline-flex shrink-0 snap-start items-center rounded-full px-4 py-2 text-[13.5px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]"
+                      className="bg-surface-2 text-foreground hover:bg-surface-3 text-body inline-flex shrink-0 snap-start items-center rounded-full px-4 py-2 font-bold whitespace-nowrap transition-colors active:scale-[0.96]"
                     >
                       {t("allChip")}
                     </button>
@@ -389,7 +389,7 @@ export function MerchantCatalog({
                           }
                         }}
                         className={cn(
-                          "inline-flex shrink-0 snap-start items-center rounded-full px-4 py-2 text-[13.5px] font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
+                          "text-body inline-flex shrink-0 snap-start items-center rounded-full px-4 py-2 font-bold whitespace-nowrap transition-colors active:scale-[0.96]",
                           active
                             ? "bg-primary-600 text-white"
                             : "bg-surface-2 text-foreground hover:bg-surface-3"
@@ -450,7 +450,7 @@ export function MerchantCatalog({
       {/* SECTIONS — toutes visibles (pas d'accordéon). Chacune a un petit
           titre h2 et la liste compacte des produits dessous. */}
       {q && visibleGroups.length === 0 && (
-        <div className="border-border bg-surface text-muted rounded-[12px] border px-6 py-10 text-center text-sm">
+        <div className="border-border bg-surface text-muted rounded-md border px-6 py-10 text-center text-sm">
           {t("noProductMatch", { query })}
         </div>
       )}
@@ -496,13 +496,13 @@ export function MerchantCatalog({
                   setActiveKey(g.key);
                 }}
                 aria-label={title}
-                className="bg-surface-2 group relative flex aspect-[3/4] flex-col overflow-hidden rounded-[16px] p-2.5 text-start transition-transform duration-150 active:scale-[0.97]"
+                className="bg-surface-2 group relative flex aspect-[3/4] flex-col overflow-hidden rounded-lg p-2.5 text-start transition-transform duration-150 active:scale-[0.97]"
               >
-                <span className="text-foreground line-clamp-2 block text-[13px] leading-snug font-bold">
+                <span className="text-foreground text-body-sm line-clamp-2 block leading-snug font-bold">
                   {title}
                 </span>
                 <span
-                  className="relative mt-auto block h-[62%] w-full overflow-hidden rounded-[12px]"
+                  className="relative mt-auto block h-[62%] w-full overflow-hidden rounded-md"
                   style={{
                     /* Socle photo CLAIR figé (identique clair/sombre). En clair il
                        se fond dans la carte (bg-surface-2 ≈ #f7f7fb) → aucun
@@ -535,7 +535,7 @@ export function MerchantCatalog({
                   )}
                 </span>
                 {promoCount > 0 && (
-                  <span className="bg-accent-600 absolute end-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold whitespace-nowrap text-white shadow-sm">
+                  <span className="bg-accent-600 text-nano-lg absolute end-1.5 bottom-1.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-extrabold whitespace-nowrap text-white shadow-sm">
                     <BadgePercent className="size-3 shrink-0" />
                     {t("categoryPromoCount", { count: promoCount })}
                   </span>
@@ -558,7 +558,7 @@ export function MerchantCatalog({
                 <button
                   type="button"
                   onClick={() => setOpenCat(null)}
-                  className="border-border bg-surface text-foreground hover:border-primary-300 inline-flex items-center gap-1.5 rounded-full border py-2 ps-2.5 pe-3.5 text-[13px] font-bold shadow-sm"
+                  className="border-border bg-surface text-foreground hover:border-primary-300 text-body-sm inline-flex items-center gap-1.5 rounded-full border py-2 ps-2.5 pe-3.5 font-bold shadow-sm"
                 >
                   <ChevronLeft className="size-4 rtl:rotate-180" />
                   {t("allCategories")}
@@ -570,7 +570,7 @@ export function MerchantCatalog({
                   <img
                     src={g.category.image_url}
                     alt=""
-                    className="size-8 shrink-0 rounded-[10px] object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
+                    className="rounded-control size-8 shrink-0 object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
                   />
                 )}
                 <span className="truncate">
@@ -583,7 +583,7 @@ export function MerchantCatalog({
               {/* 1 colonne mobile, 2 colonnes desktop (lg). Bordures par <li>
                   (équivalent divide-y en 1 col) : border-b sauf dernière ligne,
                   séparateur vertical sur la colonne de gauche. */}
-              <ul className="border-border bg-surface overflow-hidden rounded-[12px] border lg:grid lg:grid-cols-2">
+              <ul className="border-border bg-surface overflow-hidden rounded-md border lg:grid lg:grid-cols-2">
                 {g.items.map((p) => (
                   <li
                     key={p.id}
@@ -627,7 +627,7 @@ export function MerchantCatalog({
                     alt=""
                     loading="lazy"
                     decoding="async"
-                    className="size-8 shrink-0 rounded-[10px] object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
+                    className="rounded-control size-8 shrink-0 object-cover shadow-[0_3px_8px_-3px_rgba(0,0,0,0.2)]"
                   />
                 )}
                 <span className="truncate">
@@ -640,7 +640,7 @@ export function MerchantCatalog({
               {/* 1 colonne mobile, 2 colonnes desktop (lg). Bordures par <li>
                   (équivalent divide-y en 1 col) : border-b sauf dernière ligne,
                   séparateur vertical sur la colonne de gauche. */}
-              <ul className="border-border bg-surface overflow-hidden rounded-[12px] border lg:grid lg:grid-cols-2">
+              <ul className="border-border bg-surface overflow-hidden rounded-md border lg:grid lg:grid-cols-2">
                 {g.items.map((p) => (
                   <li
                     key={p.id}

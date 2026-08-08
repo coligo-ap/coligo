@@ -87,11 +87,11 @@ export function ShareTrackView({ token }: { token: string }) {
         }
         padding={{ top: 90, bottom: 260, left: 60, right: 60 }}
       />
-      <div className="absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 text-[13.5px] font-bold whitespace-nowrap shadow-lg">
+      <div className="text-body absolute top-[calc(0.75rem+env(safe-area-inset-top))] left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full bg-[var(--d-surface)] px-4 py-2 font-bold whitespace-nowrap shadow-lg">
         <Car className="size-4" style={{ color: VIOLET }} />
         <span className="drive-sora">Coligo Drive · suivi en direct</span>
       </div>
-      <div className="absolute inset-x-0 bottom-0 z-10 rounded-t-[26px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))]">
+      <div className="rounded-t-panel-lg absolute inset-x-0 bottom-0 z-10 border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(20px+env(safe-area-inset-bottom))]">
         <div className="mb-3 flex items-center gap-3">
           <span
             className="drive-sora grid size-[46px] shrink-0 place-items-center rounded-full text-lg font-extrabold text-white"
@@ -100,23 +100,23 @@ export function ShareTrackView({ token }: { token: string }) {
             {ride.ch_name?.[0]?.toUpperCase() ?? "?"}
           </span>
           <span className="min-w-0 flex-1">
-            <b className="drive-sora block text-[16px] font-extrabold">
+            <b className="drive-sora text-title block font-extrabold">
               {ride.ch_name ?? "Chauffeur"}
               {ride.ch_rating != null
                 ? ` · ★ ${String(ride.ch_rating).replace(".", ",")}`
                 : ""}
             </b>
-            <small className="text-[11.5px] text-[var(--d-muted)]">
+            <small className="text-caption-lg text-[var(--d-muted)]">
               {ride.ch_vehicle ?? ""}
             </small>
           </span>
           {ride.ch_plate && (
-            <span className="drive-sora drive-plate shrink-0 rounded-[7px] border-2 px-2.5 py-1 text-[12.5px] font-extrabold tracking-[2px]">
+            <span className="drive-sora drive-plate text-label-lg shrink-0 rounded-[7px] border-2 px-2.5 py-1 font-extrabold tracking-[2px]">
               {ride.ch_plate}
             </span>
           )}
         </div>
-        <div className="rounded-[14px] bg-[var(--d-soft)] px-4 py-3 text-[13px] font-semibold">
+        <div className="rounded-card-lg text-body-sm bg-[var(--d-soft)] px-4 py-3 font-semibold">
           {finished ? (
             <span style={{ color: GO }}>
               Course terminée — arrivée à destination ✓
@@ -133,7 +133,7 @@ export function ShareTrackView({ token }: { token: string }) {
             </>
           )}
         </div>
-        <p className="mt-2 text-center text-[10.5px] text-[var(--d-muted)]">
+        <p className="text-micro-lg mt-2 text-center text-[var(--d-muted)]">
           Position mise à jour en continu · partagé via Coligo Drive
         </p>
       </div>

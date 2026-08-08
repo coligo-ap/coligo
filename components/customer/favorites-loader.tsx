@@ -41,10 +41,7 @@ export function FavoritesLoader({ customerId }: { customerId: string }) {
     return (
       <div className="grid grid-cols-1 gap-3 lg:grid-cols-2">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-28 animate-pulse rounded-[16px]"
-          />
+          <div key={i} className="bg-surface-3 h-28 animate-pulse rounded-lg" />
         ))}
       </div>
     );
@@ -52,7 +49,7 @@ export function FavoritesLoader({ customerId }: { customerId: string }) {
 
   if (!data || data.length === 0) {
     return (
-      <div className="border-border bg-surface text-muted rounded-[18px] border px-6 py-14 text-center">
+      <div className="border-border bg-surface text-muted rounded-sheet-lg border px-6 py-14 text-center">
         <Heart className="text-subtle mx-auto mb-3 size-8" />
         <p className="text-foreground font-semibold">{t("noFavoritesYet")}</p>
         <p className="mt-1 text-sm">{t("noFavoritesHint")}</p>

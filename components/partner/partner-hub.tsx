@@ -66,14 +66,14 @@ export function PartnerHub({
   return (
     <div className="mx-auto max-w-2xl space-y-4 p-4 pt-[calc(1rem+env(safe-area-inset-top))]">
       {/* ===== HERO ===== */}
-      <div className="border-border relative overflow-hidden rounded-[20px] border bg-white p-5">
+      <div className="border-border relative overflow-hidden rounded-xl border bg-white p-5">
         <div className="flex items-start justify-between gap-3">
           <div className="flex min-w-0 items-center gap-2">
             <span className="bg-primary-50 text-primary-700 flex size-10 shrink-0 items-center justify-center rounded-2xl">
               <Store className="size-5" />
             </span>
             <div className="min-w-0">
-              <p className="text-foreground flex items-center gap-1.5 text-[15px] leading-tight font-bold">
+              <p className="text-foreground text-title-sm flex items-center gap-1.5 leading-tight font-bold">
                 <span className="truncate">{displayName}</span>
                 {isVerified && (
                   <BadgeCheck
@@ -121,7 +121,7 @@ export function PartnerHub({
         </div>
 
         {status === "pending" && (
-          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-3 flex items-start gap-2 rounded-[12px] border p-2.5 text-xs font-semibold">
+          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-3 flex items-start gap-2 rounded-md border p-2.5 text-xs font-semibold">
             <Clock className="mt-0.5 size-3.5 shrink-0" />
             <span>
               Demande en cours d&apos;examen. Complétez votre dossier ci-dessous
@@ -130,7 +130,7 @@ export function PartnerHub({
           </div>
         )}
         {status === "rejected" && (
-          <div className="border-danger-200 bg-danger-50 text-danger-700 mt-3 flex items-start gap-2 rounded-[12px] border p-2.5 text-xs font-semibold">
+          <div className="border-danger-200 bg-danger-50 text-danger-700 mt-3 flex items-start gap-2 rounded-md border p-2.5 text-xs font-semibold">
             <XCircle className="mt-0.5 size-3.5 shrink-0" />
             <span>
               Dossier refusé{rejectedReason ? ` : ${rejectedReason}` : ""}.
@@ -139,7 +139,7 @@ export function PartnerHub({
           </div>
         )}
         {(status === "suspended" || status === "disabled") && (
-          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-3 flex items-start gap-2 rounded-[12px] border p-2.5 text-xs font-semibold">
+          <div className="border-warning-200 bg-warning-50 text-warning-800 mt-3 flex items-start gap-2 rounded-md border p-2.5 text-xs font-semibold">
             <AlertTriangle className="mt-0.5 size-3.5 shrink-0" />
             <span>
               Compte {status === "suspended" ? "suspendu" : "désactivé"} —
@@ -157,7 +157,7 @@ export function PartnerHub({
           `prefetch` + `loading.tsx` sur chaque route : le tap ouvre l'écran
           immédiatement, les données arrivent derrière. */}
       {isActive && (
-        <nav className="border-border bg-surface overflow-hidden rounded-[16px] border">
+        <nav className="border-border bg-surface overflow-hidden rounded-lg border">
           <HubRow
             href="/partenaire/vendre"
             icon={Send}
@@ -225,15 +225,15 @@ function HubRow({
       className={`hover:bg-surface-2 flex items-center gap-3 px-4 py-3.5 transition-colors ${last ? "" : "border-border border-b"}`}
     >
       <span
-        className={`grid size-9 shrink-0 place-items-center rounded-[11px] ${accent ? "bg-primary-600 text-white" : "bg-primary-50 text-primary-700"}`}
+        className={`rounded-control-lg grid size-9 shrink-0 place-items-center ${accent ? "bg-primary-600 text-white" : "bg-primary-50 text-primary-700"}`}
       >
         <Icon className="size-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
-        <b className="text-foreground block truncate text-[13.5px] font-bold">
+        <b className="text-foreground text-body block truncate font-bold">
           {title}
         </b>
-        <small className="text-muted block truncate text-[11.5px]">
+        <small className="text-muted text-caption-lg block truncate">
           {desc}
         </small>
       </span>
@@ -252,8 +252,8 @@ function HeroChip({
   value: string;
 }) {
   return (
-    <div className="border-border bg-surface-2 rounded-[12px] border p-2">
-      <span className="text-muted flex items-center gap-1 text-[10px]">
+    <div className="border-border bg-surface-2 rounded-md border p-2">
+      <span className="text-muted text-micro flex items-center gap-1">
         {icon} {label}
       </span>
       <p className="text-foreground mt-0.5 text-sm font-bold tabular-nums">

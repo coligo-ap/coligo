@@ -67,7 +67,7 @@ export function IdvVerifyCard({
             type="button"
             onClick={askHumanReview}
             disabled={pending}
-            className="flex h-[46px] w-full items-center justify-center gap-2 rounded-[14px] border text-[13.5px] font-bold disabled:opacity-50"
+            className="rounded-card-lg text-body flex h-[46px] w-full items-center justify-center gap-2 border font-bold disabled:opacity-50"
             style={{
               borderColor: "var(--idv-line)",
               background: "var(--idv-card)",
@@ -86,7 +86,7 @@ export function IdvVerifyCard({
           </button>
           {error && (
             <p
-              className="text-[12px] font-bold"
+              className="text-label font-bold"
               style={{ color: "var(--idv-bad)" }}
             >
               {error}

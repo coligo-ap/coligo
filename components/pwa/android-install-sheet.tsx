@@ -21,7 +21,7 @@ export function AndroidInstallSheet({ onClose }: { onClose: () => void }) {
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className="border-border w-full max-w-md overflow-hidden rounded-t-[18px] border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[18px] sm:pb-0"
+        className="border-border rounded-t-sheet-lg sm:rounded-sheet-lg w-full max-w-md overflow-hidden border bg-white pb-[env(safe-area-inset-bottom)] shadow-2xl sm:pb-0"
       >
         <div className="from-primary-600 to-primary-700 relative bg-gradient-to-br p-5 text-white">
           <button
@@ -59,7 +59,7 @@ export function AndroidInstallSheet({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex h-10 w-full items-center justify-center rounded-[10px] px-5 text-sm font-medium text-white"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-10 w-full items-center justify-center px-5 text-sm font-medium text-white"
           >
             {t("done")}
           </button>
@@ -94,17 +94,17 @@ export function AndroidIcon({ className }: { className?: string }) {
 /** Mockup de la barre du navigateur Android avec le menu ⋮ mis en évidence. */
 function BrowserMenuMockup({ label }: { label: string }) {
   return (
-    <div className="border-border w-full max-w-xs rounded-[16px] border bg-white p-3 shadow-sm">
+    <div className="border-border w-full max-w-xs rounded-lg border bg-white p-3 shadow-sm">
       <div className="flex items-center gap-2">
         <div className="bg-surface-2 flex flex-1 items-center gap-2 rounded-full px-3 py-2 text-xs">
           <span className="bg-success-500 inline-block size-1.5 rounded-full" />
           <span className="text-muted truncate font-medium">coligo.app</span>
         </div>
-        <div className="border-primary-400 bg-primary-50 ring-primary-200 text-primary-700 inline-flex size-9 animate-pulse items-center justify-center rounded-[10px] border-2 ring-4">
+        <div className="border-primary-400 bg-primary-50 ring-primary-200 text-primary-700 rounded-control inline-flex size-9 animate-pulse items-center justify-center border-2 ring-4">
           <MoreVertical className="size-4" />
         </div>
       </div>
-      <div className="text-muted mt-3 flex items-center justify-center gap-1.5 text-[11px]">
+      <div className="text-muted text-caption mt-3 flex items-center justify-center gap-1.5">
         <SquarePlus className="text-primary-600 size-3.5" />
         <span>{label}</span>
       </div>

@@ -66,7 +66,7 @@ export function OrderReassign({
   }
 
   return (
-    <div className="border-border bg-surface-2 mt-2 space-y-2 rounded-[12px] border p-3">
+    <div className="border-border bg-surface-2 mt-2 space-y-2 rounded-md border p-3">
       <p className="text-muted text-xs font-semibold uppercase">
         Retirer cette commande au livreur
       </p>
@@ -95,7 +95,7 @@ export function OrderReassign({
         <select
           value={target}
           onChange={(e) => setTarget(e.target.value)}
-          className="border-border bg-surface h-9 min-w-0 flex-1 rounded-[10px] border px-2 text-sm"
+          className="border-border bg-surface rounded-control h-9 min-w-0 flex-1 border px-2 text-sm"
         >
           <option value="">Attribuer à un livreur…</option>
           {candidates.map((c) => (

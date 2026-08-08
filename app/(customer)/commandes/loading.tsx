@@ -10,13 +10,10 @@ export default function OrdersListLoading() {
         <div className="bg-surface-3 h-7 w-44 animate-pulse rounded-lg" />
         <div className="bg-surface-3 h-4 w-60 animate-pulse rounded" />
       </div>
-      <div className="bg-surface-3 h-10 w-56 animate-pulse rounded-[12px]" />
+      <div className="bg-surface-3 h-10 w-56 animate-pulse rounded-md" />
       <div className="mt-4 space-y-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-24 animate-pulse rounded-[16px]"
-          />
+          <div key={i} className="bg-surface-3 h-24 animate-pulse rounded-lg" />
         ))}
       </div>
     </div>

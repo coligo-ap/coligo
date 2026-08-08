@@ -34,14 +34,14 @@ export function SettingsSection({
   const [open, setOpen] = useState(defaultOpen);
 
   return (
-    <section className="border-border bg-surface overflow-hidden rounded-[16px] border">
+    <section className="border-border bg-surface overflow-hidden rounded-lg border">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
         className="hover:bg-surface-2 flex w-full items-center gap-3 px-4 py-4 text-left transition-colors lg:px-5"
       >
-        <div className="bg-primary-50 text-primary-700 flex size-9 shrink-0 items-center justify-center rounded-[10px] [&>svg]:size-4">
+        <div className="bg-primary-50 text-primary-700 rounded-control flex size-9 shrink-0 items-center justify-center [&>svg]:size-4">
           {icon}
         </div>
         <div className="min-w-0 flex-1">

@@ -43,7 +43,7 @@ export function BarcodeField({
           disabled={disabled}
           title="Scanner avec la caméra"
           aria-label="Scanner le code-barres avec la caméra"
-          className="border-border-strong text-foreground hover:bg-surface-2 grid size-12 shrink-0 place-items-center rounded-[12px] border disabled:opacity-50"
+          className="border-border-strong text-foreground hover:bg-surface-2 grid size-12 shrink-0 place-items-center rounded-md border disabled:opacity-50"
         >
           <ScanBarcode className="size-5" />
         </button>
@@ -56,7 +56,7 @@ export function BarcodeField({
         <Portal>
           <div className="fixed inset-0 z-[120] flex flex-col bg-black">
             <div className="flex items-center justify-between px-4 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-2">
-              <p className="text-[15px] font-extrabold text-white">
+              <p className="text-title-sm font-extrabold text-white">
                 Scanner le code-barres
               </p>
               <button
@@ -79,9 +79,9 @@ export function BarcodeField({
                     setOpen(false);
                   }
                 }}
-                className="aspect-[7/5] w-full max-w-[360px] overflow-hidden rounded-[24px]"
+                className="rounded-panel aspect-[7/5] w-full max-w-[360px] overflow-hidden"
               />
-              <p className="mt-4 max-w-[300px] text-center text-[13px] font-semibold text-white/85">
+              <p className="text-body-sm mt-4 max-w-[300px] text-center font-semibold text-white/85">
                 Visez le code-barres du produit.
               </p>
             </div>

@@ -106,7 +106,7 @@ export default async function DriverGainsPage({
  */
 function ClaimsSection({ claims, isAr }: { claims: Claim[]; isAr: boolean }) {
   return (
-    <section className="mb-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
+    <section className="rounded-sheet-lg mb-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-4">
       <h2 className="text-sm font-semibold text-[var(--d-ink)]">
         {isAr
           ? "سلفات عدم الاستلام (مصادقة الدعم)"
@@ -153,7 +153,7 @@ function ClaimBadge({
   const [label, cls] = map[status];
   return (
     <span
-      className={`rounded-full px-2 py-0.5 text-[11px] font-semibold ${cls}`}
+      className={`text-caption rounded-full px-2 py-0.5 font-semibold ${cls}`}
     >
       {label}
     </span>

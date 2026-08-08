@@ -70,14 +70,14 @@ export function DeleteAccountScreen({
   return (
     <div className="space-y-4 px-4 py-5">
       {/* Ce qui va se passer — encart d'avertissement. */}
-      <section className="border-danger-200 bg-danger-50 rounded-[16px] border p-4">
+      <section className="border-danger-200 bg-danger-50 rounded-lg border p-4">
         <div className="flex items-start gap-3">
           <AlertTriangle className="text-danger-700 mt-0.5 size-5 shrink-0" />
           <div className="min-w-0">
             <p className="text-danger-800 text-sm font-extrabold">
               {t("delIrreversible")}
             </p>
-            <ul className="text-danger-700 mt-2 list-disc space-y-1.5 ps-4 text-[13px] leading-snug">
+            <ul className="text-danger-700 text-body-sm mt-2 list-disc space-y-1.5 ps-4 leading-snug">
               <li>{t("delBulletProfile")}</li>
               <li>{t("delBulletHistory")}</li>
               <li>{t("delBulletBalance")}</li>
@@ -89,7 +89,7 @@ export function DeleteAccountScreen({
 
       {/* Solde restant — affiché seulement s'il y a de l'argent à perdre. */}
       {balance > 0 && (
-        <section className="border-border bg-surface rounded-[16px] border p-4">
+        <section className="border-border bg-surface rounded-lg border p-4">
           <p className="text-sm font-bold">
             {t("delBalanceWarn", { amount: formatDA(balance) })}
           </p>
@@ -99,18 +99,18 @@ export function DeleteAccountScreen({
 
       {blocked ? (
         /* Commande / course en vol : pas de suppression possible maintenant. */
-        <section className="border-border bg-surface rounded-[16px] border p-4">
+        <section className="border-border bg-surface rounded-lg border p-4">
           <div className="flex items-start gap-3">
             <ShieldX className="text-muted mt-0.5 size-5 shrink-0" />
             <p className="text-sm font-semibold">{t("delBlockedActive")}</p>
           </div>
         </section>
       ) : (
-        <section className="border-border bg-surface space-y-4 rounded-[16px] border p-4">
+        <section className="border-border bg-surface space-y-4 rounded-lg border p-4">
           <div>
             <label
               htmlFor="delete-confirm-word"
-              className="block text-[13px] leading-snug font-medium"
+              className="text-body-sm block leading-snug font-medium"
             >
               {t("delTypeToConfirm", { word: confirmWord })}
             </label>
@@ -123,13 +123,13 @@ export function DeleteAccountScreen({
               autoComplete="off"
               autoCapitalize="none"
               spellCheck={false}
-              className="border-border bg-surface-2 focus:border-danger-500 focus:ring-danger-500/15 mt-2 w-full rounded-[12px] border px-3.5 py-3 text-sm font-bold outline-none focus:ring-2"
+              className="border-border bg-surface-2 focus:border-danger-500 focus:ring-danger-500/15 mt-2 w-full rounded-md border px-3.5 py-3 text-sm font-bold outline-none focus:ring-2"
             />
           </div>
 
           {/* Erreur INLINE au-dessus du bouton (jamais de toast). */}
           {error && (
-            <p className="text-danger-700 bg-danger-50 rounded-[10px] px-3 py-2 text-[13px] font-semibold">
+            <p className="text-danger-700 bg-danger-50 rounded-control text-body-sm px-3 py-2 font-semibold">
               {error}
             </p>
           )}
@@ -138,7 +138,7 @@ export function DeleteAccountScreen({
             type="button"
             onClick={onDelete}
             disabled={!confirmed || submitting}
-            className="bg-danger-600 hover:bg-danger-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-bold text-white transition-colors disabled:opacity-50"
+            className="bg-danger-600 hover:bg-danger-700 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md text-sm font-bold text-white transition-colors disabled:opacity-50"
           >
             {submitting ? (
               <Loader2 className="size-4 animate-spin" />

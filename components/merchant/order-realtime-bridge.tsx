@@ -480,7 +480,7 @@ export function OrderRealtimeBridge({
           aria-label="Commande annulée par le client"
           className="bg-danger-700/95 fixed inset-0 z-[97] flex items-center justify-center px-4 pt-[calc(env(safe-area-inset-top)+1rem)] pb-[calc(env(safe-area-inset-bottom)+1rem)] backdrop-blur-sm"
         >
-          <div className="w-full max-w-sm rounded-[20px] bg-white p-6 text-center shadow-2xl">
+          <div className="w-full max-w-sm rounded-xl bg-white p-6 text-center shadow-2xl">
             <div className="bg-danger-100 text-danger-700 mx-auto grid size-14 place-items-center rounded-full">
               <Ban className="size-7" />
             </div>
@@ -499,7 +499,7 @@ export function OrderRealtimeBridge({
             <button
               type="button"
               onClick={() => setCancelledAlert(null)}
-              className="bg-foreground mt-5 inline-flex h-12 w-full items-center justify-center rounded-[14px] text-base font-bold text-white"
+              className="bg-foreground rounded-card-lg mt-5 inline-flex h-12 w-full items-center justify-center text-base font-bold text-white"
             >
               Compris
             </button>

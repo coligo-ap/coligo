@@ -42,7 +42,7 @@ const PARTNER_ROLES: PartnerRole[] = [
     desc: "Vendez vos produits et recevez vos commandes en direct.",
     descAr: "بِع منتجاتك واستقبل طلباتك مباشرة.",
     icon: Store,
-    gradient: "from-[#5B2EFF] to-[#6C2BD9]",
+    gradient: "from-[#5B2EFF] to-primary-600",
     href: "/login",
   },
   {
@@ -62,7 +62,7 @@ const PARTNER_ROLES: PartnerRole[] = [
     desc: "Livrez les commandes et gérez vos tournées.",
     descAr: "وصّل الطلبات وأدر جولاتك.",
     icon: Truck,
-    gradient: "from-[#EC4899] to-[#FF2D7A]",
+    gradient: "from-[#EC4899] to-accent-500",
     href: "/driver/login",
   },
   {
@@ -85,7 +85,7 @@ const PARTNER_ROLES: PartnerRole[] = [
 // `min-h-[44px]` : ce bouton vit dans le bandeau des écrans d'auth, où il est la
 // seule cible tactile à côté du logo. Il faisait 30 px de haut.
 const DEFAULT_TRIGGER_CLASS =
-  "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex min-h-[44px] items-center gap-1.5 rounded-[10px] border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
+  "border-primary-600 text-primary-700 hover:bg-primary-600/10 inline-flex min-h-[44px] items-center gap-1.5 rounded-control border px-3 py-1.5 text-xs font-medium transition-colors lg:text-sm";
 
 export function PartnerSheetButton({
   label,
@@ -166,7 +166,7 @@ export function PartnerSheetButton({
             <div
               ref={panelRef}
               tabIndex={-1}
-              className="partner-sheet-in bg-surface flex w-full max-w-md flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:rounded-[20px]"
+              className="partner-sheet-in bg-surface flex w-full max-w-md flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl outline-none sm:rounded-xl"
             >
               {/* Poignée (mobile) */}
               <div className="flex justify-center pt-3 sm:hidden" aria-hidden>
@@ -206,11 +206,11 @@ export function PartnerSheetButton({
                       <Link
                         href={role.href}
                         onClick={close}
-                        className="group hover:bg-surface-2 focus-visible:bg-surface-2 flex items-center gap-3.5 rounded-[14px] p-3 transition-colors outline-none"
+                        className="group hover:bg-surface-2 focus-visible:bg-surface-2 rounded-card-lg flex items-center gap-3.5 p-3 transition-colors outline-none"
                       >
                         <span
                           className={cn(
-                            "flex size-12 shrink-0 items-center justify-center rounded-[14px] bg-gradient-to-br text-white shadow-sm",
+                            "rounded-card-lg flex size-12 shrink-0 items-center justify-center bg-gradient-to-br text-white shadow-sm",
                             role.gradient
                           )}
                         >

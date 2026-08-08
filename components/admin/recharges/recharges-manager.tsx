@@ -105,7 +105,7 @@ function Section({
   return (
     <section
       data-alert-focus={focus}
-      className="border-border bg-surface rounded-[16px] border p-5"
+      className="border-border bg-surface rounded-lg border p-5"
     >
       <div className="mb-4 flex items-start gap-3">
         <span className="bg-primary-50 text-primary-600 flex size-9 shrink-0 items-center justify-center rounded-full">
@@ -162,7 +162,7 @@ export function RechargesManager({
     <div className="space-y-4">
       <ActionNote note={note} />
       {/* Bandeau explicatif du flux */}
-      <div className="border-primary-200 bg-primary-50 rounded-[16px] border p-4">
+      <div className="border-primary-200 bg-primary-50 rounded-lg border p-4">
         <p className="text-primary-800 mb-2 text-sm font-bold">
           Comment fonctionne ce module
         </p>
@@ -174,7 +174,7 @@ export function RechargesManager({
             "Les seuils négatifs par rôle et le plafond de recharge se règlent en bas.",
           ].map((t, i) => (
             <div key={i} className="flex gap-2">
-              <span className="bg-primary-600 flex size-5 shrink-0 items-center justify-center rounded-full text-[11px] font-bold text-white">
+              <span className="bg-primary-600 text-caption flex size-5 shrink-0 items-center justify-center rounded-full font-bold text-white">
                 {i + 1}
               </span>
               <p className="text-primary-900 text-xs">{t}</p>
@@ -216,7 +216,7 @@ export function RechargesManager({
           </Button>
         </div>
         {!gatingActive && (
-          <p className="text-warning-700 bg-warning-100 mt-3 flex items-start gap-2 rounded-[12px] p-3 text-xs">
+          <p className="text-warning-700 bg-warning-100 mt-3 flex items-start gap-2 rounded-md p-3 text-xs">
             <ShieldAlert className="mt-0.5 size-4 shrink-0" />
             N’activez le blocage qu’une fois les canaux de recharge en place,
             pour ne pas bloquer un opérateur sans moyen de se renflouer.
@@ -344,9 +344,9 @@ function CreatePartnerForm({
     : merchants;
 
   return (
-    <div className="border-border bg-surface-2 space-y-3 rounded-[14px] border p-4">
+    <div className="border-border bg-surface-2 rounded-card-lg space-y-3 border p-4">
       {/* Choix du mode */}
-      <div className="bg-surface flex gap-1 rounded-[10px] p-1 text-sm">
+      <div className="bg-surface rounded-control flex gap-1 p-1 text-sm">
         {(["new", "promote"] as const).map((m) => (
           <button
             key={m}
@@ -354,8 +354,8 @@ function CreatePartnerForm({
             onClick={() => setMode(m)}
             className={
               mode === m
-                ? "bg-primary-600 flex-1 rounded-[8px] px-3 py-1.5 font-semibold text-white"
-                : "text-muted flex-1 rounded-[8px] px-3 py-1.5 font-medium"
+                ? "bg-primary-600 flex-1 rounded-sm px-3 py-1.5 font-semibold text-white"
+                : "text-muted flex-1 rounded-sm px-3 py-1.5 font-medium"
             }
           >
             {m === "new"
@@ -373,7 +373,7 @@ function CreatePartnerForm({
             onChange={(e) => setMerchQuery(e.target.value)}
             placeholder="Rechercher un commerçant…"
           />
-          <div className="border-border divide-border max-h-48 divide-y overflow-y-auto rounded-[10px] border">
+          <div className="border-border divide-border rounded-control max-h-48 divide-y overflow-y-auto border">
             {filtered.length === 0 ? (
               <p className="text-muted p-3 text-xs">
                 Aucun commerçant avec position GPS.
@@ -486,7 +486,7 @@ function CreatePartnerForm({
           </div>
           <div className="space-y-1 sm:col-span-2">
             <Label>Position sur la carte (recherche + clic)</Label>
-            <div className="h-64 overflow-hidden rounded-[12px]">
+            <div className="h-64 overflow-hidden rounded-md">
               <MapPositionPicker
                 searchEnabled
                 searchPlaceholder="Chercher une adresse, un lieu…"
@@ -576,7 +576,7 @@ function PartnerItem({
     });
   };
   return (
-    <li className="border-border rounded-[14px] border p-4">
+    <li className="border-border rounded-card-lg border p-4">
       <div className="flex flex-wrap items-start justify-between gap-2">
         <div className="min-w-0">
           <p className="text-foreground flex items-center gap-2 text-sm font-semibold">
@@ -651,7 +651,7 @@ function PartnerItem({
       </div>
 
       {docsOpen && (
-        <div className="bg-surface-2 mt-3 space-y-2 rounded-[12px] p-3">
+        <div className="bg-surface-2 mt-3 space-y-2 rounded-md p-3">
           {p.docs.length === 0 ? (
             <p className="text-muted text-xs">Aucune pièce justificative.</p>
           ) : (
@@ -678,7 +678,7 @@ function PartnerItem({
             <select
               value={docKind}
               onChange={(e) => setDocKind(e.target.value)}
-              className="border-border bg-surface rounded-[10px] border px-2 py-1.5 text-sm"
+              className="border-border bg-surface rounded-control border px-2 py-1.5 text-sm"
             >
               <option value="registre_commerce">Registre de commerce</option>
               <option value="piece_identite">Pièce d&apos;identité</option>
@@ -703,7 +703,7 @@ function PartnerItem({
         </div>
       )}
       {credit && (
-        <div className="bg-surface-2 mt-3 grid gap-2 rounded-[12px] p-3 sm:grid-cols-[1fr_1fr_auto]">
+        <div className="bg-surface-2 mt-3 grid gap-2 rounded-md p-3 sm:grid-cols-[1fr_1fr_auto]">
           <Input
             value={amount}
             onChange={(e) => setAmount(e.target.value)}
@@ -715,7 +715,7 @@ function PartnerItem({
             onChange={(e) =>
               setType(e.target.value as "topup_manual" | "bonus" | "adjustment")
             }
-            className="border-border bg-surface rounded-[10px] border px-2 text-sm"
+            className="border-border bg-surface rounded-control border px-2 text-sm"
           >
             <option value="bonus">Bonus</option>
             <option value="topup_manual">Recharge</option>

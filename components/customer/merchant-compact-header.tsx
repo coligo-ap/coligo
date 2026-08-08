@@ -326,7 +326,7 @@ export function MerchantCompactHeader({
           >
             <ShoppingCart className="size-[18px]" />
             {cartCount > 0 && (
-              <span className="bg-success-600 absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 text-[9px] font-extrabold text-white">
+              <span className="bg-success-600 text-nano absolute -end-0.5 -top-0.5 grid h-4 min-w-[16px] place-items-center rounded-full border-2 border-white px-0.5 font-extrabold text-white">
                 {cartCount}
               </span>
             )}
@@ -376,7 +376,7 @@ export function MerchantCompactHeader({
           type="button"
           onClick={() => setShowHours(true)}
           className={cn(
-            "absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-56px)] items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-extrabold text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] transition-transform active:scale-[0.96] lg:start-5",
+            "text-label absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-56px)] items-center gap-1 rounded-full px-2.5 py-1 font-extrabold text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] transition-transform active:scale-[0.96] lg:start-5",
             isOpen ? "bg-[#2B8659]" : "bg-rose-600"
           )}
         >
@@ -394,7 +394,7 @@ export function MerchantCompactHeader({
               arrondis qui chevauche la couverture, LOGO centré À CHEVAL entre
               la photo et la feuille, NOM centré, « Plus d'infos » juste
               dessous. Le ♡ favori reste accessible au coin de la feuille. ───── */}
-      <div className="relative z-[1] -mx-4 -mt-5 rounded-t-[24px] bg-white px-4 pt-2 lg:-mx-6 lg:px-6">
+      <div className="rounded-t-panel relative z-[1] -mx-4 -mt-5 bg-white px-4 pt-2 lg:-mx-6 lg:px-6">
         {/* LOGO centré, moitié sur la couverture / moitié sur la feuille. */}
         <div className="pointer-events-none absolute inset-x-0 -top-9 flex justify-center lg:-top-10">
           {logoOptimized ? (
@@ -430,14 +430,14 @@ export function MerchantCompactHeader({
             {name}
           </h1>
           {categoryLabel && (
-            <p className="text-muted mt-0.5 truncate text-[13px] font-medium">
+            <p className="text-muted text-body-sm mt-0.5 truncate font-medium">
               {categoryLabel}
             </p>
           )}
           <button
             type="button"
             onClick={() => setShowHours(true)}
-            className="text-foreground mt-1.5 inline-flex items-center gap-1 text-[15px] font-extrabold"
+            className="text-foreground text-title-sm mt-1.5 inline-flex items-center gap-1 font-extrabold"
           >
             {t("moreInfo")}
             <ChevronDown className="size-4 -rotate-90 rtl:rotate-90" />
@@ -461,21 +461,21 @@ export function MerchantCompactHeader({
             onClick={() => setShowHours(true)}
             className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5 transition-opacity active:opacity-70"
           >
-            <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold">
+            <span className="text-foreground text-title-sm inline-flex items-center gap-1 font-extrabold">
               <ShoppingBasket className="size-4" />
               {t("statFree")}
             </span>
-            <span className="text-muted text-[12px] font-medium">
+            <span className="text-muted text-label font-medium">
               {t("statPickup")}
             </span>
           </button>
           {prep_time_min > 0 && (
             <div className="flex min-w-0 flex-1 flex-col items-center justify-center gap-0.5">
-              <span className="text-foreground inline-flex items-center gap-1 text-[15px] font-extrabold tabular-nums">
+              <span className="text-foreground text-title-sm inline-flex items-center gap-1 font-extrabold tabular-nums">
                 <Timer className="size-4" />
                 {prep_time_min}
               </span>
-              <span className="text-muted text-[12px] font-medium">
+              <span className="text-muted text-label font-medium">
                 {t("statMin")}
               </span>
             </div>
@@ -583,7 +583,7 @@ function MoreInfoSheet({
         }}
       >
         <div
-          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col rounded-t-[24px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]"
+          className="bg-surface partner-sheet-in rounded-t-panel sm:rounded-panel flex max-h-[85vh] w-full max-w-md flex-col pb-[env(safe-area-inset-bottom)] shadow-xl"
           role="dialog"
           aria-modal="true"
         >
@@ -602,7 +602,7 @@ function MoreInfoSheet({
               </h2>
               <p
                 className={cn(
-                  "mt-0.5 inline-flex items-center gap-1.5 text-[13px] font-extrabold",
+                  "text-body-sm mt-0.5 inline-flex items-center gap-1.5 font-extrabold",
                   isOpen ? "text-success-700" : "text-rose-600"
                 )}
               >
@@ -632,7 +632,7 @@ function MoreInfoSheet({
               type="button"
               onClick={() => setShowWeek((v) => !v)}
               aria-expanded={showWeek}
-              className="border-border flex w-full items-center gap-2 rounded-[14px] border px-3.5 py-3 text-start"
+              className="border-border rounded-card-lg flex w-full items-center gap-2 border px-3.5 py-3 text-start"
             >
               <span
                 className={cn(
@@ -640,7 +640,7 @@ function MoreInfoSheet({
                   isOpen ? "bg-success-500" : "bg-rose-500"
                 )}
               />
-              <span className="min-w-0 flex-1 text-[13.5px]">
+              <span className="text-body min-w-0 flex-1">
                 <b className={isOpen ? "text-success-700" : "text-rose-600"}>
                   {isOpen ? t("openNowShort") : t("closedNowShort")}
                 </b>
@@ -659,7 +659,7 @@ function MoreInfoSheet({
               />
             </button>
             {showWeek && (
-              <ul className="border-border divide-border mt-2 divide-y rounded-[14px] border">
+              <ul className="border-border divide-border rounded-card-lg mt-2 divide-y border">
                 {DAY_KEYS.map((d) => {
                   const slots = openingHours[d] ?? [];
                   const isToday = d === todayKey;
@@ -667,7 +667,7 @@ function MoreInfoSheet({
                     <li
                       key={d}
                       className={cn(
-                        "flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px] first:rounded-t-[13px] last:rounded-b-[13px]",
+                        "text-body-sm first:rounded-t-card last:rounded-b-card flex items-center justify-between gap-2 px-3.5 py-2.5",
                         isToday && "bg-primary-50"
                       )}
                     >
@@ -676,7 +676,7 @@ function MoreInfoSheet({
                         {isToday && (
                           <span
                             className={cn(
-                              "rounded-full px-1.5 py-px text-[9px] font-extrabold",
+                              "text-nano rounded-full px-1.5 py-px font-extrabold",
                               isOpen
                                 ? "bg-success-100 text-success-700"
                                 : "bg-stone-200 text-stone-600"
@@ -709,7 +709,7 @@ function MoreInfoSheet({
             )}
 
             {/* 2) SERVICES — badges (retrait, livraisons, paiements). */}
-            <p className="text-muted mt-4 mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+            <p className="text-muted text-caption mt-4 mb-1.5 font-bold tracking-wide uppercase">
               {t("servicesLabel")}
             </p>
             <div className="flex flex-wrap gap-1.5">
@@ -745,7 +745,7 @@ function MoreInfoSheet({
               </div>
             ) : (
               addressLine && (
-                <p className="text-muted mt-4 flex items-center gap-1.5 text-[12.5px] font-semibold">
+                <p className="text-muted text-label-lg mt-4 flex items-center gap-1.5 font-semibold">
                   <MapPin className="text-primary-600 size-4 shrink-0" />
                   {address || addressLine}
                 </p>
@@ -756,13 +756,13 @@ function MoreInfoSheet({
             {(descriptionFr || descriptionAr) && (
               <div className="mt-4">
                 {descriptionFr && (
-                  <p className="text-foreground text-[13px] leading-relaxed">
+                  <p className="text-foreground text-body-sm leading-relaxed">
                     {descriptionFr}
                   </p>
                 )}
                 {descriptionAr && (
                   <p
-                    className="text-foreground mt-1 text-[13px] leading-relaxed"
+                    className="text-foreground text-body-sm mt-1 leading-relaxed"
                     dir="rtl"
                   >
                     {descriptionAr}
@@ -774,15 +774,15 @@ function MoreInfoSheet({
             {/* Téléphone (si public) + infos pratiques. */}
             {(phonePublic || minOrderDa > 0 || prepTimeMin > 0) && (
               <div className="mt-4">
-                <p className="text-muted mb-1.5 text-[11px] font-bold tracking-wide uppercase">
+                <p className="text-muted text-caption mb-1.5 font-bold tracking-wide uppercase">
                   {t("practicalInfo")}
                 </p>
-                <ul className="border-border divide-border divide-y rounded-[14px] border">
+                <ul className="border-border divide-border rounded-card-lg divide-y border">
                   {phonePublic && (
                     <li>
                       <a
                         href={`tel:${phonePublic}`}
-                        className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]"
+                        className="text-body-sm flex items-center justify-between gap-2 px-3.5 py-2.5"
                       >
                         <span className="text-muted inline-flex items-center gap-2 font-semibold">
                           <Phone className="size-4" />
@@ -795,7 +795,7 @@ function MoreInfoSheet({
                     </li>
                   )}
                   {minOrderDa > 0 && (
-                    <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
+                    <li className="text-body-sm flex items-center justify-between gap-2 px-3.5 py-2.5">
                       <span className="text-muted inline-flex items-center gap-2 font-semibold">
                         <ShoppingBasket className="size-4" />
                         {t("minBasketLabel")}
@@ -806,7 +806,7 @@ function MoreInfoSheet({
                     </li>
                   )}
                   {prepTimeMin > 0 && (
-                    <li className="flex items-center justify-between gap-2 px-3.5 py-2.5 text-[13px]">
+                    <li className="text-body-sm flex items-center justify-between gap-2 px-3.5 py-2.5">
                       <span className="text-muted inline-flex items-center gap-2 font-semibold">
                         <Timer className="size-4" />
                         {t("prepLabel")}
@@ -826,7 +826,7 @@ function MoreInfoSheet({
                 {tags.slice(0, 8).map((code) => (
                   <span
                     key={code}
-                    className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold"
+                    className="bg-primary-50 text-primary-700 text-caption rounded-full px-2.5 py-0.5 font-bold"
                   >
                     {getTagLabel(code, locale)}
                   </span>
@@ -853,7 +853,7 @@ function ServiceBadge({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[12px] font-bold",
+        "text-label inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 font-bold",
         strong
           ? "bg-success-100 text-success-700"
           : "bg-surface-2 text-foreground"

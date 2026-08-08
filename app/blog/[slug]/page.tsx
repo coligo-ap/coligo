@@ -70,7 +70,7 @@ export default async function BlogArticlePage({
         </Link>
 
         <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-0.5 text-[11px] font-bold">
+          <span className="bg-primary-50 text-primary-700 text-caption rounded-full px-2.5 py-0.5 font-bold">
             {article.category}
           </span>
           <span className="text-subtle text-xs">
@@ -85,7 +85,7 @@ export default async function BlogArticlePage({
         <h1 className="text-foreground mt-3 text-2xl leading-tight font-black tracking-tight text-balance lg:text-3xl">
           {article.title}
         </h1>
-        <p className="text-muted mt-3 text-[15px] leading-relaxed">
+        <p className="text-muted text-title-sm mt-3 leading-relaxed">
           {article.excerpt}
         </p>
 
@@ -96,7 +96,7 @@ export default async function BlogArticlePage({
             alt={article.coverAlt}
             loading="eager"
             decoding="async"
-            className="mt-6 aspect-[21/9] w-full rounded-[20px] object-cover"
+            className="mt-6 aspect-[21/9] w-full rounded-xl object-cover"
           />
         )}
 
@@ -113,7 +113,7 @@ export default async function BlogArticlePage({
                 {section.paragraphs.map((p, j) => (
                   <p
                     key={j}
-                    className="text-foreground/85 text-[15px] leading-[1.75]"
+                    className="text-foreground/85 text-title-sm leading-[1.75]"
                   >
                     {p}
                   </p>
@@ -124,7 +124,7 @@ export default async function BlogArticlePage({
         </article>
 
         {/* CTA doux vers la marketplace */}
-        <div className="cg-brand-gradient mt-10 rounded-[20px] p-6 text-white">
+        <div className="cg-brand-gradient mt-10 rounded-xl p-6 text-white">
           <p className="text-lg font-bold">
             Vos commerces de quartier vous attendent.
           </p>
@@ -152,9 +152,9 @@ export default async function BlogArticlePage({
                 <Link
                   key={a.slug}
                   href={`/blog/${a.slug}`}
-                  className="border-border bg-surface hover:bg-surface-2 block rounded-[16px] border p-4 transition-colors"
+                  className="border-border bg-surface hover:bg-surface-2 block rounded-lg border p-4 transition-colors"
                 >
-                  <span className="text-primary-700 text-[11px] font-bold">
+                  <span className="text-primary-700 text-caption font-bold">
                     {a.category}
                   </span>
                   <p className="text-foreground mt-1 text-sm leading-snug font-semibold">

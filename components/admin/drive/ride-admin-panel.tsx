@@ -65,13 +65,13 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
     });
 
   return (
-    <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+    <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
       <h2 className="text-muted text-xs font-bold uppercase">Gestion</h2>
 
       {feedback && (
         <p
           className={
-            "mt-2 rounded-[10px] px-3 py-2 text-xs font-semibold " +
+            "rounded-control mt-2 px-3 py-2 text-xs font-semibold " +
             (feedback.tone === "ok"
               ? "bg-success-100 text-success-700"
               : "bg-danger-100 text-danger-700")
@@ -87,7 +87,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
             type="button"
             disabled={pending}
             onClick={() => openModal("complete")}
-            className="bg-success-600 hover:bg-success-700 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
+            className="bg-success-600 hover:bg-success-700 rounded-control inline-flex items-center gap-1.5 px-3 py-2 text-xs font-bold text-white disabled:opacity-50"
           >
             <Check className="size-3.5" />
             Clôturer comme terminée
@@ -98,7 +98,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
             type="button"
             disabled={pending}
             onClick={() => openModal("cancel")}
-            className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-bold disabled:opacity-50"
+            className="border-danger-200 text-danger-700 hover:bg-danger-50 rounded-control inline-flex items-center gap-1.5 border px-3 py-2 text-xs font-bold disabled:opacity-50"
           >
             <Ban className="size-3.5" />
             Annuler{ride.escrowDa > 0 ? " + rembourser le séquestre" : ""}
@@ -109,7 +109,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
             type="button"
             disabled={pending}
             onClick={() => openModal("refund")}
-            className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-bold disabled:opacity-50"
+            className="border-border hover:bg-surface-2 rounded-control inline-flex items-center gap-1.5 border px-3 py-2 text-xs font-bold disabled:opacity-50"
           >
             <Wallet className="size-3.5" />
             Rembourser le client ({formatDA(ride.refundRemainingDa)} max)
@@ -120,7 +120,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
             type="button"
             disabled={pending}
             onClick={() => openModal("compensate")}
-            className="border-border hover:bg-surface-2 inline-flex items-center gap-1.5 rounded-[10px] border px-3 py-2 text-xs font-bold disabled:opacity-50"
+            className="border-border hover:bg-surface-2 rounded-control inline-flex items-center gap-1.5 border px-3 py-2 text-xs font-bold disabled:opacity-50"
           >
             <HandCoins className="size-3.5" />
             Indemniser le chauffeur
@@ -130,7 +130,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
 
       {modal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-sm rounded-[18px] p-5 shadow-2xl">
+          <div className="bg-surface rounded-sheet-lg w-full max-w-sm p-5 shadow-2xl">
             <h3 className="text-base font-black">
               {
                 {
@@ -168,7 +168,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
                     ? `Montant (DA, max ${ride.refundRemainingDa})`
                     : "Montant (DA, max 20 000)"
                 }
-                className="border-border bg-surface-2 mt-3 w-full rounded-[12px] border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
+                className="border-border bg-surface-2 mt-3 w-full rounded-md border px-3 py-2.5 text-lg font-bold tabular-nums outline-none"
               />
             )}
 
@@ -177,7 +177,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
               onChange={(e) => setReason(e.target.value.slice(0, 300))}
               rows={2}
               placeholder="Motif (obligatoire, tracé dans l'audit)"
-              className="border-border bg-surface-2 mt-3 w-full resize-none rounded-[12px] border px-3 py-2.5 text-[13px] outline-none"
+              className="border-border bg-surface-2 text-body-sm mt-3 w-full resize-none rounded-md border px-3 py-2.5 outline-none"
             />
 
             <div className="mt-4 flex gap-2">
@@ -185,7 +185,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
                 type="button"
                 onClick={() => setModal(null)}
                 disabled={pending}
-                className="border-border text-muted flex-1 rounded-[12px] border py-2.5 text-sm font-bold"
+                className="border-border text-muted flex-1 rounded-md border py-2.5 text-sm font-bold"
               >
                 Retour
               </button>
@@ -233,7 +233,7 @@ export function RideAdminPanel({ ride }: { ride: PanelRide }) {
                     );
                 }}
                 className={
-                  "inline-flex flex-1 items-center justify-center gap-1 rounded-[12px] py-2.5 text-sm font-bold text-white disabled:opacity-50 " +
+                  "inline-flex flex-1 items-center justify-center gap-1 rounded-md py-2.5 text-sm font-bold text-white disabled:opacity-50 " +
                   (modal === "cancel"
                     ? "bg-danger-600 hover:bg-danger-700"
                     : modal === "complete"

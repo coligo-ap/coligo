@@ -49,7 +49,7 @@ export function NavAppSheet({
       <SheetTitle>
         {tr("Itinéraire vers", "المسار نحو")} {target.label}
       </SheetTitle>
-      <p className="mb-3 text-[13px] text-[var(--d-muted)]">
+      <p className="text-body-sm mb-3 text-[var(--d-muted)]">
         {tr(
           "Choisissez votre application GPS — l'itinéraire s'ouvre directement.",
           "اختر تطبيق GPS — يُفتح المسار مباشرة."
@@ -65,7 +65,7 @@ export function NavAppSheet({
               openNav(a.id, target.lat, target.lng);
               onClose();
             }}
-            className="flex h-[52px] w-full items-center gap-3 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 text-[14px] font-bold"
+            className="rounded-card-lg text-body-lg flex h-[52px] w-full items-center gap-3 border border-[var(--d-line)] bg-[var(--d-surface)] px-4 font-bold"
           >
             <span className="text-xl">{a.emoji}</span> {a.label}
             <span className="ms-auto text-[var(--d-muted)] rtl:-scale-x-100">
@@ -74,7 +74,7 @@ export function NavAppSheet({
           </button>
         ))}
       </div>
-      <label className="mt-3 flex cursor-pointer items-center gap-2 text-[12.5px] font-semibold text-[var(--d-muted)]">
+      <label className="text-label-lg mt-3 flex cursor-pointer items-center gap-2 font-semibold text-[var(--d-muted)]">
         <input
           type="checkbox"
           checked={remember}
@@ -91,7 +91,7 @@ export function NavAppSheet({
             clearNavPref();
             onClose();
           }}
-          className="mt-1 block w-full text-center text-[12px] font-bold"
+          className="text-label mt-1 block w-full text-center font-bold"
           style={{ color: VIOLET }}
         >
           {tr(
@@ -164,14 +164,14 @@ export function DoneScreen({
   return (
     <div className="drive-jakarta drive-screen overflow-y-auto bg-[var(--d-page)] pb-8">
       {/* ── Héro : gain net d'un coup d'œil ── */}
-      <div className="rounded-b-[28px] bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
+      <div className="rounded-b-2xl bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
         <span
           className="drive-pop mx-auto mb-2.5 grid size-14 place-items-center rounded-full"
           style={{ background: "rgba(22,179,100,.12)" }}
         >
           <Check className="size-6" style={{ color: GO }} />
         </span>
-        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
           {tr("Course terminée", "انتهى المشوار")}
         </h1>
         <p
@@ -180,7 +180,7 @@ export function DoneScreen({
         >
           +{formatDA(done.net_da + tip)}
         </p>
-        <p className="mt-1.5 text-[12px] font-semibold text-[var(--d-muted)]">
+        <p className="text-label mt-1.5 font-semibold text-[var(--d-muted)]">
           {done.pickup_text ?? "—"} → {done.dest_text ?? "—"}
         </p>
       </div>
@@ -189,13 +189,13 @@ export function DoneScreen({
         {/* ── Pourboire reçu (apparaît en DIRECT si le client en laisse un) ── */}
         {tip > 0 && (
           <div
-            className="drive-up mt-2.5 flex items-center gap-3 rounded-[16px] p-3"
+            className="drive-up mt-2.5 flex items-center gap-3 rounded-lg p-3"
             style={{ background: "rgba(22,179,100,.12)" }}
           >
-            <span className="drive-pop grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
+            <span className="drive-pop rounded-control-lg grid size-9 shrink-0 place-items-center bg-[var(--d-surface)]">
               <HandCoins className="size-5" style={{ color: GO }} />
             </span>
-            <b className="text-[13.5px]" style={{ color: GO }}>
+            <b className="text-body" style={{ color: GO }}>
               {tr("Pourboire du client", "إكرامية من الزبون")} · +
               {formatDA(tip)}
             </b>
@@ -203,21 +203,21 @@ export function DoneScreen({
         )}
 
         {/* ── Détail du gain ── */}
-        <div className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-1.5">
-          <div className="flex items-center justify-between py-2 text-[13.5px]">
+        <div className="drive-rise rounded-sheet-lg mt-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] px-4 py-1.5">
+          <div className="text-body flex items-center justify-between py-2">
             <span className="text-[var(--d-muted)]">
               {tr("Prix de la course", "ثمن المشوار")}
             </span>
             <span>{formatDA(done.price_da)}</span>
           </div>
-          <div className="flex items-center justify-between border-t border-[var(--d-line)] py-2 text-[13.5px]">
+          <div className="text-body flex items-center justify-between border-t border-[var(--d-line)] py-2">
             <span className="text-[var(--d-muted)]">
               {tr("Commission Coligo", "عمولة كوليغو")} ({pct})
             </span>
             <span style={{ color: RED }}>−{formatDA(done.commission_da)}</span>
           </div>
           {tip > 0 && (
-            <div className="flex items-center justify-between border-t border-[var(--d-line)] py-2 text-[13.5px]">
+            <div className="text-body flex items-center justify-between border-t border-[var(--d-line)] py-2">
               <span className="text-[var(--d-muted)]">
                 {tr("Pourboire", "الإكرامية")}
               </span>
@@ -228,14 +228,14 @@ export function DoneScreen({
 
         {/* ── Encaissement ── */}
         <div
-          className="drive-rise mt-2.5 flex items-center gap-3 rounded-[16px] p-3"
+          className="drive-rise mt-2.5 flex items-center gap-3 rounded-lg p-3"
           style={{ background: "rgba(22,179,100,.12)", animationDelay: ".05s" }}
         >
-          <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
+          <span className="rounded-control-lg grid size-9 shrink-0 place-items-center bg-[var(--d-surface)]">
             <BadgeCheck className="size-5" style={{ color: GO }} />
           </span>
           <span>
-            <b className="block text-[13.5px]" style={{ color: GO }}>
+            <b className="text-body block" style={{ color: GO }}>
               {done.payment_method === "cash"
                 ? tr(
                     "Espèces encaissées auprès du client",
@@ -259,7 +259,7 @@ export function DoneScreen({
                       )}
             </b>
             {done.commission_da > 0 && (
-              <span className="text-[11px] text-[var(--d-muted)]">
+              <span className="text-caption text-[var(--d-muted)]">
                 {tr(
                   "Avec Premium (0 %), vous auriez gardé",
                   "مع Premium (0 %)، لكنت احتفظت بـ"
@@ -272,20 +272,20 @@ export function DoneScreen({
 
         {queued && (
           <div
-            className="drive-rise mt-2.5 flex items-center gap-3 rounded-[16px] p-3"
+            className="drive-rise mt-2.5 flex items-center gap-3 rounded-lg p-3"
             style={{ background: "var(--d-accent)", animationDelay: ".1s" }}
           >
-            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
+            <span className="rounded-control-lg grid size-9 shrink-0 place-items-center bg-[var(--d-surface)]">
               <Zap className="size-4.5" style={{ color: VIOLET }} />
             </span>
             <span>
-              <b className="block text-[13.5px]" style={{ color: VIOLET }}>
+              <b className="text-body block" style={{ color: VIOLET }}>
                 {tr("Course suivante :", "المشوار التالي:")}{" "}
                 {queued.customer_name} ·{" "}
                 {queued.proposed_price_da + queued.boost_amount_da}{" "}
                 {tr("DA", "دج")}
               </b>
-              <span className="text-[11px] text-[var(--d-muted)]">
+              <span className="text-caption text-[var(--d-muted)]">
                 {tr("À", "على بعد")}{" "}
                 {`${(Math.round(queued.pickup_dist_km * 10) / 10).toString().replace(".", ",")} ${tr("km", "كم")}`}{" "}
                 · {tr("le client vous attend", "الزبون في انتظارك")}
@@ -296,10 +296,10 @@ export function DoneScreen({
 
         {/* ── Notation du client (étoiles + libellé) ── */}
         <div
-          className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
+          className="drive-rise rounded-sheet-lg mt-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
           style={{ animationDelay: ".15s" }}
         >
-          <p className="mb-1.5 text-center text-[13px] font-semibold">
+          <p className="text-body-sm mb-1.5 text-center font-semibold">
             {tr("Notez le client", "قيّم الزبون")}
           </p>
           <div className="flex justify-center gap-2.5">
@@ -325,7 +325,7 @@ export function DoneScreen({
             ))}
           </div>
           <p
-            className="mt-1.5 h-4 text-center text-[11.5px] font-bold"
+            className="text-caption-lg mt-1.5 h-4 text-center font-bold"
             style={{ color: rating > 0 ? "#B45309" : "var(--d-muted)" }}
           >
             {rating > 0 ? rateLabels[rating - 1] : " "}
@@ -334,7 +334,7 @@ export function DoneScreen({
 
         {reported ? (
           <div
-            className="mt-3 mb-1 flex items-start gap-2 rounded-[13px] px-3 py-2.5 text-[11.5px] leading-relaxed font-semibold"
+            className="rounded-card text-caption-lg mt-3 mb-1 flex items-start gap-2 px-3 py-2.5 leading-relaxed font-semibold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             <BadgeCheck className="mt-0.5 size-4 shrink-0" />
@@ -346,7 +346,7 @@ export function DoneScreen({
           <button
             type="button"
             onClick={() => setReportOpen(true)}
-            className="mt-3 mb-1 block w-full text-center text-[12.5px] font-bold"
+            className="text-label-lg mt-3 mb-1 block w-full text-center font-bold"
             style={{ color: RED }}
           >
             {tr(

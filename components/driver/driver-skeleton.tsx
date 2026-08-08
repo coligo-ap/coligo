@@ -17,7 +17,7 @@ import { DriverBottomNav } from "./driver-bottom-nav";
 function Bar({ className = "" }: { className?: string }) {
   return (
     <span
-      className={`block animate-pulse rounded-[8px] bg-[var(--soft)] ${className}`}
+      className={`block animate-pulse rounded-sm bg-[var(--soft)] ${className}`}
     />
   );
 }
@@ -39,7 +39,7 @@ function TitleRow() {
   return (
     <div className="flex items-center justify-between">
       <Bar className="h-7 w-36 !rounded-lg" />
-      <Bar className="size-10 !rounded-[13px]" />
+      <Bar className="!rounded-card size-10" />
     </div>
   );
 }
@@ -52,15 +52,15 @@ export function PageSkeleton() {
   return (
     <Shell>
       <TitleRow />
-      <Bar className="h-28 w-full !rounded-[18px]" />
+      <Bar className="!rounded-sheet-lg h-28 w-full" />
       <div className="grid grid-cols-3 gap-2">
-        <Bar className="h-20 !rounded-[14px]" />
-        <Bar className="h-20 !rounded-[14px]" />
-        <Bar className="h-20 !rounded-[14px]" />
+        <Bar className="!rounded-card-lg h-20" />
+        <Bar className="!rounded-card-lg h-20" />
+        <Bar className="!rounded-card-lg h-20" />
       </div>
-      <Bar className="h-16 w-full !rounded-[14px]" />
-      <Bar className="h-16 w-full !rounded-[14px]" />
-      <Bar className="h-16 w-full !rounded-[14px]" />
+      <Bar className="!rounded-card-lg h-16 w-full" />
+      <Bar className="!rounded-card-lg h-16 w-full" />
+      <Bar className="!rounded-card-lg h-16 w-full" />
     </Shell>
   );
 }
@@ -82,7 +82,7 @@ export function HomeSkeleton() {
   return (
     <>
       <div className="above-nav fixed inset-x-3 z-[46] mx-auto max-w-md">
-        <div className="flex items-center gap-3 rounded-[20px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 shadow-xl">
+        <div className="flex items-center gap-3 rounded-xl border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5 shadow-xl">
           <span className="size-11 shrink-0 animate-pulse rounded-full bg-[var(--d-soft)]" />
           <div className="flex-1 space-y-1.5">
             <span className="block h-4 w-24 animate-pulse rounded bg-[var(--d-soft)]" />
@@ -105,11 +105,11 @@ export function MoneyPageSkeleton() {
   return (
     <Shell>
       <TitleRow />
-      <Bar className="h-10 w-full !rounded-[14px]" />
-      <Bar className="h-44 w-full !rounded-[20px]" />
+      <Bar className="!rounded-card-lg h-10 w-full" />
+      <Bar className="h-44 w-full !rounded-xl" />
       <div className="grid grid-cols-2 gap-2.5">
-        <Bar className="h-20 !rounded-[16px]" />
-        <Bar className="h-20 !rounded-[16px]" />
+        <Bar className="h-20 !rounded-lg" />
+        <Bar className="h-20 !rounded-lg" />
       </div>
     </Shell>
   );
@@ -125,13 +125,13 @@ export function BackPageSkeleton() {
   return (
     <Shell>
       <div className="flex items-center gap-3">
-        <Bar className="size-10 !rounded-[13px]" />
+        <Bar className="!rounded-card size-10" />
         <Bar className="h-6 w-40 !rounded-lg" />
       </div>
-      <Bar className="h-24 w-full !rounded-[18px]" />
-      <Bar className="h-16 w-full !rounded-[14px]" />
-      <Bar className="h-16 w-full !rounded-[14px]" />
-      <Bar className="h-16 w-full !rounded-[14px]" />
+      <Bar className="!rounded-sheet-lg h-24 w-full" />
+      <Bar className="!rounded-card-lg h-16 w-full" />
+      <Bar className="!rounded-card-lg h-16 w-full" />
+      <Bar className="!rounded-card-lg h-16 w-full" />
     </Shell>
   );
 }

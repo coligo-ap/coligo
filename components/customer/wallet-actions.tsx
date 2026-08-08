@@ -44,7 +44,7 @@ export function WalletActions({
           panneau retombe alors sur 2 colonnes (Payer + Recharger). */}
       <div
         className={
-          "border-border mt-4 grid gap-1 rounded-[22px] border bg-white p-2 shadow-[0_10px_28px_-18px_rgba(40,35,90,.28)] " +
+          "border-border rounded-sheet-xl mt-4 grid gap-1 border bg-white p-2 shadow-[0_10px_28px_-18px_rgba(40,35,90,.28)] " +
           (p2pEnabled ? "grid-cols-4" : "grid-cols-2")
         }
       >
@@ -112,21 +112,21 @@ function Action({
 }) {
   const t = useTranslations("wallet");
   const inner = (
-    <span className="flex flex-col items-center gap-1.5 rounded-[16px] py-2.5 transition active:scale-95">
+    <span className="flex flex-col items-center gap-1.5 rounded-lg py-2.5 transition active:scale-95">
       <span
         className={
           primary
-            ? "bg-primary-600 grid size-[46px] place-items-center rounded-[14px] text-white shadow-[0_6px_14px_-4px_rgba(91,91,230,.45)]"
-            : "bg-primary-50 text-primary-600 grid size-[46px] place-items-center rounded-[14px]"
+            ? "bg-primary-600 rounded-card-lg grid size-[46px] place-items-center text-white shadow-[0_6px_14px_-4px_rgba(91,91,230,.45)]"
+            : "bg-primary-50 text-primary-600 rounded-card-lg grid size-[46px] place-items-center"
         }
       >
         {icon}
       </span>
-      <span className="text-foreground text-[11.5px] font-extrabold">
+      <span className="text-foreground text-caption-lg font-extrabold">
         {label}
       </span>
       {soon && (
-        <span className="text-muted-foreground text-[9px] font-semibold">
+        <span className="text-muted-foreground text-nano font-semibold">
           {t("comingSoon")}
         </span>
       )}
@@ -134,7 +134,7 @@ function Action({
   );
   if (href && !disabled) {
     return (
-      <Link href={href} className="hover:bg-surface-2 rounded-[16px]">
+      <Link href={href} className="hover:bg-surface-2 rounded-lg">
         {inner}
       </Link>
     );
@@ -144,7 +144,7 @@ function Action({
       type="button"
       onClick={onClick}
       disabled={disabled}
-      className="hover:bg-surface-2 rounded-[16px] disabled:opacity-50"
+      className="hover:bg-surface-2 rounded-lg disabled:opacity-50"
     >
       {inner}
     </button>

@@ -46,7 +46,7 @@ export function SubsTabs({
       <div className={navClassName}>
         <div
           role="tablist"
-          className="flex gap-1 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-soft)] p-1"
+          className="rounded-card-lg flex gap-1 border border-[var(--d-line)] bg-[var(--d-soft)] p-1"
         >
           {tabs.map((t) => (
             <button
@@ -55,7 +55,7 @@ export function SubsTabs({
               role="tab"
               aria-selected={active === t.id}
               onClick={() => setActive(t.id)}
-              className={`flex-1 items-center justify-center rounded-[11px] py-2 text-[12.5px] font-bold transition-colors ${
+              className={`rounded-control-lg text-label-lg flex-1 items-center justify-center py-2 font-bold transition-colors ${
                 active === t.id
                   ? "bg-[var(--d-surface)] text-[var(--d-ink)] shadow-sm"
                   : "text-[var(--d-muted)]"
@@ -65,7 +65,7 @@ export function SubsTabs({
               {t.label}
               {t.badge ? (
                 <span
-                  className="ms-1.5 rounded-full bg-[var(--d-accent)] px-1.5 py-0.5 text-[10.5px] font-extrabold tabular-nums"
+                  className="text-micro-lg ms-1.5 rounded-full bg-[var(--d-accent)] px-1.5 py-0.5 font-extrabold tabular-nums"
                   style={{ color: BRAND_VIOLET }}
                 >
                   {t.badge}
@@ -130,7 +130,7 @@ export function SubsHistory({
   if (rows.length === 0) {
     if (!emptyText) return null;
     return (
-      <p className="rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-4 text-center text-[12.5px] text-[var(--d-muted)]">
+      <p className="text-label-lg rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] px-3.5 py-4 text-center text-[var(--d-muted)]">
         {emptyText}
       </p>
     );
@@ -142,7 +142,7 @@ export function SubsHistory({
     tone: "muted" as const,
   };
   return (
-    <div className="overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]">
+    <div className="overflow-hidden rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)]">
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
@@ -151,12 +151,12 @@ export function SubsHistory({
       >
         <span className="min-w-0 flex-1">
           <b
-            className="block text-[13px] text-[var(--d-ink)]"
+            className="text-body-sm block text-[var(--d-ink)]"
             style={{ fontFamily: SORA }}
           >
             {isAr ? "سجل الاشتراكات" : "Historique des abonnements"}
           </b>
-          <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
+          <span className="text-caption-lg block truncate text-[var(--d-muted)]">
             {rows.length}{" "}
             {isAr ? "عملية" : `opération${rows.length > 1 ? "s" : ""}`}
             {!open ? ` · ${isAr ? "الأخيرة:" : "dernier :"} ${last.title}` : ""}
@@ -185,10 +185,10 @@ export function SubsHistory({
               className="flex items-center gap-3 border-t border-[var(--d-line)] px-3.5 py-3"
             >
               <span className="min-w-0 flex-1">
-                <b className="block truncate text-[13.5px] font-semibold text-[var(--d-ink)] tabular-nums">
+                <b className="text-body block truncate font-semibold text-[var(--d-ink)] tabular-nums">
                   {r.title}
                 </b>
-                <span className="block truncate text-[11.5px] text-[var(--d-muted)]">
+                <span className="text-caption-lg block truncate text-[var(--d-muted)]">
                   {r.sub}
                 </span>
               </span>

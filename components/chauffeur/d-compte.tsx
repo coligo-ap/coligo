@@ -177,7 +177,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
 
   return (
     <div className="drive-jakarta drive-page pt-safe pb-safe-nav min-h-screen bg-[var(--d-surface)] px-5">
-      <h1 className="drive-sora mb-3 text-[21px] font-extrabold tracking-[-0.5px]">
+      <h1 className="drive-sora text-display-sm mb-3 font-extrabold tracking-[-0.5px]">
         {tr("Compte", "الحساب")}
       </h1>
 
@@ -195,16 +195,16 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
               name={gate.firstName}
               url={gate.avatarUrl}
               size={56}
-              textClassName="text-[21px]"
+              textClassName="text-display-sm"
             />
           </span>
         </span>
         <span className="min-w-0">
-          <span className="drive-sora flex items-center gap-2 text-[17px] font-bold">
+          <span className="drive-sora text-title-lg flex items-center gap-2 font-bold">
             {gate.firstName}{" "}
             {gate.fullName.split(" ").slice(1).join(" ")[0] ?? ""}.
             {plan === "premium" && (
-              <span className="rounded-full bg-[#E8B53C] px-2.5 py-0.5 text-[10px] font-extrabold text-[#3a2c00]">
+              <span className="text-micro rounded-full bg-[#E8B53C] px-2.5 py-0.5 font-extrabold text-[#3a2c00]">
                 👑 Premium
               </span>
             )}
@@ -212,7 +212,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           <span className="mt-1 mb-1 block">
             <DriverBadgePill badge={badge} size="md" withTitle />
           </span>
-          <span className="text-[13px] text-[var(--d-muted)]">
+          <span className="text-body-sm text-[var(--d-muted)]">
             {gate.rating != null && (
               <b className="text-[var(--d-ink)]">
                 ★ {String(gate.rating).replace(".", ",")}
@@ -388,7 +388,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         saving={homeSaving}
         error={homeErr}
       >
-        <p className="mb-2 text-[12px] text-[var(--d-muted)]">
+        <p className="text-label mb-2 text-[var(--d-muted)]">
           {tr(
             "Cherchez votre adresse ou déplacez la carte pour placer le repère exactement sur votre domicile. Modifiable 1×/semaine (anti-fraude).",
             "ابحث عن عنوانك أو حرّك الخريطة لوضع العلامة على منزلك بدقة. قابل للتعديل مرة واحدة في الأسبوع (مكافحة الاحتيال)."
@@ -413,7 +413,7 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         saving={ccpSaving}
         error={ccpErr}
       >
-        <p className="mb-2 text-[12px] text-[var(--d-muted)]">
+        <p className="text-label mb-2 text-[var(--d-muted)]">
           {tr(
             "Vos versements seront virés sur ce compte CCP.",
             "ستُحوَّل دفعاتك إلى هذا الحساب البريدي CCP."
@@ -424,14 +424,14 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
           onChange={(e) => setCcpNum(e.target.value)}
           inputMode="numeric"
           placeholder={tr("Numéro CCP", "رقم CCP")}
-          className="mb-2 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-[14px] outline-none focus:border-[color:var(--d-muted)]"
+          className="text-body-lg mb-2 w-full rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 outline-none focus:border-[color:var(--d-muted)]"
         />
         <input
           value={ccpKey}
           onChange={(e) => setCcpKey(e.target.value)}
           inputMode="numeric"
           placeholder={tr("Clé CCP (2 chiffres)", "مفتاح CCP (رقمان)")}
-          className="w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-[14px] outline-none focus:border-[color:var(--d-muted)]"
+          className="text-body-lg w-full rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 outline-none focus:border-[color:var(--d-muted)]"
         />
       </FormModal>
     </div>
@@ -465,11 +465,11 @@ function FormModal({
         onClick={onClose}
       >
         <div
-          className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
+          className="drive-jakarta rounded-t-panel bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-3 flex items-center justify-between">
-            <b className="drive-sora text-[16px] font-extrabold">{title}</b>
+            <b className="drive-sora text-title font-extrabold">{title}</b>
             <button
               type="button"
               onClick={onClose}
@@ -482,7 +482,7 @@ function FormModal({
           {children}
           {error && (
             <p
-              className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+              className="mt-2 rounded-md px-3 py-2 text-center text-xs font-bold"
               style={{ background: "rgba(229,72,77,.1)", color: "#E5484D" }}
             >
               {error}
@@ -492,7 +492,7 @@ function FormModal({
             type="button"
             onClick={onSave}
             disabled={saving}
-            className="drive-sora mt-3 flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-60"
+            className="drive-sora rounded-card-lg text-title-sm mt-3 flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-60"
             style={{ background: VIOLET }}
           >
             {saving ? <Loader2 className="size-5 animate-spin" /> : null}

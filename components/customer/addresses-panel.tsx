@@ -171,7 +171,7 @@ function AddressRow({ addr }: { addr: Addr }) {
   const [pending, start] = useTransition();
   const [note, setNote] = useActionNote();
   return (
-    <li className="border-border bg-surface rounded-[14px] border p-4">
+    <li className="border-border bg-surface rounded-card-lg border p-4">
       <div className="flex items-start gap-3">
         <MapPin className="text-primary-600 mt-0.5 size-5" />
         <div className="min-w-0 flex-1">

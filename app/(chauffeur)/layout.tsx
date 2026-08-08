@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Plus_Jakarta_Sans, Sora } from "next/font/google";
+import { PARTNER_FONT_VARS } from "@/lib/fonts";
 import { pwaMetadata } from "@/lib/config/pwa";
 import { RouteRefreshOnFocus } from "@/components/shared/route-refresh-on-focus";
 import { SessionKeeper } from "@/components/shared/session-keeper";
@@ -16,18 +16,6 @@ export const metadata: Metadata = {
   ...pwaMetadata("drive"),
 };
 
-// Polices de la maquette Drive (Sora titres/prix, Jakarta corps).
-const sora = Sora({
-  subsets: ["latin"],
-  weight: ["600", "700", "800"],
-  variable: "--font-sora",
-});
-const jakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-  variable: "--font-jakarta",
-});
-
 /**
  * Espace CHAUFFEUR VTC (population séparée des livreurs). L'isolation de session
  * (confinement à /chauffeur) est gérée par le middleware via le domaine e-mail
@@ -43,7 +31,7 @@ export default async function ChauffeurLayout({
   const chauffeur = await getCurrentChauffeur();
   return (
     <div
-      className={`${sora.variable} ${jakarta.variable} drive-jakarta min-h-screen bg-[var(--d-surface)]`}
+      className={`${PARTNER_FONT_VARS} drive-jakarta min-h-screen bg-[var(--d-surface)]`}
     >
       {/* Refresh doux des données au retour au premier plan (complément du
           Router Cache : retour instantané puis maj asynchrone du RSC). */}

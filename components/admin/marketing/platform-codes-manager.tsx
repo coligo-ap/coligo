@@ -158,13 +158,13 @@ export function PlatformCodesManager({
       <button
         type="button"
         onClick={() => setCreating(true)}
-        className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-[12px] px-4 py-2.5 text-sm font-bold text-white"
+        className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-bold text-white"
       >
         <Plus className="size-4" /> Nouveau code
       </button>
 
       {codes.length === 0 ? (
-        <p className="text-muted border-border rounded-[16px] border border-dashed px-6 py-10 text-center text-sm">
+        <p className="text-muted border-border rounded-lg border border-dashed px-6 py-10 text-center text-sm">
           Aucun code pour le moment.
         </p>
       ) : (
@@ -175,7 +175,7 @@ export function PlatformCodesManager({
             return (
               <li
                 key={c.id}
-                className="border-border bg-surface overflow-hidden rounded-[16px] border"
+                className="border-border bg-surface overflow-hidden rounded-lg border"
               >
                 <div className="flex items-center gap-3 px-4 py-3">
                   <span className="bg-primary-50 text-primary-700 rounded-md px-2 py-1 font-mono text-sm font-black tracking-wider">
@@ -199,7 +199,7 @@ export function PlatformCodesManager({
                   </div>
                   <span
                     className={cn(
-                      "shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold",
+                      "text-caption shrink-0 rounded-full px-2 py-0.5 font-bold",
                       c.active
                         ? "bg-success-50 text-success-700"
                         : "bg-surface-2 text-muted"
@@ -393,7 +393,7 @@ function CodeForm({
   }
 
   const input =
-    "border-border bg-surface focus:border-primary-500 w-full rounded-[10px] border px-3 py-2 text-sm outline-none";
+    "border-border bg-surface focus:border-primary-500 w-full rounded-control border px-3 py-2 text-sm outline-none";
   const label = "text-muted mb-1 block text-xs font-semibold";
 
   return (
@@ -403,7 +403,7 @@ function CodeForm({
         if (e.target === e.currentTarget) onClose();
       }}
     >
-      <div className="bg-surface flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px] sm:pb-0">
+      <div className="bg-surface flex max-h-[92vh] w-full max-w-lg flex-col overflow-hidden rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl sm:pb-0">
         <header className="border-border flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-foreground text-lg font-bold">
             {codeId ? "Modifier le code" : "Nouveau code"}
@@ -552,7 +552,7 @@ function CodeForm({
               onChange={(e) => set("max_uses_per_device", num(e.target.value))}
               placeholder="∞ (aucune limite appareil)"
             />
-            <p className="text-subtle mt-1 text-[11px]">
+            <p className="text-subtle text-caption mt-1">
               1 = un seul compte peut en profiter par téléphone PHYSIQUE (survit
               à la désinstallation/réinstallation de l&apos;app) — empêche les
               multi-comptes sur un même appareil.
@@ -627,7 +627,7 @@ function CodeForm({
           <button
             type="button"
             onClick={onClose}
-            className="text-muted hover:bg-surface-2 rounded-[10px] px-4 py-2 text-sm font-semibold"
+            className="text-muted hover:bg-surface-2 rounded-control px-4 py-2 text-sm font-semibold"
           >
             Annuler
           </button>
@@ -635,7 +635,7 @@ function CodeForm({
             type="button"
             onClick={save}
             disabled={pending}
-            className="bg-primary-600 hover:bg-primary-700 rounded-[10px] px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
+            className="bg-primary-600 hover:bg-primary-700 rounded-control px-5 py-2 text-sm font-bold text-white disabled:opacity-50"
           >
             {pending ? "…" : "Enregistrer"}
           </button>

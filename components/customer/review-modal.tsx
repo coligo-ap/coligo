@@ -83,7 +83,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
         onClose();
       }}
     >
-      <div className="bg-surface w-full max-w-md rounded-t-[20px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-[20px] sm:pb-5">
+      <div className="bg-surface w-full max-w-md rounded-t-xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl sm:pb-5">
         <header className="mb-4 flex items-start justify-between gap-3">
           <div>
             <h2 className="font-display text-foreground text-lg font-bold">
@@ -154,9 +154,9 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
           onChange={(e) => setComment(e.target.value.slice(0, MAX_COMMENT))}
           rows={3}
           placeholder={t("commentPlaceholder")}
-          className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-[12px] border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+          className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-1.5 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
         />
-        <p className="text-subtle mt-1 text-end text-[10px]">
+        <p className="text-subtle text-micro mt-1 text-end">
           {comment.length}/{MAX_COMMENT}
         </p>
 
@@ -186,7 +186,7 @@ export function ReviewModal({ orderId, merchantName, onClose }: Props) {
           </Button>
         </div>
 
-        <p className="text-subtle mt-3 text-center text-[10px]">
+        <p className="text-subtle text-micro mt-3 text-center">
           {t("editWindowNotice")}
         </p>
       </div>

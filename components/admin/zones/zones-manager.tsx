@@ -99,7 +99,7 @@ export function ZonesManager({
             }
           >
             {SERVICE_LABELS[s]}
-            <span className="text-subtle ml-1.5 text-[11px] font-semibold">
+            <span className="text-subtle text-caption ml-1.5 font-semibold">
               {byService[s].length}
             </span>
           </button>
@@ -155,7 +155,7 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
     });
 
   return (
-    <div className="bg-surface border-border rounded-[14px] border p-4">
+    <div className="bg-surface border-border rounded-card-lg border p-4">
       <div className="grid gap-4 sm:grid-cols-3">
         {/* Kill-switch */}
         <label className="flex items-start gap-2.5">
@@ -248,7 +248,7 @@ function ServiceDefaultsPanel({ def }: { def: ServiceDefaultRow }) {
 function RulesList({ rules }: { rules: ZoneRuleRow[] }) {
   if (!rules.length) {
     return (
-      <div className="border-border text-muted rounded-[14px] border border-dashed p-6 text-center text-sm">
+      <div className="border-border text-muted rounded-card-lg border border-dashed p-6 text-center text-sm">
         Aucune règle. Le comportement par défaut du service s&apos;applique
         partout.
       </div>
@@ -282,13 +282,13 @@ function RuleRow({ rule }: { rule: ZoneRuleRow }) {
     <>
       <div
         className={
-          "bg-surface border-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-[12px] border p-3 " +
+          "bg-surface border-border flex flex-wrap items-center gap-x-3 gap-y-2 rounded-md border p-3 " +
           (rule.active ? "" : "opacity-55")
         }
       >
         <span
           className={
-            "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold " +
+            "text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold " +
             (isBlock
               ? "bg-danger-50 text-danger-700"
               : "bg-success-50 text-success-700")
@@ -306,7 +306,7 @@ function RuleRow({ rule }: { rule: ZoneRuleRow }) {
           <div className="text-foreground flex items-center gap-2 text-sm font-bold">
             {rule.label}
             {rule.coming_soon && (
-              <span className="text-warning-700 inline-flex items-center gap-1 text-[11px] font-semibold">
+              <span className="text-warning-700 text-caption inline-flex items-center gap-1 font-semibold">
                 <Clock className="size-3" /> Bientôt
               </span>
             )}
@@ -448,7 +448,7 @@ function CreateRuleModal({
       onClick={onClose}
     >
       <div
-        className="bg-surface text-foreground max-h-[92vh] w-full max-w-lg overflow-auto rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-[20px] sm:pb-0"
+        className="bg-surface text-foreground max-h-[92vh] w-full max-w-lg overflow-auto rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-2xl sm:rounded-xl sm:pb-0"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="border-border bg-surface sticky top-0 flex items-center justify-between border-b px-4 py-3">
@@ -479,7 +479,7 @@ function CreateRuleModal({
               type="button"
               onClick={() => setMode("block")}
               className={
-                "h-11 rounded-[12px] border text-sm font-bold " +
+                "h-11 rounded-md border text-sm font-bold " +
                 (mode === "block"
                   ? "border-danger-300 bg-danger-50 text-danger-700"
                   : "border-border text-muted")
@@ -491,7 +491,7 @@ function CreateRuleModal({
               type="button"
               onClick={() => setMode("allow")}
               className={
-                "h-11 rounded-[12px] border text-sm font-bold " +
+                "h-11 rounded-md border text-sm font-bold " +
                 (mode === "allow"
                   ? "border-success-300 bg-success-50 text-success-700"
                   : "border-border text-muted")
@@ -520,7 +520,7 @@ function CreateRuleModal({
                   type="button"
                   onClick={() => setScope(s)}
                   className={
-                    "h-9 rounded-[10px] border text-[12px] font-semibold " +
+                    "rounded-control text-label h-9 border font-semibold " +
                     (scope === s
                       ? "border-primary-600 bg-primary-50 text-primary-700"
                       : "border-border text-muted")
@@ -534,7 +534,7 @@ function CreateRuleModal({
 
           {/* Scope-specific */}
           {scope === "country" && (
-            <p className="text-muted bg-surface-2 rounded-[10px] p-3 text-xs">
+            <p className="text-muted bg-surface-2 rounded-control p-3 text-xs">
               S&apos;applique à toute l&apos;Algérie (DZ) — utile comme
               kill-switch géographique combiné à la priorité.
             </p>
@@ -552,7 +552,7 @@ function CreateRuleModal({
                     setWilayaCode(e.target.value);
                     setCommune("");
                   }}
-                  className="border-border bg-surface h-10 w-full rounded-[10px] border px-2 text-sm"
+                  className="border-border bg-surface rounded-control h-10 w-full border px-2 text-sm"
                 >
                   <option value="">— Choisir —</option>
                   {WILAYAS.map((w) => (
@@ -571,7 +571,7 @@ function CreateRuleModal({
                     <select
                       value={commune}
                       onChange={(e) => setCommune(e.target.value)}
-                      className="border-border bg-surface h-10 w-full rounded-[10px] border px-2 text-sm"
+                      className="border-border bg-surface rounded-control h-10 w-full border px-2 text-sm"
                       disabled={!wilayaCode}
                     >
                       <option value="">— Choisir —</option>
@@ -614,7 +614,7 @@ function CreateRuleModal({
                 radiusKm={radiusKm}
                 onCenterChange={setCenter}
               />
-              <p className="text-subtle mt-1 text-[11px]">
+              <p className="text-subtle text-caption mt-1">
                 Déplacez la carte : la croix = centre du disque.
               </p>
             </div>
@@ -627,7 +627,7 @@ function CreateRuleModal({
                 radiusKm={radiusKm}
                 onPolygonChange={setPolygon}
               />
-              <p className="text-subtle mt-1 text-[11px]">
+              <p className="text-subtle text-caption mt-1">
                 Tapez sur la carte pour poser les sommets du périmètre.
               </p>
             </div>
@@ -651,7 +651,7 @@ function CreateRuleModal({
                     type="button"
                     onClick={() => setDirection(d)}
                     className={
-                      "h-9 rounded-[10px] border text-[12px] font-semibold " +
+                      "rounded-control text-label h-9 border font-semibold " +
                       (direction === d
                         ? "border-primary-600 bg-primary-50 text-primary-700"
                         : "border-border text-muted")

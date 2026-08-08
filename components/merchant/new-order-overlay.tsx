@@ -329,7 +329,7 @@ export function NewOrderOverlay({
       // la carte se borne au conteneur (max-h-full), plus jamais dessous.
       className="bg-primary-700/95 fixed inset-0 z-[95] flex items-center justify-center px-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] pb-[calc(env(safe-area-inset-bottom)+0.75rem)] backdrop-blur-sm sm:px-4"
     >
-      <div className="flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-[20px] bg-white shadow-2xl">
+      <div className="flex max-h-full w-full max-w-md flex-col overflow-hidden rounded-xl bg-white shadow-2xl">
         {/* ─── En-tête (fixe) ─── */}
         <div className="bg-primary-700 relative shrink-0 px-5 py-4 text-white">
           {queued > 0 && (
@@ -386,10 +386,10 @@ export function NewOrderOverlay({
               </div>
 
               {/* Articles groupés par catégorie */}
-              <div className="border-border divide-border divide-y overflow-hidden rounded-[12px] border">
+              <div className="border-border divide-border divide-y overflow-hidden rounded-md border">
                 {details.groups.map((g) => (
                   <div key={g.title}>
-                    <div className="bg-surface-2 text-subtle px-3 py-1.5 text-[11px] font-semibold tracking-wide uppercase">
+                    <div className="bg-surface-2 text-subtle text-caption px-3 py-1.5 font-semibold tracking-wide uppercase">
                       {g.title}
                     </div>
                     <ul className="divide-border divide-y">
@@ -398,7 +398,7 @@ export function NewOrderOverlay({
                           key={`${it.name}-${i}`}
                           className="flex items-center gap-2.5 px-3 py-2"
                         >
-                          <span className="bg-primary-50 text-primary-700 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-[8px] px-1 text-xs font-bold whitespace-nowrap tabular-nums">
+                          <span className="bg-primary-50 text-primary-700 flex h-7 min-w-7 shrink-0 items-center justify-center rounded-sm px-1 text-xs font-bold whitespace-nowrap tabular-nums">
                             {formatQtyUnit(it.qty, it.unit)}
                           </span>
                           <span className="min-w-0 flex-1 truncate text-sm font-medium">
@@ -416,8 +416,8 @@ export function NewOrderOverlay({
 
               {/* Note client */}
               {details.notes && details.notes !== "seed" && (
-                <div className="border-warning-200 bg-warning-50 rounded-[12px] border p-3">
-                  <p className="text-warning-800 text-[11px] font-semibold tracking-wide uppercase">
+                <div className="border-warning-200 bg-warning-50 rounded-md border p-3">
+                  <p className="text-warning-800 text-caption font-semibold tracking-wide uppercase">
                     Note du client
                   </p>
                   <p className="text-warning-900 mt-0.5 text-sm">
@@ -427,7 +427,7 @@ export function NewOrderOverlay({
               )}
 
               {/* Récap montants */}
-              <div className="border-border space-y-1.5 rounded-[12px] border p-3 text-sm">
+              <div className="border-border space-y-1.5 rounded-md border p-3 text-sm">
                 <Row
                   label={`Sous-total (${details.totalUnits} art.)`}
                   value={formatDA(details.subtotalDa)}
@@ -482,7 +482,7 @@ export function NewOrderOverlay({
 
         {/* ─── Actions (fixe, en bas) ─── */}
         <div className="border-border shrink-0 border-t p-4">
-          <ActionNote note={note} className="mb-2 text-center text-[12px]" />
+          <ActionNote note={note} className="text-label mb-2 text-center" />
           {autoAccept ? (
             <AutoAcceptControls
               secondsLeft={secondsLeft}
@@ -514,7 +514,7 @@ export function NewOrderOverlay({
 
 function Chip({ children }: { children: React.ReactNode }) {
   return (
-    <span className="border-border bg-surface-2 text-muted inline-flex items-center rounded-full border px-2.5 py-1 text-[11px] font-semibold">
+    <span className="border-border bg-surface-2 text-muted text-caption inline-flex items-center rounded-full border px-2.5 py-1 font-semibold">
       {children}
     </span>
   );
@@ -551,7 +551,7 @@ function AutoAcceptControls({
         type="button"
         onClick={onAcceptNow}
         disabled={acting}
-        className="bg-success-600 hover:bg-success-700 relative inline-flex h-14 w-full items-center justify-center overflow-hidden rounded-[14px] px-5 text-base font-bold text-white shadow-sm disabled:opacity-70"
+        className="bg-success-600 hover:bg-success-700 rounded-card-lg relative inline-flex h-14 w-full items-center justify-center overflow-hidden px-5 text-base font-bold text-white shadow-sm disabled:opacity-70"
       >
         <span
           aria-hidden
@@ -578,7 +578,7 @@ function AutoAcceptControls({
         type="button"
         onClick={onRefuse}
         disabled={acting}
-        className="border-danger-300 text-danger-700 hover:bg-danger-50 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] border px-5 text-sm font-semibold disabled:opacity-50"
+        className="border-danger-300 text-danger-700 hover:bg-danger-50 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md border px-5 text-sm font-semibold disabled:opacity-50"
       >
         <X className="size-4" />
         Refuser plutôt
@@ -610,7 +610,7 @@ function ManualControls({
         type="button"
         onClick={onAccept}
         disabled={acting}
-        className="bg-success-600 hover:bg-success-700 inline-flex h-14 w-full items-center justify-center gap-2 rounded-[14px] px-5 text-base font-bold text-white shadow-sm disabled:opacity-60"
+        className="bg-success-600 hover:bg-success-700 rounded-card-lg inline-flex h-14 w-full items-center justify-center gap-2 px-5 text-base font-bold text-white shadow-sm disabled:opacity-60"
       >
         {acting ? (
           <Loader2 className="size-5 animate-spin" />
@@ -624,7 +624,7 @@ function ManualControls({
           type="button"
           onClick={onRefuse}
           disabled={acting}
-          className="border-danger-300 text-danger-700 hover:bg-danger-50 inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-[12px] border px-5 text-base font-semibold disabled:opacity-50"
+          className="border-danger-300 text-danger-700 hover:bg-danger-50 inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-md border px-5 text-base font-semibold disabled:opacity-50"
         >
           <X className="size-5" />
           Refuser
@@ -634,7 +634,7 @@ function ManualControls({
             type="button"
             onClick={onPrint}
             disabled={acting}
-            className="border-border text-muted hover:bg-surface-2 inline-flex h-12 items-center justify-center gap-1.5 rounded-[12px] border px-4 text-sm font-medium disabled:opacity-50"
+            className="border-border text-muted hover:bg-surface-2 inline-flex h-12 items-center justify-center gap-1.5 rounded-md border px-4 text-sm font-medium disabled:opacity-50"
           >
             <Printer className="size-4" />
             Imprimer
@@ -666,7 +666,7 @@ function RefuseReasons({
 }) {
   return (
     <div>
-      <p className="text-muted px-1 pb-1.5 text-[11px] font-semibold tracking-wide uppercase">
+      <p className="text-muted text-caption px-1 pb-1.5 font-semibold tracking-wide uppercase">
         Motif du refus
       </p>
       <ul className="space-y-0.5">
@@ -676,7 +676,7 @@ function RefuseReasons({
               type="button"
               onClick={() => onPick(r)}
               disabled={acting}
-              className="hover:bg-danger-50 text-foreground flex w-full items-center justify-between rounded-[10px] px-3 py-2.5 text-left text-sm disabled:opacity-50"
+              className="hover:bg-danger-50 text-foreground rounded-control flex w-full items-center justify-between px-3 py-2.5 text-left text-sm disabled:opacity-50"
             >
               {r}
               {acting && <Loader2 className="size-4 animate-spin" />}
@@ -688,7 +688,7 @@ function RefuseReasons({
         type="button"
         onClick={onCancel}
         disabled={acting}
-        className="text-muted mt-1.5 w-full rounded-[10px] px-2 py-1.5 text-center text-xs hover:underline disabled:opacity-50"
+        className="text-muted rounded-control mt-1.5 w-full px-2 py-1.5 text-center text-xs hover:underline disabled:opacity-50"
       >
         Annuler
       </button>

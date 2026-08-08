@@ -74,7 +74,7 @@ export default function RootError({
 
   return (
     <main className="bg-surface-2 flex min-h-screen flex-col items-center justify-center px-6 py-10">
-      <div className="border-border w-full max-w-sm rounded-[14px] border bg-white p-6 text-center shadow-sm">
+      <div className="border-border rounded-card-lg w-full max-w-sm border bg-white p-6 text-center shadow-sm">
         <div
           className={`mx-auto mb-4 flex size-12 items-center justify-center rounded-full ${
             offline
@@ -101,7 +101,7 @@ export default function RootError({
         <button
           type="button"
           onClick={() => reset()}
-          className="bg-primary-600 hover:bg-primary-700 mt-6 inline-flex h-10 items-center justify-center gap-2 rounded-[10px] px-5 text-sm font-medium text-white transition-colors"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control mt-6 inline-flex h-10 items-center justify-center gap-2 px-5 text-sm font-medium text-white transition-colors"
         >
           <RefreshCw className="size-4" />
           Réessayer

@@ -147,7 +147,7 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                     onChange={(e) => setValue(e.target.value)}
                     placeholder={req.placeholder}
                     rows={3}
-                    className="border-border bg-surface-2 text-foreground mt-3 w-full resize-none rounded-[10px] border px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary-500)]"
+                    className="border-border bg-surface-2 text-foreground rounded-control mt-3 w-full resize-none border px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary-500)]"
                   />
                 ) : (
                   <input
@@ -158,21 +158,21 @@ export function ConfirmProvider({ children }: { children: React.ReactNode }) {
                       if (e.key === "Enter") finish(value);
                     }}
                     placeholder={req.placeholder}
-                    className="border-border bg-surface-2 text-foreground mt-3 w-full rounded-[10px] border px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary-500)]"
+                    className="border-border bg-surface-2 text-foreground rounded-control mt-3 w-full border px-3 py-2 text-sm outline-none focus:border-[color:var(--color-primary-500)]"
                   />
                 ))}
               <div className="mt-5 flex justify-end gap-2">
                 <button
                   type="button"
                   onClick={cancel}
-                  className="border-border text-foreground hover:bg-surface-2 rounded-[10px] border px-4 py-2 text-sm font-semibold transition-colors"
+                  className="border-border text-foreground hover:bg-surface-2 rounded-control border px-4 py-2 text-sm font-semibold transition-colors"
                 >
                   {req.cancelLabel ?? "Annuler"}
                 </button>
                 <button
                   type="button"
                   onClick={() => finish(req.kind === "prompt" ? value : true)}
-                  className={`rounded-[10px] px-4 py-2 text-sm font-semibold text-white transition-colors ${
+                  className={`rounded-control px-4 py-2 text-sm font-semibold text-white transition-colors ${
                     req.kind === "confirm" && req.danger
                       ? "bg-danger-600 hover:bg-danger-700"
                       : "bg-primary-600 hover:bg-primary-700"

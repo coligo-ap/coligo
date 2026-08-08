@@ -76,7 +76,7 @@ export default async function DriverToursHubPage() {
     <DriverShell driverFirstName={driver.full_name.split(" ")[0]}>
       <div className="space-y-5">
         <header className="space-y-1.5">
-          <h1 className="mq-sora text-[22px] font-extrabold tracking-[-0.5px] text-[var(--ink)]">
+          <h1 className="mq-sora text-display font-extrabold tracking-[-0.5px] text-[var(--ink)]">
             {tr("Tournées", "الجولات")}
           </h1>
           <p className="text-sm font-medium text-[var(--muted)]">
@@ -90,7 +90,7 @@ export default async function DriverToursHubPage() {
         {/* Rejoindre un commerçant — toujours accessible */}
         <Link
           href="/driver/codes"
-          className="flex items-center gap-3 rounded-[14px] border-2 border-dashed border-[var(--violet-l)] bg-[var(--violet-soft)] px-4 py-3.5 transition-transform active:scale-[0.99]"
+          className="rounded-card-lg flex items-center gap-3 border-2 border-dashed border-[var(--violet-l)] bg-[var(--violet-soft)] px-4 py-3.5 transition-transform active:scale-[0.99]"
         >
           <span className="grid size-10 shrink-0 place-items-center rounded-full bg-[var(--surface)] text-[var(--violet)] shadow-sm">
             <KeyRound className="size-[18px]" />
@@ -112,7 +112,7 @@ export default async function DriverToursHubPage() {
         {/* Commerçants rejoints (actifs) */}
         {active.length > 0 && (
           <section className="space-y-2">
-            <p className="px-1 text-[11px] font-bold tracking-wide text-[var(--muted)] uppercase">
+            <p className="text-caption px-1 font-bold tracking-wide text-[var(--muted)] uppercase">
               {tr("Mes commerçants", "تجّاري")}
             </p>
             <ul className="space-y-2.5">
@@ -122,7 +122,7 @@ export default async function DriverToursHubPage() {
                   <li key={m.merchant_driver_id}>
                     <Link
                       href={`/driver/m/${m.merchant_driver_id}`}
-                      className="flex items-center gap-3 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 shadow-[0_4px_16px_rgba(0,0,0,.04)] transition-transform active:scale-[0.99]"
+                      className="rounded-card-lg flex items-center gap-3 border border-[var(--line)] bg-[var(--surface)] px-3.5 py-3 shadow-[0_4px_16px_rgba(0,0,0,.04)] transition-transform active:scale-[0.99]"
                     >
                       <span className="grid size-[38px] shrink-0 place-items-center rounded-full bg-[var(--soft)] text-sm font-extrabold text-[var(--ink)]">
                         {m.merchant_name.charAt(0).toUpperCase()}
@@ -163,7 +163,7 @@ export default async function DriverToursHubPage() {
             {pending.map((l) => (
               <div
                 key={l.id}
-                className="rounded-[12px] border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.12)] px-3.5 py-2.5 text-xs font-medium text-[var(--amber)]"
+                className="rounded-md border border-[rgba(245,158,11,0.3)] bg-[rgba(245,158,11,0.12)] px-3.5 py-2.5 text-xs font-medium text-[var(--amber)]"
               >
                 <b className="font-bold">{l.name}</b> ·{" "}
                 {tr(
@@ -175,7 +175,7 @@ export default async function DriverToursHubPage() {
             {blocked.map((l) => (
               <div
                 key={l.id}
-                className="rounded-[12px] border border-[rgba(229,72,77,0.3)] bg-[var(--red-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--red)]"
+                className="rounded-md border border-[rgba(229,72,77,0.3)] bg-[var(--red-soft)] px-3.5 py-2.5 text-xs font-medium text-[var(--red)]"
               >
                 <b className="font-bold">{l.name}</b> ·{" "}
                 {tr(

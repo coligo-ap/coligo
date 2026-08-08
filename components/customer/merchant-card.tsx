@@ -99,7 +99,7 @@ function MerchantCardImpl({
       {/* ─── Image de couverture + overlays ─── */}
       {/* Cadre façon Yassir : bordure fine autour de la photo seule, le texte
           vit dessous (couverture = bannière → cover, pas contain). */}
-      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-[8px] border">
+      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-sm border">
         {coverOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -123,7 +123,7 @@ function MerchantCardImpl({
         {/* badge Ouvert / Fermé (haut-gauche) — affiché une fois l'état connu
             (post-montage) pour éviter tout mismatch d'hydratation (#418). */}
         {open !== null && (
-          <span className="text-foreground absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 text-[11px] font-extrabold shadow-sm backdrop-blur">
+          <span className="text-foreground text-caption absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 font-extrabold shadow-sm backdrop-blur">
             <span
               className={cn(
                 "size-[5px] rounded-full",
@@ -148,7 +148,7 @@ function MerchantCardImpl({
         {/* promo (bas-gauche, rose) — étiquette d'ORIGINE (ne pas aplatir :
             les codes couleurs promo sont volontairement saillants). */}
         {showPromo && (
-          <span className="bg-accent-600 absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-[9px] px-2.5 py-1.5 text-[12px] font-extrabold text-white shadow-md">
+          <span className="bg-accent-600 rounded-chip text-label absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 px-2.5 py-1.5 font-extrabold text-white shadow-md">
             <Tag className="size-3" />
             {showPromo.text}
           </span>
@@ -156,7 +156,7 @@ function MerchantCardImpl({
 
         {/* ETA (bas-droite) */}
         {merchant.prep_time_min > 0 && (
-          <span className="text-foreground absolute right-2.5 bottom-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 text-[11.5px] font-extrabold shadow-sm backdrop-blur">
+          <span className="text-foreground text-caption-lg absolute right-2.5 bottom-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 font-extrabold shadow-sm backdrop-blur">
             <Clock className="size-3" />
             {merchant.prep_time_min} min
           </span>
@@ -166,7 +166,7 @@ function MerchantCardImpl({
       {/* ─── Infos sous l'image ─── */}
       <div className="px-0.5 pt-2.5">
         <div className="flex items-center justify-between gap-2">
-          <h3 className="text-foreground line-clamp-1 text-[17px] font-extrabold tracking-[-0.3px]">
+          <h3 className="text-foreground text-title-lg line-clamp-1 font-extrabold tracking-[-0.3px]">
             {merchant.name}
           </h3>
           {/* Note : 5,0 par DÉFAUT tant qu'aucun avis (tous les commerçants
@@ -178,7 +178,7 @@ function MerchantCardImpl({
         </div>
 
         {/* ligne d'infos : frais · distance · ville/min */}
-        <div className="text-muted mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[13.5px] font-semibold">
+        <div className="text-muted text-body mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
           <span className="text-success-700 inline-flex items-center gap-1 font-bold whitespace-nowrap">
             <MapPin className="size-3.5 shrink-0" />
             {t("freePickup")}
@@ -243,7 +243,7 @@ function Mode({
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 text-[11px] font-bold",
+        "text-caption inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 font-bold",
         tone === "deliv"
           ? "bg-primary-50 text-primary-700"
           : "bg-surface-2 text-muted"

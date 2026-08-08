@@ -30,7 +30,7 @@ export function OrderReviewCta({ orderId, merchantName }: Props) {
           e.stopPropagation();
           setOpen(true);
         }}
-        className="inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 text-[10px] font-semibold text-amber-800 hover:bg-amber-100"
+        className="text-micro inline-flex items-center gap-1 rounded-full border border-amber-200 bg-amber-50 px-2 py-0.5 font-semibold text-amber-800 hover:bg-amber-100"
       >
         <Star className="size-3 fill-amber-400 text-amber-400" />
         {t("leaveReview")}

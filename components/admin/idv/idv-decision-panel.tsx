@@ -71,7 +71,7 @@ export function IdvDecisionPanel({
 
   if (closed) {
     return (
-      <div className="border-border bg-surface rounded-[16px] border p-4">
+      <div className="border-border bg-surface rounded-lg border p-4">
         <p className="text-muted text-sm">
           Dossier clos — plus aucune action possible. L&apos;historique complet
           reste consultable ci-dessous.
@@ -85,7 +85,7 @@ export function IdvDecisionPanel({
       {/* Approuver / refuser. */}
       <form
         action={decideAction}
-        className="border-border bg-surface space-y-3 rounded-[16px] border p-4"
+        className="border-border bg-surface space-y-3 rounded-lg border p-4"
       >
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="decision" value={intent} />
@@ -95,7 +95,7 @@ export function IdvDecisionPanel({
           <button
             type="button"
             onClick={() => setIntent("approve")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-control flex flex-1 items-center justify-center gap-1.5 border px-3 py-2 text-sm font-medium transition-colors ${
               intent === "approve"
                 ? "border-success-500 bg-success-50 text-success-700"
                 : "border-border text-muted hover:bg-surface-2"
@@ -107,7 +107,7 @@ export function IdvDecisionPanel({
           <button
             type="button"
             onClick={() => setIntent("reject")}
-            className={`flex flex-1 items-center justify-center gap-1.5 rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors ${
+            className={`rounded-control flex flex-1 items-center justify-center gap-1.5 border px-3 py-2 text-sm font-medium transition-colors ${
               intent === "reject"
                 ? "border-danger-500 bg-danger-50 text-danger-700"
                 : "border-border text-muted hover:bg-surface-2"
@@ -129,7 +129,7 @@ export function IdvDecisionPanel({
               ? "Motif du refus (obligatoire, tracé au journal)"
               : "Commentaire (facultatif)"
           }
-          className="border-border bg-surface w-full rounded-[10px] border p-2.5 text-sm"
+          className="border-border bg-surface rounded-control w-full border p-2.5 text-sm"
         />
 
         {decideState.error && (
@@ -152,7 +152,7 @@ export function IdvDecisionPanel({
       {/* Redemander une pièce. */}
       <form
         action={resubmitAction}
-        className="border-border bg-surface space-y-3 rounded-[16px] border p-4"
+        className="border-border bg-surface space-y-3 rounded-lg border p-4"
       >
         <input type="hidden" name="id" value={id} />
         <input type="hidden" name="what" value={what} />
@@ -172,7 +172,7 @@ export function IdvDecisionPanel({
               key={value}
               type="button"
               onClick={() => setWhat(value)}
-              className={`flex-1 rounded-[10px] border px-3 py-2 text-sm font-medium transition-colors ${
+              className={`rounded-control flex-1 border px-3 py-2 text-sm font-medium transition-colors ${
                 what === value
                   ? "border-primary-500 bg-primary-50 text-primary-700"
                   : "border-border text-muted hover:bg-surface-2"
@@ -190,7 +190,7 @@ export function IdvDecisionPanel({
           rows={2}
           maxLength={500}
           placeholder="Ce qui ne va pas — ce texte est envoyé au livreur"
-          className="border-border bg-surface w-full rounded-[10px] border p-2.5 text-sm"
+          className="border-border bg-surface rounded-control w-full border p-2.5 text-sm"
         />
 
         {resubmitState.error && (
@@ -211,7 +211,7 @@ export function IdvDecisionPanel({
       {/* Commentaire interne. */}
       <form
         action={noteAction}
-        className="border-border bg-surface space-y-3 rounded-[16px] border p-4"
+        className="border-border bg-surface space-y-3 rounded-lg border p-4"
       >
         <input type="hidden" name="id" value={id} />
         <p className="flex items-center gap-1.5 font-semibold">
@@ -225,7 +225,7 @@ export function IdvDecisionPanel({
           rows={2}
           maxLength={1000}
           placeholder="Visible uniquement par l'équipe Coligo (journal d'audit)"
-          className="border-border bg-surface w-full rounded-[10px] border p-2.5 text-sm"
+          className="border-border bg-surface rounded-control w-full border p-2.5 text-sm"
         />
         {noteState.error && (
           <p className="text-danger-600 text-sm">{noteState.error}</p>

@@ -12,16 +12,13 @@ export default function CustomerLoading() {
       <div className="bg-surface-3 h-7 w-48 animate-pulse rounded-lg" />
       <div className="mt-4 grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div
-            key={i}
-            className="bg-surface-3 h-28 animate-pulse rounded-[16px]"
-          />
+          <div key={i} className="bg-surface-3 h-28 animate-pulse rounded-lg" />
         ))}
       </div>
       <div className="mt-4 space-y-3">
-        <div className="bg-surface-3 h-20 animate-pulse rounded-[16px]" />
-        <div className="bg-surface-3 h-20 animate-pulse rounded-[16px]" />
-        <div className="bg-surface-3 h-20 animate-pulse rounded-[16px]" />
+        <div className="bg-surface-3 h-20 animate-pulse rounded-lg" />
+        <div className="bg-surface-3 h-20 animate-pulse rounded-lg" />
+        <div className="bg-surface-3 h-20 animate-pulse rounded-lg" />
       </div>
     </div>
   );

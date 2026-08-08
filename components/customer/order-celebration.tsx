@@ -109,21 +109,21 @@ export function OrderPlacedCelebration({
     >
       <style dangerouslySetInnerHTML={{ __html: CSS }} />
       <div
-        className="bg-surface relative w-full max-w-[420px] overflow-hidden rounded-t-[26px] px-5 pt-4 pb-[calc(1.75rem+env(safe-area-inset-bottom))] text-center shadow-2xl sm:rounded-[26px] sm:pb-6"
+        className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg relative w-full max-w-[420px] overflow-hidden px-5 pt-4 pb-[calc(1.75rem+env(safe-area-inset-bottom))] text-center shadow-2xl sm:pb-6"
         onClick={(e) => e.stopPropagation()}
       >
         <ConfettiRain />
         <ColigoCelebration variant="verified" />
-        <h3 className="oc-boom text-foreground mt-2 text-[18px] font-extrabold tracking-[-0.4px]">
+        <h3 className="oc-boom text-foreground text-heading-sm mt-2 font-extrabold tracking-[-0.4px]">
           {title}
         </h3>
-        <p className="text-muted mx-auto mt-1.5 max-w-[320px] text-[13px] font-semibold">
+        <p className="text-muted text-body-sm mx-auto mt-1.5 max-w-[320px] font-semibold">
           {desc}
         </p>
         <button
           type="button"
           onClick={() => setOpen(false)}
-          className="bg-primary-600 hover:bg-primary-700 mt-4 w-full rounded-[14px] px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
+          className="bg-primary-600 hover:bg-primary-700 rounded-card-lg mt-4 w-full px-4 py-3.5 text-base font-extrabold text-white transition active:scale-[0.98]"
         >
           {closeLabel}
         </button>

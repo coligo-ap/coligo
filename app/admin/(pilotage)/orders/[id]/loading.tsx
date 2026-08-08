@@ -9,12 +9,12 @@ export default function Loading() {
         {Array.from({ length: 3 }).map((_, i) => (
           <div
             key={i}
-            className="border-border bg-surface h-28 rounded-[14px] border"
+            className="border-border bg-surface rounded-card-lg h-28 border"
           />
         ))}
       </div>
-      <div className="border-border bg-surface mt-4 h-48 rounded-[14px] border" />
-      <div className="border-border bg-surface mt-4 h-64 rounded-[14px] border" />
+      <div className="border-border bg-surface rounded-card-lg mt-4 h-48 border" />
+      <div className="border-border bg-surface rounded-card-lg mt-4 h-64 border" />
     </div>
   );
 }

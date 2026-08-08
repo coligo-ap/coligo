@@ -130,7 +130,7 @@ export function PayEntryDetail({ base, id }: { base: PayBase; id: string }) {
         >
           <Icon className="size-6 rtl:-scale-x-100" />
         </span>
-        <p className="mt-3 text-[13px] font-bold text-[var(--d-muted)]">
+        <p className="text-body-sm mt-3 font-bold text-[var(--d-muted)]">
           {entryLabel(entry, lang)}
         </p>
         <p
@@ -156,10 +156,10 @@ export function PayEntryDetail({ base, id }: { base: PayBase; id: string }) {
               key={r.label}
               className="flex items-center justify-between gap-3 border-b border-[var(--d-line)] py-2.5 last:border-b-0"
             >
-              <span className="text-[12px] font-semibold text-[var(--d-muted)]">
+              <span className="text-label font-semibold text-[var(--d-muted)]">
                 {r.label}
               </span>
-              <span className="min-w-0 truncate text-[12.5px] font-bold text-[var(--d-ink)]">
+              <span className="text-label-lg min-w-0 truncate font-bold text-[var(--d-ink)]">
                 {r.value}
               </span>
             </div>
@@ -178,7 +178,7 @@ export function PayEntryDetail({ base, id }: { base: PayBase; id: string }) {
               },
             })
           }
-          className="mt-3 flex w-full items-center justify-center gap-2 rounded-[14px] border border-[var(--d-line)] py-3 text-[12.5px] font-bold"
+          className="rounded-card-lg text-label-lg mt-3 flex w-full items-center justify-center gap-2 border border-[var(--d-line)] py-3 font-bold"
           style={{ color: "var(--d-violet)" }}
         >
           <MessageCircle className="size-4" />

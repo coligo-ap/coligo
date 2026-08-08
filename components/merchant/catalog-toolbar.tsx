@@ -37,7 +37,7 @@ export function ToolsMenu({
 }) {
   const [open, setOpen] = useState(false);
   const item =
-    "flex w-full items-center gap-2.5 rounded-[10px] px-3 py-2.5 text-left text-sm hover:bg-surface-2";
+    "flex w-full items-center gap-2.5 rounded-control px-3 py-2.5 text-left text-sm hover:bg-surface-2";
 
   return (
     <div className="relative">
@@ -47,7 +47,7 @@ export function ToolsMenu({
         title="Outils"
         aria-expanded={open}
         className={cn(
-          "flex size-11 items-center justify-center rounded-[12px] border transition-colors",
+          "flex size-11 items-center justify-center rounded-md border transition-colors",
           selectMode
             ? "border-primary-600 bg-primary-50 text-primary-700"
             : "border-border-strong text-muted hover:bg-surface-2"
@@ -67,7 +67,7 @@ export function ToolsMenu({
               (le bouton est à gauche de la barre sur mobile ; `right-0` faisait
               sortir le menu de 240px hors de l'écran à gauche). `start-0` reste
               correct en RTL. */}
-          <div className="border-border bg-surface absolute start-0 z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-[12px] border p-1 shadow-lg">
+          <div className="border-border bg-surface absolute start-0 z-40 mt-2 w-60 max-w-[calc(100vw-2rem)] rounded-md border p-1 shadow-lg">
             <button
               type="button"
               className={item}
@@ -147,7 +147,7 @@ export function BulkBar({
 }) {
   return (
     <div className="fixed inset-x-0 bottom-0 z-40 px-4 pb-[calc(1rem+env(safe-area-inset-bottom))] lg:bottom-4 lg:left-60 lg:pb-4">
-      <div className="border-border bg-surface mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-[16px] border p-3 shadow-lg">
+      <div className="border-border bg-surface mx-auto flex max-w-3xl flex-wrap items-center gap-2 rounded-lg border p-3 shadow-lg">
         <span className="text-sm font-medium">
           {productCount > 0 &&
             `${productCount} produit${productCount > 1 ? "s" : ""}`}
@@ -177,7 +177,7 @@ export function BulkBar({
                 onChange={(e) => {
                   if (e.target.value) onAssign(e.target.value);
                 }}
-                className="border-border-strong h-9 rounded-[10px] border bg-white px-2 text-xs focus:outline-none"
+                className="border-border-strong rounded-control h-9 border bg-white px-2 text-xs focus:outline-none"
               >
                 <option value="" disabled>
                   Assigner catégorie…
@@ -225,7 +225,7 @@ export function BulkBar({
 
 export function EmptyState() {
   return (
-    <div className="border-border bg-surface flex flex-col items-center justify-center rounded-[16px] border border-dashed py-16 text-center">
+    <div className="border-border bg-surface flex flex-col items-center justify-center rounded-lg border border-dashed py-16 text-center">
       <div className="bg-primary-50 text-primary-600 mb-4 flex size-14 items-center justify-center rounded-2xl">
         <PackageOpen className="size-7" />
       </div>

@@ -65,7 +65,7 @@ function AccountCard({ initial }: { initial: PaymentAccount }) {
   };
 
   return (
-    <div className="border-border bg-surface rounded-[14px] border p-4">
+    <div className="border-border bg-surface rounded-card-lg border p-4">
       <div className="mb-3 flex items-center gap-2">
         <span className="bg-primary-50 text-primary-600 flex size-8 items-center justify-center rounded-full">
           <Building2 className="size-4" />

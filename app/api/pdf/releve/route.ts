@@ -1,10 +1,11 @@
 import { NextResponse, type NextRequest } from "next/server";
-import { PDFDocument, StandardFonts, rgb } from "pdf-lib";
+import { PDFDocument, StandardFonts, type rgb } from "pdf-lib";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import {
   getDriverSettlement,
   parseSettlementPeriod,
 } from "@/lib/driver/settlement-data";
+import { PDF_INK } from "@/lib/pdf/pdf-kit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,11 +17,9 @@ export const dynamic = "force-dynamic";
  * (même source que la page /driver/releve).
  */
 
-const VIOLET = rgb(0.424, 0.169, 0.851); // #6C2BD9
-const INK = rgb(0.043, 0.047, 0.07);
-const MUTED = rgb(0.42, 0.44, 0.5);
-const LINE = rgb(0.9, 0.91, 0.93);
-const GO = rgb(0.086, 0.702, 0.392);
+// Encre PARTAGÉE avec les autres PDF (lib/pdf/pdf-kit) : mêmes valeurs, une
+// seule source — VIOLET et GO viennent des design tokens.
+const { VIOLET, INK, MUTED, LINE, GO, WHITE } = PDF_INK;
 
 function grp(n: number) {
   return String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, " ");
@@ -99,9 +98,9 @@ export async function GET(req: NextRequest) {
   // ── En-tête ──
   page.drawRectangle({ x: 0, y: y - 26, width, height: 74, color: VIOLET });
   y -= 2;
-  text("COLIGO", M, 20, { bold: true, color: rgb(1, 1, 1) });
+  text("COLIGO", M, 20, { bold: true, color: WHITE });
   y -= 18;
-  text("Relevé livreur - règlement", M, 11, { color: rgb(1, 1, 1) });
+  text("Relevé livreur - règlement", M, 11, { color: WHITE });
   y -= 44;
 
   // ── Identité + période ──

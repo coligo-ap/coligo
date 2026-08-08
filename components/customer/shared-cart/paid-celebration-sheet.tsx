@@ -57,7 +57,7 @@ export function PaidCelebrationSheet({
 @media (prefers-reduced-motion:reduce){.sc-conf,.sc-boom{animation:none}}
 `}</style>
       <div
-        className="bg-surface relative max-h-[calc(100dvh-1rem)] w-full max-w-[420px] [animation:scPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] overflow-y-auto rounded-t-[26px] px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:rounded-[26px] sm:pb-6"
+        className="bg-surface rounded-t-panel-lg sm:rounded-panel-lg relative max-h-[calc(100dvh-1rem)] w-full max-w-[420px] [animation:scPaidPop_.4s_cubic-bezier(.18,.9,.28,1.15)_both] overflow-y-auto px-5 pt-2 pb-[calc(1.75rem+env(safe-area-inset-bottom))] shadow-2xl sm:max-h-[calc(100dvh-2rem)] sm:pb-6"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Pluie de confettis (même langage que la victoire de la Roue). */}
@@ -81,10 +81,10 @@ export function PaidCelebrationSheet({
         </div>
         <div className="bg-border mx-auto mb-4 h-[5px] w-9 rounded-full sm:hidden" />
         <ColigoCelebration variant="verified" />
-        <h3 className="sc-boom text-foreground mt-2 text-center text-[18px] font-extrabold tracking-[-0.4px]">
+        <h3 className="sc-boom text-foreground text-heading-sm mt-2 text-center font-extrabold tracking-[-0.4px]">
           {title}
         </h3>
-        <p className="text-muted mx-auto mt-1.5 max-w-[320px] text-center text-[13px] font-semibold">
+        <p className="text-muted text-body-sm mx-auto mt-1.5 max-w-[320px] text-center font-semibold">
           {desc}
         </p>
         {children}

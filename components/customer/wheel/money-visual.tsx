@@ -283,7 +283,7 @@ export function MoneyVisual({
         </span>
       ))}
       {extra > 0 && (
-        <b className="ms-1 text-[11px] font-extrabold opacity-80">+{extra}</b>
+        <b className="text-caption ms-1 font-extrabold opacity-80">+{extra}</b>
       )}
     </span>
   );

@@ -236,11 +236,11 @@ export function CheckoutDeliverySection({
   return (
     <section className="mt-3 space-y-3" data-checkout>
       {/* Toggle Retrait / Livraison — pilule blanche qui GLISSE. */}
-      <div className="bg-surface-2 relative flex rounded-[15px] p-[5px]">
+      <div className="bg-surface-2 rounded-card-xl relative flex p-[5px]">
         <span
           aria-hidden
           className={cn(
-            "bg-surface absolute top-[5px] bottom-[5px] w-[calc(50%-5px)] rounded-[11px] shadow-[0_3px_10px_-2px_rgba(40,35,90,0.18)] transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)]",
+            "bg-surface rounded-control-lg absolute top-[5px] bottom-[5px] w-[calc(50%-5px)] shadow-[0_3px_10px_-2px_rgba(40,35,90,0.18)] transition-transform duration-300 ease-[cubic-bezier(.34,1.4,.64,1)]",
             isDelivery
               ? "translate-x-full rtl:-translate-x-full"
               : "translate-x-0"
@@ -286,20 +286,20 @@ export function CheckoutDeliverySection({
             <button
               type="button"
               onClick={() => setEditing(true)}
-              className="border-border bg-surface co-rise flex w-full items-center gap-3 rounded-[20px] border p-3.5 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]"
+              className="border-border bg-surface co-rise flex w-full items-center gap-3 rounded-xl border p-3.5 text-start shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]"
             >
-              <span className="bg-primary-50 relative grid size-[50px] shrink-0 place-items-center overflow-hidden rounded-[13px]">
+              <span className="bg-primary-50 rounded-card relative grid size-[50px] shrink-0 place-items-center overflow-hidden">
                 <MapPin
                   className="text-primary-600 size-5"
                   fill="currentColor"
                 />
               </span>
               <span className="min-w-0 flex-1">
-                <span className="text-foreground flex items-center gap-1.5 text-[14px] font-extrabold">
+                <span className="text-foreground text-body-lg flex items-center gap-1.5 font-extrabold">
                   <Check className="text-success-600 size-4 shrink-0" />
                   {t("positionConfirmed")}
                 </span>
-                <span className="text-muted mt-0.5 block truncate text-[12px] font-semibold">
+                <span className="text-muted text-label mt-0.5 block truncate font-semibold">
                   {[
                     summaryLabel,
                     t("inZone"),
@@ -309,14 +309,14 @@ export function CheckoutDeliverySection({
                     .join(" · ")}
                 </span>
               </span>
-              <span className="text-primary-700 shrink-0 text-[13px] font-extrabold">
+              <span className="text-primary-700 text-body-sm shrink-0 font-extrabold">
                 {t("change")}
               </span>
             </button>
           ) : (
             /* ── 3 choix de position (au lieu d'afficher la carte directement). ── */
-            <div className="bg-surface co-rise space-y-2.5 overflow-hidden rounded-[20px] p-3 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
-              <p className="text-muted px-1 pt-0.5 text-[11px] font-extrabold tracking-wider uppercase">
+            <div className="bg-surface co-rise space-y-2.5 overflow-hidden rounded-xl p-3 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+              <p className="text-muted text-caption px-1 pt-0.5 font-extrabold tracking-wider uppercase">
                 {t("whereToDeliver")}
               </p>
 
@@ -384,10 +384,10 @@ export function CheckoutDeliverySection({
 
           {/* Mode + créneau + destinataire — révélés une fois la position prête. */}
           {ready && (
-            <div className="border-border bg-surface space-y-4 rounded-[20px] border p-4 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
+            <div className="border-border bg-surface space-y-4 rounded-xl border p-4 shadow-[0_1px_2px_rgba(20,20,50,0.04),0_6px_20px_-10px_rgba(40,35,90,0.16)]">
               {(delivery.express_enabled || delivery.tours_enabled) && (
                 <div className="space-y-2">
-                  <p className="text-muted text-[11px] font-extrabold tracking-wider uppercase">
+                  <p className="text-muted text-caption font-extrabold tracking-wider uppercase">
                     {t("mode")}
                   </p>
                   <div className="grid grid-cols-2 gap-2">
@@ -432,7 +432,7 @@ export function CheckoutDeliverySection({
 
               {value.mode === "tour" && (
                 <div className="space-y-2">
-                  <p className="text-muted text-[11px] font-extrabold tracking-wider uppercase">
+                  <p className="text-muted text-caption font-extrabold tracking-wider uppercase">
                     {t("slot")}
                   </p>
                   {delivery.slots.length === 0 ? (
@@ -451,7 +451,7 @@ export function CheckoutDeliverySection({
                               disabled={full}
                               onClick={() => update({ slotId: s.id })}
                               className={cn(
-                                "flex w-full items-center gap-3 rounded-[12px] border px-3 py-2.5 text-start text-sm transition",
+                                "flex w-full items-center gap-3 rounded-md border px-3 py-2.5 text-start text-sm transition",
                                 full
                                   ? "border-border bg-surface-2 text-muted cursor-not-allowed opacity-60"
                                   : isSel

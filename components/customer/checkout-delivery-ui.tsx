@@ -108,7 +108,7 @@ export function PositionStatus({
   }
   if (source === "current" && gpsState === "denied" && !customPosition) {
     return (
-      <div className="border-danger-200 bg-danger-50 text-danger-700 flex items-center gap-2.5 rounded-[12px] border px-3 py-2.5 text-[13px] font-semibold">
+      <div className="border-danger-200 bg-danger-50 text-danger-700 text-body-sm flex items-center gap-2.5 rounded-md border px-3 py-2.5 font-semibold">
         <AlertTriangle className="size-4 shrink-0" />
         <span className="flex-1">{t("positionDenied")}</span>
         <button
@@ -183,21 +183,21 @@ function InZone({
 }) {
   const t = useTranslations("checkout");
   return (
-    <div className="border-success-200 bg-success-50 flex items-center gap-2.5 rounded-[12px] border px-3 py-2.5">
-      <span className="bg-success-100 text-success-700 grid size-7 shrink-0 place-items-center rounded-[9px]">
+    <div className="border-success-200 bg-success-50 flex items-center gap-2.5 rounded-md border px-3 py-2.5">
+      <span className="bg-success-100 text-success-700 rounded-chip grid size-7 shrink-0 place-items-center">
         <Check className="size-4" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block truncate text-[13.5px] font-extrabold">
+        <span className="text-foreground text-body block truncate font-extrabold">
           {label}
         </span>
-        <span className="text-success-700 block text-[11px] font-semibold">
+        <span className="text-success-700 text-caption block font-semibold">
           {subtitle ? `${subtitle} · ` : ""}
           {t("inZone")}
         </span>
       </span>
       {feeDa != null && (
-        <span className="bg-surface text-foreground ms-auto shrink-0 rounded-[9px] px-2.5 py-1 text-[13px] font-extrabold tabular-nums">
+        <span className="bg-surface text-foreground rounded-chip text-body-sm ms-auto shrink-0 px-2.5 py-1 font-extrabold tabular-nums">
           {formatDA(feeDa)}
         </span>
       )}
@@ -208,7 +208,7 @@ function InZone({
 function OutOfZone({ maxRadiusKm }: { maxRadiusKm: number | null }) {
   const t = useTranslations("checkout");
   return (
-    <p className="border-danger-200 bg-danger-50 text-danger-700 flex items-start gap-2 rounded-[12px] border px-3 py-2.5 text-[13px] font-semibold">
+    <p className="border-danger-200 bg-danger-50 text-danger-700 text-body-sm flex items-start gap-2 rounded-md border px-3 py-2.5 font-semibold">
       <AlertTriangle className="mt-0.5 size-4 shrink-0" />
       <span>
         {t("outOfDeliveryZone")}
@@ -233,7 +233,7 @@ function StatusLine({
   return (
     <div
       className={cn(
-        "flex items-center gap-2.5 rounded-[12px] px-3 py-2.5 text-[13px] font-semibold",
+        "text-body-sm flex items-center gap-2.5 rounded-md px-3 py-2.5 font-semibold",
         tone === "muted" && "bg-surface-2 text-muted"
       )}
     >
@@ -260,7 +260,7 @@ export function ChoiceTile({
       type="button"
       onClick={onClick}
       className={cn(
-        "flex flex-col items-center gap-1.5 rounded-[14px] border px-2 py-3 transition active:scale-[0.97]",
+        "rounded-card-lg flex flex-col items-center gap-1.5 border px-2 py-3 transition active:scale-[0.97]",
         active
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
@@ -278,7 +278,7 @@ export function ChoiceTile({
       </span>
       <span
         className={cn(
-          "text-center text-[11.5px] leading-tight font-bold",
+          "text-caption-lg text-center leading-tight font-bold",
           active ? "text-primary-800" : "text-foreground"
         )}
       >
@@ -334,7 +334,7 @@ export function SavedAddressesModal({
           if (e.target === e.currentTarget) onClose();
         }}
       >
-        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
+        <div className="bg-surface flex max-h-[88vh] w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
           <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
             <h2 className="font-display text-foreground text-lg font-bold">
               {t("savedAddressesChoice")}
@@ -416,10 +416,10 @@ function ModalSection({
 }) {
   return (
     <div className="space-y-2">
-      <p className="text-muted px-1 text-[11px] font-extrabold tracking-wide uppercase">
+      <p className="text-muted text-caption px-1 font-extrabold tracking-wide uppercase">
         {title}
       </p>
-      <div className="divide-border border-border divide-y overflow-hidden rounded-[13px] border">
+      <div className="divide-border border-border rounded-card divide-y overflow-hidden border">
         {children}
       </div>
     </div>
@@ -545,7 +545,7 @@ export function SaveAddressInline({
 
   if (saved) {
     return (
-      <p className="text-success-700 flex items-center gap-1.5 px-1 text-[12px] font-semibold">
+      <p className="text-success-700 text-label flex items-center gap-1.5 px-1 font-semibold">
         <Check className="size-3.5" />
         {t("addressSavedToProfile")}
       </p>
@@ -593,14 +593,14 @@ export function SaveAddressInline({
               else setErr(res.error ?? t("saveFailed"));
             })
           }
-          className="bg-foreground text-background shrink-0 rounded-[10px] px-4 text-sm font-extrabold disabled:opacity-40"
+          className="bg-foreground text-background rounded-control shrink-0 px-4 text-sm font-extrabold disabled:opacity-40"
         >
           {pending ? <Loader2 className="size-4 animate-spin" /> : t("save")}
         </button>
       </div>
       {/* Erreur EN LIGNE sous le champ (pas de toast, cf. CLAUDE.md). */}
       {err && (
-        <p className="text-danger-600 px-1 text-[12px] font-semibold">{err}</p>
+        <p className="text-danger-600 text-label px-1 font-semibold">{err}</p>
       )}
     </div>
   );
@@ -629,7 +629,7 @@ export function RecipientBlock({
           if (!next) update({ recipientName: "", phoneOverride: "" });
         }}
         className={cn(
-          "flex w-full items-center gap-3 rounded-[12px] border p-3 text-start transition",
+          "flex w-full items-center gap-3 rounded-md border p-3 text-start transition",
           forSomeoneElse
             ? "border-primary-500 bg-primary-50"
             : "border-border bg-surface hover:border-primary-300"
@@ -681,7 +681,7 @@ export function RecipientBlock({
         value={value.deliveryNote}
         onChange={(e) => update({ deliveryNote: e.target.value })}
         placeholder={t("deliveryNotePlaceholder")}
-        className="border-border bg-surface min-h-[52px] w-full rounded-[10px] border px-3 py-2 text-sm"
+        className="border-border bg-surface rounded-control min-h-[52px] w-full border px-3 py-2 text-sm"
         maxLength={300}
       />
     </div>
@@ -705,7 +705,7 @@ export function ModeTab({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative z-[2] flex flex-1 items-center justify-center gap-2 rounded-[11px] py-3 text-sm font-extrabold transition active:scale-[0.98]",
+        "rounded-control-lg relative z-[2] flex flex-1 items-center justify-center gap-2 py-3 text-sm font-extrabold transition active:scale-[0.98]",
         active ? "text-foreground" : "text-muted"
       )}
     >
@@ -736,7 +736,7 @@ export function ModeButton({
       type="button"
       onClick={onClick}
       className={cn(
-        "relative flex items-start gap-2 rounded-[12px] border p-3 text-start transition active:scale-[0.98]",
+        "relative flex items-start gap-2 rounded-md border p-3 text-start transition active:scale-[0.98]",
         active
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
@@ -752,8 +752,8 @@ export function ModeButton({
         <span className="text-muted text-xs">{sub}</span>
         {badge && (
           // Texte JAMAIS tronqué : l'étiquette passe à la ligne si besoin
-          // (rounded-[9px] pour rester joli sur 2 lignes).
-          <span className="bg-success-600 mt-1.5 inline-flex max-w-full items-start gap-1 rounded-[9px] px-1.5 py-1 text-[10.5px] leading-[1.25] font-bold text-white">
+          // (rounded-chip pour rester joli sur 2 lignes).
+          <span className="bg-success-600 rounded-chip text-micro-lg mt-1.5 inline-flex max-w-full items-start gap-1 px-1.5 py-1 leading-[1.25] font-bold text-white">
             <Truck className="mt-px size-3 shrink-0" />
             <span>{badge}</span>
           </span>

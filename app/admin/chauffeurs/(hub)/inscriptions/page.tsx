@@ -61,7 +61,7 @@ export default async function ChauffeurRegistrationsTab() {
     <div className="space-y-8">
       <section
         data-alert-focus="chauffeur_pending_validation"
-        className="rounded-[16px]"
+        className="rounded-lg"
       >
         <h2 className="mb-2 flex items-center gap-1.5 text-sm font-bold uppercase">
           <ShieldCheck className="size-4" /> File de validation ({queue.length})
@@ -102,7 +102,7 @@ export default async function ChauffeurRegistrationsTab() {
             <CreditCard className="size-4" /> Abonnements CCP à vérifier (
             {payments.length})
           </h2>
-          <div className="bg-surface border-border overflow-x-auto rounded-[14px] border">
+          <div className="bg-surface border-border rounded-card-lg overflow-x-auto border">
             <table className="w-full text-sm">
               <thead className="bg-surface-2 text-muted text-xs uppercase">
                 <tr>

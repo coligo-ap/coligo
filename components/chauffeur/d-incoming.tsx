@@ -89,10 +89,10 @@ export function DIncoming({
       <div className="relative">
         {/* Anneau de notification pulsé (derrière la carte) */}
         <span
-          className="dh-ic-ring pointer-events-none absolute -inset-0.5 rounded-[22px] border-2"
+          className="dh-ic-ring rounded-sheet-xl pointer-events-none absolute -inset-0.5 border-2"
           style={{ borderColor: VIOLET }}
         />
-        <div className="dh-ic-pop relative overflow-hidden rounded-[20px] border-[1.5px] border-white/60 bg-[var(--d-surface)]/95 shadow-[0_22px_50px_-16px_rgba(20,22,45,.4)] backdrop-blur-xl">
+        <div className="dh-ic-pop relative overflow-hidden rounded-xl border-[1.5px] border-white/60 bg-[var(--d-surface)]/95 shadow-[0_22px_50px_-16px_rgba(20,22,45,.4)] backdrop-blur-xl">
           {/* Barre de temps (12 s) */}
           <span
             className="dh-ic-progress absolute inset-x-0 top-0 z-[1] h-[3px]"
@@ -102,7 +102,7 @@ export function DIncoming({
           />
           {queueCount > 0 && (
             <div
-              className="absolute -top-[22px] left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-bold whitespace-nowrap text-white shadow"
+              className="text-micro absolute -top-[22px] left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full px-2.5 py-1 font-bold whitespace-nowrap text-white shadow"
               style={{ background: VIOLET }}
             >
               <Bell className="size-2.5" />
@@ -128,7 +128,7 @@ export function DIncoming({
               ))}
             </span>
             <span
-              className="drive-sora flex flex-1 items-center gap-1.5 text-[12.5px] font-extrabold"
+              className="drive-sora text-label-lg flex flex-1 items-center gap-1.5 font-extrabold"
               style={{ color: VIOLET }}
             >
               <Bell className="dh-bell size-[15px]" />
@@ -136,7 +136,7 @@ export function DIncoming({
               {/* Longue distance : le chauffeur le sait AVANT d'accepter. */}
               {iw && (
                 <span
-                  className="rounded-full px-2 py-0.5 text-[9px] font-extrabold"
+                  className="text-nano rounded-full px-2 py-0.5 font-extrabold"
                   style={{ background: "rgba(108,43,217,.12)", color: VIOLET }}
                 >
                   {tr("Inter-wilayas", "بين الولايات")}
@@ -145,7 +145,7 @@ export function DIncoming({
             </span>
             {queueCount > 0 && (
               <span
-                className="drive-sora rounded-[9px] px-2 py-1 text-[10px] leading-none font-bold"
+                className="drive-sora rounded-chip text-micro px-2 py-1 leading-none font-bold"
                 style={{ background: "#F1E9FC", color: VIOLET }}
               >
                 +{queueCount}
@@ -155,7 +155,7 @@ export function DIncoming({
               type="button"
               onClick={onClose}
               aria-label={tr("Fermer", "إغلاق")}
-              className="grid size-6 place-items-center rounded-[9px] text-[var(--d-muted)]"
+              className="rounded-chip grid size-6 place-items-center text-[var(--d-muted)]"
             >
               <X className="size-3.5" />
             </button>
@@ -175,10 +175,10 @@ export function DIncoming({
                 {ride.customer_name[0]?.toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
-                <div className="drive-sora flex items-center gap-1.5 text-[12.5px] font-bold">
+                <div className="drive-sora text-label-lg flex items-center gap-1.5 font-bold">
                   <span className="truncate">{ride.customer_name}</span>
                   {ride.customer_rating != null && (
-                    <span className="inline-flex items-center gap-0.5 text-[10px] font-bold text-[#B45309]">
+                    <span className="text-micro inline-flex items-center gap-0.5 font-bold text-[var(--color-warning-700)]">
                       <Star
                         className="size-2.5 shrink-0"
                         style={{ color: "#E8B53C", fill: "#E8B53C" }}
@@ -186,27 +186,27 @@ export function DIncoming({
                       {String(ride.customer_rating).replace(".", ",")}
                     </span>
                   )}
-                  <span className="ml-auto shrink-0 text-[9.5px] font-medium text-[var(--d-muted)]">
+                  <span className="text-nano-lg ml-auto shrink-0 font-medium text-[var(--d-muted)]">
                     {ago(ride.created_at, isAr)}
                   </span>
                 </div>
-                <div className="mt-0.5 flex items-center gap-1 text-[10px] font-semibold text-[var(--d-muted)]">
+                <div className="text-micro mt-0.5 flex items-center gap-1 font-semibold text-[var(--d-muted)]">
                   <MapPin className="size-2.5" style={{ color: VIOLET }} />
                   {fmtkm(ride.pickup_dist_km)} {tr("de vous", "منك")}
                 </div>
               </div>
               <div className="shrink-0 text-right">
-                <div className="drive-sora text-[22px] leading-none font-extrabold">
+                <div className="drive-sora text-display leading-none font-extrabold">
                   {price}
                 </div>
-                <div className="text-[9.5px] font-semibold text-[var(--d-muted)]">
+                <div className="text-nano-lg font-semibold text-[var(--d-muted)]">
                   {tr("DA", "دج")}
                 </div>
               </div>
             </div>
 
             {/* Trajet : rail + adresses */}
-            <div className="flex gap-2.5 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5">
+            <div className="flex gap-2.5 rounded-md bg-[var(--d-soft)] px-3 py-2.5">
               <div className="flex w-3 shrink-0 flex-col items-center pt-1">
                 <span
                   className="size-1.5 shrink-0 rounded-full"
@@ -217,15 +217,15 @@ export function DIncoming({
               </div>
               <div className="flex min-w-0 flex-1 flex-col gap-2">
                 <div className="flex items-center gap-1.5">
-                  <span className="min-w-0 flex-1 truncate text-[10.5px] font-semibold">
+                  <span className="text-micro-lg min-w-0 flex-1 truncate font-semibold">
                     {ride.pickup_text ?? tr("Point de départ", "نقطة الانطلاق")}
                   </span>
-                  <span className="drive-sora shrink-0 text-[9px] font-bold text-[var(--d-muted)]">
+                  <span className="drive-sora text-nano shrink-0 font-bold text-[var(--d-muted)]">
                     {fmtkm(ride.pickup_dist_km)}
                   </span>
                 </div>
                 <div className="flex items-center gap-1.5">
-                  <span className="min-w-0 flex-1 truncate text-[10.5px] font-semibold">
+                  <span className="text-micro-lg min-w-0 flex-1 truncate font-semibold">
                     {ride.dest_text ?? tr("Destination", "الوجهة")}
                     {iw && (
                       <span
@@ -236,7 +236,7 @@ export function DIncoming({
                       </span>
                     )}
                   </span>
-                  <span className="drive-sora shrink-0 text-[9px] font-bold text-[var(--d-muted)]">
+                  <span className="drive-sora text-nano shrink-0 font-bold text-[var(--d-muted)]">
                     {fmtkm(ride.distance_km)}
                   </span>
                 </div>
@@ -250,7 +250,7 @@ export function DIncoming({
               type="button"
               onClick={onRefuse}
               disabled={busy}
-              className="drive-sora flex h-[38px] flex-1 items-center justify-center gap-1.5 rounded-[11px] border border-[var(--d-line)] bg-[var(--d-surface)] text-[12px] font-bold text-[var(--d-muted)] disabled:opacity-50"
+              className="drive-sora rounded-control-lg text-label flex h-[38px] flex-1 items-center justify-center gap-1.5 border border-[var(--d-line)] bg-[var(--d-surface)] font-bold text-[var(--d-muted)] disabled:opacity-50"
             >
               <X className="size-3.5" />
               {tr("Refuser", "رفض")}
@@ -259,7 +259,7 @@ export function DIncoming({
               type="button"
               onClick={onAccept}
               disabled={busy}
-              className="drive-shine drive-sora flex h-[38px] flex-[1.4] items-center justify-center gap-1.5 rounded-[11px] text-[13px] font-extrabold text-white disabled:opacity-60"
+              className="drive-shine drive-sora rounded-control-lg text-body-sm flex h-[38px] flex-[1.4] items-center justify-center gap-1.5 font-extrabold text-white disabled:opacity-60"
               style={{ background: GO, boxShadow: `0 6px 16px -5px ${GO}` }}
             >
               <Check className="size-3.5" />
@@ -269,7 +269,7 @@ export function DIncoming({
           <button
             type="button"
             onClick={onSeeAll}
-            className="drive-sora flex h-8 w-full items-center justify-center gap-1.5 border-t border-[var(--d-line)] text-[11px] font-bold"
+            className="drive-sora text-caption flex h-8 w-full items-center justify-center gap-1.5 border-t border-[var(--d-line)] font-bold"
             style={{ color: VIOLET }}
           >
             {isAr

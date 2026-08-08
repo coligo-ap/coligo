@@ -181,7 +181,7 @@ export async function BannersView() {
       </header>
 
       {/* Cible de l'alerte « bannières expirées encore actives » (?focus=…). */}
-      <div data-alert-focus="banners_expired" className="rounded-[16px]">
+      <div data-alert-focus="banners_expired" className="rounded-lg">
         <BannersManager banners={banners} />
       </div>
     </div>

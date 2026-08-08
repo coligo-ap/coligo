@@ -42,7 +42,7 @@ export function IdvSubTabs({ pendingCount = 0 }: { pendingCount?: number }) {
             key={t.href}
             href={t.href}
             className={cn(
-              "inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 font-medium transition-colors",
+              "rounded-control inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 font-medium transition-colors",
               active
                 ? "bg-primary-50 text-primary-700"
                 : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -51,7 +51,7 @@ export function IdvSubTabs({ pendingCount = 0 }: { pendingCount?: number }) {
             <Icon className="size-4" />
             {t.label}
             {t.href.endsWith("/dossiers") && pendingCount > 0 && (
-              <span className="bg-warning-500 rounded-full px-1.5 py-0.5 text-[10px] font-bold text-white">
+              <span className="bg-warning-500 text-micro rounded-full px-1.5 py-0.5 font-bold text-white">
                 {pendingCount}
               </span>
             )}

@@ -86,8 +86,8 @@ export function ConfirmReception({
   const progress = maxX() > 0 ? x / maxX() : 0;
 
   return (
-    <div className="border-success-200 bg-success-50 mt-3 rounded-[18px] border p-3.5">
-      <p className="text-success-800 mb-2.5 flex items-center gap-1.5 text-[13px] font-extrabold">
+    <div className="border-success-200 bg-success-50 rounded-sheet-lg mt-3 border p-3.5">
+      <p className="text-success-800 text-body-sm mb-2.5 flex items-center gap-1.5 font-extrabold">
         <PackageCheck className="size-4" />
         {labels.title}
       </p>
@@ -95,10 +95,10 @@ export function ConfirmReception({
       {/* Piste de glissement */}
       <div
         ref={trackRef}
-        className="relative h-[60px] w-full overflow-hidden rounded-[14px] bg-white shadow-inner select-none"
+        className="rounded-card-lg relative h-[60px] w-full overflow-hidden bg-white shadow-inner select-none"
       >
         <span
-          className="text-success-700/70 pointer-events-none absolute inset-0 flex items-center justify-center text-[13px] font-bold"
+          className="text-success-700/70 text-body-sm pointer-events-none absolute inset-0 flex items-center justify-center font-bold"
           style={{ opacity: 1 - progress * 1.4 }}
         >
           {labels.slide}
@@ -110,7 +110,7 @@ export function ConfirmReception({
           onPointerUp={onUp}
           onPointerCancel={onUp}
           aria-label={labels.slide}
-          className="bg-success-600 absolute top-1 bottom-1 left-1 grid place-items-center rounded-[11px] text-white"
+          className="bg-success-600 rounded-control-lg absolute top-1 bottom-1 left-1 grid place-items-center text-white"
           style={{
             width: THUMB,
             transform: `translateX(${x}px)`,
@@ -125,14 +125,14 @@ export function ConfirmReception({
       {/* Double confirmation */}
       {armed && (
         <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
-          <div className="w-full max-w-sm rounded-[20px] bg-white p-5 shadow-2xl">
+          <div className="w-full max-w-sm rounded-xl bg-white p-5 shadow-2xl">
             <div className="bg-success-100 text-success-700 mx-auto grid size-14 place-items-center rounded-full">
               <PackageCheck className="size-7" />
             </div>
-            <h3 className="text-foreground mt-3 text-center text-[17px] font-black">
+            <h3 className="text-foreground text-title-lg mt-3 text-center font-black">
               {labels.title}
             </h3>
-            <p className="text-muted mt-1.5 text-center text-[13px] font-medium">
+            <p className="text-muted text-body-sm mt-1.5 text-center font-medium">
               {labels.body}
             </p>
             <ActionNote note={note} className="mt-3 text-center" />
@@ -141,7 +141,7 @@ export function ConfirmReception({
                 type="button"
                 onClick={doConfirm}
                 disabled={pending || done}
-                className="bg-success-600 hover:bg-success-700 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-50"
+                className="bg-success-600 hover:bg-success-700 rounded-card-lg text-title-sm inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-50"
               >
                 {pending ? (
                   <Loader2 className="size-5 animate-spin" />
@@ -154,7 +154,7 @@ export function ConfirmReception({
                 type="button"
                 onClick={() => setArmed(false)}
                 disabled={pending || done}
-                className="text-muted h-11 w-full text-[14px] font-semibold disabled:opacity-50"
+                className="text-muted text-body-lg h-11 w-full font-semibold disabled:opacity-50"
               >
                 {labels.cancel}
               </button>

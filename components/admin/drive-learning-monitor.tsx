@@ -48,7 +48,7 @@ export function DriveLearningMonitor({ initial }: { initial: LearningRow[] }) {
     });
 
   return (
-    <div className="border-border rounded-[14px] border p-4">
+    <div className="border-border rounded-card-lg border p-4">
       <div className="mb-3 flex items-center justify-between">
         <div>
           <h2 className="text-lg font-bold">Auto-calibrage du prix</h2>
@@ -61,7 +61,7 @@ export function DriveLearningMonitor({ initial }: { initial: LearningRow[] }) {
           type="button"
           onClick={recompute}
           disabled={pending}
-          className="flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-semibold disabled:opacity-50"
+          className="rounded-control flex items-center gap-2 border px-3 py-2 text-sm font-semibold disabled:opacity-50"
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -87,7 +87,7 @@ export function DriveLearningMonitor({ initial }: { initial: LearningRow[] }) {
                 {BANDS.map((b) => (
                   <th key={b.i} className="p-2 text-xs font-semibold">
                     {b.label}
-                    <span className="text-muted-foreground block text-[10px] font-normal">
+                    <span className="text-muted-foreground text-micro block font-normal">
                       {b.sub}
                     </span>
                   </th>
@@ -126,7 +126,7 @@ export function DriveLearningMonitor({ initial }: { initial: LearningRow[] }) {
                             <TrendingDown className="size-3 text-[#1E88E5]" />
                           )}
                         </div>
-                        <span className="text-muted-foreground block text-[9px]">
+                        <span className="text-muted-foreground text-nano block">
                           n={cell.n_obs}
                         </span>
                       </td>
@@ -136,7 +136,7 @@ export function DriveLearningMonitor({ initial }: { initial: LearningRow[] }) {
               ))}
             </tbody>
           </table>
-          <p className="text-muted-foreground mt-2 text-[11px]">
+          <p className="text-muted-foreground text-caption mt-2">
             Survole une case : signal, nombre de courses, dernière mise à jour.
             Recalcul automatique chaque nuit (cron Drive).
           </p>

@@ -118,7 +118,7 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
               setPage(1);
             }}
             className={cn(
-              "shrink-0 rounded-full px-3 py-1.5 text-[13px] font-semibold transition-colors",
+              "text-body-sm shrink-0 rounded-full px-3 py-1.5 font-semibold transition-colors",
               status === f.key
                 ? "bg-primary-600 text-white"
                 : "border-border text-muted hover:bg-surface-2 border"
@@ -129,7 +129,7 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
         ))}
       </div>
 
-      <div className="text-muted mt-3 flex items-center gap-2 text-[13px]">
+      <div className="text-muted text-body-sm mt-3 flex items-center gap-2">
         <span className="tabular-nums">
           {showingSample
             ? `${data.rows.length} affiché${data.rows.length > 1 ? "s" : ""} sur ${data.total} client${data.total > 1 ? "s" : ""} — dernières inscriptions`
@@ -145,7 +145,7 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
       </ul>
 
       {data.rows.length === 0 && !pending && (
-        <p className="text-muted border-border mt-4 rounded-[14px] border border-dashed p-6 text-center text-sm">
+        <p className="text-muted border-border rounded-card-lg mt-4 border border-dashed p-6 text-center text-sm">
           Aucun client ne correspond.
         </p>
       )}
@@ -155,7 +155,7 @@ export function CustomersView({ initial }: { initial: CustomersPage }) {
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="border-border text-foreground hover:bg-surface-2 mt-4 w-full rounded-[12px] border px-4 py-2.5 text-sm font-semibold transition-colors"
+            className="border-border text-foreground hover:bg-surface-2 mt-4 w-full rounded-md border px-4 py-2.5 text-sm font-semibold transition-colors"
           >
             Afficher toute la liste ({data.total})
           </button>
@@ -182,7 +182,7 @@ function CustomerCard({ c }: { c: CustomerRow }) {
       <Link
         href={`/admin/clients/${c.id}`}
         prefetch
-        className="border-border bg-surface hover:bg-surface-2 flex items-center gap-3 rounded-[14px] border p-3 transition-colors"
+        className="border-border bg-surface hover:bg-surface-2 rounded-card-lg flex items-center gap-3 border p-3 transition-colors"
       >
         <span
           className={cn(
@@ -202,34 +202,34 @@ function CustomerCard({ c }: { c: CustomerRow }) {
               {c.full_name || "Sans nom"}
             </span>
             {c.is_blocked && (
-              <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold">
+              <span className="bg-danger-100 text-danger-700 text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold">
                 <Ban className="size-3" /> Suspendu
               </span>
             )}
             {!c.is_blocked && c.fraud_suspended && (
-              <span className="bg-danger-100 text-danger-700 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold">
+              <span className="bg-danger-100 text-danger-700 text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold">
                 <Ban className="size-3" /> Suspendu (anti-fraude)
               </span>
             )}
             {restricted && (
-              <span className="bg-warning-100 text-warning-800 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold">
+              <span className="bg-warning-100 text-warning-800 text-caption inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-bold">
                 <ShieldOff className="size-3" />
                 {c.blocked_features.length} coupure
                 {c.blocked_features.length > 1 ? "s" : ""}
               </span>
             )}
             {c.cod_blocked && (
-              <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
+              <span className="bg-surface-2 text-muted text-caption rounded-full px-2 py-0.5 font-semibold">
                 COD bloqué
               </span>
             )}
           </span>
 
-          <span className="text-muted mt-0.5 block truncate text-[13px]">
+          <span className="text-muted text-body-sm mt-0.5 block truncate">
             {[c.phone, c.email].filter(Boolean).join(" · ") || "—"}
           </span>
 
-          <span className="text-muted mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 text-[12px] tabular-nums">
+          <span className="text-muted text-label mt-1 flex flex-wrap items-center gap-x-3 gap-y-0.5 tabular-nums">
             <span>
               {c.orders_count} cmd · {formatDA(c.spend_da)}
             </span>

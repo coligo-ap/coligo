@@ -56,7 +56,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
 
   if (done) {
     return (
-      <p className="text-muted mt-3 flex items-center justify-center gap-1.5 text-[12px] font-semibold">
+      <p className="text-muted text-label mt-3 flex items-center justify-center gap-1.5 font-semibold">
         <ShieldAlert className="size-3.5" />
         {t("reportSentBadge")}
       </p>
@@ -68,7 +68,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="text-muted hover:text-danger-700 mt-3 flex w-full items-center justify-center gap-1.5 text-[12.5px] font-semibold"
+        className="text-muted hover:text-danger-700 text-label-lg mt-3 flex w-full items-center justify-center gap-1.5 font-semibold"
       >
         <AlertTriangle className="size-3.5" />
         {t("reportDriverCta")}
@@ -76,14 +76,14 @@ export function ReportDriver({ orderId }: { orderId: string }) {
 
       {open && (
         <div className="fixed inset-0 z-[120] flex items-end justify-center bg-black/50 p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] sm:items-center">
-          <div className="max-h-[88vh] w-full max-w-sm overflow-y-auto rounded-[20px] bg-white p-5 shadow-2xl">
+          <div className="max-h-[88vh] w-full max-w-sm overflow-y-auto rounded-xl bg-white p-5 shadow-2xl">
             <div className="bg-danger-100 text-danger-700 mx-auto grid size-12 place-items-center rounded-full">
               <ShieldAlert className="size-6" />
             </div>
-            <h3 className="text-foreground mt-3 text-center text-[17px] font-black">
+            <h3 className="text-foreground text-title-lg mt-3 text-center font-black">
               {t("reportDriverTitle")}
             </h3>
-            <p className="text-muted mt-1 text-center text-[12.5px] font-medium">
+            <p className="text-muted text-label-lg mt-1 text-center font-medium">
               {t("reportDriverIntro")}
             </p>
 
@@ -96,7 +96,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
                     type="button"
                     onClick={() => setReasonFr(r.fr)}
                     className={
-                      "flex items-center justify-between rounded-[12px] border px-3.5 py-2.5 text-left text-[13.5px] font-semibold transition-colors " +
+                      "text-body flex items-center justify-between rounded-md border px-3.5 py-2.5 text-left font-semibold transition-colors " +
                       (active
                         ? "border-danger-400 bg-danger-50 text-danger-800"
                         : "border-border text-foreground hover:bg-surface-2")
@@ -114,7 +114,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
               onChange={(e) => setDetails(e.target.value.slice(0, 1000))}
               rows={3}
               placeholder={t("reportDetailsPlaceholder")}
-              className="border-border bg-surface-2 text-foreground mt-3 w-full resize-none rounded-[12px] border px-3 py-2.5 text-[13px] outline-none"
+              className="border-border bg-surface-2 text-foreground text-body-sm mt-3 w-full resize-none rounded-md border px-3 py-2.5 outline-none"
             />
 
             <ActionNote note={note} className="mt-3 text-center" />
@@ -124,7 +124,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
                 type="button"
                 onClick={submit}
                 disabled={pending || !reasonFr}
-                className="bg-danger-600 hover:bg-danger-700 inline-flex h-12 w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-50"
+                className="bg-danger-600 hover:bg-danger-700 rounded-card-lg text-title-sm inline-flex h-12 w-full items-center justify-center gap-2 font-extrabold text-white disabled:opacity-50"
               >
                 {pending ? (
                   <Loader2 className="size-5 animate-spin" />
@@ -137,7 +137,7 @@ export function ReportDriver({ orderId }: { orderId: string }) {
                 type="button"
                 onClick={() => setOpen(false)}
                 disabled={pending}
-                className="text-muted h-11 w-full text-[14px] font-semibold disabled:opacity-50"
+                className="text-muted text-body-lg h-11 w-full font-semibold disabled:opacity-50"
               >
                 {t("reportCancel")}
               </button>

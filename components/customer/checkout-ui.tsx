@@ -27,7 +27,7 @@ export function Block({
   return (
     <section
       className={cn(
-        "border-border co-rise overflow-hidden rounded-[20px] border bg-white",
+        "border-border co-rise overflow-hidden rounded-xl border bg-white",
         className
       )}
       style={{ animationDelay: `${delay}s` }}
@@ -49,7 +49,7 @@ export function SectionTitle({
   return (
     <h2
       className={cn(
-        "text-muted flex items-center gap-2 text-[11px] font-extrabold tracking-wider uppercase",
+        "text-muted text-caption flex items-center gap-2 font-extrabold tracking-wider uppercase",
         className
       )}
     >
@@ -94,7 +94,7 @@ export function PayCard({
       disabled={disabled}
       aria-pressed={selected}
       className={cn(
-        "relative flex flex-col items-start gap-1.5 rounded-[18px] border-2 p-2.5 pt-3 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
+        "rounded-sheet-lg relative flex flex-col items-start gap-1.5 border-2 p-2.5 pt-3 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-45",
         selected
           ? "border-primary-600 bg-primary-50 shadow-[0_10px_24px_-10px_rgba(108,43,217,0.45)]"
           : "border-border bg-surface hover:border-primary-300",
@@ -115,7 +115,7 @@ export function PayCard({
 
       <span
         className={cn(
-          "grid size-[32px] shrink-0 place-items-center rounded-[10px]",
+          "rounded-control grid size-[32px] shrink-0 place-items-center",
           selected
             ? "text-primary-600 bg-white shadow-[0_3px_8px_-2px_rgba(91,91,230,0.4)]"
             : "bg-surface-2 text-foreground"
@@ -125,7 +125,7 @@ export function PayCard({
       </span>
 
       <span className="min-w-0">
-        <span className="text-foreground flex flex-wrap items-center gap-1 text-[12px] leading-tight font-extrabold">
+        <span className="text-foreground text-label flex flex-wrap items-center gap-1 leading-tight font-extrabold">
           {title}
           {bolt && (
             <span className="grid size-[15px] shrink-0 place-items-center rounded-[5px] bg-gradient-to-br from-[#ffb02e] to-[#c77a18] text-white shadow-[0_2px_5px_rgba(199,122,24,0.4)]">
@@ -133,7 +133,7 @@ export function PayCard({
             </span>
           )}
         </span>
-        <span className="text-muted mt-0.5 block text-[10px] leading-snug font-semibold">
+        <span className="text-muted text-micro mt-0.5 block leading-snug font-semibold">
           {sub}
         </span>
       </span>
@@ -141,7 +141,7 @@ export function PayCard({
       {/* Badge cashback — rectangle doux (peut passer sur 2 lignes). */}
       <span
         className={cn(
-          "mt-auto inline-flex items-start gap-1 rounded-[9px] px-1.5 py-1 text-[10px] leading-snug font-extrabold tabular-nums",
+          "rounded-chip text-micro mt-auto inline-flex items-start gap-1 px-1.5 py-1 leading-snug font-extrabold tabular-nums",
           chipTone === "success"
             ? "bg-success-50 text-success-700"
             : "bg-surface-2 text-subtle"
@@ -186,7 +186,7 @@ export function WalletCard({
   return (
     <section
       className={cn(
-        "co-rise relative overflow-hidden rounded-[18px] p-3",
+        "co-rise rounded-sheet-lg relative overflow-hidden p-3",
         success ? "bg-success-50" : "bg-primary-50"
       )}
       style={{ animationDelay: `${delay}s` }}
@@ -224,16 +224,16 @@ export function WalletCard({
           <Icon className="size-5" />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="text-foreground flex items-center gap-1.5 text-[14px] leading-tight font-extrabold">
+          <span className="text-foreground text-body-lg flex items-center gap-1.5 leading-tight font-extrabold">
             {title}
-            <span className="text-muted inline-flex items-center gap-1 text-[11px] font-semibold">
+            <span className="text-muted text-caption inline-flex items-center gap-1 font-semibold">
               · {subLabel}
               <Info className="size-3" />
             </span>
           </span>
           <span
             className={cn(
-              "mt-0.5 block text-[20px] leading-6 font-extrabold tabular-nums",
+              "text-heading-lg mt-0.5 block leading-6 font-extrabold tabular-nums",
               success ? "text-success-600" : "text-primary-700"
             )}
           >
@@ -271,7 +271,7 @@ export function WalletCard({
         <Link
           href={href}
           className={cn(
-            "relative mt-2.5 flex items-center gap-2 rounded-[12px] px-3 py-2 transition active:scale-[0.99]",
+            "relative mt-2.5 flex items-center gap-2 rounded-md px-3 py-2 transition active:scale-[0.99]",
             success ? "bg-success-100/80" : "bg-primary-100/70"
           )}
         >
@@ -283,7 +283,7 @@ export function WalletCard({
           />
           <span
             className={cn(
-              "flex-1 text-[12px] leading-snug font-bold",
+              "text-label flex-1 leading-snug font-bold",
               success ? "text-success-800" : "text-primary-800"
             )}
           >
@@ -323,14 +323,14 @@ export function WalletRow({
       onClick={onToggle}
       className="flex w-full items-center gap-3 px-4 py-3.5 text-start transition active:scale-[0.99]"
     >
-      <span className="text-primary-600 bg-surface-2 grid size-[38px] shrink-0 place-items-center rounded-[11px]">
+      <span className="text-primary-600 bg-surface-2 rounded-control-lg grid size-[38px] shrink-0 place-items-center">
         <Icon className="size-[18px]" />
       </span>
       <span className="min-w-0 flex-1">
-        <span className="text-foreground block text-[14.5px] font-extrabold">
+        <span className="text-foreground text-body-xl block font-extrabold">
           {title}
         </span>
-        <span className="text-muted block text-[11.5px] font-semibold">
+        <span className="text-muted text-caption-lg block font-semibold">
           {sub}
         </span>
       </span>
@@ -373,13 +373,13 @@ export function AddLine({
       onClick={onClick}
       className="flex w-full items-center gap-3 p-4 text-start transition active:scale-[0.99]"
     >
-      <span className="bg-primary-50 text-primary-600 grid size-[34px] shrink-0 place-items-center rounded-[10px]">
+      <span className="bg-primary-50 text-primary-600 rounded-control grid size-[34px] shrink-0 place-items-center">
         {icon}
       </span>
       <span className="text-foreground flex-1 text-sm font-bold">
         {title}
         {sub && (
-          <span className="text-muted mt-0.5 block text-[11.5px] font-semibold">
+          <span className="text-muted text-caption-lg mt-0.5 block font-semibold">
             {sub}
           </span>
         )}
@@ -413,7 +413,7 @@ export function PickupTile({
       onClick={onClick}
       disabled={disabled}
       className={cn(
-        "flex items-start gap-2 rounded-[12px] border p-3 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
+        "flex items-start gap-2 rounded-md border p-3 text-start transition active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50",
         checked
           ? "border-primary-500 bg-primary-50"
           : "border-border bg-surface hover:border-primary-300"
@@ -457,8 +457,8 @@ export function CalendarGlyph() {
 export function TotRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between pt-0.5">
-      <dt className="text-foreground text-[17px] font-extrabold">{label}</dt>
-      <dd className="text-foreground text-[17px] font-extrabold tabular-nums">
+      <dt className="text-foreground text-title-lg font-extrabold">{label}</dt>
+      <dd className="text-foreground text-title-lg font-extrabold tabular-nums">
         {value}
       </dd>
     </div>

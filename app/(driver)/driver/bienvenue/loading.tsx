@@ -6,7 +6,7 @@ export default function DriverWelcomeLoading() {
         <div className="mx-auto size-[180px] animate-pulse rounded-full bg-[var(--soft)]" />
         <div className="mx-auto h-7 w-56 animate-pulse rounded-lg bg-[var(--soft)]" />
         <div className="mx-auto h-4 w-72 animate-pulse rounded-lg bg-[var(--soft)]" />
-        <div className="mt-4 h-[52px] animate-pulse rounded-[16px] bg-[var(--soft)]" />
+        <div className="mt-4 h-[52px] animate-pulse rounded-lg bg-[var(--soft)]" />
       </main>
     </div>
   );

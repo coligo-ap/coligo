@@ -49,7 +49,7 @@ export function MerchantMobileHeader({
         >
           <Bell className="size-4" />
           {pendingCount > 0 && (
-            <span className="absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 text-[10px] font-bold text-white ring-2 ring-white">
+            <span className="text-micro absolute -top-0.5 -right-0.5 inline-flex min-w-[16px] items-center justify-center rounded-full bg-rose-500 px-1 font-bold text-white ring-2 ring-white">
               {pendingCount}
             </span>
           )}

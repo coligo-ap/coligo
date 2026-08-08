@@ -102,7 +102,7 @@ export function ChauffeurDocReview({
           <div
             key={kind}
             className={cn(
-              "border-border flex flex-wrap items-center gap-2 rounded-[12px] border p-3",
+              "border-border flex flex-wrap items-center gap-2 rounded-md border p-3",
               doc?.status === "approved" && "border-success-300 bg-success-50",
               doc?.status === "rejected" && "border-danger-300 bg-danger-50"
             )}
@@ -113,7 +113,7 @@ export function ChauffeurDocReview({
                 type="button"
                 onClick={() => window.open(signedUrls[doc.id], "_blank")}
                 aria-label={`Voir ${meta.label}`}
-                className="border-border size-12 shrink-0 overflow-hidden rounded-[10px] border"
+                className="border-border rounded-control size-12 shrink-0 overflow-hidden border"
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
@@ -141,7 +141,7 @@ export function ChauffeurDocReview({
               <>
                 <span
                   className={cn(
-                    "rounded-full px-2 py-0.5 text-[10px] font-bold uppercase",
+                    "text-micro rounded-full px-2 py-0.5 font-bold uppercase",
                     doc.status === "approved" && "bg-success-600 text-white",
                     doc.status === "rejected" && "bg-danger-600 text-white",
                     doc.status === "pending" &&
@@ -165,7 +165,7 @@ export function ChauffeurDocReview({
                     type="button"
                     disabled={pending}
                     onClick={() => approveInline(doc.id)}
-                    className="bg-success-600 rounded-[8px] px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
+                    className="bg-success-600 rounded-sm px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
                   >
                     Valider
                   </button>
@@ -177,7 +177,7 @@ export function ChauffeurDocReview({
                     onClick={() =>
                       setRejecting({ docId: doc.id, label: meta.label })
                     }
-                    className="bg-danger-600 rounded-[8px] px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
+                    className="bg-danger-600 rounded-sm px-2 py-1 text-xs font-bold text-white disabled:opacity-50"
                   >
                     Refuser
                   </button>
@@ -237,7 +237,7 @@ export function ChauffeurInfoForm({
       if (!res.error) router.refresh();
     });
 
-  const inp = "border-border w-full rounded-[10px] border px-2.5 py-2 text-sm";
+  const inp = "border-border w-full rounded-control border px-2.5 py-2 text-sm";
   return (
     <div className="space-y-3">
       <div className="grid gap-3 sm:grid-cols-2">
@@ -338,7 +338,7 @@ export function ChauffeurInfoForm({
         type="button"
         disabled={pending}
         onClick={save}
-        className="bg-primary-700 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-4 text-xs font-bold text-white disabled:opacity-50"
+        className="bg-primary-700 rounded-control inline-flex h-9 items-center gap-1.5 px-4 text-xs font-bold text-white disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-3.5 animate-spin" />
@@ -399,7 +399,7 @@ export function ChauffeurAccountActions({
                 "Compte ACTIVÉ — le chauffeur peut travailler ✓"
               )
             }
-            className="bg-success-600 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-4 text-xs font-bold text-white disabled:opacity-50"
+            className="bg-success-600 rounded-control inline-flex h-9 items-center gap-1.5 px-4 text-xs font-bold text-white disabled:opacity-50"
           >
             <ShieldCheck className="size-3.5" /> Activer le compte
           </button>
@@ -421,7 +421,7 @@ export function ChauffeurAccountActions({
                 "Dossier refusé (motif transmis)."
               );
             }}
-            className="bg-danger-600 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-4 text-xs font-bold text-white disabled:opacity-50"
+            className="bg-danger-600 rounded-control inline-flex h-9 items-center gap-1.5 px-4 text-xs font-bold text-white disabled:opacity-50"
           >
             <X className="size-3.5" /> Refuser le dossier
           </button>
@@ -452,7 +452,7 @@ export function ChauffeurAccountActions({
               );
             }}
             className={cn(
-              "inline-flex h-9 items-center gap-1.5 rounded-[10px] px-4 text-xs font-bold disabled:opacity-50",
+              "rounded-control inline-flex h-9 items-center gap-1.5 px-4 text-xs font-bold disabled:opacity-50",
               isFrozen
                 ? "bg-warning-100 text-warning-800"
                 : "bg-warning-500 text-white"
@@ -471,7 +471,7 @@ export function ChauffeurAccountActions({
             )
           }
           className={cn(
-            "inline-flex h-9 items-center gap-1.5 rounded-[10px] px-4 text-xs font-bold disabled:opacity-50",
+            "rounded-control inline-flex h-9 items-center gap-1.5 px-4 text-xs font-bold disabled:opacity-50",
             isBlocked
               ? "bg-danger-100 text-danger-700"
               : "bg-danger-600 text-white"

@@ -84,7 +84,7 @@ export function CustomerDrawer({ hiddenKeys = [] }: { hiddenKeys?: string[] }) {
         href={item.href}
         onClick={() => setOpen(false)}
         className={cn(
-          "flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-medium transition-colors",
+          "flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium transition-colors",
           active
             ? "bg-primary-50 text-primary-700"
             : "text-foreground hover:bg-surface-2"
@@ -105,7 +105,7 @@ export function CustomerDrawer({ hiddenKeys = [] }: { hiddenKeys?: string[] }) {
         aria-label={t("menu")}
         aria-haspopup="dialog"
         aria-expanded={open}
-        className="hover:bg-surface-2 border-border hidden size-10 shrink-0 place-items-center rounded-[10px] border lg:grid"
+        className="hover:bg-surface-2 border-border rounded-control hidden size-10 shrink-0 place-items-center border lg:grid"
       >
         <Menu className="size-5" />
       </button>
@@ -141,7 +141,7 @@ export function CustomerDrawer({ hiddenKeys = [] }: { hiddenKeys?: string[] }) {
             </div>
 
             <nav className="flex-1 overflow-y-auto px-3 py-4">
-              <p className="text-muted px-3 pb-1.5 text-[11px] font-bold tracking-wide uppercase">
+              <p className="text-muted text-caption px-3 pb-1.5 font-bold tracking-wide uppercase">
                 {t("navigation")}
               </p>
               <div className="space-y-0.5">
@@ -150,7 +150,7 @@ export function CustomerDrawer({ hiddenKeys = [] }: { hiddenKeys?: string[] }) {
                 ).map(Row)}
               </div>
 
-              <p className="text-muted mt-5 px-3 pb-1.5 text-[11px] font-bold tracking-wide uppercase">
+              <p className="text-muted text-caption mt-5 px-3 pb-1.5 font-bold tracking-wide uppercase">
                 {t("services")}
               </p>
               <div className="space-y-0.5">{SERVICES.map(Row)}</div>
@@ -160,7 +160,7 @@ export function CustomerDrawer({ hiddenKeys = [] }: { hiddenKeys?: string[] }) {
               <Link
                 href="/login"
                 onClick={() => setOpen(false)}
-                className="text-muted hover:bg-surface-2 hover:text-foreground flex items-center gap-3 rounded-[12px] px-3 py-2.5 text-sm font-medium"
+                className="text-muted hover:bg-surface-2 hover:text-foreground flex items-center gap-3 rounded-md px-3 py-2.5 text-sm font-medium"
               >
                 <Store className="size-5" />
                 <span>{tHeader("becomeMerchant")}</span>

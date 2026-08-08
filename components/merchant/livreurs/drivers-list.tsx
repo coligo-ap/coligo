@@ -58,15 +58,15 @@ export function DriversTabs({
   const drivers = lists[tab];
 
   return (
-    <section className="border-border bg-surface space-y-3 rounded-[16px] border p-5">
-      <nav className="bg-surface-3 inline-flex max-w-full gap-0.5 rounded-[12px] p-1">
+    <section className="border-border bg-surface space-y-3 rounded-lg border p-5">
+      <nav className="bg-surface-3 inline-flex max-w-full gap-0.5 rounded-md p-1">
         {tabs.map((t) => (
           <button
             key={t}
             type="button"
             onClick={() => setTab(t)}
             className={cn(
-              "flex items-center gap-1.5 rounded-[10px] px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
+              "rounded-control flex items-center gap-1.5 px-3 py-1.5 text-sm font-medium whitespace-nowrap transition-colors",
               tab === t
                 ? "bg-surface text-foreground shadow-sm"
                 : "text-muted hover:text-foreground"

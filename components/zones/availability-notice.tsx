@@ -55,7 +55,7 @@ export function AvailabilityNotice({
   return (
     <div
       className={
-        "flex items-start gap-2 rounded-[12px] border border-sky-200 bg-sky-50 p-3 text-[12.5px] font-semibold text-sky-800 " +
+        "text-label-lg flex items-start gap-2 rounded-md border border-sky-200 bg-sky-50 p-3 font-semibold text-sky-800 " +
         className
       }
     >

@@ -80,11 +80,11 @@ export function PlatformSettingsForm({
   return (
     <form
       action={formAction}
-      className="border-border bg-surface space-y-4 rounded-[16px] border p-5"
+      className="border-border bg-surface space-y-4 rounded-lg border p-5"
     >
       <div
         role="note"
-        className="border-warning-100 bg-warning-50 text-warning-700 flex items-start gap-2.5 rounded-[12px] border px-4 py-3 text-xs"
+        className="border-warning-100 bg-warning-50 text-warning-700 flex items-start gap-2.5 rounded-md border px-4 py-3 text-xs"
       >
         <AlertTriangle className="text-warning-600 mt-0.5 size-4 shrink-0" />
         <p>

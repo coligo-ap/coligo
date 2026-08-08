@@ -129,13 +129,13 @@ export function ConnectionGuard() {
       aria-live="assertive"
       className="fixed inset-x-0 top-0 z-[300] px-3 pt-[calc(env(safe-area-inset-top)+8px)] pb-2"
     >
-      <div className="mx-auto flex max-w-md items-center gap-3 rounded-[14px] bg-[#17151f]/95 px-3.5 py-2.5 text-white shadow-lg ring-1 ring-white/10 backdrop-blur">
-        <WifiOff className="size-5 shrink-0 text-[#ff2d7a]" aria-hidden />
+      <div className="rounded-card-lg mx-auto flex max-w-md items-center gap-3 bg-[#17151f]/95 px-3.5 py-2.5 text-white shadow-lg ring-1 ring-white/10 backdrop-blur">
+        <WifiOff className="text-accent-500 size-5 shrink-0" aria-hidden />
         <div className="min-w-0 flex-1">
-          <p className="text-[13.5px] leading-tight font-semibold">
+          <p className="text-body leading-tight font-semibold">
             Connexion instable ou coupée
           </p>
-          <p className="mt-0.5 text-[12px] leading-snug text-white/65">
+          <p className="text-label mt-0.5 leading-snug text-white/65">
             {hint ?? "Nouvelle tentative dès le retour du réseau…"}
           </p>
         </div>
@@ -143,7 +143,7 @@ export function ConnectionGuard() {
           type="button"
           onClick={onRetry}
           disabled={checking}
-          className="inline-flex shrink-0 items-center gap-1.5 rounded-[10px] bg-white px-3 py-1.5 text-[13px] font-bold text-[#17151f] transition-transform active:scale-95 disabled:opacity-60"
+          className="rounded-control text-body-sm inline-flex shrink-0 items-center gap-1.5 bg-white px-3 py-1.5 font-bold text-[#17151f] transition-transform active:scale-95 disabled:opacity-60"
         >
           {checking ? (
             <Loader2 className="size-4 animate-spin" aria-hidden />

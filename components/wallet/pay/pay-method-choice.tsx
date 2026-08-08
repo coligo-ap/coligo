@@ -99,7 +99,7 @@ export function PayMethodChoice({
         href={payHref(base)}
         trailing={
           <span
-            className="inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10.5px] font-bold"
+            className="text-micro-lg inline-flex items-center gap-1 rounded-full px-2.5 py-1 font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: BRAND_GO }}
           >
             <ShieldCheck className="size-3.5" />
@@ -114,10 +114,10 @@ export function PayMethodChoice({
             key={m.href}
             href={m.href}
             prefetch
-            className="flex w-full items-center gap-3 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
+            className="rounded-sheet-lg flex w-full items-center gap-3 border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
           >
             <span
-              className="grid size-11 shrink-0 place-items-center rounded-[14px]"
+              className="rounded-card-lg grid size-11 shrink-0 place-items-center"
               style={{
                 background: "var(--d-accent)",
                 color: "var(--d-violet)",
@@ -127,12 +127,12 @@ export function PayMethodChoice({
             </span>
             <span className="min-w-0 flex-1">
               <span className="flex items-center gap-2">
-                <span className="truncate text-[14px] font-extrabold text-[var(--d-ink)]">
+                <span className="text-body-lg truncate font-extrabold text-[var(--d-ink)]">
                   {m.title}
                 </span>
                 <PartnerBadge tone={m.badgeTone}>{m.badge}</PartnerBadge>
               </span>
-              <span className="mt-0.5 block truncate text-[12px] font-medium text-[var(--d-muted)]">
+              <span className="text-label mt-0.5 block truncate font-medium text-[var(--d-muted)]">
                 {m.sub}
               </span>
             </span>
@@ -143,12 +143,12 @@ export function PayMethodChoice({
 
       {/* Besoin d'aide ? — guide compact + support, sans pavé de texte */}
       <PayCard className="mt-4 p-3.5">
-        <p className="flex items-center gap-2 text-[13px] font-extrabold text-[var(--d-ink)]">
+        <p className="text-body-sm flex items-center gap-2 font-extrabold text-[var(--d-ink)]">
           <HelpCircle className="size-4" style={{ color: "var(--d-violet)" }} />
           {t.needHelp}
         </p>
         <details className="mt-2">
-          <summary className="cursor-pointer list-none text-[12.5px] font-bold text-[var(--d-muted)]">
+          <summary className="text-label-lg cursor-pointer list-none font-bold text-[var(--d-muted)]">
             {t.howItWorks}
           </summary>
           <div className="mt-2 space-y-1.5">
@@ -170,7 +170,7 @@ export function PayMethodChoice({
             ).map((line, i) => (
               <p
                 key={i}
-                className="text-[12px] leading-snug font-medium text-[var(--d-muted)]"
+                className="text-label leading-snug font-medium text-[var(--d-muted)]"
               >
                 • {line}
               </p>
@@ -188,7 +188,7 @@ export function PayMethodChoice({
                 },
               })
             }
-            className="mt-2.5 flex items-center gap-2 text-[12.5px] font-bold"
+            className="text-label-lg mt-2.5 flex items-center gap-2 font-bold"
             style={{ color: "var(--d-violet)" }}
           >
             <MessageCircle className="size-4" />
@@ -202,19 +202,19 @@ export function PayMethodChoice({
         <Link
           href={payHref(base)}
           prefetch
-          className="mt-3 flex items-center gap-3 rounded-[18px] p-3.5"
+          className="rounded-sheet-lg mt-3 flex items-center gap-3 p-3.5"
           style={{ background: "var(--d-accent)" }}
         >
           <span
-            className="grid size-9 place-items-center rounded-[12px] bg-[var(--d-surface)]"
+            className="grid size-9 place-items-center rounded-md bg-[var(--d-surface)]"
             style={{ color: "var(--d-violet)" }}
           >
             <Wallet className="size-4" />
           </span>
-          <span className="flex-1 text-[12.5px] font-bold text-[var(--d-ink)]">
+          <span className="text-label-lg flex-1 font-bold text-[var(--d-ink)]">
             {t.currentBalance}
           </span>
-          <span className="text-[14px] font-extrabold text-[var(--d-ink)]">
+          <span className="text-body-lg font-extrabold text-[var(--d-ink)]">
             {hidden ? "•••••" : `${groupNum(state.effectiveBalanceDa)} DA`}
           </span>
           <ChevronRight className="size-4 text-[var(--d-muted)] rtl:rotate-180" />

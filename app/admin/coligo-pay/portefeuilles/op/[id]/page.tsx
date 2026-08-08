@@ -106,7 +106,7 @@ export default async function OperatorWalletPage({
 
       {/* ---- Soldes ---- */}
       <div className="mt-4 grid gap-3 sm:grid-cols-2">
-        <section className="border-border bg-surface rounded-[14px] border p-4">
+        <section className="border-border bg-surface rounded-card-lg border p-4">
           <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
             <Wallet className="size-3.5" />
             Solde portefeuille
@@ -121,7 +121,7 @@ export default async function OperatorWalletPage({
           </p>
         </section>
         {debtDa > 0 && (
-          <section className="border-warning-200 bg-surface rounded-[14px] border p-4">
+          <section className="border-warning-200 bg-surface rounded-card-lg border p-4">
             <h2 className="text-muted flex items-center gap-1.5 text-xs font-bold uppercase">
               <AlertTriangle className="size-3.5" />
               Encours à reverser (dette de rôle)
@@ -141,7 +141,7 @@ export default async function OperatorWalletPage({
       />
 
       {/* ---- Écritures ---- */}
-      <section className="border-border bg-surface mt-3 rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg mt-3 border p-4">
         <h2 className="text-muted text-xs font-bold uppercase">
           Écritures ({entries.length} dernières)
         </h2>

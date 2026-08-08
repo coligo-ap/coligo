@@ -629,14 +629,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             <button
               type="button"
               onClick={() => router.push("/chauffeur/gains")}
-              className="flex items-center gap-1.5 rounded-[16px] border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
+              className="flex items-center gap-1.5 rounded-lg border py-1.5 pr-2 pl-3.5 text-white shadow-lg"
               style={{ background: "#6C2BD9", borderColor: "#4B1FA6" }}
             >
               <span className="flex flex-col items-start leading-none">
-                <span className="drive-sora text-[18px] font-extrabold tracking-[-0.5px]">
+                <span className="drive-sora text-heading-sm font-extrabold tracking-[-0.5px]">
                   {formatDA(home?.todayNet ?? 0)}
                 </span>
-                <span className="mt-0.5 text-[9px] font-medium whitespace-nowrap opacity-85">
+                <span className="text-nano mt-0.5 font-medium whitespace-nowrap opacity-85">
                   {tr("Revenu du jour", "دخل اليوم")}
                 </span>
               </span>
@@ -649,7 +649,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         <div className="flex items-start justify-end gap-2">
           <NotificationBell
             source={{ table: "user_notifications", audience: "chauffeur" }}
-            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
             iconClassName="size-5"
           />
           <button
@@ -657,7 +657,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             onClick={() => void recenter()}
             disabled={locating}
             aria-label="Centrer sur ma position"
-            className="grid size-[44px] place-items-center rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
+            className="grid size-[44px] place-items-center rounded-lg border border-[var(--d-line)] bg-[var(--d-surface)] shadow-lg"
           >
             {locating ? (
               <Loader2
@@ -695,7 +695,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <button
             type="button"
             onClick={() => router.push("/chauffeur/demandes")}
-            className="drive-attn flex items-center justify-center gap-2 rounded-[16px] px-4 py-2.5 text-[13.5px] font-bold text-white shadow-lg"
+            className="drive-attn text-body flex items-center justify-center gap-2 rounded-lg px-4 py-2.5 font-bold text-white shadow-lg"
             style={{ background: VIOLET }}
           >
             {isAr
@@ -712,7 +712,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           aria-label={tr("Disponibilité", "التوفر")}
           onClick={() => toggleOnline()}
           disabled={!online && netOffline}
-          className="flex w-full items-center gap-3 rounded-[20px] border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
+          className="flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 text-start shadow-xl transition-colors disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             borderColor: online ? "rgba(22,179,100,.35)" : "var(--d-line)",
             background: online ? "rgba(22,179,100,.07)" : "var(--d-surface)",
@@ -734,7 +734,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             <span className="drive-sora block text-[15.5px] font-extrabold tracking-[-0.2px]">
               {online ? tr("En ligne", "متصل") : tr("Hors ligne", "غير متصل")}
             </span>
-            <span className="block truncate text-[12px] text-[var(--d-muted)]">
+            <span className="text-label block truncate text-[var(--d-muted)]">
               {online
                 ? tr("En recherche des courses…", "البحث عن الطلبات…")
                 : netOffline
@@ -771,14 +771,14 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
             {/* Profil */}
             <div className="flex items-center gap-3">
               <span
-                className="drive-sora grid size-12 shrink-0 place-items-center rounded-[16px] text-[18px] font-extrabold text-white"
+                className="drive-sora text-heading-sm grid size-12 shrink-0 place-items-center rounded-lg font-extrabold text-white"
                 style={{ background: VIOLET }}
               >
                 {(gate.firstName || "C").charAt(0).toUpperCase()}
               </span>
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
-                  <b className="drive-sora truncate text-[15px] font-extrabold text-[var(--d-ink)]">
+                  <b className="drive-sora text-title-sm truncate font-extrabold text-[var(--d-ink)]">
                     {gate.fullName || gate.firstName}
                   </b>
                   {gate.isVerified && (
@@ -788,7 +788,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                     />
                   )}
                 </div>
-                <span className="block truncate text-[12px] text-[var(--d-muted)]">
+                <span className="text-label block truncate text-[var(--d-muted)]">
                   {tr("Chauffeur", "سائق")} · {planLabel(home?.plan ?? "free")}{" "}
                   · {GAMME_LABEL[gate.gamme]}
                 </span>
@@ -802,15 +802,15 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                   setMenuOpen(false);
                   router.push("/chauffeur/gains");
                 }}
-                className="flex flex-col gap-0.5 rounded-[14px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3 text-left"
+                className="rounded-card-lg flex flex-col gap-0.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-3 text-left"
               >
-                <span className="text-[11px] font-medium text-[var(--d-muted)]">
+                <span className="text-caption font-medium text-[var(--d-muted)]">
                   {tr("Gains du jour", "أرباح اليوم")}
                 </span>
-                <span className="drive-sora text-[17px] leading-none font-extrabold tracking-[-0.5px]">
+                <span className="drive-sora text-title-lg leading-none font-extrabold tracking-[-0.5px]">
                   {formatDA(home?.todayNet ?? 0)}
                 </span>
-                <span className="mt-0.5 text-[10px] text-[var(--d-muted)]">
+                <span className="text-micro mt-0.5 text-[var(--d-muted)]">
                   {home?.todayRides ?? 0} {tr("courses", "رحلة")} ·{" "}
                   {fmtOnline(home?.todayOnlineMin ?? 0)}
                 </span>
@@ -821,7 +821,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                   setMenuOpen(false);
                   router.push("/chauffeur/recharger");
                 }}
-                className="flex flex-col gap-0.5 rounded-[14px] border p-3 text-left"
+                className="rounded-card-lg flex flex-col gap-0.5 border p-3 text-left"
                 style={{
                   borderColor: lowBalance
                     ? "rgba(229,72,77,.25)"
@@ -832,20 +832,20 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                 }}
               >
                 <span
-                  className="flex items-center gap-1.5 text-[11px] font-medium"
+                  className="text-caption flex items-center gap-1.5 font-medium"
                   style={{ color: lowBalance ? RED : "var(--d-muted)" }}
                 >
                   <Wallet className="size-3.5" />
                   {tr("Solde", "الرصيد")}
                 </span>
                 <span
-                  className="drive-sora text-[17px] leading-none font-extrabold tracking-[-0.5px]"
+                  className="drive-sora text-title-lg leading-none font-extrabold tracking-[-0.5px]"
                   style={{ color: lowBalance ? RED : "var(--d-ink)" }}
                 >
                   {balance == null ? "…" : formatDA(balance)}
                 </span>
                 <span
-                  className="mt-0.5 text-[10px]"
+                  className="text-micro mt-0.5"
                   style={{ color: lowBalance ? RED : "var(--d-muted)" }}
                 >
                   {lowBalance
@@ -860,7 +860,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
           <div className="space-y-2">
             {logoutErr && (
               <p
-                className="rounded-[12px] px-3 py-2 text-center text-[12px] font-bold"
+                className="text-label rounded-md px-3 py-2 text-center font-bold"
                 style={{ background: "rgba(229,72,77,.1)", color: RED }}
               >
                 {logoutErr}
@@ -870,7 +870,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               type="button"
               onClick={() => void doLogout()}
               disabled={loggingOut}
-              className="flex w-full items-center justify-center gap-2 rounded-[14px] border py-3 text-[13.5px] font-bold"
+              className="rounded-card-lg text-body flex w-full items-center justify-center gap-2 border py-3 font-bold"
               style={{ borderColor: "rgba(229,72,77,.3)", color: RED }}
             >
               {loggingOut ? (
@@ -964,7 +964,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         </DrawerSection>
 
         {dirMsg && (
-          <p className="px-6 pb-1 text-[11px] text-[var(--d-muted)]">
+          <p className="text-caption px-6 pb-1 text-[var(--d-muted)]">
             {dirMsg}
           </p>
         )}
@@ -1010,7 +1010,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
         {/* Apparence & langue */}
         <DrawerSection title={tr("Apparence & langue", "المظهر واللغة")}>
           <div className="flex items-center justify-between gap-3 px-3.5 py-3">
-            <span className="text-[13px] font-semibold text-[var(--d-ink)]">
+            <span className="text-body-sm font-semibold text-[var(--d-ink)]">
               {tr("Thème & langue", "السمة واللغة")}
             </span>
             <div className="flex items-center gap-2">
@@ -1025,9 +1025,9 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
       {homeOpen && (
         <Portal>
           <div className="fixed inset-0 z-[130] flex flex-col justify-end bg-black/45">
-            <div className="drive-jakarta rounded-t-[24px] bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
+            <div className="drive-jakarta rounded-t-panel bg-[var(--d-surface)] p-4 pb-[calc(16px+env(safe-area-inset-bottom))]">
               <div className="mb-2 flex items-center justify-between">
-                <b className="drive-sora text-[16px] font-extrabold">
+                <b className="drive-sora text-title font-extrabold">
                   {tr("Mon domicile", "منزلي")}
                 </b>
                 <button
@@ -1039,7 +1039,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                   <X className="size-4" />
                 </button>
               </div>
-              <p className="mb-2 text-[12px] text-[var(--d-muted)]">
+              <p className="text-label mb-2 text-[var(--d-muted)]">
                 {tr(
                   "Cherchez votre adresse ou déplacez la carte pour placer le repère sur votre domicile.",
                   "ابحث عن عنوانك أو حرّك الخريطة لوضع المؤشر على منزلك."
@@ -1054,7 +1054,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
                 gpsLabel={tr("Ma position", "موقعي")}
                 onChange={(p) => setHomePos(p)}
               />
-              <p className="mt-2 text-[11px] text-[var(--d-muted)]">
+              <p className="text-caption mt-2 text-[var(--d-muted)]">
                 {tr(
                   "⚠️ Anti-fraude : l'adresse domicile est modifiable 3 fois par semaine (correction libre pendant 15 min après un changement).",
                   "⚠️ لمكافحة الاحتيال: عنوان المنزل قابل للتعديل 3 مرات في الأسبوع (تصحيح حر خلال 15 دقيقة بعد التغيير)."
@@ -1062,7 +1062,7 @@ export function DHome({ gate }: { gate: ChauffeurGate }) {
               </p>
               {homeErr && (
                 <p
-                  className="mt-2 rounded-[12px] px-3 py-2 text-center text-xs font-bold"
+                  className="mt-2 rounded-md px-3 py-2 text-center text-xs font-bold"
                   style={{ background: "rgba(229,72,77,.1)", color: RED }}
                 >
                   {homeErr}

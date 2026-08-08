@@ -74,7 +74,7 @@ export function WalletsSearch({
             debounceRef.current = setTimeout(() => apply(e.target.value), 400);
           }}
           placeholder="Nom, téléphone ou handle — client, livreur, chauffeur, commerçant, agent…"
-          className="border-border bg-surface h-12 w-full rounded-[12px] border pr-3 pl-10 text-sm outline-none"
+          className="border-border bg-surface h-12 w-full rounded-md border pr-3 pl-10 text-sm outline-none"
         />
         {isPending && (
           <Loader2 className="text-muted absolute top-1/2 right-3 size-4 -translate-y-1/2 animate-spin" />
@@ -106,7 +106,7 @@ export function WalletsSearch({
               <li key={`${h.kind}-${h.refId}`}>
                 <Link
                   href={href}
-                  className="border-border bg-surface hover:border-primary-200 hover:bg-primary-50/30 flex items-center gap-3 rounded-[14px] border p-3.5 transition-colors"
+                  className="border-border bg-surface hover:border-primary-200 hover:bg-primary-50/30 rounded-card-lg flex items-center gap-3 border p-3.5 transition-colors"
                 >
                   <span className="bg-surface-2 grid size-10 shrink-0 place-items-center rounded-full">
                     <Icon className="text-muted size-4" />
@@ -132,7 +132,7 @@ export function WalletsSearch({
                       {formatDA(h.balanceDa)}
                     </p>
                     {h.kind === "client" && (
-                      <p className="text-muted text-[11px]">
+                      <p className="text-muted text-caption">
                         + {formatDA(h.cashbackDa)} cashback
                       </p>
                     )}

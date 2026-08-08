@@ -15,7 +15,7 @@ export async function ModulePaymentAccount({ scope }: { scope: PaymentScope }) {
   const account = (await getPaymentAccounts()).find((a) => a.scope === scope);
   if (!account) return null; // non super-admin (ou table vide)
   return (
-    <section className="border-border bg-surface rounded-[16px] border p-5">
+    <section className="border-border bg-surface rounded-lg border p-5">
       <div className="mb-4">
         <h2 className="text-foreground text-base font-bold">
           Compte de versement de la plateforme

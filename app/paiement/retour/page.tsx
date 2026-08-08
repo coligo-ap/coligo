@@ -22,16 +22,16 @@ export default async function PaiementRetourPage({
   const ok = topup !== "failed";
   return (
     <main className="grid min-h-screen place-items-center bg-[#f4f5f9] p-6">
-      <div className="w-full max-w-sm rounded-[22px] bg-white px-6 py-10 text-center shadow-sm">
+      <div className="rounded-sheet-xl w-full max-w-sm bg-white px-6 py-10 text-center shadow-sm">
         {ok ? (
           <CheckCircle2 className="mx-auto size-12 text-[#16b364]" />
         ) : (
           <XCircle className="mx-auto size-12 text-[#e5484d]" />
         )}
-        <p className="mt-4 text-[17px] font-extrabold text-[#0b0c12]">
+        <p className="text-title-lg mt-4 font-extrabold text-[#0b0c12]">
           {ok ? "Paiement terminé" : "Paiement non abouti"}
         </p>
-        <p className="mt-1.5 text-[13px] leading-snug text-[#6b7280]">
+        <p className="text-body-sm mt-1.5 leading-snug text-[#6b7280]">
           Fermez cette fenêtre et revenez à l&apos;application Coligo —{" "}
           {ok
             ? "votre confirmation s'y affiche automatiquement."

@@ -1,20 +1,30 @@
 import type { PDFFont, PDFPage } from "pdf-lib";
 import { rgb } from "pdf-lib";
+import { DOC, INK, PARTNER, pdfRgb } from "@/lib/design/tokens";
 
 // =============================================================================
 // Briques communes des PDF Coligo (pdf-lib serveur — jamais window.print).
 // Partagées par /api/pdf/versement et /api/pdf/releve-commercant.
 // =============================================================================
 
+/** `#rrggbb` → couleur pdf-lib (composantes 0→1). Cf. lib/design/tokens.ts. */
+export function pdfColor(hex: string) {
+  const { r, g, b } = pdfRgb(hex);
+  return rgb(r, g, b);
+}
+
 export const PDF_INK = {
-  VIOLET: rgb(0.424, 0.169, 0.851), // #6C2BD9
+  VIOLET: pdfColor(DOC.brand),
+  GO: pdfColor(PARTNER.go),
+  WHITE: pdfColor(INK.white),
+  // ⚠️ Les cinq valeurs ci-dessous n'ont AUCUN équivalent exact dans les
+  // tokens (encre #0b0c12, gris #6b7080, filet #e6e8ed, rouge #db3645, fond
+  // #f6f4fc) : les remplacer changerait la teinte des documents déjà émis.
   INK: rgb(0.043, 0.047, 0.07),
   MUTED: rgb(0.42, 0.44, 0.5),
   LINE: rgb(0.9, 0.91, 0.93),
-  GO: rgb(0.086, 0.702, 0.392),
   RED: rgb(0.86, 0.21, 0.27),
   SOFT: rgb(0.965, 0.955, 0.99),
-  WHITE: rgb(1, 1, 1),
 };
 
 /** Milliers groupés à l'espace (formatDA manuel — pas d'Intl côté PDF). */

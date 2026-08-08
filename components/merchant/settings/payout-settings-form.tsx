@@ -63,7 +63,7 @@ export function PayoutSettingsForm({
             <label
               key={val}
               className={
-                "cursor-pointer rounded-[12px] border px-3 py-2.5 text-center text-sm font-semibold transition-colors " +
+                "cursor-pointer rounded-md border px-3 py-2.5 text-center text-sm font-semibold transition-colors " +
                 (auto === val
                   ? "border-primary-400 bg-primary-50 text-primary-700"
                   : "border-border text-muted hover:bg-surface-2")
@@ -95,7 +95,7 @@ export function PayoutSettingsForm({
           name="payout_method"
           defaultValue={payoutMethod ?? "ccp"}
           disabled={pending}
-          className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-[12px] border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+          className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-12 w-full rounded-md border px-4 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
         >
           {PAYOUT_METHODS.map((m) => (
             <option key={m.value} value={m.value}>

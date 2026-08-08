@@ -83,11 +83,11 @@ export function AppOpenOrInstall({
 
   return (
     <section className={className ?? "mx-auto mt-6 w-full max-w-[420px] px-4"}>
-      <div className="border-border bg-surface rounded-[16px] border p-4 text-center">
-        <p className="text-foreground text-[13.5px] font-extrabold">
+      <div className="border-border bg-surface rounded-lg border p-4 text-center">
+        <p className="text-foreground text-body font-extrabold">
           {tr("L'application Coligo", "تطبيق كوليغو")}
         </p>
-        <p className="text-muted mt-1 text-[11.5px] font-semibold">
+        <p className="text-muted text-caption-lg mt-1 font-semibold">
           {platform === "desktop"
             ? tr(
                 "Disponible sur l'App Store et Google Play.",

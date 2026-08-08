@@ -110,8 +110,8 @@ export function ColigoPaySurveillance({
       <section
         className={
           healthy
-            ? "border-success-200 bg-success-50 mb-6 rounded-[16px] border p-5"
-            : "border-danger-200 bg-danger-50 mb-6 rounded-[16px] border p-5"
+            ? "border-success-200 bg-success-50 mb-6 rounded-lg border p-5"
+            : "border-danger-200 bg-danger-50 mb-6 rounded-lg border p-5"
         }
       >
         <div className="flex items-center gap-3">
@@ -200,7 +200,7 @@ export function ColigoPaySurveillance({
       {/* Journal d'audit */}
       <section
         data-alert-focus="paid_after_cancel"
-        className="border-border bg-surface rounded-[16px] border"
+        className="border-border bg-surface rounded-lg border"
       >
         <header className="border-border flex items-center justify-between border-b px-5 py-4">
           <h2 className="text-base font-semibold">Journal d&apos;audit</h2>
@@ -223,7 +223,7 @@ export function ColigoPaySurveillance({
                   className="flex items-center gap-3 px-5 py-3"
                 >
                   <span
-                    className={`grid size-9 shrink-0 place-items-center rounded-[10px] ${meta.cls}`}
+                    className={`rounded-control grid size-9 shrink-0 place-items-center ${meta.cls}`}
                   >
                     <Icon className="size-[18px]" />
                   </span>
@@ -253,7 +253,7 @@ export function ColigoPaySurveillance({
       </section>
 
       {/* Journal des actions sensibles (PIN, email, téléphone) */}
-      <section className="border-border bg-surface mt-6 rounded-[16px] border">
+      <section className="border-border bg-surface mt-6 rounded-lg border">
         <header className="border-border flex items-center justify-between border-b px-5 py-4">
           <h2 className="flex items-center gap-2 text-base font-semibold">
             <ShieldCheck className="text-primary-600 size-4" />
@@ -280,7 +280,7 @@ export function ColigoPaySurveillance({
                   key={`${e.at}-${i}`}
                   className="flex items-center gap-3 px-5 py-3"
                 >
-                  <span className="bg-surface-2 text-muted grid size-9 shrink-0 place-items-center rounded-[10px]">
+                  <span className="bg-surface-2 text-muted rounded-control grid size-9 shrink-0 place-items-center">
                     <Icon className="size-[18px]" />
                   </span>
                   <div className="min-w-0 flex-1">
@@ -314,8 +314,8 @@ function Integrity({
 }) {
   const bad = value > 0 && !warnOnly;
   return (
-    <div className="bg-surface/70 rounded-[12px] px-3 py-2.5">
-      <p className="text-muted flex items-center gap-1 text-[11px] font-medium">
+    <div className="bg-surface/70 rounded-md px-3 py-2.5">
+      <p className="text-muted text-caption flex items-center gap-1 font-medium">
         {Icon && <Icon className="size-3" />}
         {label}
       </p>
@@ -349,8 +349,8 @@ function BigCard({
     <div
       className={
         highlight
-          ? "border-primary-200 from-primary-600 to-primary-700 rounded-[16px] border bg-gradient-to-br p-5 text-white shadow-sm"
-          : "border-border bg-surface rounded-[16px] border p-5 shadow-sm"
+          ? "border-primary-200 from-primary-600 to-primary-700 rounded-lg border bg-gradient-to-br p-5 text-white shadow-sm"
+          : "border-border bg-surface rounded-lg border p-5 shadow-sm"
       }
     >
       <div
@@ -391,7 +391,7 @@ function Card({
   icon: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="border-border bg-surface rounded-[16px] border p-5 shadow-sm">
+    <div className="border-border bg-surface rounded-lg border p-5 shadow-sm">
       <div className="text-muted mb-2 flex items-center justify-between">
         <span className="text-xs font-medium">{label}</span>
         <Icon className="text-primary-500 size-4" />

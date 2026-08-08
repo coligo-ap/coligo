@@ -50,7 +50,7 @@ export function DriverBalancePill({ driverId }: { driverId: string }) {
       type="button"
       onClick={() => router.push("/driver/recharger")}
       aria-label={isAr ? "رصيدي — تعبئة" : "Mon solde — recharger"}
-      className={`flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[13px] font-bold shadow-lg ${negative ? "text-[var(--red)]" : "text-[var(--violet)]"}`}
+      className={`text-body-sm flex items-center gap-1.5 rounded-full border border-[var(--line)] bg-[var(--surface)] px-3 py-2 font-bold shadow-lg ${negative ? "text-[var(--red)]" : "text-[var(--violet)]"}`}
     >
       <Wallet className="size-4" />
       {bal == null ? "…" : formatDA(bal)}

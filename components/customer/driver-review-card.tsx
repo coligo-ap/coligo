@@ -42,7 +42,7 @@ export function DriverReviewCard({
 
   if (submitted != null) {
     return (
-      <div className="border-border bg-surface mt-5 rounded-[16px] border p-5">
+      <div className="border-border bg-surface mt-5 rounded-lg border p-5">
         <p className="text-muted text-xs font-semibold tracking-wider uppercase">
           {t("yourDriverReview")}
         </p>
@@ -88,7 +88,7 @@ export function DriverReviewCard({
   };
 
   return (
-    <div className="border-border bg-surface mt-5 rounded-[16px] border p-5">
+    <div className="border-border bg-surface mt-5 rounded-lg border p-5">
       <h2 className="text-foreground text-base font-semibold">
         {t("howWasDelivery")}
       </h2>
@@ -140,14 +140,14 @@ export function DriverReviewCard({
         onChange={(e) => setComment(e.target.value.slice(0, MAX_COMMENT))}
         rows={2}
         placeholder={t("commentPlaceholder")}
-        className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-3 w-full rounded-[12px] border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
+        className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 mt-3 w-full rounded-md border px-3 py-2 text-sm focus-visible:ring-2 focus-visible:outline-none"
       />
 
       <button
         type="button"
         onClick={submit}
         disabled={pending || rating < 1}
-        className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-[12px] text-sm font-semibold text-white disabled:opacity-50"
+        className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-11 w-full items-center justify-center gap-2 rounded-md text-sm font-semibold text-white disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />

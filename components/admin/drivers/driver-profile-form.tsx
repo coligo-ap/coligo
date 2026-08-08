@@ -112,7 +112,7 @@ export function DriverProfileForm({ driver }: { driver: DriverProfile }) {
               id="vehicle_type"
               name="vehicle_type"
               defaultValue={driver.vehicle_type ?? ""}
-              className="border-border bg-surface h-10 w-full rounded-[10px] border px-3 text-sm"
+              className="border-border bg-surface rounded-control h-10 w-full border px-3 text-sm"
             >
               <option value="">—</option>
               {VEHICLE_TYPES.map(([v, l]) => (
@@ -160,7 +160,7 @@ export function DriverProfileForm({ driver }: { driver: DriverProfile }) {
           name="admin_note"
           defaultValue={driver.admin_note ?? ""}
           rows={2}
-          className="border-border bg-surface w-full rounded-[10px] border px-3 py-2 text-sm"
+          className="border-border bg-surface rounded-control w-full border px-3 py-2 text-sm"
         />
       </div>
 

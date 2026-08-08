@@ -54,7 +54,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
 
   if (rides.length === 0) {
     return (
-      <section className="border-border bg-surface rounded-[14px] border p-4">
+      <section className="border-border bg-surface rounded-card-lg border p-4">
         <h2 className="flex items-center gap-2 text-sm font-bold">
           <Car className="size-4" />
           Courses à trancher
@@ -84,7 +84,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
     });
 
   return (
-    <section className="border-warning-200 bg-surface rounded-[14px] border p-4">
+    <section className="border-warning-200 bg-surface rounded-card-lg border p-4">
       <h2 className="flex items-center gap-2 text-sm font-bold">
         <Car className="size-4" />
         Courses à trancher ({rides.length})
@@ -99,7 +99,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
       {feedback && (
         <p
           className={
-            "mt-2 rounded-[10px] px-3 py-2 text-xs font-semibold " +
+            "rounded-control mt-2 px-3 py-2 text-xs font-semibold " +
             (feedback.tone === "ok"
               ? "bg-success-100 text-success-700"
               : "bg-danger-100 text-danger-700")
@@ -113,7 +113,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
         {rides.map((r) => (
           <li
             key={r.id}
-            className="border-border bg-surface-2 rounded-[12px] border p-3"
+            className="border-border bg-surface-2 rounded-md border p-3"
           >
             <div className="flex flex-wrap items-center gap-1.5">
               <Badge tone={r.kind === "card_expired" ? "danger" : "warning"}>
@@ -137,7 +137,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
                     : "Coligo Pay"}
                 {r.escrowDa > 0 ? ` · séquestre ${formatDA(r.escrowDa)}` : ""}
               </span>
-              <span className="text-subtle text-[11px]">
+              <span className="text-subtle text-caption">
                 depuis{" "}
                 {new Date(r.sinceAt).toLocaleString("fr-DZ", {
                   timeZone: "Africa/Algiers",
@@ -182,7 +182,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
                     setReason("");
                     setModal({ rideId: r.id, action: "complete" });
                   }}
-                  className="bg-success-600 hover:bg-success-700 inline-flex items-center gap-1 rounded-[10px] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                  className="bg-success-600 hover:bg-success-700 rounded-control inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                 >
                   <Check className="size-3.5" />
                   Clôturer comme terminée
@@ -196,7 +196,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
                   setReason("");
                   setModal({ rideId: r.id, action: "cancel" });
                 }}
-                className="border-danger-200 text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[10px] border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
+                className="border-danger-200 text-danger-700 hover:bg-danger-50 rounded-control inline-flex items-center gap-1 border px-3 py-1.5 text-xs font-bold disabled:opacity-50"
               >
                 <Ban className="size-3.5" />
                 Annuler{r.escrowDa > 0 ? " + rembourser" : ""}
@@ -208,7 +208,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
 
       {modal && (
         <div className="fixed inset-0 z-[120] flex items-center justify-center bg-black/50 p-4">
-          <div className="bg-surface w-full max-w-sm rounded-[18px] p-5 shadow-2xl">
+          <div className="bg-surface rounded-sheet-lg w-full max-w-sm p-5 shadow-2xl">
             <h3 className="text-base font-black">
               {modal.action === "cancel"
                 ? "Annuler la course"
@@ -224,14 +224,14 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
               onChange={(e) => setReason(e.target.value.slice(0, 300))}
               rows={2}
               placeholder="Motif (obligatoire, tracé dans l'audit)"
-              className="border-border bg-surface-2 mt-3 w-full resize-none rounded-[12px] border px-3 py-2.5 text-[13px] outline-none"
+              className="border-border bg-surface-2 text-body-sm mt-3 w-full resize-none rounded-md border px-3 py-2.5 outline-none"
             />
             <div className="mt-4 flex gap-2">
               <button
                 type="button"
                 onClick={() => setModal(null)}
                 disabled={pending}
-                className="border-border text-muted flex-1 rounded-[12px] border py-2.5 text-sm font-bold"
+                className="border-border text-muted flex-1 rounded-md border py-2.5 text-sm font-bold"
               >
                 Retour
               </button>
@@ -258,7 +258,7 @@ export function StuckRidesPanel({ rides }: { rides: StuckRide[] }) {
                       )
                 }
                 className={
-                  "inline-flex flex-1 items-center justify-center gap-1 rounded-[12px] py-2.5 text-sm font-bold text-white disabled:opacity-50 " +
+                  "inline-flex flex-1 items-center justify-center gap-1 rounded-md py-2.5 text-sm font-bold text-white disabled:opacity-50 " +
                   (modal.action === "cancel"
                     ? "bg-danger-600 hover:bg-danger-700"
                     : "bg-success-600 hover:bg-success-700")

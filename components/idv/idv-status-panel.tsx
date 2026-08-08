@@ -148,7 +148,7 @@ export function IdvStatusPanel({
   return (
     <div className="space-y-5 pb-6">
       <div
-        className="flex flex-col items-center gap-3 rounded-[16px] p-6 text-center"
+        className="flex flex-col items-center gap-3 rounded-lg p-6 text-center"
         style={{
           background: "var(--idv-card)",
           border: "1px solid var(--idv-line)",
@@ -179,7 +179,7 @@ export function IdvStatusPanel({
             <>
               {selfieError && (
                 <p
-                  className="w-full rounded-[12px] px-3 py-2.5 text-sm"
+                  className="w-full rounded-md px-3 py-2.5 text-sm"
                   style={{
                     background: "rgba(239,68,68,.12)",
                     color: "var(--idv-bad)",
@@ -218,7 +218,7 @@ export function IdvStatusPanel({
             >
               <div className="flex flex-col items-center gap-1">
                 <span
-                  className="flex size-7 items-center justify-center rounded-full text-[11px] font-bold"
+                  className="text-caption flex size-7 items-center justify-center rounded-full font-bold"
                   style={{
                     background: done
                       ? "var(--idv-ok)"
@@ -231,7 +231,7 @@ export function IdvStatusPanel({
                   {done ? <CircleCheck className="size-4" /> : i + 1}
                 </span>
                 <span
-                  className="text-[10px] font-medium"
+                  className="text-micro font-medium"
                   style={{
                     color:
                       done || current ? "var(--idv-ink)" : "var(--idv-muted)",

@@ -44,7 +44,7 @@ export function AdminSearchButton({ compact = false }: { compact?: boolean }) {
         type="button"
         onClick={() => setOpen(true)}
         className={cn(
-          "border-border text-muted hover:bg-surface-2 hover:text-foreground mb-1 flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm transition-colors",
+          "border-border text-muted hover:bg-surface-2 hover:text-foreground rounded-control mb-1 flex items-center gap-2 border px-3 py-2 text-sm transition-colors",
           compact ? "size-9 justify-center p-0" : "w-full"
         )}
         aria-label="Rechercher une fonctionnalité"
@@ -53,7 +53,7 @@ export function AdminSearchButton({ compact = false }: { compact?: boolean }) {
         {!compact && (
           <>
             <span className="flex-1 text-left">Rechercher…</span>
-            <kbd className="border-border text-muted hidden rounded-[6px] border px-1.5 py-0.5 text-[10px] font-semibold lg:inline">
+            <kbd className="border-border text-muted text-micro hidden rounded-[6px] border px-1.5 py-0.5 font-semibold lg:inline">
               ⌘K
             </kbd>
           </>
@@ -126,7 +126,7 @@ function AdminSearchPalette({ onClose }: { onClose: () => void }) {
         onClick={onClose}
       >
         <div
-          className="border-border bg-surface w-full max-w-lg overflow-hidden rounded-[16px] border shadow-xl"
+          className="border-border bg-surface w-full max-w-lg overflow-hidden rounded-lg border shadow-xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="border-border flex items-center gap-2 border-b px-3">
@@ -139,7 +139,7 @@ function AdminSearchPalette({ onClose }: { onClose: () => void }) {
               placeholder="Rechercher une page, un réglage, une action…"
               className="h-12 flex-1 bg-transparent text-sm outline-none"
             />
-            <kbd className="border-border text-muted rounded-[6px] border px-1.5 py-0.5 text-[10px] font-semibold">
+            <kbd className="border-border text-muted text-micro rounded-[6px] border px-1.5 py-0.5 font-semibold">
               Échap
             </kbd>
           </div>
@@ -160,7 +160,7 @@ function AdminSearchPalette({ onClose }: { onClose: () => void }) {
                       onMouseEnter={() => setCursor(i)}
                       onClick={() => go(entry.item.href)}
                       className={cn(
-                        "flex w-full items-center gap-3 rounded-[10px] px-3 py-2 text-left transition-colors",
+                        "rounded-control flex w-full items-center gap-3 px-3 py-2 text-left transition-colors",
                         on ? "bg-primary-50" : "hover:bg-surface-2"
                       )}
                     >

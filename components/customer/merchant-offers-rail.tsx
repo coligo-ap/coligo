@@ -306,7 +306,7 @@ export function MerchantOffersRail({
           {t("offersTitle")}
         </h2>
         {offers.length > 1 && (
-          <span className="text-muted text-[11px] font-semibold tabular-nums">
+          <span className="text-muted text-caption font-semibold tabular-nums">
             {offers.length}
           </span>
         )}
@@ -472,7 +472,7 @@ function OfferDetailSheet({
             sans ça, l'enfant flex garde sa hauteur de contenu, ne défile pas,
             et le geste part dans la page. */}
         <div
-          className="bg-surface partner-sheet-in flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-t-[24px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[24px]"
+          className="bg-surface partner-sheet-in rounded-t-panel sm:rounded-panel flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden pb-[env(safe-area-inset-bottom)] shadow-xl"
           role="dialog"
           aria-modal="true"
         >
@@ -488,21 +488,21 @@ function OfferDetailSheet({
             <div className="flex min-w-0 items-start gap-3">
               <span
                 className={cn(
-                  "grid size-11 shrink-0 place-items-center rounded-[13px] bg-gradient-to-br text-white shadow-sm",
+                  "rounded-card grid size-11 shrink-0 place-items-center bg-gradient-to-br text-white shadow-sm",
                   meta.pill
                 )}
               >
                 <Icon className="size-5" />
               </span>
               <div className="min-w-0">
-                <p className={cn("text-[12px] font-extrabold", meta.value)}>
+                <p className={cn("text-label font-extrabold", meta.value)}>
                   {t(meta.labelKey)}
                 </p>
                 <p
                   className={cn(
-                    "truncate text-[22px] leading-tight font-black",
+                    "text-display truncate leading-tight font-black",
                     meta.value,
-                    value.mono && "font-mono text-[19px]"
+                    value.mono && "text-heading font-mono"
                   )}
                 >
                   {value.text}
@@ -525,7 +525,7 @@ function OfferDetailSheet({
               {promo.type === "flash_sale" &&
                 countdown.mounted &&
                 !countdown.ended && (
-                  <span className="bg-danger-600 mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[12px] font-bold text-white tabular-nums">
+                  <span className="bg-danger-600 text-label mt-2 inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 font-bold text-white tabular-nums">
                     <span
                       className="size-1.5 animate-pulse rounded-full bg-white"
                       aria-hidden
@@ -540,12 +540,12 @@ function OfferDetailSheet({
               <button
                 type="button"
                 onClick={copy}
-                className="border-accent-300 bg-accent-50 flex w-full items-center gap-3 rounded-[14px] border border-dashed px-3.5 py-3 transition-transform active:scale-[0.99]"
+                className="border-accent-300 bg-accent-50 rounded-card-lg flex w-full items-center gap-3 border border-dashed px-3.5 py-3 transition-transform active:scale-[0.99]"
               >
-                <span className="border-accent-300 rounded-md border bg-[#fff] px-2.5 py-1 font-mono text-base font-black tracking-wider text-[#e6007a]">
+                <span className="border-accent-300 rounded-md border bg-[#fff] px-2.5 py-1 font-mono text-base font-black tracking-wider text-[var(--color-accent-600)]">
                   {code}
                 </span>
-                <span className="text-accent-600 flex-1 text-start text-[12px] font-medium">
+                <span className="text-accent-600 text-label flex-1 text-start font-medium">
                   {copied ? t("offerCodeCopied") : t("offerTapCode")}
                 </span>
                 <span
@@ -553,7 +553,7 @@ function OfferDetailSheet({
                     "grid size-9 shrink-0 place-items-center rounded-full shadow-sm transition-colors",
                     copied
                       ? "bg-success-600 text-white"
-                      : "bg-[#fff] text-[#e6007a]"
+                      : "bg-[#fff] text-[var(--color-accent-600)]"
                   )}
                 >
                   {copied ? (
@@ -568,7 +568,7 @@ function OfferDetailSheet({
             {/* Conditions */}
             {conditions.length > 0 && (
               <div>
-                <p className="text-foreground mb-1.5 text-[12px] font-bold">
+                <p className="text-foreground text-label mb-1.5 font-bold">
                   {t("offerConditions")}
                 </p>
                 <ul className="space-y-1.5">
@@ -589,7 +589,7 @@ function OfferDetailSheet({
                 (vente flash, réductions, offres quantité). */}
             {products.length > 0 && (
               <div>
-                <p className="text-foreground mb-1.5 text-[12px] font-bold">
+                <p className="text-foreground text-label mb-1.5 font-bold">
                   {t("concernedProducts")}
                 </p>
                 <ul className="space-y-2">
@@ -667,7 +667,7 @@ function SheetProductRow({
 
   return (
     <li className="flex items-center gap-3">
-      <span className="border-border size-11 shrink-0 overflow-hidden rounded-[10px] border bg-white">
+      <span className="border-border rounded-control size-11 shrink-0 overflow-hidden border bg-white">
         {product.image_url && (
           // eslint-disable-next-line @next/next/no-img-element
           <img

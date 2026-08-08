@@ -27,7 +27,7 @@ export default async function ConfirmedPage() {
           <Logo variant="teal" size="lg" />
         </div>
 
-        <div className="border-border rounded-[20px] border bg-white p-8 text-center shadow-lg lg:p-10">
+        <div className="border-border rounded-xl border bg-white p-8 text-center shadow-lg lg:p-10">
           <div className="relative mx-auto mb-6 flex size-20 items-center justify-center rounded-full bg-green-100">
             <CheckCircle2
               className="size-12 text-green-600"

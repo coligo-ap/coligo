@@ -126,7 +126,7 @@ export function ChauffeurSignupForm({
   return (
     <>
       {connectedPhone && (
-        <div className="mb-4 rounded-[10px] border border-amber-200 bg-amber-50 p-3">
+        <div className="rounded-control mb-4 border border-amber-200 bg-amber-50 p-3">
           <p className="mb-2 text-sm text-amber-900">
             {tr("Vous êtes déjà connecté en tant que", "أنت متصل بالفعل باسم")}{" "}
             <b dir="ltr">{connectedPhone}</b>
@@ -280,8 +280,8 @@ export function ChauffeurSignupForm({
                 disabled={pending}
                 className={
                   gamme === k
-                    ? "border-primary-600 bg-primary-50 text-primary-700 min-h-[44px] rounded-[10px] border px-2 text-sm font-semibold"
-                    : "border-border text-foreground hover:bg-surface-2 min-h-[44px] rounded-[10px] border px-2 text-sm"
+                    ? "border-primary-600 bg-primary-50 text-primary-700 rounded-control min-h-[44px] border px-2 text-sm font-semibold"
+                    : "border-border text-foreground hover:bg-surface-2 rounded-control min-h-[44px] border px-2 text-sm"
                 }
               >
                 {k === "moto" ? tr("Moto", "دراجة نارية") : label}
@@ -314,7 +314,7 @@ export function ChauffeurSignupForm({
         </div>
 
         {state.error && (
-          <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+          <div className="rounded-control border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
             {state.error}
           </div>
         )}

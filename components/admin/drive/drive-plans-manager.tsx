@@ -176,19 +176,19 @@ export function DrivePlansManager({ initial }: { initial: DrivePlan[] }) {
         </div>
         <button
           onClick={openNew}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-[10px] px-3 py-2 text-sm font-semibold text-white"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-1.5 px-3 py-2 text-sm font-semibold text-white"
         >
           <Plus className="size-4" /> Nouveau plan
         </button>
       </header>
 
       {msg.ok && (
-        <p className="bg-success-50 text-success-700 rounded-[10px] px-3 py-2 text-sm font-medium">
+        <p className="bg-success-50 text-success-700 rounded-control px-3 py-2 text-sm font-medium">
           {msg.ok}
         </p>
       )}
       {msg.error && (
-        <p className="bg-danger-50 text-danger-700 rounded-[10px] px-3 py-2 text-sm font-medium">
+        <p className="bg-danger-50 text-danger-700 rounded-control px-3 py-2 text-sm font-medium">
           {msg.error}
         </p>
       )}
@@ -221,14 +221,14 @@ export function DrivePlansManager({ initial }: { initial: DrivePlan[] }) {
                   <span className="font-bold">{p.title}</span>
                   {p.badge_label && (
                     <span
-                      className="rounded-full px-2 py-0.5 text-[11px] font-bold text-white"
+                      className="text-caption rounded-full px-2 py-0.5 font-bold text-white"
                       style={{ backgroundColor: p.badge_color || "#6C2BD9" }}
                     >
                       {p.badge_label}
                     </span>
                   )}
                   {p.is_default && (
-                    <span className="bg-surface-2 text-muted rounded-full px-2 py-0.5 text-[11px] font-semibold">
+                    <span className="bg-surface-2 text-muted text-caption rounded-full px-2 py-0.5 font-semibold">
                       Par défaut
                     </span>
                   )}
@@ -236,7 +236,7 @@ export function DrivePlansManager({ initial }: { initial: DrivePlan[] }) {
                     <Star className="size-3.5 text-amber-500" />
                   )}
                   {!p.is_active && (
-                    <span className="text-muted rounded-full border border-dashed px-2 py-0.5 text-[11px]">
+                    <span className="text-muted text-caption rounded-full border border-dashed px-2 py-0.5">
                       Inactif
                     </span>
                   )}
@@ -255,13 +255,13 @@ export function DrivePlansManager({ initial }: { initial: DrivePlan[] }) {
                 <button
                   onClick={() => toggleActive(p)}
                   disabled={pending}
-                  className="text-muted hover:bg-surface-2 rounded-[8px] px-2 py-1 text-xs font-semibold"
+                  className="text-muted hover:bg-surface-2 rounded-sm px-2 py-1 text-xs font-semibold"
                 >
                   {p.is_active ? "Désactiver" : "Activer"}
                 </button>
                 <button
                   onClick={() => openEdit(p)}
-                  className="text-primary-700 hover:bg-primary-50 rounded-[8px] px-2 py-1 text-xs font-semibold"
+                  className="text-primary-700 hover:bg-primary-50 rounded-sm px-2 py-1 text-xs font-semibold"
                 >
                   Éditer
                 </button>
@@ -269,7 +269,7 @@ export function DrivePlansManager({ initial }: { initial: DrivePlan[] }) {
                   <button
                     onClick={() => remove(p)}
                     disabled={pending}
-                    className="text-danger-600 hover:bg-danger-50 rounded-[8px] p-1.5"
+                    className="text-danger-600 hover:bg-danger-50 rounded-sm p-1.5"
                     aria-label="Supprimer"
                   >
                     <Trash2 className="size-4" />
@@ -429,7 +429,7 @@ function PlanEditor({
         <Field label="Couleur du badge">
           <input
             type="color"
-            className="h-10 w-full rounded-[10px] border"
+            className="rounded-control h-10 w-full border"
             value={plan.badge_color ?? "#6C2BD9"}
             onChange={(e) => set("badge_color", e.target.value)}
           />
@@ -491,7 +491,7 @@ function PlanEditor({
         <button
           onClick={onSave}
           disabled={pending || cashbackTooHigh || !plan.title.trim()}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex items-center gap-1.5 rounded-[10px] px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex items-center gap-1.5 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -508,15 +508,15 @@ function PlanEditor({
 /* ---------- primitives ---------- */
 function Stat({ label, value }: { label: string; value: string }) {
   return (
-    <div className="border-border bg-surface rounded-[12px] border p-3">
-      <p className="text-muted text-[11px] font-semibold">{label}</p>
+    <div className="border-border bg-surface rounded-md border p-3">
+      <p className="text-muted text-caption font-semibold">{label}</p>
       <p className="mt-0.5 text-lg font-extrabold">{value}</p>
     </div>
   );
 }
 
 const inputCls =
-  "border-border bg-surface w-full rounded-[10px] border px-3 py-2 text-sm";
+  "border-border bg-surface w-full rounded-control border px-3 py-2 text-sm";
 
 function Field({
   label,
@@ -534,7 +534,7 @@ function Field({
       </span>
       {children}
       {hint && (
-        <span className="text-muted mt-1 block text-[11px]">{hint}</span>
+        <span className="text-muted text-caption mt-1 block">{hint}</span>
       )}
     </label>
   );
@@ -556,7 +556,7 @@ function Toggle({
       type="button"
       onClick={() => onChange(!checked)}
       className={
-        "flex items-center gap-2 rounded-[10px] border px-3 py-2 text-sm font-medium " +
+        "rounded-control flex items-center gap-2 border px-3 py-2 text-sm font-medium " +
         (checked
           ? "border-primary-300 bg-primary-50 text-primary-700"
           : "border-border text-muted")
@@ -570,7 +570,7 @@ function Toggle({
 }
 
 const cnCard = (active: boolean) =>
-  "border-border rounded-[14px] border p-3 " +
+  "border-border rounded-card-lg border p-3 " +
   (active ? "bg-surface" : "bg-surface-2 opacity-80");
 const pct = (r: number) => `${round1(r * 100)} %`;
 const round1 = (n: number) => Math.round(n * 10) / 10;

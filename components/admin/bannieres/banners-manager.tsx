@@ -70,7 +70,7 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
   return (
     <div className="space-y-4">
       {error && (
-        <p className="border-danger-100 bg-danger-50 text-danger-700 rounded-[10px] border px-3 py-2 text-sm font-semibold">
+        <p className="border-danger-100 bg-danger-50 text-danger-700 rounded-control border px-3 py-2 text-sm font-semibold">
           {error}
         </p>
       )}
@@ -91,7 +91,7 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
             setError(null);
             setEditing("new");
           }}
-          className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-11 items-center gap-2 rounded-[12px] border-[1.5px] border-dashed px-4 text-sm font-bold"
+          className="border-primary-200 text-primary-700 hover:bg-primary-50 inline-flex h-11 items-center gap-2 rounded-md border-[1.5px] border-dashed px-4 text-sm font-bold"
         >
           <Plus className="size-4" />
           Nouvelle bannière
@@ -121,11 +121,11 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
           ) : (
             <li
               key={b.id}
-              className="border-border-strong flex items-center gap-3 rounded-[14px] border bg-white p-3"
+              className="border-border-strong rounded-card-lg flex items-center gap-3 border bg-white p-3"
             >
               <span
                 className={cn(
-                  "grid size-11 shrink-0 place-items-center rounded-[10px] bg-gradient-to-br text-xs font-black",
+                  "rounded-control grid size-11 shrink-0 place-items-center bg-gradient-to-br text-xs font-black",
                   ACCENT_CLASSES[b.accent]
                 )}
                 aria-hidden
@@ -135,19 +135,19 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
               <div className="min-w-0 flex-1">
                 <p className="text-foreground truncate text-sm font-bold">
                   {b.merchant_id && (
-                    <span className="bg-primary-50 text-primary-700 me-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 align-middle text-[10px] font-bold">
+                    <span className="bg-primary-50 text-primary-700 text-micro me-1.5 inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 align-middle font-bold">
                       <Ticket className="size-2.5" /> Offre
                     </span>
                   )}
                   {b.title}
                   {!b.active && (
-                    <span className="text-muted ml-2 text-[11px] font-semibold">
+                    <span className="text-muted text-caption ml-2 font-semibold">
                       · inactive
                     </span>
                   )}
                 </p>
                 {b.merchant_id ? (
-                  <p className="text-muted flex items-center gap-1 truncate text-[12px]">
+                  <p className="text-muted text-label flex items-center gap-1 truncate">
                     <Store className="size-3.5 shrink-0" />
                     <span className="truncate">
                       {b.merchant_name ?? "Commerçant"}
@@ -160,7 +160,7 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                     )}
                   </p>
                 ) : (
-                  <p className="text-muted flex items-center gap-1 truncate text-[12px]">
+                  <p className="text-muted text-label flex items-center gap-1 truncate">
                     <span className="truncate">
                       {b.subtitle || ACCENT_LABELS[b.accent]}
                       {b.link ? ` · ${b.link}` : ""}
@@ -185,7 +185,7 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                   onClick={() =>
                     run(() => toggleBanner(b.id, !b.active), { id: b.id })
                   }
-                  className="text-muted hover:bg-surface-2 hover:text-foreground grid size-9 place-items-center rounded-[9px]"
+                  className="text-muted hover:bg-surface-2 hover:text-foreground rounded-chip grid size-9 place-items-center"
                 >
                   {b.active ? (
                     <Eye className="size-4" />
@@ -200,7 +200,7 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                     setError(null);
                     setEditing(b.id);
                   }}
-                  className="text-muted hover:bg-surface-2 hover:text-foreground grid size-9 place-items-center rounded-[9px]"
+                  className="text-muted hover:bg-surface-2 hover:text-foreground rounded-chip grid size-9 place-items-center"
                 >
                   <Pencil className="size-4" />
                 </button>
@@ -217,7 +217,7 @@ export function BannersManager({ banners }: { banners: AdminBanner[] }) {
                     });
                     if (ok) run(() => deleteBanner(b.id), { id: b.id });
                   }}
-                  className="text-danger-600 hover:bg-danger-50 grid size-9 place-items-center rounded-[9px]"
+                  className="text-danger-600 hover:bg-danger-50 rounded-chip grid size-9 place-items-center"
                 >
                   {pending && busyId === b.id ? (
                     <Loader2 className="size-4 animate-spin" />

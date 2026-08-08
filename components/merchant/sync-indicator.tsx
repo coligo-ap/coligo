@@ -137,7 +137,7 @@ export function SyncIndicator() {
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors",
+          "text-caption inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 font-medium transition-colors",
           PILL_STYLES[pill.tone]
         )}
         aria-expanded={open}
@@ -208,7 +208,7 @@ function SyncPanel({
 
   return (
     <div
-      className="border-border bg-surface fixed top-[calc(env(safe-area-inset-top)+3.5rem)] right-2 z-50 w-[min(18rem,calc(100vw-1rem))] rounded-[14px] border p-3 shadow-xl lg:absolute lg:top-full lg:right-0 lg:mt-2 lg:w-80"
+      className="border-border bg-surface rounded-card-lg fixed top-[calc(env(safe-area-inset-top)+3.5rem)] right-2 z-50 w-[min(18rem,calc(100vw-1rem))] border p-3 shadow-xl lg:absolute lg:top-full lg:right-0 lg:mt-2 lg:w-80"
       role="dialog"
     >
       <header className="mb-2 flex items-center justify-between">
@@ -250,12 +250,12 @@ function SyncPanel({
       )}
 
       {(pendingCount > 0 || syncing) && (
-        <p className="text-subtle mt-2 text-[11px]">
+        <p className="text-subtle text-caption mt-2">
           {pendingCount} action(s) seront envoyées dans l&apos;ordre.
         </p>
       )}
       {failedCount > 0 && (
-        <p className="text-danger-700 mt-1 text-[11px]">
+        <p className="text-danger-700 text-caption mt-1">
           {failedCount} en échec — réessayez ou abandonnez ci-dessus.
         </p>
       )}
@@ -270,7 +270,7 @@ function ActionRow({ action }: { action: PendingAction }) {
     <li className="flex items-start gap-2 py-2.5">
       <div className="min-w-0 flex-1">
         <p className="text-sm font-medium">{label}</p>
-        <p className="text-subtle text-[11px]">
+        <p className="text-subtle text-caption">
           {STATUS_LABEL[action.status]} · tentatives : {action.attempts}
           {action.lastError ? ` · ${action.lastError}` : ""}
         </p>
@@ -282,7 +282,7 @@ function ActionRow({ action }: { action: PendingAction }) {
             onClick={() => {
               void retryAction(action.id);
             }}
-            className="text-primary-700 hover:bg-primary-50 inline-flex items-center gap-1 rounded-[6px] px-1.5 py-1 text-[11px] font-medium"
+            className="text-primary-700 hover:bg-primary-50 text-caption inline-flex items-center gap-1 rounded-[6px] px-1.5 py-1 font-medium"
             aria-label="Réessayer"
           >
             <RefreshCw className="size-3.5" />
@@ -293,7 +293,7 @@ function ActionRow({ action }: { action: PendingAction }) {
             onClick={() => {
               void discardAction(action.id);
             }}
-            className="text-danger-700 hover:bg-danger-50 inline-flex items-center gap-1 rounded-[6px] px-1.5 py-1 text-[11px] font-medium"
+            className="text-danger-700 hover:bg-danger-50 text-caption inline-flex items-center gap-1 rounded-[6px] px-1.5 py-1 font-medium"
             aria-label="Abandonner"
           >
             <Trash2 className="size-3.5" />

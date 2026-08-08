@@ -277,7 +277,7 @@ export function PartnerSignupForm() {
       </div>
 
       {state.error && (
-        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+        <div className="rounded-control border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
           {state.error}
         </div>
       )}

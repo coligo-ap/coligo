@@ -174,7 +174,7 @@ export function SocialAuth({
           type="button"
           onClick={signInApple}
           disabled={busy}
-          className="flex h-12 w-full items-center justify-center gap-2.5 rounded-[12px] bg-black text-sm font-bold text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
+          className="flex h-12 w-full items-center justify-center gap-2.5 rounded-md bg-black text-sm font-bold text-white transition-colors hover:bg-neutral-800 disabled:opacity-60"
         >
           {loading === "apple" ? (
             <Loader2 className="size-4 animate-spin" />
@@ -189,7 +189,7 @@ export function SocialAuth({
         type="button"
         onClick={signInGoogle}
         disabled={busy}
-        className="border-border bg-surface hover:bg-surface-2 flex h-12 w-full items-center justify-center gap-3 rounded-[12px] border text-sm font-bold transition-colors disabled:opacity-60"
+        className="border-border bg-surface hover:bg-surface-2 flex h-12 w-full items-center justify-center gap-3 rounded-md border text-sm font-bold transition-colors disabled:opacity-60"
       >
         {loading === "google" ? (
           <Loader2 className="size-4 animate-spin" />

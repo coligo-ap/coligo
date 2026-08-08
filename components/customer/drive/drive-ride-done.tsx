@@ -83,25 +83,25 @@ export function DoneScreen({
   return (
     <div className="drive-jakarta drive-screen z-40 overflow-y-auto bg-[var(--d-page)] pb-8">
       {/* ── Héro : succès + prix (l'info d'un coup d'œil, façon Bolt) ── */}
-      <div className="rounded-b-[28px] bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
+      <div className="rounded-b-2xl bg-[var(--d-surface)] px-5 pt-7 pb-5 text-center shadow-[0_18px_40px_-28px_rgba(20,22,40,.35)]">
         <span
           className="drive-pop mx-auto mb-2.5 grid size-14 place-items-center rounded-full"
           style={{ background: "rgba(22,179,100,.12)" }}
         >
           <Check className="size-6" style={{ color: GO }} />
         </span>
-        <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+        <h1 className="drive-sora text-heading-lg font-extrabold tracking-[-0.5px]">
           {t("title")}
         </h1>
         <p className="drive-sora mt-1 text-[32px] leading-none font-extrabold tracking-[-1px]">
           {formatDA(ride.price_da)}
         </p>
-        <span className="mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 text-[11.5px] font-bold text-[var(--d-muted)]">
+        <span className="text-caption-lg mt-2 inline-flex items-center gap-1.5 rounded-full bg-[var(--d-soft)] px-3 py-1.5 font-bold text-[var(--d-muted)]">
           <BadgeCheck className="size-3.5" style={{ color: GO }} />
           {payLabel}
         </span>
         {mixed && (
-          <p className="mt-1.5 text-[11.5px] font-semibold text-[var(--d-muted)]">
+          <p className="text-caption-lg mt-1.5 font-semibold text-[var(--d-muted)]">
             {t("payMixedDetail", {
               wallet: ride.price_da - ride.cash_due_da,
               cash: ride.cash_due_da,
@@ -112,7 +112,7 @@ export function DoneScreen({
 
       <div className="px-5">
         {/* ── Trajet (rail A → B) + commission ── */}
-        <div className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
+        <div className="drive-rise rounded-sheet-lg mt-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
           <div className="flex gap-2.5">
             <div className="flex w-3 shrink-0 flex-col items-center pt-1.5">
               <span
@@ -122,13 +122,13 @@ export function DoneScreen({
               <span className="my-0.5 w-[1.5px] flex-1 bg-[var(--d-line)]" />
               <span className="size-1.5 shrink-0 rounded-full bg-[var(--d-ink)]" />
             </div>
-            <div className="flex min-w-0 flex-1 flex-col gap-2.5 text-[12.5px] font-semibold">
+            <div className="text-label-lg flex min-w-0 flex-1 flex-col gap-2.5 font-semibold">
               <span className="truncate">{ride.pickup_text ?? "—"}</span>
               <span className="truncate">{ride.dest_text ?? "—"}</span>
             </div>
           </div>
           {commissionPct && (
-            <p className="mt-2.5 border-t border-[var(--d-line)] pt-2 text-[11px] font-semibold text-[var(--d-muted)]">
+            <p className="text-caption mt-2.5 border-t border-[var(--d-line)] pt-2 font-semibold text-[var(--d-muted)]">
               {t("commission", { pct: commissionPct })} · {t("included")}
             </p>
           )}
@@ -137,20 +137,20 @@ export function DoneScreen({
         {/* ── Cashback gagné ── */}
         {ride.cashback_da > 0 && (
           <div
-            className="drive-rise mt-2.5 flex items-center gap-3 rounded-[16px] p-3"
+            className="drive-rise mt-2.5 flex items-center gap-3 rounded-lg p-3"
             style={{
               background: "rgba(22,179,100,.12)",
               animationDelay: ".05s",
             }}
           >
-            <span className="grid size-9 shrink-0 place-items-center rounded-[11px] bg-[var(--d-surface)]">
+            <span className="rounded-control-lg grid size-9 shrink-0 place-items-center bg-[var(--d-surface)]">
               <Gift className="size-4.5" style={{ color: GO }} />
             </span>
             <span className="min-w-0">
-              <b className="block text-[13px]" style={{ color: GO }}>
+              <b className="text-body-sm block" style={{ color: GO }}>
                 {t("cashback", { amount: ride.cashback_da })}
               </b>
-              <span className="text-[11px] text-[var(--d-muted)]">
+              <span className="text-caption text-[var(--d-muted)]">
                 {t("cashbackSub")}
               </span>
             </span>
@@ -160,7 +160,7 @@ export function DoneScreen({
         {/* ── Chauffeur : notation (étoiles + libellé) + favori ── */}
         {ride.chauffeur && (
           <div
-            className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
+            className="drive-rise rounded-sheet-lg mt-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
             style={{ animationDelay: ".1s" }}
           >
             <div className="flex items-center gap-3">
@@ -170,8 +170,8 @@ export function DoneScreen({
                 size={44}
               />
               <span className="min-w-0 flex-1">
-                <b className="block text-[14px]">{ride.chauffeur.name}</b>
-                <span className="text-[10.5px] text-[var(--d-muted)]">
+                <b className="text-body-lg block">{ride.chauffeur.name}</b>
+                <span className="text-micro-lg text-[var(--d-muted)]">
                   {t("maskedAfter")}
                 </span>
               </span>
@@ -204,7 +204,7 @@ export function DoneScreen({
               </button>
             </div>
 
-            <p className="mt-3 mb-1.5 text-center text-[13px] font-semibold">
+            <p className="text-body-sm mt-3 mb-1.5 text-center font-semibold">
               {t("rateTitle")}
             </p>
             <div className="flex justify-center gap-2.5">
@@ -231,14 +231,14 @@ export function DoneScreen({
               ))}
             </div>
             <p
-              className="mt-1.5 h-4 text-center text-[11.5px] font-bold"
+              className="text-caption-lg mt-1.5 h-4 text-center font-bold"
               style={{ color: rating > 0 ? "#B45309" : "var(--d-muted)" }}
             >
               {rating > 0 ? rateLabels[rating - 1] : " "}
             </p>
             {rated && (
               <p
-                className="drive-rise text-center text-[11px] font-semibold"
+                className="drive-rise text-caption text-center font-semibold"
                 style={{ color: GO }}
               >
                 {t("rated")}
@@ -250,7 +250,7 @@ export function DoneScreen({
         {/* ── Pourboire Coligo Pay (100 % pour le chauffeur) ── */}
         {showTip && (
           <div
-            className="drive-rise mt-2.5 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
+            className="drive-rise rounded-sheet-lg mt-2.5 border border-[var(--d-line)] bg-[var(--d-surface)] p-4"
             style={{ animationDelay: ".15s" }}
           >
             {tipSent > 0 ? (
@@ -261,7 +261,7 @@ export function DoneScreen({
                 >
                   <HandCoins className="size-5" style={{ color: GO }} />
                 </span>
-                <b className="text-[13px]" style={{ color: GO }}>
+                <b className="text-body-sm" style={{ color: GO }}>
                   {t("tipSent", { amount: tipSent })}
                 </b>
               </div>
@@ -269,16 +269,16 @@ export function DoneScreen({
               <>
                 <div className="flex items-center gap-2.5">
                   <span
-                    className="grid size-9 shrink-0 place-items-center rounded-[11px]"
+                    className="rounded-control-lg grid size-9 shrink-0 place-items-center"
                     style={{ background: "var(--d-accent)", color: VIOLET }}
                   >
                     <HandCoins className="size-4.5" />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <b className="block text-[13px]">
+                    <b className="text-body-sm block">
                       {t("tipTitle", { name: ride.chauffeur!.name })}
                     </b>
-                    <span className="text-[10.5px] text-[var(--d-muted)]">
+                    <span className="text-micro-lg text-[var(--d-muted)]">
                       {t("tipSub", { balance: ride.wallet_balance_da })}
                     </span>
                   </span>
@@ -290,7 +290,7 @@ export function DoneScreen({
                       type="button"
                       disabled={tipPending != null}
                       onClick={() => void sendTip(v)}
-                      className="drive-sora flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[13px] border-[1.5px] text-[14px] font-extrabold transition-transform active:scale-95 disabled:opacity-50"
+                      className="drive-sora rounded-card text-body-lg flex h-11 flex-1 items-center justify-center gap-1.5 border-[1.5px] font-extrabold transition-transform active:scale-95 disabled:opacity-50"
                       style={{ borderColor: "var(--d-line)", color: VIOLET }}
                     >
                       {tipPending === v ? (
@@ -303,7 +303,7 @@ export function DoneScreen({
                 </div>
                 {tipErr && (
                   <p
-                    className="mt-1.5 text-center text-[11.5px] font-bold"
+                    className="text-caption-lg mt-1.5 text-center font-bold"
                     style={{ color: RED }}
                   >
                     {tipErr}
@@ -317,7 +317,7 @@ export function DoneScreen({
         {/* ── Signalement + sortie ── */}
         {reported ? (
           <div
-            className="mt-3 mb-1 flex items-start gap-2 rounded-[13px] px-3 py-2.5 text-[11.5px] leading-relaxed font-semibold"
+            className="rounded-card text-caption-lg mt-3 mb-1 flex items-start gap-2 px-3 py-2.5 leading-relaxed font-semibold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             <BadgeCheck className="mt-0.5 size-4 shrink-0" />
@@ -327,7 +327,7 @@ export function DoneScreen({
           <button
             type="button"
             onClick={() => setReportOpen(true)}
-            className="mt-3 mb-1 block w-full text-center text-[12.5px] font-bold"
+            className="text-label-lg mt-3 mb-1 block w-full text-center font-bold"
             style={{ color: RED }}
           >
             {t("reportBtn")}
@@ -374,13 +374,15 @@ export function CancelledScreen({
         >
           <X className="size-7" style={{ color: RED }} />
         </span>
-        <h1 className="drive-sora text-[21px] font-extrabold">{t("title")}</h1>
-        <p className="mt-1 max-w-[280px] text-[13px] text-[var(--d-muted)]">
+        <h1 className="drive-sora text-display-sm font-extrabold">
+          {t("title")}
+        </h1>
+        <p className="text-body-sm mt-1 max-w-[280px] text-[var(--d-muted)]">
           {mine ? t("byYou") : t("byOther")}
         </p>
         {refunded && (
           <p
-            className="drive-rise mt-2 max-w-[300px] rounded-[12px] px-3 py-2 text-[12px] font-bold"
+            className="drive-rise text-label mt-2 max-w-[300px] rounded-md px-3 py-2 font-bold"
             style={{ background: "rgba(22,179,100,.12)", color: GO }}
           >
             {t("refunded")}
@@ -388,8 +390,8 @@ export function CancelledScreen({
         )}
       </div>
       {reason && (
-        <div className="drive-rise mt-4 rounded-[18px] border border-[var(--d-line)] p-4">
-          <div className="flex items-center justify-between text-[13.5px]">
+        <div className="drive-rise rounded-sheet-lg mt-4 border border-[var(--d-line)] p-4">
+          <div className="text-body flex items-center justify-between">
             <span className="text-[var(--d-muted)]">{t("reason")}</span>
             <span className="font-semibold">{reason}</span>
           </div>

@@ -184,7 +184,7 @@ export function ExpressRun({
           aria-label={tr("Réduire", "تصغير")}
           // Plat : ni ombre portée ni mise à l'échelle à l'appui — la pilule
           // se lit sur son filet, comme le reste de l'écran.
-          className="absolute top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[60] inline-flex items-center gap-1.5 rounded-[14px] border border-[var(--line)] bg-[var(--surface)] px-3 py-2 text-[12.5px] font-bold text-[var(--ink)] active:bg-[var(--soft)]"
+          className="rounded-card-lg text-label-lg absolute top-[max(14px,calc(env(safe-area-inset-top)+10px))] right-3 z-[60] inline-flex items-center gap-1.5 border border-[var(--line)] bg-[var(--surface)] px-3 py-2 font-bold text-[var(--ink)] active:bg-[var(--soft)]"
         >
           <ChevronDown className="size-4" />
           {tr("Réduire", "تصغير")}
@@ -411,7 +411,7 @@ export function ExpressRun({
           onClick={() => setShowChat(false)}
         >
           <div
-            className="w-full rounded-t-[18px] bg-[var(--surface)] p-3 pb-[calc(18px+env(safe-area-inset-bottom))]"
+            className="rounded-t-sheet-lg w-full bg-[var(--surface)] p-3 pb-[calc(18px+env(safe-area-inset-bottom))]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-2 flex items-center justify-between px-1">

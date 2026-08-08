@@ -72,7 +72,7 @@ export function ScheduledClosureForm({
   }
 
   return (
-    <div className="border-border bg-surface-2 mt-4 rounded-[12px] border p-3.5">
+    <div className="border-border bg-surface-2 mt-4 rounded-md border p-3.5">
       <div className="mb-2.5 flex items-center gap-2">
         <CalendarClock className="text-muted size-4" />
         <h3 className="text-sm font-semibold">Fermeture programmée (congés)</h3>
@@ -88,7 +88,7 @@ export function ScheduledClosureForm({
             type="datetime-local"
             value={start}
             onChange={(e) => setStart(e.target.value)}
-            className="border-border-strong focus:ring-primary-400 h-10 w-full rounded-[10px] border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
+            className="border-border-strong focus:ring-primary-400 rounded-control h-10 w-full border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
           />
         </label>
         <label className="text-sm">
@@ -97,7 +97,7 @@ export function ScheduledClosureForm({
             type="datetime-local"
             value={end}
             onChange={(e) => setEnd(e.target.value)}
-            className="border-border-strong focus:ring-primary-400 h-10 w-full rounded-[10px] border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
+            className="border-border-strong focus:ring-primary-400 rounded-control h-10 w-full border bg-white px-3 text-sm focus:ring-2 focus:outline-none"
           />
         </label>
       </div>
@@ -106,7 +106,7 @@ export function ScheduledClosureForm({
           type="button"
           onClick={save}
           disabled={pending}
-          className="bg-primary-600 hover:bg-primary-700 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-sm font-semibold text-white disabled:opacity-60"
+          className="bg-primary-600 hover:bg-primary-700 rounded-control inline-flex h-9 items-center gap-1.5 px-3 text-sm font-semibold text-white disabled:opacity-60"
         >
           {pending ? (
             <Loader2 className="size-4 animate-spin" />
@@ -120,7 +120,7 @@ export function ScheduledClosureForm({
             type="button"
             onClick={clear}
             disabled={pending}
-            className="text-danger-700 hover:bg-danger-50 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium disabled:opacity-60"
+            className="text-danger-700 hover:bg-danger-50 rounded-control inline-flex h-9 items-center gap-1.5 px-3 text-sm font-medium disabled:opacity-60"
           >
             <Trash2 className="size-4" />
             Annuler la fermeture

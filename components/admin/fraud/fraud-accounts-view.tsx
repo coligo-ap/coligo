@@ -78,14 +78,14 @@ export function FraudAccountsView({ initial }: { initial: FraudScoreRow[] }) {
                     <KindBadge kind={s.actor_kind} />
                     <SeverityBadge severity={s.risk_level} />
                     {s.suspicious_count > 0 && (
-                      <span className="rounded-full bg-red-50 px-2 py-0.5 text-[10px] font-bold text-red-700">
+                      <span className="text-micro rounded-full bg-red-50 px-2 py-0.5 font-bold text-red-700">
                         {s.suspicious_count} situation
                         {s.suspicious_count > 1 ? "s" : ""} suspecte
                         {s.suspicious_count > 1 ? "s" : ""}
                       </span>
                     )}
                   </div>
-                  <p className="text-muted mt-0.5 text-[11px]">
+                  <p className="text-muted text-caption mt-0.5">
                     Évalué {fmtDateTime(s.evaluated_at)}
                   </p>
                 </div>

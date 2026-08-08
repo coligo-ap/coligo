@@ -35,7 +35,7 @@ export default async function CustomerAccountInfoPage() {
         >
           <ChevronLeft className="size-[18px] rtl:-scale-x-100" />
         </Link>
-        <h1 className="text-[19px] font-black tracking-tight">
+        <h1 className="text-heading font-black tracking-tight">
           {t("personalInfo")}
         </h1>
       </header>

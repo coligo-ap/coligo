@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { pwaMetadata } from "@/lib/config/pwa";
-import { Sora, Plus_Jakarta_Sans } from "next/font/google";
+import { PARTNER_FONT_VARS } from "@/lib/fonts";
 import "./maquette.css";
 import { ConfirmProvider } from "@/components/ui/confirm";
 import { OfflineSyncIndicator } from "@/components/driver/offline-sync-indicator";
@@ -30,25 +30,11 @@ import { APP_CONFIG } from "@/lib/config/app-config";
  * login/signup). Le layout ne pose que les composants globaux : install
  * banner PWA + processeur de file offline.
  *
- * Refonte « style Uber » : tout l'espace livreur est scopé via
- * `data-space="driver"` (cf. globals.css) → police Inter + palette dédiée
- * (fond gris, cards blanches, boutons noirs, violet rare). Le `@theme` global
- * de l'app (commerçant/client/admin) n'est PAS touché.
+ * Tout l'espace livreur est scopé via `data-space="driver"` : sa palette et sa
+ * police sont déclarées dans app/design-tokens.css (couche 3), et les règles de
+ * composants de la maquette dans app/(driver)/maquette.css. Le reste de l'app
+ * (client / commerçant / admin) n'est PAS touché.
  */
-// Polices EXACTES des maquettes : Sora (titres/chiffres) + Plus Jakarta Sans
-// (corps). Exposées en variables CSS consommées par app/(driver)/maquette.css.
-const fontSora = Sora({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-sora",
-  weight: ["500", "600", "700", "800"],
-});
-const fontJakarta = Plus_Jakarta_Sans({
-  subsets: ["latin"],
-  display: "swap",
-  variable: "--font-jakarta",
-  weight: ["400", "500", "600", "700"],
-});
 
 // Titre propre à l'espace livreur (le layout racine est neutre « Coligo ») —
 // sinon Tawk.to annonçait « Espace commerçant » pour un livreur.
@@ -80,9 +66,7 @@ export default async function DriverLayout({
   // Le GEL (souple) laisse au contraire l'accès aux pages (géré écran par écran).
   if (driver?.is_blocked) {
     return (
-      <DriverThemeRoot
-        fontVars={`${fontSora.variable} ${fontJakarta.variable}`}
-      >
+      <DriverThemeRoot fontVars={PARTNER_FONT_VARS}>
         <DriverBlockedScreen reason={driver.block_reason} />
       </DriverThemeRoot>
     );
@@ -106,9 +90,7 @@ export default async function DriverLayout({
   const onIdvRoute = pathname.startsWith(idvRoute);
   if (isActive && !onIdvRoute && idvBlocked) {
     return (
-      <DriverThemeRoot
-        fontVars={`${fontSora.variable} ${fontJakarta.variable}`}
-      >
+      <DriverThemeRoot fontVars={PARTNER_FONT_VARS}>
         <IdvRequiredScreen route={idvRoute} profile="driver" />
       </DriverThemeRoot>
     );
@@ -151,7 +133,7 @@ export default async function DriverLayout({
   }
 
   return (
-    <DriverThemeRoot fontVars={`${fontSora.variable} ${fontJakarta.variable}`}>
+    <DriverThemeRoot fontVars={PARTNER_FONT_VARS}>
       {/* Sans ce fournisseur, `useConfirm()` retombe SILENCIEUSEMENT sur la boîte
           de dialogue native du navigateur. Le livreur était le seul espace à ne
           pas le monter (client, commerçant et admin le font). Il enveloppe TOUT

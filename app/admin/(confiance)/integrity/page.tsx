@@ -100,7 +100,7 @@ export default async function AdminIntegrityPage() {
 
       {/* Bandeau d'état global */}
       {error ? (
-        <div className="border-danger-200 bg-danger-50 text-danger-800 flex items-center gap-3 rounded-[14px] border px-4 py-3.5">
+        <div className="border-danger-200 bg-danger-50 text-danger-800 rounded-card-lg flex items-center gap-3 border px-4 py-3.5">
           <ShieldAlert className="size-6 shrink-0" />
           <div>
             <p className="font-bold">Vérification indisponible</p>
@@ -108,7 +108,7 @@ export default async function AdminIntegrityPage() {
           </div>
         </div>
       ) : healthy ? (
-        <div className="border-success-200 bg-success-50 text-success-800 flex items-center gap-3 rounded-[14px] border px-4 py-4">
+        <div className="border-success-200 bg-success-50 text-success-800 rounded-card-lg flex items-center gap-3 border px-4 py-4">
           <CheckCircle2 className="size-7 shrink-0" />
           <div>
             <p className="font-bold">Tout est cohérent</p>
@@ -118,7 +118,7 @@ export default async function AdminIntegrityPage() {
           </div>
         </div>
       ) : (
-        <div className="border-danger-200 bg-danger-50 text-danger-800 flex items-center gap-3 rounded-[14px] border px-4 py-4">
+        <div className="border-danger-200 bg-danger-50 text-danger-800 rounded-card-lg flex items-center gap-3 border px-4 py-4">
           <AlertTriangle className="size-7 shrink-0 animate-pulse" />
           <div>
             <p className="font-bold">
@@ -137,17 +137,17 @@ export default async function AdminIntegrityPage() {
       {violations.length > 0 && (
         <ul
           data-alert-focus="integrity_violation"
-          className="mt-4 space-y-2.5 rounded-[12px]"
+          className="mt-4 space-y-2.5 rounded-md"
         >
           {violations.map((v) => {
             const s = sev(v.severity);
             return (
               <li
                 key={v.code}
-                className={`rounded-[12px] border px-4 py-3 ${s.ring}`}
+                className={`rounded-md border px-4 py-3 ${s.ring}`}
               >
                 <div className="flex items-center justify-between gap-3">
-                  <span className="text-foreground font-mono text-[13px] font-bold">
+                  <span className="text-foreground text-body-sm font-mono font-bold">
                     {v.code}
                   </span>
                   <span className="flex items-center gap-2">
@@ -155,7 +155,7 @@ export default async function AdminIntegrityPage() {
                       ×{v.cnt}
                     </span>
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.badge}`}
+                      className={`text-caption rounded-full px-2 py-0.5 font-bold ${s.badge}`}
                     >
                       {s.label}
                     </span>
@@ -178,7 +178,7 @@ export default async function AdminIntegrityPage() {
             Aucune anomalie détectée par le cron sur la période conservée.
           </p>
         ) : (
-          <ul className="divide-border border-border divide-y overflow-hidden rounded-[12px] border bg-white">
+          <ul className="divide-border border-border divide-y overflow-hidden rounded-md border bg-white">
             {history.map((h, i) => (
               <li
                 key={i}

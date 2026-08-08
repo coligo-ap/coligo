@@ -23,12 +23,12 @@ export function DriverBadgePill({
     <span
       className={
         "inline-flex items-center gap-1 rounded-full font-extrabold shadow-sm " +
-        (md ? "px-2.5 py-1 text-[11px]" : "px-2 py-[3px] text-[9.5px]")
+        (md ? "text-caption px-2.5 py-1" : "text-nano-lg px-2 py-[3px]")
       }
       style={{ background: badge.gradient, color: badge.text }}
       title={badge.title}
     >
-      <span className={md ? "text-[12px]" : "text-[10px]"}>{badge.emoji}</span>
+      <span className={md ? "text-label" : "text-micro"}>{badge.emoji}</span>
       {badge.label}
       {withTitle && (
         <span className="font-semibold opacity-80">· {badge.title}</span>

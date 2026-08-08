@@ -146,7 +146,7 @@ export function DroppableCategory({
     <div
       ref={setNodeRef}
       className={cn(
-        "rounded-[16px] transition-shadow",
+        "rounded-lg transition-shadow",
         active && isOver && "ring-primary-400/70 ring-2"
       )}
     >
@@ -261,7 +261,7 @@ function ProductCard({
   return (
     <div
       className={cn(
-        "border-border bg-surface group relative flex flex-col overflow-hidden rounded-[16px] border shadow-sm transition-shadow hover:shadow-md",
+        "border-border bg-surface group relative flex flex-col overflow-hidden rounded-lg border shadow-sm transition-shadow hover:shadow-md",
         selected && "ring-primary-500 ring-2"
       )}
     >
@@ -318,17 +318,17 @@ function ProductCard({
         )}
         <div className="absolute bottom-2 left-2 flex flex-col gap-1">
           {!available && (
-            <span className="bg-foreground/70 rounded-full px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="bg-foreground/70 text-micro rounded-full px-2 py-0.5 font-medium text-white">
               Masqué
             </span>
           )}
           {stock === "out" && (
-            <span className="bg-danger-600 rounded-full px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="bg-danger-600 text-micro rounded-full px-2 py-0.5 font-medium text-white">
               Épuisé
             </span>
           )}
           {stock === "low" && (
-            <span className="bg-warning-500 rounded-full px-2 py-0.5 text-[10px] font-medium text-white">
+            <span className="bg-warning-500 text-micro rounded-full px-2 py-0.5 font-medium text-white">
               Stock bas · {product.stock_qty}
             </span>
           )}
@@ -339,19 +339,19 @@ function ProductCard({
       <div className="flex flex-1 flex-col gap-1 p-2.5">
         <Link
           href={`/catalog/${product.id}`}
-          className="line-clamp-1 text-[13px] leading-tight font-medium hover:underline"
+          className="text-body-sm line-clamp-1 leading-tight font-medium hover:underline"
         >
           {product.name_fr}
         </Link>
         <div className="mt-auto flex items-baseline justify-between gap-2 pt-0.5">
           <span className="text-foreground text-sm font-semibold">
             {formatDA(product.price_da)}
-            <span className="text-subtle ml-1 text-[11px] font-normal">
+            <span className="text-subtle text-caption ml-1 font-normal">
               / {PRODUCT_UNIT_META[product.unit].short}
             </span>
           </span>
           {stock === "ok" && (
-            <span className="text-subtle shrink-0 text-[11px] tabular-nums">
+            <span className="text-subtle text-caption shrink-0 tabular-nums">
               {product.stock_qty} en stock
             </span>
           )}

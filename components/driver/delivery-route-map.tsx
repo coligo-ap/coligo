@@ -8,6 +8,14 @@ import { haversineKm } from "@/lib/delivery/distance";
 import { useDriverPosition } from "@/lib/native/use-driver-position";
 import { useRoute } from "@/lib/delivery/use-route";
 import { MAP_STYLE_URL } from "@/lib/config/map";
+import {
+  INK,
+  MAP,
+  PARTNER,
+  PRIMARY,
+  WARNING,
+  withAlpha,
+} from "@/lib/design/tokens";
 
 /**
  * Carte de TRAÇAGE de la course (avant / pendant l'offre). Elle montre d'un coup
@@ -24,16 +32,16 @@ import { MAP_STYLE_URL } from "@/lib/config/map";
 
 type LatLng = { lat: number; lng: number };
 
-const VIOLET = "#6c2bd9";
-const GREEN = "#16b364";
-const AMBER = "#f59e0b";
+const VIOLET = PRIMARY[600];
+const GREEN = PARTNER.go;
+const AMBER = WARNING[500];
 
 const fmtKm = (km: number | null | undefined) =>
   km == null ? "—" : km.toFixed(1).replace(".", ",");
 
 /** Pin plat (cercle coloré + anneau blanc + ombre légère, PAS de 3D). */
 function pinHtml(color: string, iconPath: string) {
-  return `<div style="width:30px;height:30px;border-radius:50%;background:${color};display:grid;place-items:center;border:2.5px solid #fff;box-shadow:0 1px 4px rgba(11,12,18,.28)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg></div>`;
+  return `<div style="width:30px;height:30px;border-radius:50%;background:${color};display:grid;place-items:center;border:2.5px solid ${INK.white};box-shadow:0 1px 4px rgba(11,12,18,.28)"><svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="${INK.white}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">${iconPath}</svg></div>`;
 }
 const STORE_PATH = '<path d="M3 9l1-5h16l1 5M5 9v11h14V9M9 13h6"/>';
 const HOME_PATH = '<path d="M3 11l9-8 9 8M5 10v10h14V10"/>';
@@ -197,8 +205,8 @@ export function DeliveryRouteMap({
         const el = document.createElement("div");
         el.style.cssText = "position:relative;width:20px;height:20px";
         el.innerHTML = `
-          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:rgba(108,43,217,.22);animation:driver-me-pulse 2s infinite"></div>
-          <div style="position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:${VIOLET};border:3px solid #fff;box-shadow:0 1px 4px rgba(11,12,18,.3)"></div>`;
+          <div style="position:absolute;left:50%;top:50%;width:20px;height:20px;margin:-10px 0 0 -10px;border-radius:50%;background:${withAlpha(MAP.me, 0.22)};animation:driver-me-pulse 2s infinite"></div>
+          <div style="position:absolute;left:50%;top:50%;width:16px;height:16px;margin:-8px 0 0 -8px;border-radius:50%;background:${VIOLET};border:3px solid ${INK.white};box-shadow:0 1px 4px rgba(11,12,18,.3)"></div>`;
         driverMarkerRef.current = new Marker({ element: el, anchor: "center" })
           .setLngLat([coords.longitude, coords.latitude])
           .addTo(map);
@@ -289,7 +297,7 @@ export function DeliveryRouteMap({
         className={
           fill
             ? "bg-surface-2 absolute inset-0 overflow-hidden"
-            : "bg-surface-2 relative w-full overflow-hidden rounded-[14px]"
+            : "bg-surface-2 rounded-card-lg relative w-full overflow-hidden"
         }
         style={
           fill
@@ -328,7 +336,7 @@ export function DeliveryRouteMap({
           <div className="pointer-events-none absolute top-2.5 left-2.5 flex flex-col gap-1.5">
             {leg1Km != null && (
               <span
-                className="inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white shadow-sm backdrop-blur"
+                className="text-caption-lg inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 font-bold text-white shadow-sm backdrop-blur"
                 style={{ background: `${via ? VIOLET : leg1Color}ee` }}
               >
                 <span className="size-2 rounded-full bg-white/90" />
@@ -342,7 +350,7 @@ export function DeliveryRouteMap({
             )}
             {leg2Km != null && (
               <span
-                className="inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 text-[11.5px] font-bold text-white shadow-sm backdrop-blur"
+                className="text-caption-lg inline-flex items-center gap-1.5 self-start rounded-full px-2.5 py-1 font-bold text-white shadow-sm backdrop-blur"
                 style={{ background: `${GREEN}ee` }}
               >
                 <span className="size-2 rounded-full bg-white/90" />
@@ -357,7 +365,7 @@ export function DeliveryRouteMap({
           href={gmapsUrl}
           target="_blank"
           rel="noreferrer"
-          className="border-border bg-surface flex w-full items-center justify-center gap-1.5 rounded-[12px] border px-3 py-2 text-sm font-semibold"
+          className="border-border bg-surface flex w-full items-center justify-center gap-1.5 rounded-md border px-3 py-2 text-sm font-semibold"
         >
           <ExternalLink className="size-4" />
           {tr("Ouvrir dans Google Maps", "افتح في خرائط Google")}

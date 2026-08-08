@@ -221,12 +221,12 @@ export function AdminDashboardView({ stats, merchants }: Props) {
                         {m.name}
                       </span>
                       {m.is_frozen && (
-                        <span className="bg-danger-100 text-danger-700 rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                        <span className="bg-danger-100 text-danger-700 text-micro rounded-full px-1.5 py-0.5 font-bold">
                           gelé
                         </span>
                       )}
                       {!m.is_active && (
-                        <span className="bg-surface-2 text-muted rounded-full px-1.5 py-0.5 text-[10px] font-bold">
+                        <span className="bg-surface-2 text-muted text-micro rounded-full px-1.5 py-0.5 font-bold">
                           inactif
                         </span>
                       )}
@@ -288,7 +288,7 @@ function Section({
   children: React.ReactNode;
 }) {
   return (
-    <section className="border-border bg-surface mt-4 rounded-[16px] border p-4 lg:p-5">
+    <section className="border-border bg-surface mt-4 rounded-lg border p-4 lg:p-5">
       <h2 className="text-foreground mb-3 flex items-center gap-2 text-sm font-bold">
         <Icon className="text-primary-600 size-4" />
         {title}
@@ -316,13 +316,13 @@ function Kpi({
   return (
     <div
       className={
-        "rounded-[16px] border p-4 " +
+        "rounded-lg border p-4 " +
         (tone === "profit"
           ? "border-success-200 bg-success-50"
           : "border-border bg-surface")
       }
     >
-      <div className="text-muted flex items-center gap-1.5 text-[11px] font-semibold tracking-wide uppercase">
+      <div className="text-muted text-caption flex items-center gap-1.5 font-semibold tracking-wide uppercase">
         <Icon className="size-3.5" />
         {label}
       </div>
@@ -335,7 +335,7 @@ function Kpi({
       >
         {value}
       </div>
-      {hint && <div className="text-subtle mt-0.5 text-[11px]">{hint}</div>}
+      {hint && <div className="text-subtle text-caption mt-0.5">{hint}</div>}
     </div>
   );
 }
@@ -352,8 +352,8 @@ function Stat({
   tone?: "profit";
 }) {
   return (
-    <div className="border-border bg-surface-2/50 rounded-[12px] border p-3">
-      <div className="text-muted flex items-center gap-1.5 text-[11px] font-semibold">
+    <div className="border-border bg-surface-2/50 rounded-md border p-3">
+      <div className="text-muted text-caption flex items-center gap-1.5 font-semibold">
         <Icon className="size-3.5" />
         {label}
       </div>
@@ -383,8 +383,8 @@ function MoneyStat({
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
-    <div className="border-border bg-surface-2/50 rounded-[12px] border p-3">
-      <div className="text-muted flex items-center gap-1.5 text-[11px] font-semibold">
+    <div className="border-border bg-surface-2/50 rounded-md border p-3">
+      <div className="text-muted text-caption flex items-center gap-1.5 font-semibold">
         {Icon && <Icon className="size-3.5" />}
         {label}
       </div>
@@ -400,7 +400,7 @@ function MoneyStat({
       >
         {formatDA(value)}
       </div>
-      {hint && <div className="text-subtle mt-0.5 text-[11px]">{hint}</div>}
+      {hint && <div className="text-subtle text-caption mt-0.5">{hint}</div>}
     </div>
   );
 }

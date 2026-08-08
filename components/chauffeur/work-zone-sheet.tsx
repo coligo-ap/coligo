@@ -45,7 +45,7 @@ export function ChauffeurWorkZoneSheet({
         onClick={onClose}
       >
         <div
-          className="drive-jakarta w-full max-w-[560px] overflow-hidden rounded-t-[22px] bg-[var(--d-surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--d-ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
+          className="drive-jakarta rounded-t-sheet-xl sm:rounded-sheet-xl w-full max-w-[560px] overflow-hidden bg-[var(--d-surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--d-ink)] shadow-2xl sm:pb-0"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between border-b border-[var(--d-line)] px-4 py-3.5">
@@ -54,7 +54,7 @@ export function ChauffeurWorkZoneSheet({
                 className="size-[18px]"
                 style={{ color: BRAND_VIOLET }}
               />
-              <h2 className="drive-sora text-[16px] font-extrabold">
+              <h2 className="drive-sora text-title font-extrabold">
                 {tr("Ma zone", "منطقتي")}
               </h2>
             </div>
@@ -69,14 +69,14 @@ export function ChauffeurWorkZoneSheet({
           </div>
 
           <div className="p-4">
-            <p className="mb-4 text-[13px] leading-snug text-[var(--d-muted)]">
+            <p className="text-body-sm mb-4 leading-snug text-[var(--d-muted)]">
               {tr(
                 "Vous recevez les courses autour de votre position actuelle, où que vous soyez. Choisissez la distance maximale. Si peu de demandes sont proches, on vous proposera aussi les plus proches au-delà.",
                 "تستقبل الطلبات حول موقعك الحالي أينما كنت. اختر المسافة القصوى. وإذا قلّت الطلبات القريبة، سنقترح عليك أيضًا الأقرب خارج هذا النطاق."
               )}
             </p>
 
-            <div className="mb-2 text-[12px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+            <div className="text-label mb-2 font-bold tracking-wide text-[var(--d-muted)] uppercase">
               {tr("Rayon autour de moi", "نصف القطر حولي")}
             </div>
             <div className="grid grid-cols-4 gap-2">
@@ -87,7 +87,7 @@ export function ChauffeurWorkZoneSheet({
                     key={r}
                     type="button"
                     onClick={() => setRadius(r)}
-                    className="h-11 rounded-[12px] border text-[14px] font-bold transition"
+                    className="text-body-lg h-11 rounded-md border font-bold transition"
                     style={
                       active
                         ? {
@@ -111,7 +111,7 @@ export function ChauffeurWorkZoneSheet({
             <button
               type="button"
               onClick={save}
-              className="mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-bold text-white"
+              className="rounded-card-lg text-title-sm mt-5 inline-flex h-[52px] w-full items-center justify-center gap-2 font-bold text-white"
               style={{
                 background: BRAND_VIOLET,
                 boxShadow: "0 14px 28px -12px rgba(108,43,217,.5)",

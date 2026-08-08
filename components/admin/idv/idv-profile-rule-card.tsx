@@ -83,7 +83,7 @@ export function IdvProfileRuleCard({
   return (
     <form
       action={formAction}
-      className="border-border bg-surface space-y-3 rounded-[16px] border p-4"
+      className="border-border bg-surface space-y-3 rounded-lg border p-4"
     >
       <input type="hidden" name="profile" value={rule.profile} />
       <div>
@@ -96,7 +96,7 @@ export function IdvProfileRuleCard({
           <label
             key={opt.value}
             className={
-              "border-border cursor-pointer rounded-[10px] border px-2.5 py-1 text-xs font-medium transition-colors " +
+              "border-border rounded-control cursor-pointer border px-2.5 py-1 text-xs font-medium transition-colors " +
               (requirement === opt.value
                 ? `bg-primary-50 border-primary-200 ${opt.tone}`
                 : "text-muted hover:bg-surface-2")
@@ -138,7 +138,7 @@ export function IdvProfileRuleCard({
                   />
                   {m.label_fr}
                   {!m.enabled && (
-                    <span className="text-muted text-[10px]">(désactivé)</span>
+                    <span className="text-muted text-micro">(désactivé)</span>
                   )}
                 </label>
               ))}
@@ -158,7 +158,7 @@ export function IdvProfileRuleCard({
                 name="default_mode"
                 value={defaultMode}
                 onChange={(e) => setDefaultMode(e.target.value)}
-                className="border-border bg-surface h-9 w-full rounded-[10px] border px-2 text-sm"
+                className="border-border bg-surface rounded-control h-9 w-full border px-2 text-sm"
               >
                 {allowed.map((key) => (
                   <option key={key} value={key}>

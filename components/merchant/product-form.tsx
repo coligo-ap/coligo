@@ -45,7 +45,7 @@ import { TranslateArButton } from "@/components/merchant/translate-ar-button";
 import { BarcodeField } from "@/components/merchant/barcode-field";
 
 const SELECT_CLASS =
-  "appearance-none flex h-12 w-full rounded-[12px] border border-border-strong bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
+  "appearance-none flex h-12 w-full rounded-md border border-border-strong bg-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-400 focus:border-primary-400 disabled:cursor-not-allowed disabled:opacity-50";
 
 const initialState: ProductFormState = {};
 
@@ -168,7 +168,7 @@ export function ProductForm({
           />
         )}
         {/* Image */}
-        <section className="border-border bg-surface rounded-[16px] border p-5">
+        <section className="border-border bg-surface rounded-lg border p-5">
           <Label className="mb-2 block">Photo du produit</Label>
           <input type="hidden" name="image_url" value={imageUrl ?? ""} />
           <input
@@ -185,7 +185,7 @@ export function ProductForm({
 
           {imageUrl ? (
             <div className="relative inline-block">
-              <div className="bg-surface-3 relative size-36 overflow-hidden rounded-[12px]">
+              <div className="bg-surface-3 relative size-36 overflow-hidden rounded-md">
                 <Image
                   src={imageUrl}
                   alt="Aperçu"
@@ -208,7 +208,7 @@ export function ProductForm({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={uploading}
-              className="border-border-strong text-muted hover:bg-surface-2 flex size-36 flex-col items-center justify-center gap-2 rounded-[12px] border border-dashed text-xs disabled:opacity-50"
+              className="border-border-strong text-muted hover:bg-surface-2 flex size-36 flex-col items-center justify-center gap-2 rounded-md border border-dashed text-xs disabled:opacity-50"
             >
               {uploading ? (
                 <Loader2 className="size-6 animate-spin" />
@@ -224,7 +224,7 @@ export function ProductForm({
         </section>
 
         {/* Nom bilingue */}
-        <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+        <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Nom (français)" required>
               <Input
@@ -261,7 +261,7 @@ export function ProductForm({
                 placeholder="Détails, ingrédients…"
                 rows={3}
                 disabled={pending}
-                className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+                className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-md border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
               />
             </Field>
             <Field label="الوصف (العربية)">
@@ -272,7 +272,7 @@ export function ProductForm({
                   rows={3}
                   dir="rtl"
                   disabled={pending}
-                  className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-[12px] border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
+                  className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 w-full rounded-md border px-4 py-2.5 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
                 />
                 <TranslateArButton
                   sourceField="description_fr"
@@ -285,7 +285,7 @@ export function ProductForm({
         </section>
 
         {/* Prix / unité / catégorie */}
-        <section className="border-border bg-surface space-y-4 rounded-[16px] border p-5">
+        <section className="border-border bg-surface space-y-4 rounded-lg border p-5">
           <div className="grid gap-4 sm:grid-cols-2">
             <Field label="Prix (DA)" required>
               <Input
@@ -417,7 +417,7 @@ export function ProductForm({
         </section>
 
         {state.error && (
-          <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
+          <div className="rounded-control border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm text-rose-800">
             {state.error}
           </div>
         )}
@@ -498,7 +498,7 @@ export function DeleteProduct({ productId }: { productId: string }) {
         disabled={pending}
         title="Supprimer ce produit"
         aria-label="Supprimer ce produit"
-        className="text-danger-600 hover:bg-danger-50 border-danger-200 inline-flex h-9 items-center gap-1.5 rounded-[10px] border px-3 text-sm font-medium disabled:opacity-50"
+        className="text-danger-600 hover:bg-danger-50 border-danger-200 rounded-control inline-flex h-9 items-center gap-1.5 border px-3 text-sm font-medium disabled:opacity-50"
       >
         {pending ? (
           <Loader2 className="size-4 animate-spin" />

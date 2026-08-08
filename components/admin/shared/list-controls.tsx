@@ -95,7 +95,7 @@ export function Pager({
         type="button"
         onClick={() => onPage(page - 1)}
         disabled={page <= 1}
-        className="border-border hover:bg-surface-2 inline-flex size-9 items-center justify-center rounded-[10px] border disabled:opacity-40"
+        className="border-border hover:bg-surface-2 rounded-control inline-flex size-9 items-center justify-center border disabled:opacity-40"
         aria-label="Page précédente"
       >
         <ChevronLeft className="size-4" />
@@ -107,7 +107,7 @@ export function Pager({
         type="button"
         onClick={() => onPage(page + 1)}
         disabled={page >= pageCount}
-        className="border-border hover:bg-surface-2 inline-flex size-9 items-center justify-center rounded-[10px] border disabled:opacity-40"
+        className="border-border hover:bg-surface-2 rounded-control inline-flex size-9 items-center justify-center border disabled:opacity-40"
         aria-label="Page suivante"
       >
         <ChevronRight className="size-4" />

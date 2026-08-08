@@ -97,7 +97,7 @@ export function IdvStepper({
                 />
               </div>
               <span
-                className="flex items-center gap-1 text-[10px] font-medium"
+                className="text-micro flex items-center gap-1 font-medium"
                 style={{
                   color: isDone || isCurrent ? ink : muted,
                   opacity: isDone || isCurrent ? 1 : 0.7,
@@ -119,7 +119,7 @@ export function IdvStepper({
       {hint && (
         <p
           key={hint}
-          className="idv-step-sub mt-1 text-[11px]"
+          className="idv-step-sub text-caption mt-1"
           style={{ color: muted }}
         >
           {hint}

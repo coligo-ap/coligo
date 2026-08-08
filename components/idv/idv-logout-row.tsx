@@ -83,7 +83,7 @@ function MerchantIdvLogoutButton() {
     <button
       type="submit"
       disabled={pending}
-      className="mt-3 flex w-full items-center gap-3 rounded-[16px] border px-3.5 py-3.5 text-start text-[13.5px] font-semibold disabled:opacity-70"
+      className="text-body mt-3 flex w-full items-center gap-3 rounded-lg border px-3.5 py-3.5 text-start font-semibold disabled:opacity-70"
       style={{ borderColor: "var(--idv-line)", color: BRAND_RED }}
     >
       <LogOut className="size-4" style={{ color: BRAND_RED }} />

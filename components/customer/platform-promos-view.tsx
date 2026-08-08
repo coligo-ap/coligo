@@ -61,7 +61,7 @@ export function PlatformPromosView({
       <section>
         <form
           onSubmit={submit}
-          className="border-border bg-surface flex items-center gap-2 rounded-[16px] border p-2 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
+          className="border-border bg-surface flex items-center gap-2 rounded-lg border p-2 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)]"
         >
           <Ticket className="text-subtle ms-1.5 size-5 shrink-0" />
           <input
@@ -75,7 +75,7 @@ export function PlatformPromosView({
           <button
             type="submit"
             disabled={pending || !code.trim()}
-            className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-[12px] px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50"
+            className="bg-primary-600 hover:bg-primary-700 inline-flex shrink-0 items-center gap-1.5 rounded-md px-4 py-2.5 text-sm font-bold text-white transition-colors disabled:opacity-50"
           >
             <Plus className="size-4" />
             {t("addButton")}
@@ -95,7 +95,7 @@ export function PlatformPromosView({
 
       {/* Codes disponibles */}
       <section>
-        <h2 className="text-muted mb-2.5 px-1 text-[11px] font-extrabold tracking-wide uppercase">
+        <h2 className="text-muted text-caption mb-2.5 px-1 font-extrabold tracking-wide uppercase">
           {t("myCodes")}
         </h2>
         {codes.length === 0 ? (
@@ -111,7 +111,7 @@ export function PlatformPromosView({
 
       {/* Bons d'achat */}
       <section>
-        <h2 className="text-muted mb-2.5 px-1 text-[11px] font-extrabold tracking-wide uppercase">
+        <h2 className="text-muted text-caption mb-2.5 px-1 font-extrabold tracking-wide uppercase">
           {t("myVouchers")}
         </h2>
         {activeVouchers.length === 0 ? (
@@ -133,7 +133,7 @@ export function PlatformPromosView({
 
 function EmptyHint({ icon, text }: { icon: React.ReactNode; text: string }) {
   return (
-    <div className="border-border bg-surface text-muted flex flex-col items-center gap-2 rounded-[16px] border border-dashed px-6 py-8 text-center text-sm">
+    <div className="border-border bg-surface text-muted flex flex-col items-center gap-2 rounded-lg border border-dashed px-6 py-8 text-center text-sm">
       <span className="text-subtle">{icon}</span>
       {text}
     </div>
@@ -207,9 +207,9 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
     <>
       {/* Fond bg-primary-50 SOLIDE (remappé par le thème sombre) — pas un dégradé
           from-primary-* + dark: (basé système) qui restait clair en sombre. */}
-      <div className="border-primary-300 bg-primary-50 relative overflow-hidden rounded-[16px] border border-dashed px-3.5 py-3">
+      <div className="border-primary-300 bg-primary-50 relative overflow-hidden rounded-lg border border-dashed px-3.5 py-3">
         <div className="flex items-center gap-3">
-          <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-[12px] text-white shadow-sm">
+          <span className="bg-primary-600 grid size-11 shrink-0 place-items-center rounded-md text-white shadow-sm">
             <Ticket className="size-5" />
           </span>
           <div className="min-w-0 flex-1">
@@ -228,10 +228,10 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
             >
               {/* Plaque du code : TOUJOURS blanche (bg-[#fff] non remappé par le
                   thème sombre) → rendu « ticket » et lisibilité maximale. */}
-              <span className="border-primary-300 rounded-md border bg-[#fff] px-2 py-0.5 font-mono text-sm font-black tracking-wider text-[#6c2bd9]">
+              <span className="border-primary-300 rounded-md border bg-[#fff] px-2 py-0.5 font-mono text-sm font-black tracking-wider text-[var(--color-primary-600)]">
                 {code}
               </span>
-              <span className="text-primary-500/90 inline-flex items-center gap-1 text-[11px] font-medium">
+              <span className="text-primary-500/90 text-caption inline-flex items-center gap-1 font-medium">
                 {copied ? (
                   <>
                     <Check className="size-3" /> {t("copied")}
@@ -263,7 +263,7 @@ function PromoCodeCard({ promo }: { promo: PlatformPromoCode }) {
               if (e.target === e.currentTarget) setOpen(false);
             }}
           >
-            <div className="bg-surface flex w-full max-w-md flex-col rounded-t-[20px] pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-[20px]">
+            <div className="bg-surface flex w-full max-w-md flex-col rounded-t-xl pb-[env(safe-area-inset-bottom)] shadow-xl sm:rounded-xl">
               <header className="border-border flex items-center justify-between gap-3 border-b px-5 py-4">
                 <h3 className="text-foreground text-lg font-bold">
                   {t("conditionsTitle")}
@@ -329,9 +329,9 @@ function VoucherCard({ voucher }: { voucher: CustomerVoucher }) {
   return (
     <Link
       href="/coligo-pay"
-      className="border-border bg-surface hover:border-primary-300 flex items-center gap-3 rounded-[16px] border px-3.5 py-3 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)] transition-colors"
+      className="border-border bg-surface hover:border-primary-300 flex items-center gap-3 rounded-lg border px-3.5 py-3 shadow-[0_8px_22px_-16px_rgba(40,35,90,.2)] transition-colors"
     >
-      <span className="bg-success-50 text-success-700 grid size-11 shrink-0 place-items-center rounded-[12px]">
+      <span className="bg-success-50 text-success-700 grid size-11 shrink-0 place-items-center rounded-md">
         <Gift className="size-5" />
       </span>
       <div className="min-w-0 flex-1">

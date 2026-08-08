@@ -60,7 +60,7 @@ export function AdminHubTabs({
                       : item.label
                   }
                   className={cn(
-                    "inline-flex shrink-0 items-center gap-1.5 rounded-[10px] px-3 py-1.5 font-medium transition-colors",
+                    "rounded-control inline-flex shrink-0 items-center gap-1.5 px-3 py-1.5 font-medium transition-colors",
                     active
                       ? "bg-primary-50 text-primary-700"
                       : "text-muted hover:bg-surface-2 hover:text-foreground"
@@ -69,7 +69,7 @@ export function AdminHubTabs({
                   <Icon className="size-4" />
                   {item.label}
                   {count > 0 && (
-                    <span className="bg-warning-500 inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 text-[10px] font-extrabold text-white tabular-nums">
+                    <span className="bg-warning-500 text-micro inline-flex min-w-[18px] animate-pulse items-center justify-center rounded-full px-1 font-extrabold text-white tabular-nums">
                       {count}
                     </span>
                   )}

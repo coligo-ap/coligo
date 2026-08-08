@@ -102,7 +102,7 @@ export default async function AdminIdvCasePage({
           a demandé l'examen humain. On le dit AVANT les scores — sinon l'équipe
           jugerait sur des chiffres que la machine a déjà mal lus. */}
       {v.manual_fallback && (
-        <div className="border-warning-200 bg-warning-50 text-warning-800 rounded-[14px] border p-3 text-sm">
+        <div className="border-warning-200 bg-warning-50 text-warning-800 rounded-card-lg border p-3 text-sm">
           <b className="block">Recours après refus automatique</b>
           Ce dossier est à juger <b>sur pièces</b> : comparez vous-même le
           selfie et le document. Les scores ci-dessous sont ceux de la tentative
@@ -114,7 +114,7 @@ export default async function AdminIdvCasePage({
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Selfie ↔ Document</h3>
         <div className="grid gap-3 sm:grid-cols-2">
-          <figure className="border-border bg-surface overflow-hidden rounded-[16px] border">
+          <figure className="border-border bg-surface overflow-hidden rounded-lg border">
             {urls.selfie ? (
               // eslint-disable-next-line @next/next/no-img-element -- URL signée éphémère
               <img
@@ -129,7 +129,7 @@ export default async function AdminIdvCasePage({
             )}
             <figcaption className="text-muted p-2 text-xs">Selfie</figcaption>
           </figure>
-          <figure className="border-border bg-surface overflow-hidden rounded-[16px] border">
+          <figure className="border-border bg-surface overflow-hidden rounded-lg border">
             {urls.docFront ? (
               // eslint-disable-next-line @next/next/no-img-element -- URL signée éphémère
               <img
@@ -151,7 +151,7 @@ export default async function AdminIdvCasePage({
         {(urls.docBack || urls.selfieFrames.length > 0) && (
           <div className="grid gap-3 sm:grid-cols-2">
             {urls.docBack && (
-              <figure className="border-border bg-surface overflow-hidden rounded-[16px] border">
+              <figure className="border-border bg-surface overflow-hidden rounded-lg border">
                 {/* eslint-disable-next-line @next/next/no-img-element -- URL signée éphémère */}
                 <img
                   src={urls.docBack}
@@ -164,7 +164,7 @@ export default async function AdminIdvCasePage({
               </figure>
             )}
             {urls.selfieFrames.length > 0 && (
-              <div className="border-border bg-surface rounded-[16px] border p-2">
+              <div className="border-border bg-surface rounded-lg border p-2">
                 <p className="text-muted mb-1.5 text-xs">
                   Étapes de présence réelle ({urls.selfieFrames.length})
                 </p>
@@ -175,7 +175,7 @@ export default async function AdminIdvCasePage({
                       key={u}
                       src={u}
                       alt={`Étape ${i + 1} du selfie`}
-                      className="h-28 rounded-[10px] bg-black object-contain"
+                      className="rounded-control h-28 bg-black object-contain"
                     />
                   ))}
                 </div>
@@ -188,7 +188,7 @@ export default async function AdminIdvCasePage({
       {/* ── Informations extraites ───────────────────────────────────────── */}
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Informations extraites</h3>
-        <div className="border-border bg-surface rounded-[16px] border p-4">
+        <div className="border-border bg-surface rounded-lg border p-4">
           {Object.keys(extracted).length === 0 ? (
             <p className="text-muted text-sm">
               Aucune donnée extraite (document sans MRZ ou lecture impossible).
@@ -219,7 +219,7 @@ export default async function AdminIdvCasePage({
       {/* ── Contrôles ────────────────────────────────────────────────────── */}
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Contrôles exécutés</h3>
-        <div className="border-border bg-surface overflow-hidden rounded-[16px] border">
+        <div className="border-border bg-surface overflow-hidden rounded-lg border">
           <ul className="divide-border divide-y">
             {checks.length === 0 && (
               <li className="text-muted p-4 text-sm">Aucun contrôle.</li>
@@ -249,7 +249,7 @@ export default async function AdminIdvCasePage({
                       </span>
                     )}
                     <span
-                      className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${meta.tone}`}
+                      className={`text-caption rounded-full px-2 py-0.5 font-medium ${meta.tone}`}
                     >
                       {meta.label}
                     </span>
@@ -270,7 +270,7 @@ export default async function AdminIdvCasePage({
       {/* ── Journal d'audit ──────────────────────────────────────────────── */}
       <section className="space-y-2">
         <h3 className="text-sm font-semibold">Historique</h3>
-        <div className="border-border bg-surface overflow-hidden rounded-[16px] border">
+        <div className="border-border bg-surface overflow-hidden rounded-lg border">
           <ul className="divide-border divide-y">
             {audit.length === 0 && (
               <li className="text-muted p-4 text-sm">Aucun événement.</li>

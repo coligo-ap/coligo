@@ -61,7 +61,7 @@ export default async function DashboardPage() {
   if (error) {
     return (
       <div className="p-4 lg:p-6">
-        <div className="rounded-[10px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
+        <div className="rounded-control border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-800">
           Erreur de chargement : {error.message}
         </div>
       </div>
@@ -134,7 +134,7 @@ export default async function DashboardPage() {
           pas le `@property` des dégradés Tailwind v4 → sans ça la carte
           apparaissait transparente en mobile. */}
       <section
-        className="bg-primary-600 mb-5 flex flex-wrap items-center justify-between gap-4 rounded-[18px] p-4 text-white shadow-sm lg:p-5"
+        className="bg-primary-600 rounded-sheet-lg mb-5 flex flex-wrap items-center justify-between gap-4 p-4 text-white shadow-sm lg:p-5"
         style={{
           backgroundImage:
             "linear-gradient(to bottom right, var(--color-primary-600), var(--color-primary-700))",

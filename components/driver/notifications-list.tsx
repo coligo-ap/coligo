@@ -55,29 +55,29 @@ export function DriverNotificationsList({
         };
         const body = (
           <div
-            className="flex items-start gap-3 rounded-[14px] border p-3.5"
+            className="rounded-card-lg flex items-start gap-3 border p-3.5"
             style={{
               borderColor: n.read_at ? "var(--line)" : tone.color,
               background: "var(--surface)",
             }}
           >
             <span
-              className="grid size-9 shrink-0 place-items-center rounded-[11px]"
+              className="rounded-control-lg grid size-9 shrink-0 place-items-center"
               style={{ background: "var(--soft)", color: tone.color }}
             >
               {tone.icon}
             </span>
             <div className="min-w-0 flex-1">
               <b
-                className="block text-[13.5px] font-bold text-[var(--ink)]"
+                className="text-body block font-bold text-[var(--ink)]"
                 style={{ fontFamily: SORA }}
               >
                 {n.title}
               </b>
-              <small className="mt-0.5 block text-[12px] leading-relaxed text-[var(--muted)]">
+              <small className="text-label mt-0.5 block leading-relaxed text-[var(--muted)]">
                 {n.body}
               </small>
-              <small className="mt-1 block text-[11px] text-[var(--muted)]">
+              <small className="text-caption mt-1 block text-[var(--muted)]">
                 {new Date(n.created_at).toLocaleDateString(
                   isAr ? "ar-DZ" : "fr-FR",
                   {

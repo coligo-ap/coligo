@@ -47,7 +47,7 @@ export function AuthModeTabs({
   // débordait de la pilule. Il se tronque désormais proprement (…) au lieu de
   // sortir du cadre, et la cible tactile reste à 44 px.
   const base =
-    "flex min-h-[44px] min-w-0 flex-1 items-center justify-center rounded-[10px] px-2 py-1 text-center text-xs font-semibold transition";
+    "flex min-h-[44px] min-w-0 flex-1 items-center justify-center rounded-control px-2 py-1 text-center text-xs font-semibold transition";
   const active = "bg-white text-foreground shadow-sm";
   const idle = "text-muted hover:text-foreground";
 
@@ -57,7 +57,7 @@ export function AuthModeTabs({
         "Connexion ou création de compte",
         "تسجيل الدخول أو إنشاء حساب"
       )}
-      className="bg-surface-2 border-border mb-2.5 flex gap-1 rounded-[12px] border p-1"
+      className="bg-surface-2 border-border mb-2.5 flex gap-1 rounded-md border p-1"
     >
       <Link
         href={loginHref}

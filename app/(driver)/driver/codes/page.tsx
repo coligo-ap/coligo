@@ -41,7 +41,7 @@ export default async function DriverSubmitCodePage({
               )
         }
       />
-      <div className="rounded-[18px] border border-[var(--line)] bg-[var(--surface)] p-4">
+      <div className="rounded-sheet-lg border border-[var(--line)] bg-[var(--surface)] p-4">
         <Suspense fallback={null}>
           <DriverSubmitCodeForm />
         </Suspense>

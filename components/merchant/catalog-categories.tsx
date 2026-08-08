@@ -133,7 +133,7 @@ export function CategorySection({
   return (
     <section
       className={cn(
-        "border-border bg-surface overflow-hidden rounded-[16px] border",
+        "border-border bg-surface overflow-hidden rounded-lg border",
         selected && "ring-primary-500 ring-2"
       )}
     >
@@ -171,7 +171,7 @@ export function CategorySection({
           aria-expanded={open}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
-          <div className="bg-surface-3 relative size-9 shrink-0 overflow-hidden rounded-[8px]">
+          <div className="bg-surface-3 relative size-9 shrink-0 overflow-hidden rounded-sm">
             {image ? (
               <Image
                 src={image}
@@ -187,7 +187,7 @@ export function CategorySection({
             )}
           </div>
           <span className="truncate text-sm font-semibold">{title}</span>
-          <span className="bg-surface-3 text-muted rounded-full px-2 py-0.5 text-[11px] font-medium tabular-nums">
+          <span className="bg-surface-3 text-muted text-caption rounded-full px-2 py-0.5 font-medium tabular-nums">
             {count}
           </span>
         </button>
@@ -195,7 +195,7 @@ export function CategorySection({
         <Link
           href={addHref}
           title="Ajouter un produit à cette catégorie"
-          className="border-border-strong text-primary-700 hover:bg-primary-50 inline-flex h-9 items-center gap-1 rounded-[10px] border px-2.5 text-xs font-medium"
+          className="border-border-strong text-primary-700 hover:bg-primary-50 rounded-control inline-flex h-9 items-center gap-1 border px-2.5 text-xs font-medium"
         >
           <Plus className="size-4" />
           <span className="hidden sm:inline">Produit</span>
@@ -208,7 +208,7 @@ export function CategorySection({
             onClick={() => setEditOpen(true)}
             title="Modifier la catégorie"
             aria-label="Modifier la catégorie"
-            className="text-muted hover:bg-surface-3 hover:text-foreground inline-flex size-9 items-center justify-center rounded-[10px]"
+            className="text-muted hover:bg-surface-3 hover:text-foreground rounded-control inline-flex size-9 items-center justify-center"
           >
             <Pencil className="size-4" />
           </button>
@@ -218,7 +218,7 @@ export function CategorySection({
           type="button"
           onClick={onToggle}
           aria-label={open ? "Replier" : "Déplier"}
-          className="text-muted hover:bg-surface-3 ml-0.5 inline-flex size-9 items-center justify-center rounded-[10px]"
+          className="text-muted hover:bg-surface-3 rounded-control ml-0.5 inline-flex size-9 items-center justify-center"
         >
           <ChevronDown
             className={cn("size-5 transition-transform", open && "rotate-180")}
@@ -377,7 +377,7 @@ function CategoryEditSheet({
         onClick={onClose}
       >
         <div
-          className="bg-surface w-full max-w-md rounded-t-[20px] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-[20px]"
+          className="bg-surface w-full max-w-md rounded-t-xl p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] shadow-xl sm:rounded-xl"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="mb-4 flex items-center justify-between">
@@ -434,7 +434,7 @@ function CategoryEditSheet({
             }}
           />
           <div className="flex items-center gap-3">
-            <div className="bg-surface-3 relative size-16 shrink-0 overflow-hidden rounded-[12px]">
+            <div className="bg-surface-3 relative size-16 shrink-0 overflow-hidden rounded-md">
               {img ? (
                 <Image
                   src={img}
@@ -468,7 +468,7 @@ function CategoryEditSheet({
                   type="button"
                   onClick={removeImage}
                   disabled={busy}
-                  className="text-danger-600 hover:bg-danger-50 inline-flex h-9 items-center gap-1.5 rounded-[10px] px-3 text-sm font-medium disabled:opacity-50"
+                  className="text-danger-600 hover:bg-danger-50 rounded-control inline-flex h-9 items-center gap-1.5 px-3 text-sm font-medium disabled:opacity-50"
                 >
                   <Trash2 className="size-4" />
                   Retirer
@@ -483,7 +483,7 @@ function CategoryEditSheet({
               type="button"
               onClick={onDeleteCategory}
               disabled={pending}
-              className="text-danger-600 hover:bg-danger-50 border-danger-200 inline-flex h-10 w-full items-center justify-center gap-2 rounded-[12px] border text-sm font-semibold disabled:opacity-50"
+              className="text-danger-600 hover:bg-danger-50 border-danger-200 inline-flex h-10 w-full items-center justify-center gap-2 rounded-md border text-sm font-semibold disabled:opacity-50"
             >
               <Trash2 className="size-4" />
               Supprimer la catégorie

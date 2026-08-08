@@ -186,7 +186,7 @@ export function AuthScreen({
 /** Chiffre-clé du panneau marketing (grille 2×2 : inscription commerçant/client). */
 function Stat({ value, label }: { value: string; label: string }) {
   return (
-    <div className="rounded-[12px] bg-black/35 p-3 ring-1 ring-white/15 backdrop-blur">
+    <div className="rounded-md bg-black/35 p-3 ring-1 ring-white/15 backdrop-blur">
       <div className="text-xl font-bold tabular-nums">{value}</div>
       <div className="text-xs text-white/80">{label}</div>
     </div>

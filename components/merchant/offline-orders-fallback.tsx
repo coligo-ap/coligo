@@ -51,14 +51,14 @@ export function OfflineOrdersFallback() {
   }
 
   return (
-    <section className="border-border bg-surface mt-6 w-full max-w-md rounded-[14px] border p-5 text-left">
+    <section className="border-border bg-surface rounded-card-lg mt-6 w-full max-w-md border p-5 text-left">
       <header className="mb-3 flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <WifiOff className="text-warning-600 size-4" />
           <h2 className="text-sm font-semibold">Dernières commandes connues</h2>
         </div>
         {lastSync && (
-          <span className="text-subtle text-[11px]">
+          <span className="text-subtle text-caption">
             Synchro {formatRelativeTime(new Date(lastSync).toISOString())}
           </span>
         )}
@@ -98,7 +98,7 @@ export function OfflineOrdersFallback() {
       </ul>
 
       {active.length > 12 && (
-        <p className="text-subtle mt-2 text-center text-[11px]">
+        <p className="text-subtle text-caption mt-2 text-center">
           +{active.length - 12} commande(s) supplémentaire(s) dans le cache.
         </p>
       )}
