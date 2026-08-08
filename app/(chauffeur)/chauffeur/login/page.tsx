@@ -6,8 +6,7 @@ import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Coligo Drive · Espace chauffeur" };
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/chauffeur.webp";
 
 export default async function ChauffeurLoginPage() {
   const isAr = (await getLocale()) === "ar";

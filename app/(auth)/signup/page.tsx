@@ -11,8 +11,7 @@ import { ShopSignupWizard } from "@/components/merchant/shop-signup-wizard";
 // Photo professionnelle de fond du panneau marketing (gauche, desktop).
 // Différente de la page de connexion. Remplaçable : dépose ton image dans
 // public/ et pointe sur "/signup-hero.jpg". Le dégradé reste en secours.
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/commercant.webp";
 
 export default function SignupPage() {
   const isAr = useLocale() === "ar";

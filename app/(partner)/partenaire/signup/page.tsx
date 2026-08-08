@@ -8,8 +8,7 @@ import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/agent.webp";
 
 export default async function PartnerSignupPage() {
   // Déjà connecté en agent ? → direct à l'espace.

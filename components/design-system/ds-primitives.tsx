@@ -9,30 +9,101 @@ import { cn } from "@/lib/utils";
  * partie de la bibliothèque de l'app.
  */
 
+/* ─────────────────────────── Recherche ───────────────────────────
+ * Chaque démo se filtre ELLE-MÊME sur la recherche courante et signale sa
+ * visibilité à sa section, qui compte ses résultats et disparaît si elle n'en
+ * a plus. Cela évite de décrire la galerie deux fois : une pour l'affichage,
+ * une pour l'index de recherche.
+ */
+
+/** Minuscules sans accents : « Élévation » se trouve en tapant « elevation ». */
+export function dsNormalize(s: string): string {
+  return s.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g, "");
+}
+
+const QueryContext = React.createContext("");
+const SectionContext = React.createContext<{
+  /** La section elle-même correspond : toutes ses démos restent visibles. */
+  sectionMatches: boolean;
+  report: (id: string, visible: boolean) => void;
+}>({ sectionMatches: true, report: () => {} });
+
+export function DsSearchProvider({
+  query,
+  children,
+}: {
+  query: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <QueryContext.Provider value={dsNormalize(query.trim())}>
+      {children}
+    </QueryContext.Provider>
+  );
+}
+
 /** Section navigable. L'`id` sert d'ancre au sommaire latéral. */
 export function DsSection({
   id,
   title,
   intro,
+  keywords,
   children,
 }: {
   id: string;
   title: string;
-  intro?: React.ReactNode;
+  intro?: string;
+  /** Synonymes pour la recherche (« sombre », « rtl », « arabe »…). */
+  keywords?: string;
   children: React.ReactNode;
 }) {
+  const query = React.useContext(QueryContext);
+  const [visible, setVisible] = React.useState<Record<string, boolean>>({});
+
+  const report = React.useCallback((demoId: string, isVisible: boolean) => {
+    setVisible((prev) =>
+      prev[demoId] === isVisible ? prev : { ...prev, [demoId]: isVisible }
+    );
+  }, []);
+
+  const sectionMatches =
+    !query ||
+    dsNormalize(`${title} ${intro ?? ""} ${keywords ?? ""}`).includes(query);
+
+  const shown = Object.values(visible).filter(Boolean).length;
+  const ctx = React.useMemo(
+    () => ({ sectionMatches, report }),
+    [sectionMatches, report]
+  );
+
+  // Section sans aucun résultat : on la retire au lieu d'afficher un titre vide.
+  if (query && !sectionMatches && shown === 0) {
+    return (
+      <SectionContext.Provider value={ctx}>
+        <div className="hidden">{children}</div>
+      </SectionContext.Provider>
+    );
+  }
+
   return (
-    <section id={id} className="border-border scroll-mt-20 border-t pt-8">
-      <h2 className="text-heading-sm text-foreground font-extrabold">
-        {title}
-      </h2>
-      {intro && (
-        <p className="text-body-sm text-muted mt-1 max-w-2xl leading-relaxed">
-          {intro}
-        </p>
-      )}
-      <div className="mt-5 space-y-6">{children}</div>
-    </section>
+    <SectionContext.Provider value={ctx}>
+      <section id={id} className="border-border scroll-mt-24 border-t pt-8">
+        <div className="flex items-baseline gap-2">
+          <h2 className="text-heading-sm text-foreground font-extrabold">
+            {title}
+          </h2>
+          <span className="bg-surface-2 text-nano-lg text-muted rounded-full px-2 py-0.5 font-bold tabular-nums">
+            {shown}
+          </span>
+        </div>
+        {intro && (
+          <p className="text-body-sm text-muted mt-1 max-w-2xl leading-relaxed">
+            {intro}
+          </p>
+        )}
+        <div className="mt-5 space-y-6">{children}</div>
+      </section>
+    </SectionContext.Provider>
   );
 }
 
@@ -44,6 +115,7 @@ export function DsDemo({
   title,
   source,
   note,
+  keywords,
   children,
   className,
 }: {
@@ -51,9 +123,26 @@ export function DsDemo({
   /** Chemin du fichier source, depuis la racine du projet. */
   source?: string;
   note?: React.ReactNode;
+  /** Synonymes pour la recherche (« bouton », « cta », « chargement »…). */
+  keywords?: string;
   children: React.ReactNode;
   className?: string;
 }) {
+  const query = React.useContext(QueryContext);
+  const { sectionMatches, report } = React.useContext(SectionContext);
+
+  const visible =
+    !query ||
+    sectionMatches ||
+    dsNormalize(`${title} ${source ?? ""} ${keywords ?? ""}`).includes(query);
+
+  React.useEffect(() => {
+    report(title, visible);
+    return () => report(title, false);
+  }, [report, title, visible]);
+
+  if (!visible) return null;
+
   return (
     <div className="border-border bg-surface rounded-md border">
       <div className="border-border flex flex-wrap items-baseline justify-between gap-2 border-b px-4 py-2.5">

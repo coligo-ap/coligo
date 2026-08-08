@@ -19,8 +19,7 @@ const initialState: AuthState = {};
 // Pour utiliser ta propre image : dépose-la dans public/ et remplace par
 // "/login-hero.jpg". Le dégradé primaire reste en fond de secours si l'image
 // ne charge pas.
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1542838132-92c53300491e?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/commercant.webp";
 
 const ERROR_MESSAGES: Record<string, string> = {
   oauth: "La connexion Google a échoué. Réessayez.",

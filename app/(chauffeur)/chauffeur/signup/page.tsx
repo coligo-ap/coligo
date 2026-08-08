@@ -7,8 +7,7 @@ import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Coligo Drive · Inscription chauffeur" };
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/chauffeur.webp";
 
 export default async function ChauffeurSignupPage() {
   // Session chauffeur déjà active ? → bandeau « déconnexion » dans le formulaire

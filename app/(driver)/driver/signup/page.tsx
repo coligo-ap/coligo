@@ -6,8 +6,7 @@ import { AuthModeTabs } from "@/components/shared/auth-mode-tabs";
 
 export const dynamic = "force-dynamic";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/livreur.webp";
 
 export default async function DriverSignupPage() {
   const isAr = (await getLocale()) === "ar";

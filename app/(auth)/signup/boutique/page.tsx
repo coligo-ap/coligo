@@ -6,8 +6,7 @@ import { ShopSignupWizard } from "@/components/merchant/shop-signup-wizard";
 
 export const dynamic = "force-dynamic";
 
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/commercant.webp";
 
 /**
  * Complétion d'inscription commerçant après une connexion GOOGLE (portail

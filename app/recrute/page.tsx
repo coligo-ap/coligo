@@ -42,7 +42,13 @@ export const metadata = {
 
 type RoleCard = {
   key: FeatureKey;
-  /** Photo de marque du domaine (même visuel que le héros de son portail). */
+  /**
+   * Visuel de marque du domaine. Ce sont des captures RÉELLES de l'app,
+   * extraites du panorama des stores (`store-assets/panorama_complet.png`) :
+   * dégradé Coligo continu + l'écran que la personne utilisera vraiment. Une
+   * photo d'illustration montrerait un métier ; ceci montre LA PLATEFORME.
+   * Servies en local — plus aucune dépendance à un hébergeur d'images tiers.
+   */
   img: string;
   imgAlt: string;
   title: string;
@@ -56,8 +62,9 @@ type RoleCard = {
 const ROLES: RoleCard[] = [
   {
     key: "recruit_chauffeur",
-    img: "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
-    imgAlt: "Chauffeur au volant — Coligo Drive",
+    img: "/heros/chauffeur.webp",
+    imgAlt:
+      "Course Coligo Drive à Béjaïa : départ, destination et prix affichés avant de réserver",
     title: "Chauffeur",
     tagline: "Transportez des passagers avec Coligo Drive.",
     highlight: "Commission 0 %",
@@ -71,8 +78,9 @@ const ROLES: RoleCard[] = [
   },
   {
     key: "recruit_merchant",
-    img: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
-    imgAlt: "Boutique de quartier — Coligo Marketplace",
+    img: "/heros/commercant.webp",
+    imgAlt:
+      "Tableau de bord commerçant Coligo : recette du jour et commandes en direct",
     title: "Commerçant",
     tagline: "Vendez en ligne à tout votre quartier.",
     highlight: "0 DA à l'inscription",
@@ -86,8 +94,9 @@ const ROLES: RoleCard[] = [
   },
   {
     key: "recruit_driver",
-    img: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=1200&q=80",
-    imgAlt: "Livreur à scooter — livraison express Coligo",
+    img: "/heros/livreur.webp",
+    imgAlt:
+      "Course express proposée à un livreur Coligo : trajet, distance et gain net",
     title: "Livreur",
     tagline: "Livrez les commandes près de chez vous.",
     highlight: "Gains à chaque course",
@@ -101,8 +110,9 @@ const ROLES: RoleCard[] = [
   },
   {
     key: "recruit_agent",
-    img: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80",
-    imgAlt: "Encaissement — point de recharge Coligo Pay",
+    img: "/heros/agent.webp",
+    imgAlt:
+      "Écran « Espaces partenaires » de Coligo : chaque métier a son espace dédié",
     title: "Agent Coligo Pay",
     tagline: "Encaissez les recharges de votre quartier.",
     highlight: "Commission par recharge",

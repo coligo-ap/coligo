@@ -23,8 +23,7 @@ const initialState: CustomerAuthState = {};
 // Photo professionnelle de fond du panneau marketing (gauche, desktop) — même
 // traitement que la page de connexion commerçant. Pour utiliser ta propre
 // image : dépose-la dans public/ et remplace par "/login-client-hero.jpg".
-const HERO_IMG =
-  "https://images.unsplash.com/photo-1504674900247-0877df9cc836?auto=format&fit=crop&w=1400&q=80";
+const HERO_IMG = "/heros/client.webp";
 
 // Bandeau d'installation relevé au-dessus de la nav basse client (fermable).
 const INSTALL_POS =
