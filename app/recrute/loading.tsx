@@ -11,8 +11,10 @@ export default function RecruteLoading() {
           {[0, 1, 2, 3].map((i) => (
             <div
               key={i}
-              className="border-border bg-surface h-56 rounded-[12px] border"
-            />
+              className="border-border bg-surface h-80 overflow-hidden rounded-[14px] border"
+            >
+              <div className="bg-surface-2 h-36 w-full" />
+            </div>
           ))}
         </div>
       </div>

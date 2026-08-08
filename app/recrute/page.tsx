@@ -4,18 +4,16 @@ import {
   ArrowLeft,
   ArrowRight,
   BadgeCheck,
-  Bike,
-  Car,
   Check,
   Clock3,
   FileText,
   Rocket,
   ShieldCheck,
-  Store,
   Wallet,
 } from "lucide-react";
 import { BRAND_ASSETS } from "@/lib/config/brand-assets";
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { cldUrl } from "@/lib/images/cloudinary";
 import {
   getFeatureFlags,
   featureMessage,
@@ -34,14 +32,19 @@ export const metadata = {
 // /recrute — page publique de recrutement des partenaires. Un choix de métier
 // (commerçant, livreur, chauffeur, agent Coligo Pay), les avantages concrets de
 // chacun, puis redirection DIRECTE vers le portail d'inscription existant.
-// Chaque métier est pilotable depuis /admin/controle (drapeaux recruit_*) :
-// masqué = carte retirée, bientôt/maintenance = carte grisée sans lien.
-// La vraie barrière métier reste la validation des dossiers par l'équipe.
+// Chaque carte porte la PHOTO DE MARQUE de son domaine (les mêmes visuels que
+// les héros des portails /signup → continuité quand le candidat est redirigé),
+// servie via Cloudinary Fetch (recadrée au ratio d'affichage, jamais floue).
+// Animations d'entrée 100 % CSS (fondu + montée en cascade, désactivées si
+// prefers-reduced-motion) — design FLAT strict (aucune ombre décorative).
+// Drapeaux : recruit_* par métier + kill-switch domaine coligo_pay_agents.
 // =============================================================================
 
 type RoleCard = {
   key: FeatureKey;
-  icon: React.ReactNode;
+  /** Photo de marque du domaine (même visuel que le héros de son portail). */
+  img: string;
+  imgAlt: string;
   title: string;
   tagline: string;
   highlight: string;
@@ -53,10 +56,11 @@ type RoleCard = {
 const ROLES: RoleCard[] = [
   {
     key: "recruit_chauffeur",
-    icon: <Car className="size-5" />,
+    img: "https://images.unsplash.com/photo-1549924231-f129b911e442?auto=format&fit=crop&w=1200&q=80",
+    imgAlt: "Chauffeur au volant — Coligo Drive",
     title: "Chauffeur",
     tagline: "Transportez des passagers avec Coligo Drive.",
-    highlight: "Commission 0 % au lancement",
+    highlight: "Commission 0 %",
     perks: [
       "Vous proposez votre prix sur chaque course",
       "Ville, inter-wilayas et covoiturage par places",
@@ -67,7 +71,8 @@ const ROLES: RoleCard[] = [
   },
   {
     key: "recruit_merchant",
-    icon: <Store className="size-5" />,
+    img: "https://images.unsplash.com/photo-1441986300917-64674bd600d8?auto=format&fit=crop&w=1200&q=80",
+    imgAlt: "Boutique de quartier — Coligo Marketplace",
     title: "Commerçant",
     tagline: "Vendez en ligne à tout votre quartier.",
     highlight: "0 DA à l'inscription",
@@ -81,7 +86,8 @@ const ROLES: RoleCard[] = [
   },
   {
     key: "recruit_driver",
-    icon: <Bike className="size-5" />,
+    img: "https://images.unsplash.com/photo-1571068316344-75bc76f77890?auto=format&fit=crop&w=1200&q=80",
+    imgAlt: "Livreur à scooter — livraison express Coligo",
     title: "Livreur",
     tagline: "Livrez les commandes près de chez vous.",
     highlight: "Gains à chaque course",
@@ -95,10 +101,11 @@ const ROLES: RoleCard[] = [
   },
   {
     key: "recruit_agent",
-    icon: <Wallet className="size-5" />,
+    img: "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1200&q=80",
+    imgAlt: "Encaissement — point de recharge Coligo Pay",
     title: "Agent Coligo Pay",
     tagline: "Encaissez les recharges de votre quartier.",
-    highlight: "Commission sur chaque recharge",
+    highlight: "Commission par recharge",
     perks: [
       "Un téléphone suffit : QR simple, zéro matériel",
       "Vous devenez le point de recharge du quartier",
@@ -121,6 +128,20 @@ export default async function RecrutePage() {
 
   return (
     <main className="bg-surface-2 min-h-screen">
+      {/* Animations d'entrée LOCALES (CSS pur, RSC-safe) : fondu + montée en
+          cascade, léger pop des gros chiffres, flottement lent du halo.
+          Coupées pour prefers-reduced-motion. */}
+      <style>{`
+        @keyframes rcUp { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+        @keyframes rcPop { 0% { opacity: 0; transform: scale(.94); } 65% { transform: scale(1.015); } 100% { opacity: 1; transform: none; } }
+        @keyframes rcFloat { 0%, 100% { transform: translate(0, 0); } 50% { transform: translate(-14px, 10px); } }
+        .rc-up { animation: rcUp .55s cubic-bezier(.16, 1, .3, 1) both; }
+        .rc-pop { animation: rcPop .65s cubic-bezier(.16, 1, .3, 1) both; }
+        .rc-float { animation: rcFloat 9s ease-in-out infinite; }
+        @media (prefers-reduced-motion: reduce) {
+          .rc-up, .rc-pop, .rc-float { animation: none; }
+        }
+      `}</style>
       <div className="mx-auto max-w-3xl px-4 py-10">
         <Link
           href="/"
@@ -129,7 +150,7 @@ export default async function RecrutePage() {
           <ArrowLeft className="size-4" /> Retour
         </Link>
 
-        {/* ───── HERO — promesse + chiffres clés ───── */}
+        {/* ───── HERO — promesse + l'offre en très grand ───── */}
         <section className="cg-brand-gradient relative overflow-hidden rounded-[16px] p-7 text-white lg:p-10">
           <div className="relative z-[1]">
             <Image
@@ -137,20 +158,26 @@ export default async function RecrutePage() {
               alt={APP_CONFIG.name}
               width={1000}
               height={401}
-              className="h-8 w-auto"
+              className="rc-up h-8 w-auto"
               priority
             />
-            <h1 className="mt-5 max-w-xl text-3xl leading-tight font-black tracking-tight text-balance lg:text-4xl">
+            <h1
+              className="rc-up mt-5 max-w-xl text-3xl leading-tight font-black tracking-tight text-balance lg:text-4xl"
+              style={{ animationDelay: "80ms" }}
+            >
               Travaillez avec {APP_CONFIG.name}. Gagnez à votre rythme.
             </h1>
-            <p className="mt-3 max-w-lg text-sm leading-relaxed text-white/85 lg:text-base">
+            <p
+              className="rc-up mt-3 max-w-lg text-sm leading-relaxed text-white/85 lg:text-base"
+              style={{ animationDelay: "160ms" }}
+            >
               Commerçant, livreur, chauffeur ou agent : choisissez votre métier,
               inscrivez-vous en ligne et démarrez après validation de votre
               dossier par l&apos;équipe {APP_CONFIG.name}.
             </p>
             {/* L'offre en TRÈS GRAND — l'argument n° 1 du recrutement. */}
             <div className="mt-7 flex flex-wrap items-end gap-x-10 gap-y-5">
-              <div>
+              <div className="rc-pop" style={{ animationDelay: "240ms" }}>
                 <p className="text-[64px] leading-none font-black tracking-tight lg:text-[96px]">
                   0&nbsp;%
                 </p>
@@ -158,7 +185,7 @@ export default async function RecrutePage() {
                   de commission au lancement
                 </p>
               </div>
-              <div>
+              <div className="rc-pop" style={{ animationDelay: "340ms" }}>
                 <p className="text-[52px] leading-none font-black tracking-tight lg:text-[84px]">
                   Gratuit
                 </p>
@@ -167,22 +194,31 @@ export default async function RecrutePage() {
                 </p>
               </div>
             </div>
-            <p className="mt-5 text-[13px] font-semibold text-white/80">
+            <p
+              className="rc-up mt-5 text-[13px] font-semibold text-white/80"
+              style={{ animationDelay: "440ms" }}
+            >
               Dossier en 2 minutes · Support 24/7
             </p>
           </div>
           <div
             aria-hidden
-            className="absolute -top-24 -right-24 size-72 rounded-full bg-white/10 blur-2xl"
+            className="rc-float absolute -top-24 -right-24 size-72 rounded-full bg-white/10 blur-2xl"
           />
         </section>
 
         {/* ───── CHOIX DU MÉTIER ───── */}
         <section className="mt-8">
-          <h2 className="text-foreground text-xl font-bold tracking-tight">
+          <h2
+            className="rc-up text-foreground text-xl font-bold tracking-tight"
+            style={{ animationDelay: "120ms" }}
+          >
             Choisissez votre métier
           </h2>
-          <p className="text-muted mt-1 text-sm">
+          <p
+            className="rc-up text-muted mt-1 text-sm"
+            style={{ animationDelay: "180ms" }}
+          >
             Chaque inscription est gratuite et sans engagement.
           </p>
 
@@ -204,8 +240,13 @@ export default async function RecrutePage() {
             </div>
           ) : (
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              {visible.map((r) => (
-                <RoleCardView key={r.key} role={r} flag={flags[r.key]} />
+              {visible.map((r, i) => (
+                <RoleCardView
+                  key={r.key}
+                  role={r}
+                  flag={flags[r.key]}
+                  delayMs={220 + i * 90}
+                />
               ))}
             </div>
           )}
@@ -288,64 +329,92 @@ export default async function RecrutePage() {
   );
 }
 
-/** Carte métier — état piloté par le drapeau recruit_* du super-admin. */
-function RoleCardView({ role, flag }: { role: RoleCard; flag: FeatureFlag }) {
+/** Carte métier — photo de marque du domaine + état piloté par recruit_*. */
+function RoleCardView({
+  role,
+  flag,
+  delayMs,
+}: {
+  role: RoleCard;
+  flag: FeatureFlag;
+  delayMs: number;
+}) {
   const active = flag.status === "active";
   const soon = flag.status === "coming_soon";
   const message = active ? null : featureMessage(flag, "fr");
+  const img =
+    cldUrl(role.img, {
+      width: 720,
+      height: 400,
+      crop: "fill",
+      gravity: "auto",
+    }) ?? role.img;
 
   return (
     <div
-      className={`border-border bg-surface flex flex-col rounded-[12px] border p-5 ${
-        active ? "" : "opacity-70"
+      className={`rc-up border-border bg-surface group flex flex-col overflow-hidden rounded-[14px] border ${
+        active ? "" : "opacity-75"
       }`}
+      style={{ animationDelay: `${delayMs}ms` }}
     >
-      <div className="flex items-start gap-3">
-        <span className="bg-primary-50 text-primary-600 grid size-11 shrink-0 place-items-center rounded-[10px]">
-          {role.icon}
+      {/* Bannière photo du domaine : titre + accroche posés sur un voile
+          sombre (lisibilité garantie), badge avantage par-dessus. */}
+      <div className="relative h-36 overflow-hidden">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={img}
+          alt={role.imgAlt}
+          loading="lazy"
+          decoding="async"
+          className={`h-full w-full object-cover transition-transform duration-500 group-hover:scale-[1.04] ${
+            active ? "" : "grayscale"
+          }`}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-x-0 bottom-0 h-24 bg-gradient-to-t from-black/65 to-transparent"
+        />
+        <span className="text-primary-700 absolute start-2.5 top-2.5 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1 text-[11.5px] font-extrabold">
+          <BadgeCheck className="size-3.5" />
+          {role.highlight}
         </span>
-        <div className="min-w-0">
-          <h3 className="text-foreground text-[16px] font-bold">
-            {role.title}
-          </h3>
-          <p className="text-muted mt-0.5 text-[13px] leading-snug">
+        <div className="absolute inset-x-0 bottom-0 p-3.5">
+          <h3 className="text-[17px] font-black text-white">{role.title}</h3>
+          <p className="mt-0.5 text-[12.5px] leading-snug text-white/85">
             {role.tagline}
           </p>
         </div>
       </div>
 
-      <span className="bg-primary-50 text-primary-700 mt-3 inline-flex w-fit items-center gap-1 rounded-full px-2.5 py-1 text-[12px] font-bold">
-        <BadgeCheck className="size-3.5" />
-        {role.highlight}
-      </span>
+      <div className="flex flex-1 flex-col p-4">
+        <ul className="flex-1 space-y-1.5">
+          {role.perks.map((p) => (
+            <li key={p} className="flex items-start gap-2">
+              <Check className="text-primary-600 mt-0.5 size-4 shrink-0" />
+              <span className="text-muted text-[13px] leading-snug">{p}</span>
+            </li>
+          ))}
+        </ul>
 
-      <ul className="mt-3 flex-1 space-y-1.5">
-        {role.perks.map((p) => (
-          <li key={p} className="flex items-start gap-2">
-            <Check className="text-primary-600 mt-0.5 size-4 shrink-0" />
-            <span className="text-muted text-[13px] leading-snug">{p}</span>
-          </li>
-        ))}
-      </ul>
-
-      {active ? (
-        <Link
-          href={role.href}
-          className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex items-center justify-center gap-1.5 rounded-[10px] px-4 py-2.5 text-sm font-bold text-white transition-colors"
-        >
-          {role.cta}
-          <ArrowRight className="size-4 rtl:-scale-x-100" />
-        </Link>
-      ) : (
-        <div className="bg-surface-2 text-muted mt-4 rounded-[10px] px-4 py-2.5 text-center text-sm font-semibold">
-          {soon ? "Bientôt disponible" : "Recrutement suspendu"}
-          {message ? (
-            <span className="text-subtle mt-0.5 block text-xs font-normal">
-              {message}
-            </span>
-          ) : null}
-        </div>
-      )}
+        {active ? (
+          <Link
+            href={role.href}
+            className="bg-primary-600 hover:bg-primary-700 mt-4 inline-flex items-center justify-center gap-1.5 rounded-[10px] px-4 py-2.5 text-sm font-bold text-white transition-colors"
+          >
+            {role.cta}
+            <ArrowRight className="size-4 rtl:-scale-x-100" />
+          </Link>
+        ) : (
+          <div className="bg-surface-2 text-muted mt-4 rounded-[10px] px-4 py-2.5 text-center text-sm font-semibold">
+            {soon ? "Bientôt disponible" : "Recrutement suspendu"}
+            {message ? (
+              <span className="text-subtle mt-0.5 block text-xs font-normal">
+                {message}
+              </span>
+            ) : null}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
