@@ -223,6 +223,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
       "own_trip",
       "too_many_bookings",
       "cash_blocked",
+      "booking_blocked",
     ];
     if (code && code.includes("feature_disabled"))
       return t("mode.interBlocked");
@@ -263,6 +264,15 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
     if (res.ok) void load();
   };
 
+  // « Mes places » n'affiche PLUS les annulées / absences (bruit inutile,
+  // demande explicite) ; les compteurs restent sur les vivantes.
+  const visibleBookings = useMemo(
+    () =>
+      bookings.filter(
+        (b) => b.status !== "cancelled" && b.status !== "no_show"
+      ),
+    [bookings]
+  );
   const activeBookings = useMemo(
     () =>
       bookings.filter((b) => b.status === "booked" || b.status === "boarded"),
@@ -708,12 +718,12 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
 
       {tab === "mine" && (
         <div className="mt-2.5">
-          {!loading && bookings.length === 0 && (
+          {!loading && visibleBookings.length === 0 && (
             <p className="py-10 text-center text-sm text-[var(--d-muted)]">
               {t("carpool.emptyMine")}
             </p>
           )}
-          {bookings.map((b) => {
+          {visibleBookings.map((b) => {
             const active = b.status === "booked" || b.status === "boarded";
             const cancellable =
               b.trip_status === "published" && b.status === "booked";

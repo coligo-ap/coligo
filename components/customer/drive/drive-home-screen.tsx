@@ -25,11 +25,7 @@ import {
 import { cn, formatDA } from "@/lib/utils";
 import { getPosition } from "@/lib/native/geolocation";
 import { createClient } from "@/lib/supabase/client";
-import {
-  clearHiddenDests,
-  getHiddenDests,
-  hideDest,
-} from "@/lib/drive/hidden-suggestions";
+import { getHiddenDests, hideDest } from "@/lib/drive/hidden-suggestions";
 import { reverseGeocode } from "@/app/(customer)/actions";
 import {
   setSosContacts as saveSosContacts,
@@ -162,10 +158,6 @@ export function DriveHomeScreen({
   const hideRecent = (text: string) => {
     hideDest(uid, text);
     setHidden((h) => (h.includes(text) ? h : [text, ...h]));
-  };
-  const restoreRecents = () => {
-    clearHiddenDests(uid);
-    setHidden([]);
   };
 
   // ── Disponibilité inter-wilayas (kill-switch super-admin, 0442) ─────────
@@ -616,16 +608,6 @@ export function DriveHomeScreen({
                         </button>
                       </div>
                     ))}
-                    {/* Filet de sécurité : on ne piège jamais un choix. */}
-                    {hidden.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={restoreRecents}
-                        className="mt-1 px-0.5 py-1.5 text-[12px] font-bold text-[var(--d-muted)]"
-                      >
-                        {t("home.restoreSuggestions")}
-                      </button>
-                    )}
                     {ctx.lastRide && (
                       <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
                         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">

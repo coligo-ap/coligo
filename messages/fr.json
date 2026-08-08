@@ -1686,7 +1686,8 @@
         "own_trip": "Vous êtes le chauffeur de ce départ.",
         "generic": "Réservation impossible — réessayez.",
         "too_many_bookings": "Maximum 3 réservations actives à la fois.",
-        "cash_blocked": "Paiement en espèces indisponible (absences répétées) — réservez avec Coligo Pay."
+        "cash_blocked": "Paiement en espèces indisponible (absences répétées) — réservez avec Coligo Pay.",
+        "booking_blocked": "Réservations suspendues quelques jours après plusieurs annulations — réessayez plus tard."
       },
       "cta": "Covoiturage par places",
       "ctaHint": "Réservez une place sur un départ programmé — moins cher que la course privée.",

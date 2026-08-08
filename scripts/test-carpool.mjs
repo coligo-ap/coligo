@@ -490,9 +490,27 @@ try {
       doneNoPhone?.customer_phone == null
   );
   // Libère le plafond de 3 départs actifs (pub2 encore « started », pub4
-  // encore publié) avant de publier le départ du test tardif.
+  // encore publié) avant de publier le départ du test tardif — puis VIEILLIT
+  // les annulations chauffeur (limite durcie à 2 en 0447 : sans ça, la
+  // publication suivante serait déjà bloquée).
   await rpc(`select carpool_complete_trip($1) j`, [pub2.trip_id]);
   await rpc(`select carpool_cancel_trip($1) j`, [pub4.trip_id]);
+  await c.query(
+    `update carpool_trips set cancelled_at = now() - interval '40 days'
+      where chauffeur_id = $1 and status = 'cancelled'`,
+    [ch.id]
+  );
+
+  // Fenêtre de réservation à l'avance (0447, déf. 21 jours) : +25 j refusé.
+  const tooFar = (
+    await rpc(
+      `select carpool_publish_trip('06','23','x','y', now() + interval '25 days', 2, 2000) j`
+    )
+  ).j;
+  ok(
+    "fenêtre 21 j : départ à +25 jours refusé",
+    tooFar.ok === false && tooFar.reason === "bad_departure"
+  );
 
   // R4 : annulation tardive (< 2 h avant montée) → strike late_cancel.
   const lateTrip = (
@@ -533,6 +551,40 @@ try {
   ok(
     "R3 récidiviste : espèces REFUSÉES, paiement en ligne accepté",
     cashBlocked.reason === "cash_blocked" && onlineOk.ok === true
+  );
+  // Origine d'annulation tracée (0447) : client vs chauffeur.
+  const origins = (
+    await c.query(
+      `select
+         (select cancelled_by from carpool_bookings where id = $1) as by_client,
+         (select cancelled_by from carpool_bookings where id = $2) as by_driver`,
+      [bk5.booking_id, bk4.booking_id]
+    )
+  ).rows[0];
+  ok(
+    "cancelled_by tracé : 'customer' (annulation client) / 'chauffeur' (départ annulé)",
+    origins.by_client === "customer" && origins.by_driver === "chauffeur"
+  );
+
+  // BLOCAGE client annulations en série (0447, déf. 4/7 j → bloqué 3 j) :
+  // custs[2] annule sa place puis on lui en fabrique 3 autres récentes → la
+  // réservation suivante est refusée (booking_blocked), quel que soit le rail.
+  await as(custs[2].user_id);
+  await rpc(`select carpool_cancel_booking($1) j`, [pinBk.booking_id]);
+  await c.query(
+    `insert into carpool_bookings (trip_id, customer_id, seats, amount_da, payment_method, pin, status, from_seq, to_seq, cancelled_by)
+     select $1, $2, 1, 500, 'cash', '9998', 'cancelled', 0, 1, 'customer' from generate_series(1, 3)`,
+    [pinTrip.trip_id, custs[2].id]
+  );
+  const blockedBooking = (
+    await rpc(
+      `select carpool_book_seats($1, 1, 'coligo_pay', 'op-blocked-2') j`,
+      [pinTrip.trip_id]
+    )
+  ).j;
+  ok(
+    "blocage client : 4 annulations / 7 j → réservation refusée (booking_blocked)",
+    blockedBooking.ok === false && blockedBooking.reason === "booking_blocked"
   );
   // R2 : 3 annulations avec passagers → publication bloquée. On force les
   // compteurs (service_role) puis on republie.

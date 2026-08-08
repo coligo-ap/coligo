@@ -289,6 +289,46 @@ export function DCarpool() {
   const [femaleOnly, setFemaleOnly] = useState(false);
   const [pubPending, setPubPending] = useState(false);
   const [pubError, setPubError] = useState("");
+  // Publication en 3 ÉTAPES (step by step, demande explicite) : 1 Itinéraire
+  // → 2 Date & heure (+ retour) → 3 Places & prix + récap. Chaque « Suivant »
+  // valide SON étape — plus de formulaire monolithique.
+  const [pubStep, setPubStep] = useState<1 | 2 | 3>(1);
+  const stepNext = () => {
+    setPubError("");
+    if (pubStep === 1) {
+      if (!fromPick || !toPick) {
+        setPubError(
+          tr(
+            "Choisissez le départ et l'arrivée dans les suggestions.",
+            "اختر الانطلاق والوصول من الاقتراحات."
+          )
+        );
+        return;
+      }
+      if (fromPick.wilaya === toPick.wilaya) {
+        setPubError(errorLabel("bad_route"));
+        return;
+      }
+      setPubStep(2);
+      return;
+    }
+    if (!depDate) {
+      setPubError(
+        tr(
+          "Choisissez la date de départ dans le calendrier.",
+          "اختر تاريخ الانطلاق من التقويم."
+        )
+      );
+      return;
+    }
+    if (retOn && !retDate) {
+      setPubError(
+        tr("Choisissez la date du retour.", "اختر تاريخ رحلة العودة.")
+      );
+      return;
+    }
+    setPubStep(3);
+  };
 
   // ARRÊTS SUGGÉRÉS automatiquement : wilayas proches du tracé ROUTIER réel
   // (OSRM, repli segment droit). Le chauffeur active d'un tap.
@@ -462,6 +502,8 @@ export function DCarpool() {
     setSeats(t.seats_total);
     setPrice(t.price_per_seat_da);
     setFemaleOnly(t.female_only);
+    setPubStep(1);
+    setPubError("");
     setSheetOpen(true);
   };
 
@@ -522,7 +564,11 @@ export function DCarpool() {
 
       <button
         type="button"
-        onClick={() => setSheetOpen(true)}
+        onClick={() => {
+          setSheetOpen(true);
+          setPubStep(1);
+          setPubError("");
+        }}
         className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white"
         style={{ background: VIOLET }}
       >
@@ -1018,7 +1064,7 @@ export function DCarpool() {
       {sheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
           <div className="max-h-[92dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[16px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
-            <div className="mb-3 flex items-center justify-between">
+            <div className="mb-2 flex items-center justify-between">
               <h2 className="drive-sora text-[16px] font-extrabold">
                 {tr("Publier un départ", "نشر رحلة")}
               </h2>
@@ -1032,342 +1078,405 @@ export function DCarpool() {
               </button>
             </div>
 
-            {/* Départ / Arrivée — COMMUNE en saisie libre + suggestions. */}
-            <div className="rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
-              <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="border-b border-[var(--d-line)]">
-                    <PlaceField
-                      value={fromPick}
-                      onChange={setFromPick}
-                      placeholder={tr(
-                        "Départ — commune, ville, lieu…",
-                        "الانطلاق — بلدية، مدينة، مكان…"
+            {/* Progression 1·2·3 + titre de l'étape courante. */}
+            <div className="mb-3">
+              <div className="flex gap-1">
+                {[1, 2, 3].map((sN) => (
+                  <span
+                    key={sN}
+                    className="h-1 flex-1 rounded-full transition-colors"
+                    style={{
+                      background: pubStep >= sN ? VIOLET : "var(--d-line)",
+                    }}
+                  />
+                ))}
+              </div>
+              <p className="mt-1.5 text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                {pubStep === 1
+                  ? tr("Étape 1 · Itinéraire", "الخطوة 1 · المسار")
+                  : pubStep === 2
+                    ? tr("Étape 2 · Date et heure", "الخطوة 2 · التاريخ والوقت")
+                    : tr(
+                        "Étape 3 · Places et prix",
+                        "الخطوة 3 · المقاعد والسعر"
                       )}
-                      marker="origin"
-                    />
+              </p>
+            </div>
+
+            {pubStep === 1 && (
+              <>
+                {/* Départ / Arrivée — COMMUNE en saisie libre + suggestions. */}
+                <div className="rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
+                  <div className="flex items-center gap-2">
+                    <div className="min-w-0 flex-1">
+                      <div className="border-b border-[var(--d-line)]">
+                        <PlaceField
+                          value={fromPick}
+                          onChange={setFromPick}
+                          placeholder={tr(
+                            "Départ — commune, ville, lieu…",
+                            "الانطلاق — بلدية، مدينة، مكان…"
+                          )}
+                          marker="origin"
+                        />
+                      </div>
+                      <PlaceField
+                        value={toPick}
+                        onChange={setToPick}
+                        placeholder={tr(
+                          "Arrivée — commune, ville, lieu…",
+                          "الوصول — بلدية، مدينة، مكان…"
+                        )}
+                        bias={
+                          fromPick
+                            ? { lat: fromPick.lat, lng: fromPick.lng }
+                            : null
+                        }
+                        marker="dest"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const f = fromPick;
+                        setFromPick(toPick);
+                        setToPick(f);
+                      }}
+                      aria-label={tr("Inverser", "عكس")}
+                      className="grid size-9 shrink-0 place-items-center rounded-[8px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+                      style={{ color: VIOLET }}
+                    >
+                      <ArrowUpDown className="size-4" />
+                    </button>
                   </div>
-                  <PlaceField
-                    value={toPick}
-                    onChange={setToPick}
-                    placeholder={tr(
-                      "Arrivée — commune, ville, lieu…",
-                      "الوصول — بلدية، مدينة، مكان…"
+                </div>
+
+                {/* Arrêts SUGGÉRÉS par le tracé — l'app détecte, le chauffeur tape. */}
+                {corridor.length > 0 && (
+                  <div className="mt-3">
+                    <p className="mb-1.5 text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {tr(
+                        "Sur votre route — prendre / déposer à",
+                        "على طريقك — صعود / نزول في"
+                      )}
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {corridor.map((s) => {
+                        const on = stopsOn.has(s.code);
+                        return (
+                          <button
+                            key={s.code}
+                            type="button"
+                            onClick={() =>
+                              setStopsOn((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(s.code)) next.delete(s.code);
+                                else next.add(s.code);
+                                return next;
+                              })
+                            }
+                            className="drive-sora flex h-8 items-center gap-1 rounded-full border px-3 text-[11px] font-bold"
+                            style={
+                              on
+                                ? {
+                                    background: "rgba(22,179,100,.12)",
+                                    color: GO,
+                                    borderColor: "rgba(22,179,100,.30)",
+                                  }
+                                : {
+                                    borderColor: "var(--d-line)",
+                                    color: "var(--d-muted)",
+                                  }
+                            }
+                          >
+                            {on ? (
+                              <Check className="size-3" />
+                            ) : (
+                              <Plus className="size-3" />
+                            )}
+                            {wname(s.code)}
+                            <span className="text-[9px] font-semibold opacity-70">
+                              {s.offKm <= 5
+                                ? tr("sur la route", "على الطريق")
+                                : `${s.offKm} km`}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Aperçu de l'itinéraire + prix PAR SEGMENT (auto). */}
+                {chain.length >= 2 && (
+                  <div className="mt-3 rounded-[10px] bg-[var(--d-soft)] px-3.5 py-2.5">
+                    <p className="text-[11px] font-bold">
+                      {chain.map((p) => p.label.split(",")[0]).join(" → ")}{" "}
+                      <span className="font-semibold text-[var(--d-muted)]">
+                        · ≈ {totalKm} km
+                      </span>
+                    </p>
+                    {chain.length > 2 && (
+                      <div className="mt-1 space-y-0.5">
+                        {chain.slice(0, -1).map((p, i) => {
+                          const next = chain[i + 1];
+                          const sp = segPrice(price, next.km - p.km, totalKm);
+                          return (
+                            <p
+                              key={`${p.w}-${i}`}
+                              className="text-[10.5px] font-semibold text-[var(--d-muted)]"
+                            >
+                              {p.label.split(",")[0]} →{" "}
+                              {next.label.split(",")[0]} ·{" "}
+                              <b className="text-[var(--d-ink)]">
+                                ≈ {sp} {tr("DA/place", "دج/مقعد")}
+                              </b>
+                            </p>
+                          );
+                        })}
+                        <p className="text-[9.5px] font-medium text-[var(--d-muted)]">
+                          {tr(
+                            "Prix des tronçons calculés automatiquement (au prorata des km).",
+                            "أسعار المقاطع تُحسب تلقائيًا (بحسب الكيلومترات)."
+                          )}
+                        </p>
+                      </div>
                     )}
-                    bias={
-                      fromPick ? { lat: fromPick.lat, lng: fromPick.lng } : null
-                    }
-                    marker="dest"
+                  </div>
+                )}
+              </>
+            )}
+
+            {pubStep === 2 && (
+              <>
+                {/* DATE (calendrier Coligo) et HEURE séparées — compréhension
+                immédiate, plus de datetime-local illisible. */}
+                <div className="mt-1">
+                  <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    {tr("Date de départ", "تاريخ الانطلاق")}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setCalOpen((v) => !v)}
+                    className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                    style={{
+                      borderColor: depDate ? VIOLET : "var(--d-line)",
+                      color: depDate ? VIOLET : "var(--d-muted)",
+                    }}
+                  >
+                    {depDate
+                      ? dayLabel(depDate, isAr)
+                      : tr("Choisir un jour…", "اختر يومًا…")}
+                    <ChevronDown
+                      className={`size-4 transition-transform ${calOpen ? "rotate-180" : ""}`}
+                    />
+                  </button>
+                  {calOpen && (
+                    <ColigoCalendar
+                      maxDays={21}
+                      value={depDate}
+                      onChange={(d) => {
+                        setDepDate(d);
+                        setCalOpen(false);
+                      }}
+                    />
+                  )}
+                </div>
+                <div className="mt-2">
+                  <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                    {tr("Heure de départ", "وقت الانطلاق")}
+                  </span>
+                  <TimeSelect
+                    hour={depH}
+                    minute={depM}
+                    onChange={(h, m) => {
+                      setDepH(h);
+                      setDepM(m);
+                    }}
                   />
                 </div>
+
+                {/* RETOUR : publie aussi le trajet inverse (arrêts compris). */}
                 <button
                   type="button"
                   onClick={() => {
-                    const f = fromPick;
-                    setFromPick(toPick);
-                    setToPick(f);
+                    setRetOn((v) => !v);
+                    if (!retDate && depDate) setRetDate(depDate);
                   }}
-                  aria-label={tr("Inverser", "عكس")}
-                  className="grid size-9 shrink-0 place-items-center rounded-[8px] border border-[var(--d-line)] bg-[var(--d-surface)]"
-                  style={{ color: VIOLET }}
+                  className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
+                  style={{
+                    borderColor: retOn ? GO : "var(--d-line)",
+                    background: retOn ? "rgba(22,179,100,.06)" : "transparent",
+                  }}
                 >
-                  <ArrowUpDown className="size-4" />
-                </button>
-              </div>
-            </div>
-
-            {/* Arrêts SUGGÉRÉS par le tracé — l'app détecte, le chauffeur tape. */}
-            {corridor.length > 0 && (
-              <div className="mt-3">
-                <p className="mb-1.5 text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                  {tr(
-                    "Sur votre route — prendre / déposer à",
-                    "على طريقك — صعود / نزول في"
-                  )}
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {corridor.map((s) => {
-                    const on = stopsOn.has(s.code);
-                    return (
-                      <button
-                        key={s.code}
-                        type="button"
-                        onClick={() =>
-                          setStopsOn((prev) => {
-                            const next = new Set(prev);
-                            if (next.has(s.code)) next.delete(s.code);
-                            else next.add(s.code);
-                            return next;
-                          })
-                        }
-                        className="drive-sora flex h-8 items-center gap-1 rounded-full border px-3 text-[11px] font-bold"
-                        style={
-                          on
-                            ? {
-                                background: "rgba(22,179,100,.12)",
-                                color: GO,
-                                borderColor: "rgba(22,179,100,.30)",
-                              }
-                            : {
-                                borderColor: "var(--d-line)",
-                                color: "var(--d-muted)",
-                              }
-                        }
-                      >
-                        {on ? (
-                          <Check className="size-3" />
-                        ) : (
-                          <Plus className="size-3" />
-                        )}
-                        {wname(s.code)}
-                        <span className="text-[9px] font-semibold opacity-70">
-                          {s.offKm <= 5
-                            ? tr("sur la route", "على الطريق")
-                            : `${s.offKm} km`}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            )}
-
-            {/* Aperçu de l'itinéraire + prix PAR SEGMENT (auto). */}
-            {chain.length >= 2 && (
-              <div className="mt-3 rounded-[10px] bg-[var(--d-soft)] px-3.5 py-2.5">
-                <p className="text-[11px] font-bold">
-                  {chain.map((p) => p.label.split(",")[0]).join(" → ")}{" "}
-                  <span className="font-semibold text-[var(--d-muted)]">
-                    · ≈ {totalKm} km
+                  <span
+                    className="grid size-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]"
+                    style={{
+                      borderColor: retOn ? GO : "var(--d-line)",
+                      background: retOn ? GO : "transparent",
+                    }}
+                  >
+                    {retOn && <Check className="size-3.5 text-white" />}
                   </span>
-                </p>
-                {chain.length > 2 && (
-                  <div className="mt-1 space-y-0.5">
-                    {chain.slice(0, -1).map((p, i) => {
-                      const next = chain[i + 1];
-                      const sp = segPrice(price, next.km - p.km, totalKm);
-                      return (
-                        <p
-                          key={`${p.w}-${i}`}
-                          className="text-[10.5px] font-semibold text-[var(--d-muted)]"
-                        >
-                          {p.label.split(",")[0]} → {next.label.split(",")[0]} ·{" "}
-                          <b className="text-[var(--d-ink)]">
-                            ≈ {sp} {tr("DA/place", "دج/مقعد")}
-                          </b>
-                        </p>
-                      );
-                    })}
-                    <p className="text-[9.5px] font-medium text-[var(--d-muted)]">
+                  <span className="text-[12px] font-bold">
+                    {tr(
+                      "Programmer aussi le retour",
+                      "برمجة رحلة العودة أيضًا"
+                    )}
+                    <span className="block text-[10px] font-medium text-[var(--d-muted)]">
                       {tr(
-                        "Prix des tronçons calculés automatiquement (au prorata des km).",
-                        "أسعار المقاطع تُحسب تلقائيًا (بحسب الكيلومترات)."
+                        "Le trajet inverse (arrêts compris) est publié en même temps.",
+                        "يُنشر المسار العكسي (مع المحطات) في الوقت نفسه."
                       )}
-                    </p>
+                    </span>
+                  </span>
+                </button>
+                {retOn && (
+                  <div className="mt-2 rounded-[10px] border border-[var(--d-line)] p-2.5">
+                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {tr("Date du retour", "تاريخ العودة")}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setRetCalOpen((v) => !v)}
+                      className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                      style={{
+                        borderColor: retDate ? GO : "var(--d-line)",
+                        color: retDate ? GO : "var(--d-muted)",
+                      }}
+                    >
+                      {retDate
+                        ? dayLabel(retDate, isAr)
+                        : tr("Choisir un jour…", "اختر يومًا…")}
+                      <ChevronDown
+                        className={`size-4 transition-transform ${retCalOpen ? "rotate-180" : ""}`}
+                      />
+                    </button>
+                    {retCalOpen && (
+                      <ColigoCalendar
+                        maxDays={21}
+                        value={retDate}
+                        onChange={(d) => {
+                          setRetDate(d);
+                          setRetCalOpen(false);
+                        }}
+                      />
+                    )}
+                    <span className="mt-2 mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {tr("Heure du retour", "وقت العودة")}
+                    </span>
+                    <TimeSelect
+                      hour={retH}
+                      minute={retM}
+                      onChange={(h, m) => {
+                        setRetH(h);
+                        setRetM(m);
+                      }}
+                    />
                   </div>
                 )}
-              </div>
+              </>
             )}
 
-            {/* DATE (calendrier Coligo) et HEURE séparées — compréhension
-                immédiate, plus de datetime-local illisible. */}
-            <div className="mt-3">
-              <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                {tr("Date de départ", "تاريخ الانطلاق")}
-              </span>
-              <button
-                type="button"
-                onClick={() => setCalOpen((v) => !v)}
-                className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
-                style={{
-                  borderColor: depDate ? VIOLET : "var(--d-line)",
-                  color: depDate ? VIOLET : "var(--d-muted)",
-                }}
-              >
-                {depDate
-                  ? dayLabel(depDate, isAr)
-                  : tr("Choisir un jour…", "اختر يومًا…")}
-                <ChevronDown
-                  className={`size-4 transition-transform ${calOpen ? "rotate-180" : ""}`}
-                />
-              </button>
-              {calOpen && (
-                <ColigoCalendar
-                  value={depDate}
-                  onChange={(d) => {
-                    setDepDate(d);
-                    setCalOpen(false);
-                  }}
-                />
-              )}
-            </div>
-            <div className="mt-2">
-              <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                {tr("Heure de départ", "وقت الانطلاق")}
-              </span>
-              <TimeSelect
-                hour={depH}
-                minute={depM}
-                onChange={(h, m) => {
-                  setDepH(h);
-                  setDepM(m);
-                }}
-              />
-            </div>
+            {pubStep === 3 && (
+              <>
+                {/* RÉCAP des étapes précédentes — modifiable en revenant. */}
+                <div className="rounded-[10px] bg-[var(--d-soft)] px-3 py-2.5 text-[11.5px] font-semibold">
+                  <p className="truncate">
+                    {fromPick?.label.split(",")[0]} →{" "}
+                    {toPick?.label.split(",")[0]}
+                    {activeStops.length > 0 &&
+                      ` · +${activeStops.length} ${tr("arrêt", "توقف")}${!isAr && activeStops.length > 1 ? "s" : ""}`}
+                  </p>
+                  <p className="mt-0.5 text-[var(--d-muted)]">
+                    {depDate ? dayLabel(depDate, isAr) : "—"} · {depH}:{depM}
+                    {retOn && retDate
+                      ? ` · ${tr("retour", "عودة")} ${dayLabel(retDate, isAr)} ${retH}:${retM}`
+                      : ""}
+                  </p>
+                </div>
 
-            {/* RETOUR : publie aussi le trajet inverse (arrêts compris). */}
-            <button
-              type="button"
-              onClick={() => {
-                setRetOn((v) => !v);
-                if (!retDate && depDate) setRetDate(depDate);
-              }}
-              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
-              style={{
-                borderColor: retOn ? GO : "var(--d-line)",
-                background: retOn ? "rgba(22,179,100,.06)" : "transparent",
-              }}
-            >
-              <span
-                className="grid size-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]"
-                style={{
-                  borderColor: retOn ? GO : "var(--d-line)",
-                  background: retOn ? GO : "transparent",
-                }}
-              >
-                {retOn && <Check className="size-3.5 text-white" />}
-              </span>
-              <span className="text-[12px] font-bold">
-                {tr("Programmer aussi le retour", "برمجة رحلة العودة أيضًا")}
-                <span className="block text-[10px] font-medium text-[var(--d-muted)]">
-                  {tr(
-                    "Le trajet inverse (arrêts compris) est publié en même temps.",
-                    "يُنشر المسار العكسي (مع المحطات) في الوقت نفسه."
-                  )}
-                </span>
-              </span>
-            </button>
-            {retOn && (
-              <div className="mt-2 rounded-[10px] border border-[var(--d-line)] p-2.5">
-                <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                  {tr("Date du retour", "تاريخ العودة")}
-                </span>
+                <div className="mt-2 flex gap-2">
+                  <div className="flex-1">
+                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {tr("Places", "المقاعد")}
+                    </span>
+                    <div className="flex h-11 items-center rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
+                      <button
+                        type="button"
+                        onClick={() => setSeats((s) => Math.max(1, s - 1))}
+                        className="drive-sora h-full w-10 text-[16px] font-extrabold"
+                      >
+                        −
+                      </button>
+                      <span className="drive-sora flex-1 text-center text-[15px] font-extrabold">
+                        <UsersRound className="me-1 inline size-4 align-[-2px]" />
+                        {seats}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setSeats((s) => Math.min(8, s + 1))}
+                        className="drive-sora h-full w-10 text-[16px] font-extrabold"
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                  <label className="flex-1">
+                    <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                      {tr(
+                        "Prix / place — trajet complet",
+                        "السعر/مقعد — كامل الرحلة"
+                      )}
+                    </span>
+                    <input
+                      inputMode="numeric"
+                      value={price}
+                      onChange={(e) =>
+                        setPrice(
+                          Math.max(
+                            0,
+                            Number(e.target.value.replace(/\D/g, "")) || 0
+                          )
+                        )
+                      }
+                      className="drive-sora h-11 w-full rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold outline-none"
+                    />
+                  </label>
+                </div>
+
                 <button
                   type="button"
-                  onClick={() => setRetCalOpen((v) => !v)}
-                  className="drive-sora mb-1.5 flex h-11 w-full items-center justify-between rounded-[10px] border-[1.5px] px-3 text-[13.5px] font-extrabold"
+                  onClick={() => setFemaleOnly((v) => !v)}
+                  className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
                   style={{
-                    borderColor: retDate ? GO : "var(--d-line)",
-                    color: retDate ? GO : "var(--d-muted)",
+                    borderColor: femaleOnly ? ROSE : "var(--d-line)",
+                    background: femaleOnly
+                      ? "rgba(236,72,153,.07)"
+                      : "transparent",
                   }}
                 >
-                  {retDate
-                    ? dayLabel(retDate, isAr)
-                    : tr("Choisir un jour…", "اختر يومًا…")}
-                  <ChevronDown
-                    className={`size-4 transition-transform ${retCalOpen ? "rotate-180" : ""}`}
-                  />
-                </button>
-                {retCalOpen && (
-                  <ColigoCalendar
-                    value={retDate}
-                    onChange={(d) => {
-                      setRetDate(d);
-                      setRetCalOpen(false);
+                  <span
+                    className="grid size-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]"
+                    style={{
+                      borderColor: femaleOnly ? ROSE : "var(--d-line)",
+                      background: femaleOnly ? ROSE : "transparent",
                     }}
-                  />
-                )}
-                <span className="mt-2 mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                  {tr("Heure du retour", "وقت العودة")}
-                </span>
-                <TimeSelect
-                  hour={retH}
-                  minute={retM}
-                  onChange={(h, m) => {
-                    setRetH(h);
-                    setRetM(m);
-                  }}
-                />
-              </div>
-            )}
-
-            <div className="mt-2 flex gap-2">
-              <div className="flex-1">
-                <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                  {tr("Places", "المقاعد")}
-                </span>
-                <div className="flex h-11 items-center rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
-                  <button
-                    type="button"
-                    onClick={() => setSeats((s) => Math.max(1, s - 1))}
-                    className="drive-sora h-full w-10 text-[16px] font-extrabold"
                   >
-                    −
-                  </button>
-                  <span className="drive-sora flex-1 text-center text-[15px] font-extrabold">
-                    <UsersRound className="me-1 inline size-4 align-[-2px]" />
-                    {seats}
+                    {femaleOnly && <Check className="size-3.5 text-white" />}
                   </span>
-                  <button
-                    type="button"
-                    onClick={() => setSeats((s) => Math.min(8, s + 1))}
-                    className="drive-sora h-full w-10 text-[16px] font-extrabold"
-                  >
-                    +
-                  </button>
-                </div>
-              </div>
-              <label className="flex-1">
-                <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                  {tr(
-                    "Prix / place — trajet complet",
-                    "السعر/مقعد — كامل الرحلة"
-                  )}
-                </span>
-                <input
-                  inputMode="numeric"
-                  value={price}
-                  onChange={(e) =>
-                    setPrice(
-                      Math.max(
-                        0,
-                        Number(e.target.value.replace(/\D/g, "")) || 0
-                      )
-                    )
-                  }
-                  className="drive-sora h-11 w-full rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold outline-none"
-                />
-              </label>
-            </div>
-
-            <button
-              type="button"
-              onClick={() => setFemaleOnly((v) => !v)}
-              className="mt-2.5 flex w-full items-center gap-2.5 rounded-[10px] border-[1.5px] px-3 py-2.5 text-start"
-              style={{
-                borderColor: femaleOnly ? ROSE : "var(--d-line)",
-                background: femaleOnly ? "rgba(236,72,153,.07)" : "transparent",
-              }}
-            >
-              <span
-                className="grid size-5 shrink-0 place-items-center rounded-[6px] border-[1.5px]"
-                style={{
-                  borderColor: femaleOnly ? ROSE : "var(--d-line)",
-                  background: femaleOnly ? ROSE : "transparent",
-                }}
-              >
-                {femaleOnly && <Check className="size-3.5 text-white" />}
-              </span>
-              <span className="text-[12px] font-bold">
-                {tr("Départ 100 % femmes", "رحلة 100٪ نساء")}
-                <span className="block text-[10px] font-medium text-[var(--d-muted)]">
-                  {tr(
-                    "Réservé aux conductrices vérifiées.",
-                    "مخصص للسائقات الموثّقات."
-                  )}
-                </span>
-              </span>
-            </button>
+                  <span className="text-[12px] font-bold">
+                    {tr("Départ 100 % femmes", "رحلة 100٪ نساء")}
+                    <span className="block text-[10px] font-medium text-[var(--d-muted)]">
+                      {tr(
+                        "Réservé aux conductrices vérifiées.",
+                        "مخصص للسائقات الموثّقات."
+                      )}
+                    </span>
+                  </span>
+                </button>
+              </>
+            )}
 
             {pubError && (
               <p
@@ -1377,17 +1486,45 @@ export function DCarpool() {
                 {pubError}
               </p>
             )}
-            <button
-              type="button"
-              onClick={() => void publish()}
-              disabled={pubPending}
-              className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white disabled:opacity-60"
-              style={{ background: VIOLET }}
-            >
-              {pubPending && <Loader2 className="size-5 animate-spin" />}
-              {tr("Publier", "نشر")} ·{" "}
-              {seats * price > 0 ? `${seats} × ${price} ${tr("DA", "دج")}` : ""}
-            </button>
+            {/* Pied d'étape : Retour · Suivant/Publier. */}
+            <div className="mt-3 flex gap-2">
+              {pubStep > 1 && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPubError("");
+                    setPubStep((s) => (s - 1) as 1 | 2);
+                  }}
+                  className="drive-sora flex h-[48px] flex-1 items-center justify-center rounded-[10px] border border-[var(--d-line)] text-[13px] font-bold text-[var(--d-muted)]"
+                >
+                  {tr("Retour", "رجوع")}
+                </button>
+              )}
+              {pubStep < 3 ? (
+                <button
+                  type="button"
+                  onClick={stepNext}
+                  className="drive-sora flex h-[48px] flex-[2] items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white"
+                  style={{ background: VIOLET }}
+                >
+                  {tr("Suivant", "التالي")}
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => void publish()}
+                  disabled={pubPending}
+                  className="drive-sora flex h-[48px] flex-[2] items-center justify-center gap-2 rounded-[10px] text-[14.5px] font-extrabold text-white disabled:opacity-60"
+                  style={{ background: VIOLET }}
+                >
+                  {pubPending && <Loader2 className="size-5 animate-spin" />}
+                  {tr("Publier", "نشر")} ·{" "}
+                  {seats * price > 0
+                    ? `${seats} × ${price} ${tr("DA", "دج")}`
+                    : ""}
+                </button>
+              )}
+            </div>
           </div>
         </div>
       )}
