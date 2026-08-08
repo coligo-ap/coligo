@@ -769,7 +769,7 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
       {/* ── Feuille de réservation (segment) ── */}
       {bookTrip && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
-          <div className="w-full max-w-md rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className="w-full max-w-[560px] rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
             {pinResult ? (
               /* Billet émis : PIN en évidence, à donner au chauffeur. */
               <div className="text-center">

@@ -1312,29 +1312,33 @@ body {
   background-color: rgba(245, 158, 11, 0.2);
 }
 
-/* ── Drive : responsive DESKTOP — cadre « téléphone » centré (430px) ──
+/* ── Drive : responsive DESKTOP — cadre centré ÉLARGI et PROGRESSIF ──
    Le transform crée un containing block : les feuilles/modales/nav fixed
-   internes restent CONTENUES dans le cadre (rendu type app mobile). */
+   internes restent CONTENUES dans le cadre (rendu type app mobile).
+   Largeur unique `--drive-w` (toutes les pages/sous-pages Drive + la nav la
+   partagent) : 520px dès 1024px, 600px dès 1440px — meilleur visuel sur
+   grand écran, mobile inchangé. FLAT : bordures seules, AUCUNE ombre. */
 .drive-screen {
   position: fixed;
   inset: 0;
 }
 @media (min-width: 1024px) {
+  :root {
+    --drive-w: 520px;
+  }
   .drive-screen {
     left: 50%;
     right: auto;
-    width: 430px;
+    width: var(--drive-w);
     transform: translateX(-50%);
     overflow: hidden;
     border-left: 1px solid var(--d-line);
     border-right: 1px solid var(--d-line);
-    box-shadow: 0 0 60px -18px rgba(20, 22, 40, 0.35);
   }
   .drive-page {
-    max-width: 430px;
+    max-width: var(--drive-w);
     margin-inline: auto;
     border-inline: 1px solid var(--d-line);
-    box-shadow: 0 0 60px -18px rgba(20, 22, 40, 0.35);
   }
   /* La bottom-nav (lg:hidden côté marketplace) reste visible DANS Drive. */
   .drive-screen nav[aria-label="Navigation principale"],
@@ -1342,10 +1346,15 @@ body {
     display: grid;
   }
   .drive-page nav[aria-label="Navigation principale"] {
-    max-width: 430px;
+    max-width: var(--drive-w);
     margin-inline: auto;
     right: 0;
     left: 0;
+  }
+}
+@media (min-width: 1440px) {
+  :root {
+    --drive-w: 600px;
   }
 }
 

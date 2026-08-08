@@ -45,7 +45,7 @@ export function ChauffeurWorkZoneSheet({
         onClick={onClose}
       >
         <div
-          className="drive-jakarta w-full max-w-md overflow-hidden rounded-t-[22px] bg-[var(--d-surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--d-ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
+          className="drive-jakarta w-full max-w-[560px] overflow-hidden rounded-t-[22px] bg-[var(--d-surface)] pb-[calc(0px+env(safe-area-inset-bottom))] text-[var(--d-ink)] shadow-2xl sm:rounded-[22px] sm:pb-0"
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-center justify-between border-b border-[var(--d-line)] px-4 py-3.5">

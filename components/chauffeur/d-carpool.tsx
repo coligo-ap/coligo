@@ -1017,7 +1017,7 @@ export function DCarpool() {
       {/* ── Feuille : publier un départ ── */}
       {sheetOpen && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/45">
-          <div className="max-h-[92dvh] w-full max-w-md overflow-y-auto rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
+          <div className="max-h-[92dvh] w-full max-w-[560px] overflow-y-auto rounded-t-[24px] border-t border-[var(--d-line)] bg-[var(--d-surface)] px-5 pt-4 pb-[calc(24px+env(safe-area-inset-bottom))]">
             <div className="mb-3 flex items-center justify-between">
               <h2 className="drive-sora text-[16px] font-extrabold">
                 {tr("Publier un départ", "نشر رحلة")}

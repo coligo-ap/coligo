@@ -338,7 +338,7 @@ export function DrivePriceScreen({
             onClick={() => !schedBusy && setSchedOpen(false)}
           >
             <div
-              className="w-full max-w-md rounded-t-[24px] bg-[var(--d-surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
+              className="w-full max-w-[560px] rounded-t-[24px] bg-[var(--d-surface)] p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]"
               onClick={(e) => e.stopPropagation()}
             >
               <p className="mb-1 text-[15px] font-extrabold">
