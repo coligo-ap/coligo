@@ -5,13 +5,13 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import {
   ArrowUpDown,
-  UsersRound,
   Banknote,
   Check,
   ChevronLeft,
   Loader2,
   Search,
   Ticket,
+  UsersRound,
   Wallet,
   X,
 } from "lucide-react";
@@ -52,13 +52,16 @@ function tripMinutes(km: number): number {
 }
 
 /**
- * COVOITURAGE client v3 — parcours BlaBlaCar complet : départ et arrivée au
- * niveau COMMUNE (saisie libre + suggestions, départ auto-détecté par GPS),
- * matching PAR SEGMENT (un Béjaïa → Alger via Bouira répond aussi à
- * « Bouira → Alger »), heure de montée à VOTRE arrêt, prix du tronçon
- * uniquement. Billet = PIN d'embarquement.
+ * PANNEAU COVOITURAGE — réutilisé tel quel à DEUX endroits (zéro redirection,
+ * demande explicite) :
+ *   · INLINE dans la feuille trajet de /drive (3ᵉ mode du sélecteur, comme
+ *     « Ville ») via `embedded` ;
+ *   · dans la page /drive/covoiturage (liens profonds + clic notification).
+ * Parcours BlaBlaCar : communes libres + suggestions (départ auto-détecté par
+ * GPS), matching PAR SEGMENT, heure de montée à SON arrêt, prix du tronçon,
+ * billet = PIN d'embarquement.
  */
-export function CarpoolView() {
+export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
   const t = useTranslations("drive");
   const locale = useLocale();
   const isAr = locale === "ar";
@@ -110,8 +113,8 @@ export function CarpoolView() {
   const [sort, setSort] = useState<"time" | "price">("time");
 
   // DÉTECTION AUTO du départ : position GPS → wilaya la plus proche, préremplie
-  // en silence (référentiel local, zéro réseau). Le client peut la remplacer en
-  // tapant sa commune exacte.
+  // en silence (référentiel local, zéro réseau). Remplaçable en tapant la
+  // commune exacte.
   const gpsTried = useRef(false);
   useEffect(() => {
     if (gpsTried.current || fromPick) return;
@@ -261,132 +264,211 @@ export function CarpoolView() {
   const customDate = date !== "" && !dateChips.some((c) => c.key === date);
 
   return (
-    <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col overflow-y-auto bg-[var(--d-page,#F5F4F8)]">
-      {/* HÉRO dégradé (langage visuel Drive) + onglets PILULES — la carte de
-          recherche blanche vient chevaucher le bas du bandeau (façon Bolt). */}
-      <div
-        className="rounded-b-[26px] px-[18px] pt-[calc(16px+env(safe-area-inset-top))] pb-8 text-white"
-        style={{
-          backgroundImage: `linear-gradient(130deg, ${VIOLET} 0%, #4B1FA6 62%, #8E2F86 100%)`,
-        }}
-      >
-        <div className="flex items-center gap-2">
-          <Link
-            href="/drive"
-            aria-label={t("carpool.title")}
-            className="grid size-9 shrink-0 place-items-center rounded-[12px] bg-white/15 text-white"
-          >
-            <ChevronLeft className="size-5 rtl:rotate-180" />
-          </Link>
-          <div className="min-w-0">
-            <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
-              {t("carpool.title")}
-            </h1>
-            <p className="truncate text-[10.5px] font-medium text-white/75">
-              {t("carpool.subtitle")}
-            </p>
-          </div>
-        </div>
-
-        {/* Onglets segmentés (pilule blanche = actif) */}
-        <div className="mt-3 flex gap-1 rounded-[14px] bg-white/15 p-1">
-          {(
-            [
-              ["offers", t("carpool.offers"), shownTrips.length],
-              ["mine", t("carpool.mine"), activeBookings.length],
-            ] as const
-          ).map(([k, label, count]) => (
+    <div>
+      {/* Onglets Départs / Mes places — segmented rond (patron commandes). */}
+      <div className="flex gap-1 rounded-full bg-[var(--d-soft)] p-1">
+        {(
+          [
+            ["offers", t("carpool.offers"), shownTrips.length],
+            ["mine", t("carpool.mine"), activeBookings.length],
+          ] as const
+        ).map(([k, label, count]) => {
+          const active = tab === k;
+          return (
             <button
               key={k}
               type="button"
               onClick={() => setTab(k)}
-              className="drive-sora flex h-9 flex-1 items-center justify-center gap-1.5 rounded-[11px] text-[12px] font-extrabold transition-colors"
+              className="drive-sora flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12.5px] font-bold transition"
               style={
-                tab === k
-                  ? {
-                      background: "#fff",
-                      color: VIOLET,
-                    }
-                  : { color: "rgba(255,255,255,.85)" }
+                active
+                  ? { background: "var(--d-surface)", color: VIOLET }
+                  : { color: "var(--d-muted)" }
               }
             >
               {label}
               <span
-                className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[9px] px-1.5 text-[9px] font-extrabold"
+                className="rounded-full px-1.5 text-[10.5px] font-bold tabular-nums"
                 style={
-                  tab === k
+                  active
                     ? { background: "#F1E9FC", color: VIOLET }
-                    : { background: "rgba(255,255,255,.18)", color: "#fff" }
+                    : { background: "var(--d-line)", color: "var(--d-muted)" }
                 }
               >
                 {count}
               </span>
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
 
-      <div className="flex-1 px-[18px] pt-3 pb-[calc(24px+env(safe-area-inset-bottom))]">
-        {blockedMsg && (
-          <p
-            className="mb-2.5 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
-            style={{ background: "rgba(108,43,217,.08)", color: VIOLET }}
-          >
-            {blockedMsg}
-          </p>
-        )}
+      {blockedMsg && (
+        <p
+          className="mt-2.5 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
+          style={{ background: "rgba(108,43,217,.08)", color: VIOLET }}
+        >
+          {blockedMsg}
+        </p>
+      )}
 
-        {tab === "offers" && (
-          <>
-            {/* ── Carte de recherche façon BlaBlaCar : communes libres —
-                chevauche le bas du héros dégradé (façon Bolt). ── */}
-            <div className="relative z-10 -mt-9 rounded-[18px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5">
-              <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  <div className="border-b border-[var(--d-line)] pb-1">
-                    <PlaceField
-                      value={fromPick}
-                      onChange={setFromPick}
-                      placeholder={t("carpool.fromPlaceholder")}
-                      marker="origin"
-                    />
-                  </div>
-                  <div className="pt-1">
-                    <PlaceField
-                      value={toPick}
-                      onChange={setToPick}
-                      placeholder={t("carpool.toPlaceholder")}
-                      bias={
-                        fromPick
-                          ? { lat: fromPick.lat, lng: fromPick.lng }
-                          : null
-                      }
-                      marker="dest"
-                    />
-                  </div>
+      {tab === "offers" && (
+        <>
+          {/* ── Recherche : communes libres, MÊME langage que « Ville ». ── */}
+          <div
+            className={
+              embedded
+                ? "mt-2.5"
+                : "mt-2.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
+            }
+          >
+            <div className="flex items-center gap-2">
+              <div className="min-w-0 flex-1">
+                <div className="rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                  <PlaceField
+                    value={fromPick}
+                    onChange={setFromPick}
+                    placeholder={t("carpool.fromPlaceholder")}
+                    marker="origin"
+                  />
                 </div>
+                {/* Connecteur pointillé A→B (langage visuel Bolt). */}
+                <span
+                  aria-hidden
+                  className="ms-[19px] block h-3 w-0 border-s-2 border-dashed border-[var(--d-line)]"
+                />
+                <div className="rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                  <PlaceField
+                    value={toPick}
+                    onChange={setToPick}
+                    placeholder={t("carpool.toPlaceholder")}
+                    bias={
+                      fromPick ? { lat: fromPick.lat, lng: fromPick.lng } : null
+                    }
+                    marker="dest"
+                  />
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={swap}
+                aria-label={t("carpool.swap")}
+                title={t("carpool.swap")}
+                className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)]"
+                style={{ color: VIOLET }}
+              >
+                <ArrowUpDown className="size-[18px]" />
+              </button>
+            </div>
+
+            {/* Date : chips + calendrier */}
+            <div className="mt-2.5 flex items-center gap-1.5 overflow-x-auto">
+              {dateChips.map((c) => (
+                <button
+                  key={c.key || "any"}
+                  type="button"
+                  onClick={() => setDate(c.key)}
+                  className="drive-sora flex h-8 shrink-0 items-center rounded-full border px-3 text-[11px] font-bold whitespace-nowrap"
+                  style={
+                    date === c.key
+                      ? {
+                          background: "#F1E9FC",
+                          color: VIOLET,
+                          borderColor: "#F1E9FC",
+                        }
+                      : {
+                          borderColor: "var(--d-line)",
+                          color: "var(--d-muted)",
+                        }
+                  }
+                >
+                  {c.label}
+                </button>
+              ))}
+              <input
+                type="date"
+                value={customDate ? date : ""}
+                min={algiersDay(0)}
+                onChange={(e) => setDate(e.target.value)}
+                className="h-8 shrink-0 rounded-full border px-2 text-[11px] font-bold outline-none"
+                style={
+                  customDate
+                    ? {
+                        background: "#F1E9FC",
+                        color: VIOLET,
+                        borderColor: "#F1E9FC",
+                      }
+                    : {
+                        borderColor: "var(--d-line)",
+                        color: "var(--d-muted)",
+                        background: "var(--d-surface)",
+                      }
+                }
+                aria-label={t("carpool.anyDate")}
+              />
+            </div>
+
+            {/* Passagers + Rechercher */}
+            <div className="mt-2.5 flex items-center gap-2">
+              <div className="flex h-11 shrink-0 items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)]">
                 <button
                   type="button"
-                  onClick={swap}
-                  aria-label={t("carpool.swap")}
-                  title={t("carpool.swap")}
-                  className="grid size-9 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm"
-                  style={{ color: VIOLET }}
+                  onClick={() => setPax((p) => Math.max(1, p - 1))}
+                  aria-label="−"
+                  className="drive-sora h-full w-9 text-[16px] font-extrabold"
                 >
-                  <ArrowUpDown className="size-4" />
+                  −
+                </button>
+                <span className="drive-sora flex min-w-[46px] items-center justify-center gap-1 text-[14px] font-extrabold">
+                  <UsersRound className="size-4" />
+                  {pax}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setPax((p) => Math.min(4, p + 1))}
+                  aria-label="+"
+                  className="drive-sora h-full w-9 text-[16px] font-extrabold"
+                >
+                  +
                 </button>
               </div>
+              <button
+                type="button"
+                onClick={search}
+                className="drive-sora flex h-11 flex-1 items-center justify-center gap-2 rounded-[12px] text-[14px] font-extrabold text-white"
+                style={{ background: VIOLET }}
+              >
+                <Search className="size-4" /> {t("carpool.search")}
+              </button>
+            </div>
+          </div>
 
-              {/* Date : chips + calendrier */}
+          {/* ── Résultats ── */}
+          {loading ? (
+            <div className="flex justify-center py-10">
+              <Loader2
+                className="size-7 animate-spin"
+                style={{ color: VIOLET }}
+              />
+            </div>
+          ) : (
+            <>
               <div className="mt-3 flex items-center gap-1.5 overflow-x-auto">
-                {dateChips.map((c) => (
+                <p className="me-auto shrink-0 text-[11.5px] font-bold text-[var(--d-muted)]">
+                  {t("carpool.results", { count: shownTrips.length })}
+                </p>
+                {(
+                  [
+                    ["time", t("carpool.sortEarliest")],
+                    ["price", t("carpool.sortCheapest")],
+                  ] as const
+                ).map(([k, label]) => (
                   <button
-                    key={c.key || "any"}
+                    key={k}
                     type="button"
-                    onClick={() => setDate(c.key)}
-                    className="drive-sora flex h-8 shrink-0 items-center rounded-[14px] border px-3 text-[11px] font-bold whitespace-nowrap"
+                    onClick={() => setSort(k)}
+                    className="drive-sora flex h-7 shrink-0 items-center rounded-full border px-2.5 text-[10px] font-bold whitespace-nowrap"
                     style={
-                      date === c.key
+                      sort === k
                         ? {
                             background: "#F1E9FC",
                             color: VIOLET,
@@ -398,387 +480,275 @@ export function CarpoolView() {
                           }
                     }
                   >
-                    {c.label}
+                    {label}
                   </button>
                 ))}
-                <input
-                  type="date"
-                  value={customDate ? date : ""}
-                  min={algiersDay(0)}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="h-8 shrink-0 rounded-[14px] border px-2 text-[11px] font-bold outline-none"
-                  style={
-                    customDate
-                      ? {
-                          background: "#F1E9FC",
-                          color: VIOLET,
-                          borderColor: "#F1E9FC",
-                        }
-                      : {
-                          borderColor: "var(--d-line)",
-                          color: "var(--d-muted)",
-                          background: "var(--d-surface)",
-                        }
-                  }
-                  aria-label={t("carpool.anyDate")}
-                />
               </div>
 
-              {/* Passagers + Rechercher */}
-              <div className="mt-3 flex items-center gap-2">
-                <div className="flex h-11 shrink-0 items-center rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
-                  <button
-                    type="button"
-                    onClick={() => setPax((p) => Math.max(1, p - 1))}
-                    aria-label="−"
-                    className="drive-sora h-full w-9 text-[16px] font-extrabold"
+              {shownTrips.length === 0 && !blockedMsg && (
+                <p className="py-10 text-center text-sm text-[var(--d-muted)]">
+                  {t("carpool.empty")}
+                </p>
+              )}
+
+              {shownTrips.map((trip) => {
+                const viaNames = trip.route_wilayas
+                  .slice(1, -1)
+                  .map((w) => wname(w))
+                  .join(" · ");
+                return (
+                  <div
+                    key={trip.id}
+                    className="drive-rise mt-2.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
                   >
-                    −
-                  </button>
-                  <span className="drive-sora flex min-w-[46px] items-center justify-center gap-1 text-[14px] font-extrabold">
-                    <UsersRound className="size-4" />
-                    {pax}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => setPax((p) => Math.min(4, p + 1))}
-                    aria-label="+"
-                    className="drive-sora h-full w-9 text-[16px] font-extrabold"
-                  >
-                    +
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  onClick={search}
-                  className="drive-sora flex h-11 flex-1 items-center justify-center gap-2 rounded-[12px] text-[14px] font-extrabold text-white"
-                  style={{
-                    background: VIOLET,
-                  }}
-                >
-                  <Search className="size-4" /> {t("carpool.search")}
-                </button>
-              </div>
-            </div>
-
-            {/* ── Résultats ── */}
-            {loading ? (
-              <div className="flex justify-center py-10">
-                <Loader2
-                  className="size-7 animate-spin"
-                  style={{ color: VIOLET }}
-                />
-              </div>
-            ) : (
-              <>
-                <div className="mt-3 flex items-center gap-1.5 overflow-x-auto">
-                  <p className="me-auto shrink-0 text-[11.5px] font-bold text-[var(--d-muted)]">
-                    {t("carpool.results", { count: shownTrips.length })}
-                  </p>
-                  {(
-                    [
-                      ["time", t("carpool.sortEarliest")],
-                      ["price", t("carpool.sortCheapest")],
-                    ] as const
-                  ).map(([k, label]) => (
-                    <button
-                      key={k}
-                      type="button"
-                      onClick={() => setSort(k)}
-                      className="drive-sora flex h-7 shrink-0 items-center rounded-[14px] border px-2.5 text-[10px] font-bold whitespace-nowrap"
-                      style={
-                        sort === k
-                          ? {
-                              background: "#F1E9FC",
-                              color: VIOLET,
-                              borderColor: "#F1E9FC",
-                            }
-                          : {
-                              borderColor: "var(--d-line)",
-                              color: "var(--d-muted)",
-                            }
-                      }
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
-
-                {shownTrips.length === 0 && !blockedMsg && (
-                  <p className="py-10 text-center text-sm text-[var(--d-muted)]">
-                    {t("carpool.empty")}
-                  </p>
-                )}
-
-                {shownTrips.map((trip) => {
-                  const viaNames = trip.route_wilayas
-                    .slice(1, -1)
-                    .map((w) => wname(w))
-                    .join(" · ");
-                  return (
-                    <div
-                      key={trip.id}
-                      className="drive-rise mt-2.5 rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)] p-3.5"
-                    >
-                      {/* Segment du passager : montée · durée · descente */}
-                      <div className="flex items-start gap-3">
-                        <div className="shrink-0 text-center">
-                          <p className="drive-sora text-[17px] leading-none font-extrabold">
-                            {fmtTime(trip.seg_departure_at)}
-                          </p>
-                          <p className="mt-1 text-[9.5px] font-semibold text-[var(--d-muted)]">
-                            {durLabel(trip.seg_km)}
-                          </p>
-                          <p className="mt-0.5 text-[11px] font-bold text-[var(--d-muted)]">
-                            ≈ {arrivalTime(trip.seg_departure_at, trip.seg_km)}
-                          </p>
-                        </div>
-                        <div className="flex w-3 shrink-0 flex-col items-center self-stretch pt-1.5 pb-1">
-                          <span
-                            className="size-[9px] shrink-0 rounded-full border-[2.5px]"
-                            style={{ borderColor: VIOLET }}
-                          />
-                          <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
-                          <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-[13.5px] font-extrabold">
-                            {stopLabel(
-                              trip.seg_from_text,
-                              trip.seg_from_wilaya
-                            )}
-                          </p>
-                          <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
-                            {wname(trip.seg_from_wilaya)}
-                          </p>
-                          <p className="mt-1.5 truncate text-[13.5px] font-extrabold">
-                            {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
-                          </p>
-                          <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
-                            {wname(trip.seg_to_wilaya)}
-                          </p>
-                        </div>
-                        <div className="shrink-0 text-end">
-                          <p className="drive-sora text-[20px] leading-none font-extrabold">
-                            {trip.seg_price_da}
-                          </p>
-                          <p className="text-[9.5px] font-semibold text-[var(--d-muted)]">
-                            {t("carpool.perSeat")}
-                          </p>
-                          <p className="mt-1 text-[10px] font-bold text-[var(--d-muted)]">
-                            {fmtDay(trip.seg_departure_at)}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Trajet complet du chauffeur quand on monte en route */}
-                      {viaNames && (
-                        <p
-                          className="mt-1.5 truncate text-[10.5px] font-semibold"
-                          style={{ color: GO }}
-                        >
-                          {t("carpool.via", { stops: viaNames })}
+                    {/* Segment du passager : montée · durée · descente */}
+                    <div className="flex items-start gap-3">
+                      <div className="shrink-0 text-center">
+                        <p className="drive-sora text-[17px] leading-none font-extrabold">
+                          {fmtTime(trip.seg_departure_at)}
                         </p>
-                      )}
-
-                      {/* Chauffeur + places + action */}
-                      <div className="mt-2.5 flex items-center gap-2 border-t border-[var(--d-line)] pt-2.5">
+                        <p className="mt-1 text-[9.5px] font-semibold text-[var(--d-muted)]">
+                          {durLabel(trip.seg_km)}
+                        </p>
+                        <p className="mt-0.5 text-[11px] font-bold text-[var(--d-muted)]">
+                          ≈ {arrivalTime(trip.seg_departure_at, trip.seg_km)}
+                        </p>
+                      </div>
+                      <div className="flex w-3 shrink-0 flex-col items-center self-stretch pt-1.5 pb-1">
                         <span
-                          className="drive-sora grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-extrabold text-white"
+                          className="size-[9px] shrink-0 rounded-full border-[2.5px]"
+                          style={{ borderColor: VIOLET }}
+                        />
+                        <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
+                        <span className="size-[9px] shrink-0 rounded-[2px] bg-[var(--d-ink)]" />
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[13.5px] font-extrabold">
+                          {stopLabel(trip.seg_from_text, trip.seg_from_wilaya)}
+                        </p>
+                        <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
+                          {wname(trip.seg_from_wilaya)}
+                        </p>
+                        <p className="mt-1.5 truncate text-[13.5px] font-extrabold">
+                          {stopLabel(trip.seg_to_text, trip.seg_to_wilaya)}
+                        </p>
+                        <p className="truncate text-[10px] font-medium text-[var(--d-muted)]">
+                          {wname(trip.seg_to_wilaya)}
+                        </p>
+                      </div>
+                      <div className="shrink-0 text-end">
+                        <p className="drive-sora text-[20px] leading-none font-extrabold">
+                          {trip.seg_price_da}
+                        </p>
+                        <p className="text-[9.5px] font-semibold text-[var(--d-muted)]">
+                          {t("carpool.perSeat")}
+                        </p>
+                        <p className="mt-1 text-[10px] font-bold text-[var(--d-muted)]">
+                          {fmtDay(trip.seg_departure_at)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Trajet complet du chauffeur quand on monte en route */}
+                    {viaNames && (
+                      <p
+                        className="mt-1.5 truncate text-[10.5px] font-semibold"
+                        style={{ color: GO }}
+                      >
+                        {t("carpool.via", { stops: viaNames })}
+                      </p>
+                    )}
+
+                    {/* Chauffeur + places + action */}
+                    <div className="mt-2.5 flex items-center gap-2 border-t border-[var(--d-line)] pt-2.5">
+                      <span
+                        className="drive-sora grid size-8 shrink-0 place-items-center rounded-full text-[12px] font-extrabold text-white"
+                        style={{
+                          background: trip.female_only
+                            ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
+                            : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
+                        }}
+                      >
+                        {trip.chauffeur_name[0]?.toUpperCase()}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold">
+                          {trip.chauffeur_name}
+                          {trip.chauffeur_rating != null && (
+                            <span className="text-[10px] text-[#E8B53C]">
+                              ★{" "}
+                              {String(trip.chauffeur_rating).replace(".", ",")}
+                            </span>
+                          )}
+                          {trip.female_only && (
+                            <span
+                              className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
+                              style={{
+                                background: "rgba(236,72,153,.13)",
+                                color: ROSE,
+                              }}
+                            >
+                              {t("carpool.femaleOnly")}
+                            </span>
+                          )}
+                        </span>
+                        <span
+                          className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
                           style={{
-                            background: trip.female_only
-                              ? `linear-gradient(135deg,#F9A8D4,${ROSE})`
-                              : `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
+                            background: "rgba(22,179,100,.12)",
+                            color: GO,
                           }}
                         >
-                          {trip.chauffeur_name[0]?.toUpperCase()}
-                        </span>
-                        <span className="min-w-0 flex-1">
-                          <span className="flex flex-wrap items-center gap-1.5 text-[12px] font-bold">
-                            {trip.chauffeur_name}
-                            {trip.chauffeur_rating != null && (
-                              <span className="text-[10px] text-[#E8B53C]">
-                                ★{" "}
-                                {String(trip.chauffeur_rating).replace(
-                                  ".",
-                                  ","
-                                )}
-                              </span>
-                            )}
-                            {trip.female_only && (
-                              <span
-                                className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
-                                style={{
-                                  background: "rgba(236,72,153,.13)",
-                                  color: ROSE,
-                                }}
-                              >
-                                {t("carpool.femaleOnly")}
-                              </span>
-                            )}
-                          </span>
-                          <span
-                            className="mt-0.5 inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
-                            style={{
-                              background: "rgba(22,179,100,.12)",
-                              color: GO,
-                            }}
-                          >
-                            <UsersRound className="size-3" />
-                            {t("carpool.seatsLeft", { count: trip.seats_left })}
-                          </span>
-                        </span>
-                        {trip.my_booking_id ? (
-                          <button
-                            type="button"
-                            onClick={() => setTab("mine")}
-                            className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-3.5 text-[12px] font-extrabold"
-                            style={{ background: "#F1E9FC", color: VIOLET }}
-                          >
-                            <Check className="size-3.5" /> {t("carpool.booked")}
-                          </button>
-                        ) : (
-                          <button
-                            type="button"
-                            onClick={() => openBook(trip)}
-                            className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-4 text-[12.5px] font-extrabold text-white"
-                            style={{
-                              background: VIOLET,
-                            }}
-                          >
-                            {t("carpool.book")}
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  );
-                })}
-              </>
-            )}
-          </>
-        )}
-
-        {tab === "mine" && (
-          <>
-            {!loading && bookings.length === 0 && (
-              <p className="py-10 text-center text-sm text-[var(--d-muted)]">
-                {t("carpool.emptyMine")}
-              </p>
-            )}
-            {bookings.map((b) => {
-              const active = b.status === "booked" || b.status === "boarded";
-              const cancellable =
-                b.trip_status === "published" && b.status === "booked";
-              const segFrom = stopLabel(
-                b.seg_from_text,
-                b.seg_from_wilaya ?? b.from_wilaya
-              );
-              const segTo = stopLabel(
-                b.seg_to_text,
-                b.seg_to_wilaya ?? b.to_wilaya
-              );
-              const when = b.seg_departure_at ?? b.departure_at;
-              return (
-                <div
-                  key={b.id}
-                  className="drive-rise mb-2.5 rounded-[16px] border bg-[var(--d-surface)] p-3.5"
-                  style={{
-                    borderColor: active
-                      ? "rgba(108,43,217,.35)"
-                      : "var(--d-line)",
-                  }}
-                >
-                  <div className="flex items-center gap-2">
-                    <p className="drive-sora min-w-0 flex-1 truncate text-[13.5px] font-extrabold">
-                      {isAr ? `${segFrom} ← ${segTo}` : `${segFrom} → ${segTo}`}
-                    </p>
-                    <span
-                      className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-extrabold"
-                      style={
-                        b.status === "boarded" || b.status === "completed"
-                          ? { background: "rgba(22,179,100,.12)", color: GO }
-                          : b.status === "booked"
-                            ? { background: "#F1E9FC", color: VIOLET }
-                            : {
-                                background: "rgba(239,68,68,.10)",
-                                color: RED,
-                              }
-                      }
-                    >
-                      {t(`carpool.status.${b.status}`)}
-                    </span>
-                  </div>
-                  <p className="mt-0.5 text-[11px] text-[var(--d-muted)]">
-                    {fmtDay(when)} {fmtTime(when)} · {b.chauffeur_name} ·{" "}
-                    {b.seats} × {Math.round(b.amount_da / Math.max(1, b.seats))}{" "}
-                    = <b>{b.amount_da}</b> {isAr ? "دج" : "DA"}{" "}
-                    {b.payment_method === "cash" ? (
-                      <Banknote className="inline size-3 align-[-1px]" />
-                    ) : (
-                      <Wallet className="inline size-3 align-[-1px]" />
-                    )}
-                  </p>
-                  {b.trip_status === "cancelled" && (
-                    <p
-                      className="mt-1 text-[11px] font-bold"
-                      style={{ color: RED }}
-                    >
-                      {t("carpool.tripCancelled")}
-                    </p>
-                  )}
-                  {active && (
-                    <div
-                      className="mt-2.5 flex items-center gap-2.5 rounded-[12px] px-3 py-2.5"
-                      style={{ background: "rgba(108,43,217,.07)" }}
-                    >
-                      <Ticket
-                        className="size-4 shrink-0"
-                        style={{ color: VIOLET }}
-                      />
-                      <span className="min-w-0 flex-1">
-                        <b className="block text-[10px] tracking-wide text-[var(--d-muted)] uppercase">
-                          {t("carpool.pinTitle")}
-                        </b>
-                        <span
-                          className="drive-sora text-[22px] font-extrabold tracking-[6px]"
-                          style={{ color: VIOLET }}
-                        >
-                          {b.pin}
+                          <UsersRound className="size-3" />
+                          {t("carpool.seatsLeft", { count: trip.seats_left })}
                         </span>
                       </span>
-                    </div>
-                  )}
-                  {cancellable && (
-                    <button
-                      type="button"
-                      disabled={cancelPending === b.id}
-                      onClick={() =>
-                        cancelArm === b.id
-                          ? void doCancel(b)
-                          : setCancelArm(b.id)
-                      }
-                      className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] border text-[11.5px] font-semibold disabled:opacity-60"
-                      style={{
-                        borderColor: cancelArm === b.id ? RED : "var(--d-line)",
-                        color: cancelArm === b.id ? RED : "var(--d-muted)",
-                      }}
-                    >
-                      {cancelPending === b.id ? (
-                        <Loader2 className="size-3.5 animate-spin" />
+                      {trip.my_booking_id ? (
+                        <button
+                          type="button"
+                          onClick={() => setTab("mine")}
+                          className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-3.5 text-[12px] font-extrabold"
+                          style={{ background: "#F1E9FC", color: VIOLET }}
+                        >
+                          <Check className="size-3.5" /> {t("carpool.booked")}
+                        </button>
                       ) : (
-                        <X className="size-3.5" />
+                        <button
+                          type="button"
+                          onClick={() => openBook(trip)}
+                          className="drive-sora flex h-9 shrink-0 items-center gap-1.5 rounded-[11px] px-4 text-[12.5px] font-extrabold text-white"
+                          style={{ background: VIOLET }}
+                        >
+                          {t("carpool.book")}
+                        </button>
                       )}
-                      {cancelArm === b.id
-                        ? t("carpool.cancelSure")
-                        : t("carpool.cancel")}
-                    </button>
-                  )}
+                    </div>
+                  </div>
+                );
+              })}
+            </>
+          )}
+        </>
+      )}
+
+      {tab === "mine" && (
+        <div className="mt-2.5">
+          {!loading && bookings.length === 0 && (
+            <p className="py-10 text-center text-sm text-[var(--d-muted)]">
+              {t("carpool.emptyMine")}
+            </p>
+          )}
+          {bookings.map((b) => {
+            const active = b.status === "booked" || b.status === "boarded";
+            const cancellable =
+              b.trip_status === "published" && b.status === "booked";
+            const segFrom = stopLabel(
+              b.seg_from_text,
+              b.seg_from_wilaya ?? b.from_wilaya
+            );
+            const segTo = stopLabel(
+              b.seg_to_text,
+              b.seg_to_wilaya ?? b.to_wilaya
+            );
+            const when = b.seg_departure_at ?? b.departure_at;
+            return (
+              <div
+                key={b.id}
+                className="mb-2.5 rounded-[16px] border bg-[var(--d-surface)] p-3.5"
+                style={{
+                  borderColor: active
+                    ? "rgba(108,43,217,.35)"
+                    : "var(--d-line)",
+                }}
+              >
+                <div className="flex items-center gap-2">
+                  <p className="drive-sora min-w-0 flex-1 truncate text-[13.5px] font-extrabold">
+                    {isAr ? `${segFrom} ← ${segTo}` : `${segFrom} → ${segTo}`}
+                  </p>
+                  <span
+                    className="shrink-0 rounded-full px-2 py-0.5 text-[9px] font-extrabold"
+                    style={
+                      b.status === "boarded" || b.status === "completed"
+                        ? { background: "rgba(22,179,100,.12)", color: GO }
+                        : b.status === "booked"
+                          ? { background: "#F1E9FC", color: VIOLET }
+                          : {
+                              background: "rgba(239,68,68,.10)",
+                              color: RED,
+                            }
+                    }
+                  >
+                    {t(`carpool.status.${b.status}`)}
+                  </span>
                 </div>
-              );
-            })}
-          </>
-        )}
-      </div>
+                <p className="mt-0.5 text-[11px] text-[var(--d-muted)]">
+                  {fmtDay(when)} {fmtTime(when)} · {b.chauffeur_name} ·{" "}
+                  {b.seats} × {Math.round(b.amount_da / Math.max(1, b.seats))} ={" "}
+                  <b>{b.amount_da}</b> {isAr ? "دج" : "DA"}{" "}
+                  {b.payment_method === "cash" ? (
+                    <Banknote className="inline size-3 align-[-1px]" />
+                  ) : (
+                    <Wallet className="inline size-3 align-[-1px]" />
+                  )}
+                </p>
+                {b.trip_status === "cancelled" && (
+                  <p
+                    className="mt-1 text-[11px] font-bold"
+                    style={{ color: RED }}
+                  >
+                    {t("carpool.tripCancelled")}
+                  </p>
+                )}
+                {active && (
+                  <div
+                    className="mt-2.5 flex items-center gap-2.5 rounded-[12px] px-3 py-2.5"
+                    style={{ background: "rgba(108,43,217,.07)" }}
+                  >
+                    <Ticket
+                      className="size-4 shrink-0"
+                      style={{ color: VIOLET }}
+                    />
+                    <span className="min-w-0 flex-1">
+                      <b className="block text-[10px] tracking-wide text-[var(--d-muted)] uppercase">
+                        {t("carpool.pinTitle")}
+                      </b>
+                      <span
+                        className="drive-sora text-[22px] font-extrabold tracking-[6px]"
+                        style={{ color: VIOLET }}
+                      >
+                        {b.pin}
+                      </span>
+                    </span>
+                  </div>
+                )}
+                {cancellable && (
+                  <button
+                    type="button"
+                    disabled={cancelPending === b.id}
+                    onClick={() =>
+                      cancelArm === b.id ? void doCancel(b) : setCancelArm(b.id)
+                    }
+                    className="mt-2 flex h-9 w-full items-center justify-center gap-1.5 rounded-[10px] border text-[11.5px] font-semibold disabled:opacity-60"
+                    style={{
+                      borderColor: cancelArm === b.id ? RED : "var(--d-line)",
+                      color: cancelArm === b.id ? RED : "var(--d-muted)",
+                    }}
+                  >
+                    {cancelPending === b.id ? (
+                      <Loader2 className="size-3.5 animate-spin" />
+                    ) : (
+                      <X className="size-3.5" />
+                    )}
+                    {cancelArm === b.id
+                      ? t("carpool.cancelSure")
+                      : t("carpool.cancel")}
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {/* ── Feuille de réservation (segment) ── */}
       {bookTrip && (
@@ -811,7 +781,7 @@ export function CarpoolView() {
                     setBookTrip(null);
                     setTab("mine");
                   }}
-                  className="drive-sora mt-4 flex h-[48px] w-full items-center justify-center rounded-[14px] text-[14.5px] font-extrabold text-white"
+                  className="drive-sora mt-4 flex h-[48px] w-full items-center justify-center rounded-[12px] text-[14.5px] font-extrabold text-white"
                   style={{ background: VIOLET }}
                 >
                   {t("carpool.ok")}
@@ -836,8 +806,7 @@ export function CarpoolView() {
                     <X className="size-4" />
                   </button>
                 </div>
-                {/* Timeline MONTÉE / DESCENTE — le passager sait exactement
-                    où et quand il monte, et vers quelle heure il arrive. */}
+                {/* Timeline MONTÉE / DESCENTE — où et quand, sans ambiguïté. */}
                 <div className="mt-1 rounded-[12px] bg-[var(--d-soft)] px-3 py-2.5">
                   <div className="flex items-center gap-2 text-[11.5px] font-semibold">
                     <span
@@ -880,7 +849,7 @@ export function CarpoolView() {
                   <span className="mb-1 block text-[10.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
                     {t("carpool.seats")}
                   </span>
-                  <div className="flex h-12 items-center rounded-[12px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)]">
+                  <div className="flex h-12 items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)]">
                     <button
                       type="button"
                       onClick={() => setSeats((s) => Math.max(1, s - 1))}
@@ -921,7 +890,7 @@ export function CarpoolView() {
                         key={k}
                         type="button"
                         onClick={() => setPayment(k)}
-                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border-[1.5px] text-[12px] font-bold"
+                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border text-[12px] font-bold"
                         style={
                           payment === k
                             ? {
@@ -954,10 +923,8 @@ export function CarpoolView() {
                   type="button"
                   onClick={() => void submitBook()}
                   disabled={bookPending}
-                  className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-60"
-                  style={{
-                    background: GO,
-                  }}
+                  className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[12px] text-[15px] font-extrabold text-white disabled:opacity-60"
+                  style={{ background: GO }}
                 >
                   {bookPending && <Loader2 className="size-5 animate-spin" />}
                   {t("carpool.confirm")} · {seats * bookTrip.seg_price_da}{" "}
@@ -968,6 +935,47 @@ export function CarpoolView() {
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Page /drive/covoiturage — conservée pour les LIENS PROFONDS (clic sur une
+ * notification « départ annulé », partage) : héros de marque + le MÊME panneau
+ * que le mode inline de /drive.
+ */
+export function CarpoolView() {
+  const t = useTranslations("drive");
+
+  return (
+    <div className="drive-jakarta drive-screen z-40 flex min-h-[100dvh] flex-col overflow-y-auto bg-[var(--d-page,#F5F4F8)]">
+      <div
+        className="px-[18px] pt-[calc(16px+env(safe-area-inset-top))] pb-4 text-white"
+        style={{
+          backgroundImage: `linear-gradient(130deg, ${VIOLET} 0%, #4B1FA6 62%, #8E2F86 100%)`,
+        }}
+      >
+        <div className="flex items-center gap-2">
+          <Link
+            href="/drive"
+            aria-label={t("carpool.title")}
+            className="grid size-9 shrink-0 place-items-center rounded-[12px] bg-white/15 text-white"
+          >
+            <ChevronLeft className="size-5 rtl:rotate-180" />
+          </Link>
+          <div className="min-w-0">
+            <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
+              {t("carpool.title")}
+            </h1>
+            <p className="truncate text-[10.5px] font-medium text-white/75">
+              {t("carpool.subtitle")}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 px-[18px] pt-3 pb-[calc(24px+env(safe-area-inset-bottom))]">
+        <CarpoolPanel />
+      </div>
     </div>
   );
 }

@@ -3,15 +3,16 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useLocale } from "next-intl";
 import {
-  UsersRound,
-  ArrowUpDown,
   Banknote,
   Check,
   ChevronDown,
+  ArrowUpDown,
+  ClipboardList,
   Loader2,
   Plus,
   Route,
-  Users,
+  Search,
+  UsersRound,
   Wallet,
   X,
 } from "lucide-react";
@@ -66,12 +67,15 @@ function segPrice(total: number, segKm: number, totKm: number): number {
   );
 }
 
+type TabKey = "upcoming" | "ongoing" | "history";
+const tabOf = (s: CarpoolTrip["status"]): TabKey =>
+  s === "published" ? "upcoming" : s === "started" ? "ongoing" : "history";
+
 /**
- * Écran COVOITURAGE chauffeur v2 — publication façon BlaBlaCar : départ et
- * arrivée au niveau COMMUNE (saisie libre + suggestions gazetteer), arrêts
- * intermédiaires SUGGÉRÉS automatiquement par le tracé routier (« Sur votre
- * route : Bouira »), prix par segment calculés tout seuls. Le chauffeur
- * remplit 4 champs, l'app fait le reste.
+ * Écran COVOITURAGE chauffeur — LISTE calquée sur « Mes commandes » du client
+ * (segmented control + recherche + chips bascule + cartes à badge vivant),
+ * publication façon BlaBlaCar (communes libres, arrêts suggérés par le tracé,
+ * prix par segment automatiques). FR/AR en dur (espace chauffeur).
  */
 export function DCarpool() {
   const isAr = useLocale() === "ar";
@@ -124,6 +128,53 @@ export function DCarpool() {
     setExpanded((e) => (e === tripId ? null : tripId));
     void loadBookings(tripId);
   };
+
+  /* ── Filtrage façon « Mes commandes » : recherche + chips AVANT compteurs ── */
+  const [query, setQuery] = useState("");
+  const [fFemale, setFFemale] = useState(false);
+  const [fStops, setFStops] = useState(false);
+
+  const routeSearchText = useCallback(
+    (t: CarpoolTrip) =>
+      [
+        t.from_text,
+        t.to_text,
+        ...t.route_texts,
+        ...t.route_wilayas.map((w) => wname(w)),
+      ]
+        .filter(Boolean)
+        .join(" ")
+        .toLowerCase(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [isAr]
+  );
+  const scoped = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    return trips.filter((t) => {
+      if (fFemale && !t.female_only) return false;
+      if (fStops && t.route_wilayas.length <= 2) return false;
+      if (needle && !routeSearchText(t).includes(needle)) return false;
+      return true;
+    });
+  }, [trips, query, fFemale, fStops, routeSearchText]);
+  const counts = useMemo(() => {
+    const c = { upcoming: 0, ongoing: 0, history: 0 };
+    for (const t of scoped) c[tabOf(t.status)]++;
+    return c;
+  }, [scoped]);
+  const [tab, setTab] = useState<TabKey>("upcoming");
+  // Onglet par défaut une fois chargé : À venir s'il y en a, sinon En route,
+  // sinon Historique (même logique que la page commandes).
+  const [defaulted, setDefaulted] = useState(false);
+  useEffect(() => {
+    if (defaulted || loading) return;
+    setDefaulted(true);
+    if (trips.some((t) => tabOf(t.status) === "upcoming")) setTab("upcoming");
+    else if (trips.some((t) => tabOf(t.status) === "ongoing"))
+      setTab("ongoing");
+    else setTab("history");
+  }, [loading, trips, defaulted]);
+  const filtered = scoped.filter((t) => tabOf(t.status) === tab);
 
   const errorLabel = (code?: string) => {
     if (!code) return tr("Action impossible", "تعذّر تنفيذ العملية");
@@ -317,6 +368,32 @@ export function DCarpool() {
     await load();
   };
 
+  /** Republier : feuille préremplie depuis un départ passé. */
+  const republish = (t: CarpoolTrip) => {
+    const cf = WILAYA_CENTROIDS[t.from_wilaya];
+    const ct = WILAYA_CENTROIDS[t.to_wilaya];
+    if (cf)
+      setFromPick({
+        label: t.from_text ?? wname(t.from_wilaya),
+        secondary: null,
+        lat: cf.lat,
+        lng: cf.lng,
+        wilaya: t.from_wilaya,
+      });
+    if (ct)
+      setToPick({
+        label: t.to_text ?? wname(t.to_wilaya),
+        secondary: null,
+        lat: ct.lat,
+        lng: ct.lng,
+        wilaya: t.to_wilaya,
+      });
+    setSeats(t.seats_total);
+    setPrice(t.price_per_seat_da);
+    setFemaleOnly(t.female_only);
+    setSheetOpen(true);
+  };
+
   const statusChip = (s: CarpoolTrip["status"]) =>
     s === "published"
       ? { label: tr("À venir", "قادمة"), bg: "#F1E9FC", color: VIOLET }
@@ -353,10 +430,15 @@ export function DCarpool() {
   const stopLabel = (t: CarpoolTrip, i: number) =>
     t.route_texts[i] || wname(t.route_wilayas[i] ?? null);
 
+  const tabs: { key: TabKey; label: string; n: number }[] = [
+    { key: "upcoming", label: tr("À venir", "قادمة"), n: counts.upcoming },
+    { key: "ongoing", label: tr("En route", "في الطريق"), n: counts.ongoing },
+    { key: "history", label: tr("Historique", "السجل"), n: counts.history },
+  ];
+
   return (
     <div className="drive-jakarta drive-page pt-safe-lg pb-safe-nav min-h-screen bg-[var(--d-surface)] px-[18px]">
-      {/* Page de PREMIER NIVEAU (onglet « Covoit. » de la nav) : pas de
-          bouton retour — la nav du bas fait foi. */}
+      {/* Page de PREMIER NIVEAU (onglet « Covoit. » de la nav). */}
       <h1 className="drive-sora text-[20px] font-extrabold tracking-[-0.5px]">
         {tr("Covoiturage", "مشاركة المشوار")}
       </h1>
@@ -370,11 +452,114 @@ export function DCarpool() {
       <button
         type="button"
         onClick={() => setSheetOpen(true)}
-        className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[16px] text-[15px] font-extrabold text-white"
+        className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[12px] text-[14.5px] font-extrabold text-white"
         style={{ background: VIOLET }}
       >
         <Plus className="size-5" /> {tr("Publier un départ", "نشر رحلة")}
       </button>
+
+      {/* Segmented control — MÊME patron que « Mes commandes » client. */}
+      <div className="mt-3 flex gap-1 rounded-full bg-[var(--d-soft)] p-1">
+        {tabs.map((tb) => {
+          const active = tab === tb.key;
+          return (
+            <button
+              key={tb.key}
+              type="button"
+              onClick={() => setTab(tb.key)}
+              className="drive-sora flex flex-1 items-center justify-center gap-1.5 rounded-full py-2 text-[12.5px] font-bold transition"
+              style={
+                active
+                  ? { background: "var(--d-surface)", color: VIOLET }
+                  : { color: "var(--d-muted)" }
+              }
+            >
+              {tb.label}
+              <span
+                className="rounded-full px-1.5 text-[10.5px] font-bold tabular-nums"
+                style={
+                  active
+                    ? { background: "#F1E9FC", color: VIOLET }
+                    : { background: "var(--d-line)", color: "var(--d-muted)" }
+                }
+              >
+                {tb.n}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
+      {/* Recherche + chips BASCULE (aucune active = tout) — zéro serveur. */}
+      <div className="mt-2.5 space-y-2">
+        <div className="relative">
+          <Search className="absolute start-3 top-1/2 size-4 -translate-y-1/2 text-[var(--d-muted)]" />
+          <input
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder={tr(
+              "Ville, commune, destination…",
+              "مدينة، بلدية، وجهة…"
+            )}
+            className="h-11 w-full rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] ps-9 pe-10 text-[13px] font-semibold outline-none"
+          />
+          {query && (
+            <button
+              type="button"
+              aria-label="✕"
+              onClick={() => setQuery("")}
+              className="absolute end-2.5 top-1/2 grid size-6 -translate-y-1/2 place-items-center rounded-full text-[var(--d-muted)]"
+            >
+              <X className="size-4" />
+            </button>
+          )}
+        </div>
+        <div className="flex gap-1.5 overflow-x-auto pb-0.5">
+          {(
+            [
+              [
+                fFemale,
+                setFFemale,
+                ROSE,
+                tr("100 % femmes", "100٪ نساء"),
+              ] as const,
+              [
+                fStops,
+                setFStops,
+                GO,
+                tr("Avec arrêts", "برحلات توقف"),
+              ] as const,
+            ] as const
+          ).map(([active, set, color, label], i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => set(!active)}
+              className="inline-flex shrink-0 items-center gap-1 rounded-full border px-3 py-1.5 text-[11px] font-semibold whitespace-nowrap transition-colors"
+              style={
+                active
+                  ? {
+                      borderColor: color,
+                      color,
+                      background: "var(--d-surface)",
+                    }
+                  : {
+                      borderColor: "var(--d-line)",
+                      color: "var(--d-muted)",
+                    }
+              }
+            >
+              {i === 0 ? (
+                <UsersRound className="size-3.5" />
+              ) : (
+                <Route className="size-3.5" />
+              )}
+              {label}
+              {active && <X className="size-3" />}
+            </button>
+          ))}
+        </div>
+      </div>
 
       {loading && (
         <div className="flex justify-center py-10">
@@ -382,366 +567,369 @@ export function DCarpool() {
         </div>
       )}
 
-      {!loading && trips.length === 0 && (
-        <div className="mt-4 rounded-[16px] border border-[var(--d-line)] p-4 text-center">
-          <span
-            className="mx-auto grid size-12 place-items-center rounded-full"
-            style={{ background: "rgba(108,43,217,.10)" }}
-          >
-            <Route className="size-6" style={{ color: VIOLET }} />
-          </span>
-          <p className="drive-sora mt-2 text-[14px] font-extrabold">
-            {tr("Aucun départ publié", "لا رحلات منشورة")}
-          </p>
-          <p className="mt-1 text-[12px] text-[var(--d-muted)]">
-            {tr(
-              "Exemple : Béjaïa → Alger avec arrêt à Bouira — tu prends aussi les passagers Bouira → Alger, et tu pars plein.",
-              "مثال: بجاية ← الجزائر مع توقف في البويرة — تأخذ أيضًا ركاب البويرة ← الجزائر وتنطلق ممتلئًا."
-            )}
-          </p>
+      {!loading && filtered.length === 0 && (
+        <div className="mt-3 rounded-[14px] border border-[var(--d-line)] p-8 text-center text-[12.5px] text-[var(--d-muted)]">
+          <ClipboardList className="mx-auto mb-2 size-7 opacity-60" />
+          {tab === "upcoming"
+            ? tr(
+                "Aucun départ à venir. Publie ton premier trajet — exemple : Béjaïa → Alger avec arrêt à Bouira, et pars plein.",
+                "لا رحلات قادمة. انشر رحلتك الأولى — مثال: بجاية ← الجزائر مع توقف في البويرة، وانطلق ممتلئًا."
+              )
+            : tab === "ongoing"
+              ? tr("Aucun départ en route.", "لا رحلات في الطريق.")
+              : tr("Aucun départ dans l'historique.", "لا رحلات في السجل.")}
         </div>
       )}
 
-      {trips.map((t) => {
-        const chip = statusChip(t.status);
-        const open = expanded === t.id;
-        const bks = bookings[t.id] ?? [];
-        const busy = pending[t.id];
-        const arm = confirmArm[t.id];
-        const nStops = Math.max(0, t.route_wilayas.length - 2);
-        const routeLabel = `${wname(t.from_wilaya)} → ${wname(t.to_wilaya)}`;
-        return (
-          <div
-            key={t.id}
-            className="drive-rise mt-2.5 overflow-hidden rounded-[16px] border border-[var(--d-line)] bg-[var(--d-surface)]"
-          >
-            <button
-              type="button"
-              onClick={() => toggleExpand(t.id)}
-              className="flex w-full items-center gap-2.5 px-3.5 py-3 text-start"
+      <ul className="mt-2.5 space-y-2.5">
+        {filtered.map((t) => {
+          const chip = statusChip(t.status);
+          const open = expanded === t.id;
+          const bks = bookings[t.id] ?? [];
+          const busy = pending[t.id];
+          const arm = confirmArm[t.id];
+          const live = t.status === "published" || t.status === "started";
+          const nStops = Math.max(0, t.route_wilayas.length - 2);
+          const routeLabel = `${wname(t.from_wilaya)} → ${wname(t.to_wilaya)}`;
+          return (
+            <li
+              key={t.id}
+              className="overflow-hidden rounded-[16px] border bg-[var(--d-surface)]"
+              style={
+                // Départ VIVANT = carte mise en avant (même langage que les
+                // commandes en cours côté client).
+                live
+                  ? {
+                      borderColor: "rgba(108,43,217,.35)",
+                      boxShadow: "0 0 0 2px rgba(108,43,217,.10)",
+                    }
+                  : { borderColor: "var(--d-line)" }
+              }
             >
-              <span
-                className="grid size-9 shrink-0 place-items-center rounded-[11px]"
-                style={{ background: "rgba(108,43,217,.10)" }}
+              <button
+                type="button"
+                onClick={() => toggleExpand(t.id)}
+                className="flex w-full items-center gap-3 p-3 text-start"
               >
-                <Route className="size-4" style={{ color: VIOLET }} />
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="drive-sora flex flex-wrap items-center gap-1.5 text-[13px] font-extrabold">
-                  {isAr
-                    ? `${wname(t.from_wilaya)} ← ${wname(t.to_wilaya)}`
-                    : routeLabel}
-                  {nStops > 0 && (
-                    <span
-                      className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
-                      style={{ background: "rgba(22,179,100,.12)", color: GO }}
-                    >
-                      +{nStops} {tr("arrêt", "توقف")}
-                      {!isAr && nStops > 1 ? "s" : ""}
+                <span
+                  className="drive-sora grid size-12 shrink-0 place-items-center self-start rounded-full text-base font-bold"
+                  style={{ background: "#F1E9FC", color: VIOLET }}
+                >
+                  <Route className="size-5" />
+                </span>
+                <span className="min-w-0 flex-1">
+                  {/* Ligne 1 : itinéraire + prix/place */}
+                  <span className="flex items-center justify-between gap-2">
+                    <span className="drive-sora line-clamp-1 text-[13.5px] font-extrabold">
+                      {isAr
+                        ? `${wname(t.from_wilaya)} ← ${wname(t.to_wilaya)}`
+                        : routeLabel}
                     </span>
-                  )}
-                  <span
-                    className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
-                    style={{ background: chip.bg, color: chip.color }}
-                  >
-                    {chip.label}
+                    <span className="drive-sora shrink-0 text-[13.5px] font-extrabold tabular-nums">
+                      {t.price_per_seat_da}{" "}
+                      <span className="text-[10px] font-semibold text-[var(--d-muted)]">
+                        {tr("DA/pl.", "دج/مق.")}
+                      </span>
+                    </span>
                   </span>
-                  {t.female_only && (
+                  {/* Ligne 2 : badge vivant + date · places · arrêts */}
+                  <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-[var(--d-muted)]">
                     <span
-                      className="rounded-full px-1.5 py-0.5 text-[8.5px] font-extrabold"
-                      style={{
-                        background: "rgba(236,72,153,.13)",
-                        color: ROSE,
-                      }}
+                      className="inline-flex items-center rounded-full px-2 py-0.5 text-[9.5px] font-extrabold"
+                      style={{ background: chip.bg, color: chip.color }}
                     >
-                      {tr("Femmes", "نساء")}
+                      {live && (
+                        <span className="me-1 inline-block size-1.5 animate-pulse rounded-full bg-current" />
+                      )}
+                      {chip.label}
                     </span>
-                  )}
-                </span>
-                <span className="mt-0.5 block text-[11px] text-[var(--d-muted)]">
-                  {fmtDate(t.departure_at)} · {t.distance_km} km
-                </span>
-              </span>
-              <span className="shrink-0 text-end">
-                <span className="drive-sora block text-[15px] font-extrabold">
-                  {t.seats_booked}/{t.seats_total}
-                  <Users className="ms-1 inline size-3.5 align-[-2px]" />
-                </span>
-                <span className="block text-[10px] font-semibold text-[var(--d-muted)]">
-                  {t.price_per_seat_da} {tr("DA/place", "دج/مقعد")}
-                </span>
-              </span>
-              <ChevronDown
-                className={`size-4 shrink-0 text-[var(--d-muted)] transition-transform ${open ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {open && (
-              <div className="border-t border-[var(--d-line)] px-3.5 py-3">
-                {/* Itinéraire complet — rail vertical avec chaque arrêt. */}
-                <div className="mb-2.5 flex gap-2.5">
-                  <div className="flex w-3 shrink-0 flex-col items-center pt-1 pb-1">
-                    {t.route_wilayas.map((_, i) => (
-                      <span key={i} className="contents">
-                        {i > 0 && (
-                          <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
-                        )}
+                    <span>{fmtDate(t.departure_at)}</span>
+                    <span aria-hidden>·</span>
+                    <span className="inline-flex items-center gap-1">
+                      <UsersRound className="size-3" />
+                      {t.seats_booked}/{t.seats_total}
+                    </span>
+                    {nStops > 0 && (
+                      <>
+                        <span aria-hidden>·</span>
                         <span
-                          className="size-[8px] shrink-0 rounded-full"
-                          style={{
-                            background:
-                              i === 0
-                                ? VIOLET
-                                : i === t.route_wilayas.length - 1
-                                  ? "var(--d-ink)"
-                                  : GO,
-                          }}
-                        />
-                      </span>
-                    ))}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    {t.route_wilayas.map((w, i) => (
-                      <p
-                        key={`${w}-${i}`}
-                        className="truncate py-0.5 text-[11.5px] font-semibold"
-                        style={{
-                          color:
-                            i === 0 || i === t.route_wilayas.length - 1
-                              ? "var(--d-ink)"
-                              : "var(--d-muted)",
-                        }}
-                      >
-                        {stopLabel(t, i)}
-                      </p>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Réservations (avec le SEGMENT de chaque passager) */}
-                {bks.length === 0 ? (
-                  <p className="py-2 text-center text-[12px] text-[var(--d-muted)]">
-                    {tr("Aucune réservation pour l'instant.", "لا حجوزات بعد.")}
-                  </p>
-                ) : (
-                  bks.map((b) => (
-                    <div
-                      key={b.id}
-                      className="flex items-center gap-2 border-b border-[var(--d-line)] py-2 text-[12px] last:border-b-0"
-                    >
+                          className="inline-flex items-center gap-1 font-semibold"
+                          style={{ color: GO }}
+                        >
+                          <Route className="size-3" />+{nStops}{" "}
+                          {tr("arrêt", "توقف")}
+                          {!isAr && nStops > 1 ? "s" : ""}
+                        </span>
+                      </>
+                    )}
+                    {t.female_only && (
                       <span
-                        className="drive-sora grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-extrabold text-white"
+                        className="inline-flex items-center rounded-full px-1.5 py-0.5 text-[9px] font-extrabold"
                         style={{
-                          background: `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
+                          background: "rgba(236,72,153,.13)",
+                          color: ROSE,
                         }}
                       >
-                        {b.customer_name[0]?.toUpperCase()}
+                        {tr("Femmes", "نساء")}
                       </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate font-semibold">
-                          {b.customer_name}
-                          <span className="ms-1 text-[10px] font-medium text-[var(--d-muted)]">
-                            · {b.seats} {tr("pl.", "مق.")} ·{" "}
-                            {bkStatus(b.status)}
+                    )}
+                  </span>
+                </span>
+                <ChevronDown
+                  className={`size-4 shrink-0 text-[var(--d-muted)] transition-transform ${open ? "rotate-180" : ""}`}
+                />
+              </button>
+
+              {open && (
+                <div className="border-t border-[var(--d-line)] px-3.5 py-3">
+                  {/* Itinéraire complet — rail vertical avec chaque arrêt. */}
+                  <div className="mb-2.5 flex gap-2.5">
+                    <div className="flex w-3 shrink-0 flex-col items-center pt-1 pb-1">
+                      {t.route_wilayas.map((_, i) => (
+                        <span key={i} className="contents">
+                          {i > 0 && (
+                            <span className="my-0.5 w-[2px] flex-1 rounded bg-[var(--d-line)]" />
+                          )}
+                          <span
+                            className="size-[8px] shrink-0 rounded-full"
+                            style={{
+                              background:
+                                i === 0
+                                  ? VIOLET
+                                  : i === t.route_wilayas.length - 1
+                                    ? "var(--d-ink)"
+                                    : GO,
+                            }}
+                          />
+                        </span>
+                      ))}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      {t.route_wilayas.map((w, i) => (
+                        <p
+                          key={`${w}-${i}`}
+                          className="truncate py-0.5 text-[11.5px] font-semibold"
+                          style={{
+                            color:
+                              i === 0 || i === t.route_wilayas.length - 1
+                                ? "var(--d-ink)"
+                                : "var(--d-muted)",
+                          }}
+                        >
+                          {stopLabel(t, i)}
+                        </p>
+                      ))}
+                    </div>
+                    <span className="shrink-0 self-start text-[10.5px] font-bold text-[var(--d-muted)]">
+                      {t.distance_km} km
+                    </span>
+                  </div>
+
+                  {/* Réservations (avec le SEGMENT de chaque passager) */}
+                  {bks.length === 0 ? (
+                    <p className="py-2 text-center text-[12px] text-[var(--d-muted)]">
+                      {tr(
+                        "Aucune réservation pour l'instant.",
+                        "لا حجوزات بعد."
+                      )}
+                    </p>
+                  ) : (
+                    bks.map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex items-center gap-2 border-b border-[var(--d-line)] py-2 text-[12px] last:border-b-0"
+                      >
+                        <span
+                          className="drive-sora grid size-7 shrink-0 place-items-center rounded-full text-[11px] font-extrabold text-white"
+                          style={{
+                            background: `linear-gradient(135deg,#7B7BF0,${VIOLET})`,
+                          }}
+                        >
+                          {b.customer_name[0]?.toUpperCase()}
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate font-semibold">
+                            {b.customer_name}
+                            <span className="ms-1 text-[10px] font-medium text-[var(--d-muted)]">
+                              · {b.seats} {tr("pl.", "مق.")} ·{" "}
+                              {bkStatus(b.status)}
+                            </span>
+                          </span>
+                          <span className="block truncate text-[10px] font-medium text-[var(--d-muted)]">
+                            {(b.seg_from_text ?? wname(b.seg_from_wilaya)) +
+                              " → " +
+                              (b.seg_to_text ?? wname(b.seg_to_wilaya))}
                           </span>
                         </span>
-                        <span className="block truncate text-[10px] font-medium text-[var(--d-muted)]">
-                          {(b.seg_from_text ?? wname(b.seg_from_wilaya)) +
-                            " → " +
-                            (b.seg_to_text ?? wname(b.seg_to_wilaya))}
+                        <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold">
+                          {b.payment_method === "cash" ? (
+                            <Banknote
+                              className="size-3.5"
+                              style={{ color: GO }}
+                            />
+                          ) : (
+                            <Wallet
+                              className="size-3.5"
+                              style={{ color: VIOLET }}
+                            />
+                          )}
+                          {b.amount_da} {tr("DA", "دج")}
                         </span>
-                      </span>
-                      <span className="flex shrink-0 items-center gap-1 text-[11px] font-bold">
-                        {b.payment_method === "cash" ? (
-                          <Banknote
-                            className="size-3.5"
-                            style={{ color: GO }}
-                          />
-                        ) : (
-                          <Wallet
-                            className="size-3.5"
-                            style={{ color: VIOLET }}
-                          />
-                        )}
-                        {b.amount_da} {tr("DA", "دج")}
-                      </span>
-                    </div>
-                  ))
-                )}
+                      </div>
+                    ))
+                  )}
 
-                {/* Embarquement PIN (départ pas encore clôturé) */}
-                {(t.status === "published" || t.status === "started") &&
-                  bks.some((b) => b.status === "booked") && (
-                    <div className="mt-2.5 flex items-center gap-2">
-                      <input
-                        inputMode="numeric"
-                        maxLength={4}
-                        value={pinInput[t.id] ?? ""}
-                        onChange={(e) =>
-                          setPinInput((p) => ({
-                            ...p,
-                            [t.id]: e.target.value.replace(/\D/g, ""),
-                          }))
-                        }
-                        placeholder={tr("PIN passager", "PIN الراكب")}
-                        className="drive-sora h-10 w-28 rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold tracking-[3px] outline-none"
-                      />
+                  {/* Embarquement PIN (départ pas encore clôturé) */}
+                  {(t.status === "published" || t.status === "started") &&
+                    bks.some((b) => b.status === "booked") && (
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <input
+                          inputMode="numeric"
+                          maxLength={4}
+                          value={pinInput[t.id] ?? ""}
+                          onChange={(e) =>
+                            setPinInput((p) => ({
+                              ...p,
+                              [t.id]: e.target.value.replace(/\D/g, ""),
+                            }))
+                          }
+                          placeholder={tr("PIN passager", "PIN الراكب")}
+                          className="drive-sora h-10 w-28 rounded-[10px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 text-center text-[15px] font-extrabold tracking-[3px] outline-none"
+                        />
+                        <button
+                          type="button"
+                          disabled={
+                            (pinInput[t.id] ?? "").length !== 4 ||
+                            busy === "board"
+                          }
+                          onClick={() =>
+                            void run(t.id, "board", async () => {
+                              const r = await carpoolBoard(
+                                t.id,
+                                pinInput[t.id] ?? ""
+                              );
+                              if (r.ok)
+                                setPinInput((p) => ({ ...p, [t.id]: "" }));
+                              return r;
+                            })
+                          }
+                          className="drive-sora flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-extrabold text-white disabled:opacity-50"
+                          style={{ background: GO }}
+                        >
+                          {busy === "board" ? (
+                            <Loader2 className="size-4 animate-spin" />
+                          ) : (
+                            <Check className="size-4" />
+                          )}
+                          {tr("Embarquer", "صعود")}
+                        </button>
+                      </div>
+                    )}
+
+                  {errors[t.id] && (
+                    <p
+                      className="mt-2 text-center text-[11px] font-bold"
+                      style={{ color: RED }}
+                    >
+                      {errors[t.id]}
+                    </p>
+                  )}
+
+                  {/* Actions de cycle de vie — confirmation en 2 taps */}
+                  {t.status === "published" && (
+                    <div className="mt-2.5 flex gap-2">
                       <button
                         type="button"
-                        disabled={
-                          (pinInput[t.id] ?? "").length !== 4 ||
-                          busy === "board"
-                        }
+                        disabled={busy != null}
                         onClick={() =>
-                          void run(t.id, "board", async () => {
-                            const r = await carpoolBoard(
-                              t.id,
-                              pinInput[t.id] ?? ""
-                            );
-                            if (r.ok)
-                              setPinInput((p) => ({ ...p, [t.id]: "" }));
-                            return r;
-                          })
+                          arm === "start"
+                            ? void run(t.id, "start", () => carpoolStart(t.id))
+                            : setConfirmArm((c) => ({ ...c, [t.id]: "start" }))
                         }
-                        className="drive-sora flex h-10 flex-1 items-center justify-center gap-1.5 rounded-[10px] text-[13px] font-extrabold text-white disabled:opacity-50"
-                        style={{ background: GO }}
+                        className="drive-sora flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
+                        style={{ background: arm === "start" ? "#0E9F6E" : GO }}
                       >
-                        {busy === "board" ? (
+                        {busy === "start" ? (
+                          <Loader2 className="size-4 animate-spin" />
+                        ) : null}
+                        {arm === "start"
+                          ? tr("Confirmer le départ ?", "تأكيد الانطلاق؟")
+                          : tr("Démarrer", "انطلاق")}
+                      </button>
+                      <button
+                        type="button"
+                        disabled={busy != null}
+                        onClick={() =>
+                          arm === "cancel"
+                            ? void run(t.id, "cancel", () =>
+                                carpoolCancelTrip(t.id, routeLabel)
+                              )
+                            : setConfirmArm((c) => ({ ...c, [t.id]: "cancel" }))
+                        }
+                        className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border text-[12px] font-bold disabled:opacity-60"
+                        style={{
+                          borderColor: arm === "cancel" ? RED : "var(--d-line)",
+                          color: arm === "cancel" ? RED : "var(--d-muted)",
+                        }}
+                      >
+                        {busy === "cancel" ? (
                           <Loader2 className="size-4 animate-spin" />
                         ) : (
-                          <Check className="size-4" />
+                          <X className="size-3.5" />
                         )}
-                        {tr("Embarquer", "صعود")}
+                        {arm === "cancel"
+                          ? tr("Sûr ?", "متأكد؟")
+                          : tr("Annuler", "إلغاء")}
                       </button>
                     </div>
                   )}
-
-                {errors[t.id] && (
-                  <p
-                    className="mt-2 text-center text-[11px] font-bold"
-                    style={{ color: RED }}
-                  >
-                    {errors[t.id]}
-                  </p>
-                )}
-
-                {/* Actions de cycle de vie — confirmation en 2 taps */}
-                {t.status === "published" && (
-                  <div className="mt-2.5 flex gap-2">
+                  {t.status === "started" && (
                     <button
                       type="button"
                       disabled={busy != null}
                       onClick={() =>
-                        arm === "start"
-                          ? void run(t.id, "start", () => carpoolStart(t.id))
-                          : setConfirmArm((c) => ({ ...c, [t.id]: "start" }))
+                        arm === "done"
+                          ? void run(t.id, "done", () => carpoolComplete(t.id))
+                          : setConfirmArm((c) => ({ ...c, [t.id]: "done" }))
                       }
-                      className="drive-sora flex h-11 flex-[1.4] items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
-                      style={{ background: arm === "start" ? "#0E9F6E" : GO }}
+                      className="drive-sora mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
+                      style={{ background: VIOLET }}
                     >
-                      {busy === "start" ? (
+                      {busy === "done" ? (
                         <Loader2 className="size-4 animate-spin" />
                       ) : null}
-                      {arm === "start"
-                        ? tr("Confirmer le départ ?", "تأكيد الانطلاق؟")
-                        : tr("Démarrer", "انطلاق")}
+                      {arm === "done"
+                        ? tr("Confirmer l'arrivée ?", "تأكيد الوصول؟")
+                        : tr("Terminer le trajet", "إنهاء الرحلة")}
                     </button>
+                  )}
+                  {t.status === "completed" && t.revenue_da > 0 && (
+                    <p
+                      className="mt-2 text-center text-[12px] font-bold"
+                      style={{ color: GO }}
+                    >
+                      {tr("Recette", "الإيراد")} : {t.revenue_da}{" "}
+                      {tr("DA", "دج")}
+                    </p>
+                  )}
+                  {/* REPUBLIER : un trajet régulier se relance en 2 taps. */}
+                  {(t.status === "completed" || t.status === "cancelled") && (
                     <button
                       type="button"
-                      disabled={busy != null}
-                      onClick={() =>
-                        arm === "cancel"
-                          ? void run(t.id, "cancel", () =>
-                              carpoolCancelTrip(t.id, routeLabel)
-                            )
-                          : setConfirmArm((c) => ({ ...c, [t.id]: "cancel" }))
-                      }
-                      className="flex h-11 flex-1 items-center justify-center gap-1.5 rounded-[12px] border text-[12px] font-bold disabled:opacity-60"
-                      style={{
-                        borderColor: arm === "cancel" ? RED : "var(--d-line)",
-                        color: arm === "cancel" ? RED : "var(--d-muted)",
-                      }}
+                      onClick={() => republish(t)}
+                      className="drive-sora mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[12px] font-bold"
+                      style={{ color: VIOLET }}
                     >
-                      {busy === "cancel" ? (
-                        <Loader2 className="size-4 animate-spin" />
-                      ) : (
-                        <X className="size-3.5" />
-                      )}
-                      {arm === "cancel"
-                        ? tr("Sûr ?", "متأكد؟")
-                        : tr("Annuler", "إلغاء")}
+                      <Plus className="size-3.5" />
+                      {tr("Republier ce trajet", "إعادة نشر هذه الرحلة")}
                     </button>
-                  </div>
-                )}
-                {t.status === "started" && (
-                  <button
-                    type="button"
-                    disabled={busy != null}
-                    onClick={() =>
-                      arm === "done"
-                        ? void run(t.id, "done", () => carpoolComplete(t.id))
-                        : setConfirmArm((c) => ({ ...c, [t.id]: "done" }))
-                    }
-                    className="drive-sora mt-2.5 flex h-11 w-full items-center justify-center gap-1.5 rounded-[12px] text-[13.5px] font-extrabold text-white disabled:opacity-60"
-                    style={{ background: VIOLET }}
-                  >
-                    {busy === "done" ? (
-                      <Loader2 className="size-4 animate-spin" />
-                    ) : null}
-                    {arm === "done"
-                      ? tr("Confirmer l'arrivée ?", "تأكيد الوصول؟")
-                      : tr("Terminer le trajet", "إنهاء الرحلة")}
-                  </button>
-                )}
-                {t.status === "completed" && t.revenue_da > 0 && (
-                  <p
-                    className="mt-2 text-center text-[12px] font-bold"
-                    style={{ color: GO }}
-                  >
-                    {tr("Recette", "الإيراد")} : {t.revenue_da} {tr("DA", "دج")}
-                  </p>
-                )}
-                {/* REPUBLIER : un trajet régulier se relance en 2 taps — la
-                    feuille s'ouvre préremplie (itinéraire, prix, places). */}
-                {(t.status === "completed" || t.status === "cancelled") && (
-                  <button
-                    type="button"
-                    onClick={() => {
-                      const cf = WILAYA_CENTROIDS[t.from_wilaya];
-                      const ct = WILAYA_CENTROIDS[t.to_wilaya];
-                      if (cf)
-                        setFromPick({
-                          label: t.from_text ?? wname(t.from_wilaya),
-                          secondary: null,
-                          lat: cf.lat,
-                          lng: cf.lng,
-                          wilaya: t.from_wilaya,
-                        });
-                      if (ct)
-                        setToPick({
-                          label: t.to_text ?? wname(t.to_wilaya),
-                          secondary: null,
-                          lat: ct.lat,
-                          lng: ct.lng,
-                          wilaya: t.to_wilaya,
-                        });
-                      setSeats(t.seats_total);
-                      setPrice(t.price_per_seat_da);
-                      setFemaleOnly(t.female_only);
-                      setSheetOpen(true);
-                    }}
-                    className="drive-sora mt-2.5 flex h-10 w-full items-center justify-center gap-1.5 rounded-[10px] border border-[var(--d-line)] text-[12px] font-bold"
-                    style={{ color: VIOLET }}
-                  >
-                    <Plus className="size-3.5" />
-                    {tr("Republier ce trajet", "إعادة نشر هذه الرحلة")}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
-        );
-      })}
+                  )}
+                </div>
+              )}
+            </li>
+          );
+        })}
+      </ul>
 
       {/* ── Feuille : publier un départ ── */}
       {sheetOpen && (
@@ -762,7 +950,7 @@ export function DCarpool() {
             </div>
 
             {/* Départ / Arrivée — COMMUNE en saisie libre + suggestions. */}
-            <div className="rounded-[16px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
+            <div className="rounded-[14px] border-[1.5px] border-[var(--d-line)] bg-[var(--d-soft)] px-3 py-1">
               <div className="flex items-center gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="border-b border-[var(--d-line)]">
@@ -797,7 +985,7 @@ export function DCarpool() {
                     setToPick(f);
                   }}
                   aria-label={tr("Inverser", "عكس")}
-                  className="grid size-9 shrink-0 place-items-center rounded-full border border-[var(--d-line)] bg-[var(--d-surface)] shadow-sm"
+                  className="grid size-9 shrink-0 place-items-center rounded-[10px] border border-[var(--d-line)] bg-[var(--d-surface)]"
                   style={{ color: VIOLET }}
                 >
                   <ArrowUpDown className="size-4" />
@@ -829,7 +1017,7 @@ export function DCarpool() {
                             return next;
                           })
                         }
-                        className="drive-sora flex h-8 items-center gap-1 rounded-[14px] border px-3 text-[11px] font-bold"
+                        className="drive-sora flex h-8 items-center gap-1 rounded-full border px-3 text-[11px] font-bold"
                         style={
                           on
                             ? {
@@ -863,7 +1051,7 @@ export function DCarpool() {
 
             {/* Aperçu de l'itinéraire + prix PAR SEGMENT (auto). */}
             {chain.length >= 2 && (
-              <div className="mt-3 rounded-[14px] bg-[var(--d-soft)] px-3.5 py-2.5">
+              <div className="mt-3 rounded-[12px] bg-[var(--d-soft)] px-3.5 py-2.5">
                 <p className="text-[11px] font-bold">
                   {chain.map((p) => p.label.split(",")[0]).join(" → ")}{" "}
                   <span className="font-semibold text-[var(--d-muted)]">
@@ -1000,7 +1188,7 @@ export function DCarpool() {
               type="button"
               onClick={() => void publish()}
               disabled={pubPending}
-              className="drive-sora mt-3 flex h-[50px] w-full items-center justify-center gap-2 rounded-[14px] text-[15px] font-extrabold text-white disabled:opacity-60"
+              className="drive-sora mt-3 flex h-[48px] w-full items-center justify-center gap-2 rounded-[12px] text-[14.5px] font-extrabold text-white disabled:opacity-60"
               style={{ background: VIOLET }}
             >
               {pubPending && <Loader2 className="size-5 animate-spin" />}

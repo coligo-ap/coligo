@@ -22,4 +22,4 @@ export type Screen = "home" | "mappick" | "price" | "ride";
 /** Onglet de trajet de l'accueil : Ville (urbain) ⇄ Inter-wilayas (longue
  *  distance, façon InDrive/Yassir). Lentille d'affichage uniquement — la
  *  détection réelle est automatique (lib/drive/interwilaya). */
-export type TripMode = "ville" | "inter";
+export type TripMode = "ville" | "inter" | "covoit";

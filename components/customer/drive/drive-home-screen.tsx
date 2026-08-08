@@ -49,6 +49,7 @@ import {
 import { WILAYA_CENTROIDS } from "@/lib/config/wilaya-centroids";
 import { nearestWilayaCode } from "@/lib/drive/interwilaya";
 import { wilayaName } from "@/components/shared/place-field";
+import { CarpoolPanel } from "./carpool-view";
 import { ZoneBlockNotice } from "./drive-ui";
 import { DriveAiBar } from "./drive-ai-bar";
 import { ThemeDecor } from "@/components/shared/theme-decor";
@@ -183,7 +184,13 @@ export function DriveHomeScreen({
           : interFlag.message_fr) ?? t("mode.interBlocked"))
       : null;
 
-  // Swipe horizontal sur la feuille trajet → bascule Ville ⇄ Inter-wilayas
+  // Panneau covoiturage : monté à la 1ʳᵉ activation, puis conservé (hidden).
+  const [covoitSeen, setCovoitSeen] = useState(false);
+  useEffect(() => {
+    if (tripMode === "covoit") setCovoitSeen(true);
+  }, [tripMode]);
+
+  // Swipe horizontal sur la feuille trajet → cycle Ville ⇄ Inter ⇄ Covoit
   // (les onglets restent tapables ; le swipe est un bonus de confort).
   const touchStart = useRef<{ x: number; y: number } | null>(null);
   const onSheetTouchStart = (e: React.TouchEvent) => {
@@ -198,9 +205,17 @@ export function DriveHomeScreen({
     const dx = t1.clientX - s.x;
     const dy = t1.clientY - s.y;
     if (Math.abs(dx) < 56 || Math.abs(dx) < Math.abs(dy) * 1.5) return;
-    // Direction logique : balayer vers le 2e onglet = inter (miroir en RTL).
-    const toInter = isAr ? dx > 0 : dx < 0;
-    setTripMode(toInter && canInter ? "inter" : "ville");
+    // Direction logique : balayer vers l'onglet suivant (miroir en RTL).
+    const forward = isAr ? dx > 0 : dx < 0;
+    const order: TripMode[] = [
+      "ville",
+      ...(canInter ? (["inter"] as TripMode[]) : []),
+      ...(carpoolOn ? (["covoit"] as TripMode[]) : []),
+    ];
+    const idx = Math.max(0, order.indexOf(tripMode));
+    const next =
+      order[Math.min(order.length - 1, Math.max(0, idx + (forward ? 1 : -1)))];
+    setTripMode(next);
   };
 
   return (
@@ -331,284 +346,309 @@ export function DriveHomeScreen({
                           </button>
                         );
                       })}
-                      {/* ACCÈS DIRECT covoiturage : 3ᵉ onglet à plat — zéro
-                          niveau intermédiaire entre /drive et la réservation
-                          par places (demande explicite : moins d'imbrication). */}
+                      {/* 3ᵉ MODE covoiturage : INLINE dans la même feuille
+                          (zéro redirection — le panneau se rend dessous,
+                          exactement comme « Ville »). */}
                       {carpoolOn && (
-                        <Link
-                          href="/drive/covoiturage"
-                          className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] p-2 text-[12.5px] font-bold"
-                          style={{ color: "var(--d-muted)" }}
+                        <button
+                          type="button"
+                          onClick={() => setTripMode("covoit")}
+                          aria-pressed={tripMode === "covoit"}
+                          className="flex flex-1 items-center justify-center gap-1.5 rounded-[10px] p-2 text-[12.5px] font-bold transition-colors"
+                          style={
+                            tripMode === "covoit"
+                              ? {
+                                  background: "var(--d-surface)",
+                                  color: VIOLET,
+                                }
+                              : { color: "var(--d-muted)" }
+                          }
                         >
                           <UsersRound className="size-3.5" />
                           {t("mode.seatCard")}
-                        </Link>
+                        </button>
                       )}
                     </div>
                   )}
-                  {/* Onglet inter = COURSE PRIVÉE longue distance (le
+                  {/* Panneau covoiturage MONTÉ en continu après la 1ʳᵉ visite
+                      (masqué en `hidden`) → recherche/billets conservés quand
+                      on bascule d'onglet (règle « panneaux montés »). */}
+                  {covoitSeen && (
+                    <div className={tripMode === "covoit" ? "" : "hidden"}>
+                      <CarpoolPanel embedded />
+                    </div>
+                  )}
+                  {tripMode !== "covoit" && (
+                    <>
+                      {/* Onglet inter = COURSE PRIVÉE longue distance (le
                       covoiturage a son PROPRE onglet ci-dessus — accès direct,
                       plus de cartes intermédiaires). Bandeau slim d'explication. */}
-                  {tripMode === "inter" && (
-                    <div
-                      className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-[12px] px-3.5 py-2.5 text-white"
-                      style={{
-                        backgroundImage: `linear-gradient(120deg, ${VIOLET} 0%, #4B1FA6 70%, #8E2F86 100%)`,
-                      }}
-                    >
-                      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15">
-                        <Route className="size-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <b className="drive-sora block text-[12.5px] font-extrabold">
-                          {t("mode.interTitle")}
-                        </b>
-                        <span className="block truncate text-[10.5px] font-medium text-white/80">
-                          {t("mode.privateCardHint")}
-                        </span>
-                      </span>
-                    </div>
-                  )}
-                  <div className="mb-2.5 flex items-center gap-2">
-                    <div className="min-w-0 flex-1">
-                      <button
-                        type="button"
-                        onClick={() => setDepOpen(true)}
-                        className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-                      >
-                        <span
-                          className="size-3 shrink-0 rounded-full"
-                          style={{ background: VIOLET }}
-                        />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                            {t("departure")}
+                      {tripMode === "inter" && (
+                        <div
+                          className="mb-2.5 flex items-center gap-2.5 overflow-hidden rounded-[12px] px-3.5 py-2.5 text-white"
+                          style={{
+                            backgroundImage: `linear-gradient(120deg, ${VIOLET} 0%, #4B1FA6 70%, #8E2F86 100%)`,
+                          }}
+                        >
+                          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-white/15">
+                            <Route className="size-4" />
                           </span>
-                          <span className="block truncate text-[14.5px] font-bold">
-                            {pickup?.gps
-                              ? t("myPosition")
-                              : (pickup?.text ?? t("home.locating"))}
-                          </span>
-                          {/* Nom du lieu résolu (reverse geocode) : le client voit que
-                    le départ correspond bien à l'endroit où il se trouve. */}
-                          {pickup?.gps && (
-                            <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
-                              {pickup.text ?? t("home.locating")}
+                          <span className="min-w-0 flex-1">
+                            <b className="drive-sora block text-[12.5px] font-extrabold">
+                              {t("mode.interTitle")}
+                            </b>
+                            <span className="block truncate text-[10.5px] font-medium text-white/80">
+                              {t("mode.privateCardHint")}
                             </span>
-                          )}
-                        </span>
-                        {pickup?.gps && (
-                          <span
-                            className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
-                            style={{
-                              background: "var(--d-accent)",
-                              color: VIOLET,
-                            }}
-                          >
-                            GPS
                           </span>
-                        )}
-                      </button>
-
-                      {/* Connecteur pointillé A→B (langage visuel Bolt). */}
-                      <span
-                        aria-hidden
-                        className="ms-[19px] block h-3.5 w-0 border-s-2 border-dashed border-[var(--d-line)]"
-                      />
-
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setMapPickFor("dest");
-                          setScreen("mappick");
-                        }}
-                        className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
-                      >
-                        <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
-                            {t("destination")}
-                          </span>
-                          <span
-                            className={cn(
-                              "block truncate text-[14.5px] font-bold",
-                              !dest && "font-semibold text-[var(--d-muted)]"
-                            )}
-                          >
-                            {dest?.text ??
-                              (tripMode === "inter"
-                                ? t("mode.whereToInter")
-                                : t("home.whereTo"))}
-                          </span>
-                        </span>
-                        <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
-                      </button>
-                    </div>
-                    {/* Inverser départ ↔ arrivée */}
-                    <button
-                      type="button"
-                      onClick={swapPoints}
-                      disabled={!pickup && !dest}
-                      aria-label={t("swap")}
-                      title={t("swap")}
-                      className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] disabled:opacity-40"
-                      style={{ color: VIOLET }}
-                    >
-                      <ArrowUpDown className="size-[18px]" />
-                    </button>
-                  </div>
-
-                  {/* Destinations POPULAIRES (inter) : la wilaya en un tap —
-                      le client précise ensuite s'il veut, ou continue direct. */}
-                  {tripMode === "inter" && !dest && (
-                    <div className="mb-2 flex items-center gap-1.5 overflow-x-auto">
-                      <span className="shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
-                        {t("mode.popularDest")}
-                      </span>
-                      {["16", "31", "25", "19", "06", "15", "09", "23"]
-                        .filter((c) => c !== pickupWilaya)
-                        .slice(0, 6)
-                        .map((c) => (
+                        </div>
+                      )}
+                      <div className="mb-2.5 flex items-center gap-2">
+                        <div className="min-w-0 flex-1">
                           <button
-                            key={c}
+                            type="button"
+                            onClick={() => setDepOpen(true)}
+                            className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
+                          >
+                            <span
+                              className="size-3 shrink-0 rounded-full"
+                              style={{ background: VIOLET }}
+                            />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                                {t("departure")}
+                              </span>
+                              <span className="block truncate text-[14.5px] font-bold">
+                                {pickup?.gps
+                                  ? t("myPosition")
+                                  : (pickup?.text ?? t("home.locating"))}
+                              </span>
+                              {/* Nom du lieu résolu (reverse geocode) : le client voit que
+                    le départ correspond bien à l'endroit où il se trouve. */}
+                              {pickup?.gps && (
+                                <span className="block truncate text-[11.5px] font-medium text-[var(--d-muted)]">
+                                  {pickup.text ?? t("home.locating")}
+                                </span>
+                              )}
+                            </span>
+                            {pickup?.gps && (
+                              <span
+                                className="flex items-center gap-1 rounded-full px-2 py-1 text-[10.5px] font-bold"
+                                style={{
+                                  background: "var(--d-accent)",
+                                  color: VIOLET,
+                                }}
+                              >
+                                GPS
+                              </span>
+                            )}
+                          </button>
+
+                          {/* Connecteur pointillé A→B (langage visuel Bolt). */}
+                          <span
+                            aria-hidden
+                            className="ms-[19px] block h-3.5 w-0 border-s-2 border-dashed border-[var(--d-line)]"
+                          />
+
+                          <button
                             type="button"
                             onClick={() => {
-                              const ct = WILAYA_CENTROIDS[c];
-                              if (ct)
-                                setDest({
-                                  lat: ct.lat,
-                                  lng: ct.lng,
-                                  text: wilayaName(c, isAr),
-                                });
+                              setMapPickFor("dest");
+                              setScreen("mappick");
                             }}
-                            className="drive-sora flex h-7 shrink-0 items-center rounded-full border border-[var(--d-line)] px-2.5 text-[10.5px] font-bold whitespace-nowrap text-[var(--d-muted)] active:bg-[var(--d-soft)]"
+                            className="flex w-full items-center gap-3 rounded-[12px] border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-3 text-left"
                           >
-                            {wilayaName(c, isAr)}
+                            <span className="size-3 shrink-0 rounded-[3px] bg-[var(--d-ink)]" />
+                            <span className="min-w-0 flex-1">
+                              <span className="block text-[10.5px] font-semibold tracking-[0.3px] text-[var(--d-muted)] uppercase">
+                                {t("destination")}
+                              </span>
+                              <span
+                                className={cn(
+                                  "block truncate text-[14.5px] font-bold",
+                                  !dest && "font-semibold text-[var(--d-muted)]"
+                                )}
+                              >
+                                {dest?.text ??
+                                  (tripMode === "inter"
+                                    ? t("mode.whereToInter")
+                                    : t("home.whereTo"))}
+                              </span>
+                            </span>
+                            <Pencil className="size-4 shrink-0 text-[var(--d-muted)]" />
                           </button>
-                        ))}
-                    </div>
-                  )}
+                        </div>
+                        {/* Inverser départ ↔ arrivée */}
+                        <button
+                          type="button"
+                          onClick={swapPoints}
+                          disabled={!pickup && !dest}
+                          aria-label={t("swap")}
+                          title={t("swap")}
+                          className="grid size-10 shrink-0 place-items-center rounded-[12px] border border-[var(--d-line)] bg-[var(--d-surface)] disabled:opacity-40"
+                          style={{ color: VIOLET }}
+                        >
+                          <ArrowUpDown className="size-[18px]" />
+                        </button>
+                      </div>
 
-                  {/* Trajet inter-wilayas DÉTECTÉ (auto, quel que soit
+                      {/* Destinations POPULAIRES (inter) : la wilaya en un tap —
+                      le client précise ensuite s'il veut, ou continue direct. */}
+                      {tripMode === "inter" && !dest && (
+                        <div className="mb-2 flex items-center gap-1.5 overflow-x-auto">
+                          <span className="shrink-0 text-[9.5px] font-bold tracking-wide text-[var(--d-muted)] uppercase">
+                            {t("mode.popularDest")}
+                          </span>
+                          {["16", "31", "25", "19", "06", "15", "09", "23"]
+                            .filter((c) => c !== pickupWilaya)
+                            .slice(0, 6)
+                            .map((c) => (
+                              <button
+                                key={c}
+                                type="button"
+                                onClick={() => {
+                                  const ct = WILAYA_CENTROIDS[c];
+                                  if (ct)
+                                    setDest({
+                                      lat: ct.lat,
+                                      lng: ct.lng,
+                                      text: wilayaName(c, isAr),
+                                    });
+                                }}
+                                className="drive-sora flex h-7 shrink-0 items-center rounded-full border border-[var(--d-line)] px-2.5 text-[10.5px] font-bold whitespace-nowrap text-[var(--d-muted)] active:bg-[var(--d-soft)]"
+                              >
+                                {wilayaName(c, isAr)}
+                              </button>
+                            ))}
+                        </div>
+                      )}
+
+                      {/* Trajet inter-wilayas DÉTECTÉ (auto, quel que soit
                       l'onglet) : badge de confirmation « Alger → Béjaïa ». */}
-                  {inter && (
-                    <span
-                      className="mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold"
-                      style={{
-                        background: "rgba(108,43,217,.10)",
-                        color: VIOLET,
-                      }}
-                    >
-                      <Route className="size-3.5 shrink-0" />
-                      <span className="truncate">
-                        {t("mode.inter")} · {isAr ? inter.labelAr : inter.label}
-                      </span>
-                    </span>
-                  )}
-                  {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
+                      {inter && (
+                        <span
+                          className="mb-2 inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-extrabold"
+                          style={{
+                            background: "rgba(108,43,217,.10)",
+                            color: VIOLET,
+                          }}
+                        >
+                          <Route className="size-3.5 shrink-0" />
+                          <span className="truncate">
+                            {t("mode.inter")} ·{" "}
+                            {isAr ? inter.labelAr : inter.label}
+                          </span>
+                        </span>
+                      )}
+                      {/* Zone indisponible (commune/wilaya/rayon bloqués) : message clair +
             « Prévenez-moi » AVANT le choix du prix, et « Continuer » bloqué. */}
-                  {pickup && dest && zoneBlock && (
-                    <ZoneBlockNotice
-                      message={zoneBlock}
-                      joined={zoneJoined}
-                      onJoin={joinDriveWaitlist}
-                      className="mt-1 mb-1"
-                    />
-                  )}
-                  {/* Trajet inter DÉTECTÉ mais service suspendu : on le dit
+                      {pickup && dest && zoneBlock && (
+                        <ZoneBlockNotice
+                          message={zoneBlock}
+                          joined={zoneJoined}
+                          onJoin={joinDriveWaitlist}
+                          className="mt-1 mb-1"
+                        />
+                      )}
+                      {/* Trajet inter DÉTECTÉ mais service suspendu : on le dit
                       AVANT le choix du prix, et « Continuer » est bloqué. */}
-                  {pickup && dest && !zoneBlock && interBlockMsg && (
-                    <p
-                      className="mt-1 mb-1 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
-                      style={{
-                        background: "rgba(108,43,217,.08)",
-                        color: VIOLET,
-                      }}
-                    >
-                      {interBlockMsg}
-                    </p>
+                      {pickup && dest && !zoneBlock && interBlockMsg && (
+                        <p
+                          className="mt-1 mb-1 rounded-[12px] px-3 py-2.5 text-[12px] font-semibold"
+                          style={{
+                            background: "rgba(108,43,217,.08)",
+                            color: VIOLET,
+                          }}
+                        >
+                          {interBlockMsg}
+                        </p>
+                      )}
+                      <PrimaryBtn
+                        onClick={() => setScreen("price")}
+                        disabled={
+                          !pickup || !dest || !!zoneBlock || !!interBlockMsg
+                        }
+                        className="!mt-1"
+                      >
+                        {t("home.continue")}
+                      </PrimaryBtn>
+                    </>
                   )}
-                  <PrimaryBtn
-                    onClick={() => setScreen("price")}
-                    disabled={
-                      !pickup || !dest || !!zoneBlock || !!interBlockMsg
-                    }
-                    className="!mt-1"
-                  >
-                    {t("home.continue")}
-                  </PrimaryBtn>
                 </div>
 
                 {/* Destinations récentes — masquables une par une : le client
                     écarte celles qui ne l'intéressent plus et la suivante de
-                    son historique prend la place (le serveur en remonte 6). */}
-                <div className="mt-3">
-                  {visibleRecents.map((r) => (
-                    <div
-                      key={r.text}
-                      className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
-                    >
+                    son historique prend la place (le serveur en remonte 6).
+                    Masquées en mode covoit (le panneau a ses propres listes). */}
+                {tripMode !== "covoit" && (
+                  <div className="mt-3">
+                    {visibleRecents.map((r) => (
+                      <div
+                        key={r.text}
+                        className="flex w-full items-center gap-3 border-b border-[var(--d-line)] px-0.5 py-2.5 text-left text-[13.5px] font-semibold last:border-b-0"
+                      >
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setDest({ lat: r.lat, lng: r.lng, text: r.text })
+                          }
+                          className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        >
+                          <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
+                            <Clock className="size-4" />
+                          </span>
+                          <span className="min-w-0 flex-1 truncate">
+                            {r.text}
+                          </span>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => hideRecent(r.text)}
+                          aria-label={t("home.hideSuggestion")}
+                          title={t("home.hideSuggestion")}
+                          className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--d-muted)] transition-colors active:bg-[var(--d-soft)]"
+                        >
+                          <X className="size-4" />
+                        </button>
+                      </div>
+                    ))}
+                    {/* Filet de sécurité : on ne piège jamais un choix. */}
+                    {hidden.length > 0 && (
                       <button
                         type="button"
-                        onClick={() =>
-                          setDest({ lat: r.lat, lng: r.lng, text: r.text })
-                        }
-                        className="flex min-w-0 flex-1 items-center gap-3 text-left"
+                        onClick={restoreRecents}
+                        className="mt-1 px-0.5 py-1.5 text-[12px] font-bold text-[var(--d-muted)]"
                       >
+                        {t("home.restoreSuggestions")}
+                      </button>
+                    )}
+                    {ctx.lastRide && (
+                      <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
                         <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                          <Clock className="size-4" />
+                          <Car className="size-4" />
                         </span>
-                        <span className="min-w-0 flex-1 truncate">
-                          {r.text}
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate">
+                            {ctx.lastRide.dest_text ?? "—"}
+                          </span>
+                          <small className="block text-[11px] font-medium text-[var(--d-muted)]">
+                            {[
+                              ctx.lastRide.chauffeur_name,
+                              ctx.lastRide.price_da
+                                ? formatDA(ctx.lastRide.price_da)
+                                : null,
+                              ctx.lastRide.completed
+                                ? t("status.completed")
+                                : t("status.cancelled"),
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </small>
                         </span>
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => hideRecent(r.text)}
-                        aria-label={t("home.hideSuggestion")}
-                        title={t("home.hideSuggestion")}
-                        className="grid size-8 shrink-0 place-items-center rounded-full text-[var(--d-muted)] transition-colors active:bg-[var(--d-soft)]"
-                      >
-                        <X className="size-4" />
-                      </button>
-                    </div>
-                  ))}
-                  {/* Filet de sécurité : on ne piège jamais un choix. */}
-                  {hidden.length > 0 && (
-                    <button
-                      type="button"
-                      onClick={restoreRecents}
-                      className="mt-1 px-0.5 py-1.5 text-[12px] font-bold text-[var(--d-muted)]"
-                    >
-                      {t("home.restoreSuggestions")}
-                    </button>
-                  )}
-                  {ctx.lastRide && (
-                    <div className="flex w-full items-center gap-3 px-0.5 py-2.5 text-left text-[13.5px] font-semibold">
-                      <span className="grid size-8 shrink-0 place-items-center rounded-[10px] bg-[var(--d-soft)]">
-                        <Car className="size-4" />
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="block truncate">
-                          {ctx.lastRide.dest_text ?? "—"}
-                        </span>
-                        <small className="block text-[11px] font-medium text-[var(--d-muted)]">
-                          {[
-                            ctx.lastRide.chauffeur_name,
-                            ctx.lastRide.price_da
-                              ? formatDA(ctx.lastRide.price_da)
-                              : null,
-                            ctx.lastRide.completed
-                              ? t("status.completed")
-                              : t("status.cancelled"),
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
-                        </small>
-                      </span>
-                    </div>
-                  )}
-                </div>
+                      </div>
+                    )}
+                  </div>
+                )}
 
                 {/* Espace chauffeur — entrée discrète, sans carte. */}
                 <button

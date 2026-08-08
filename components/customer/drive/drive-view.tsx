@@ -531,13 +531,16 @@ export function DriveView({
   // Inter-wilayas : détection AUTOMATIQUE (wilayas différentes + ≥ 35 km),
   // 100 % locale — badge informatif accueil + écran prix (jamais tarifaire).
   const inter = interWilayaInfo(pickup, dest, distanceKm);
-  // Service inter-wilayas coupé par l'équipe Coligo : l'onglet inter n'est
-  // plus sélectionnable → on ramène la feuille sur « Ville ».
+  // Service inter-wilayas ou covoiturage coupé par l'équipe Coligo : le mode
+  // n'est plus sélectionnable → on ramène la feuille sur « Ville ».
   useEffect(() => {
     if (interFlag && interFlag.status !== "active" && tripMode === "inter") {
       setTripMode("ville");
     }
-  }, [interFlag, tripMode]);
+    if (!carpoolOn && tripMode === "covoit") {
+      setTripMode("ville");
+    }
+  }, [interFlag, tripMode, carpoolOn]);
 
   /* ───────── Devis par gamme — UN SEUL prix affiché (le prix FINAL) ───────── */
   useEffect(() => {
