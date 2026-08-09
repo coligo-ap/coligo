@@ -4,6 +4,8 @@ import { useCallback, useEffect, useRef } from "react";
 import {
   readStoredLocation,
   writeStoredLocation,
+  setLocationResolving,
+  GEO_BOOT_KEY,
 } from "@/lib/customer/location-store";
 import {
   getPosition,
@@ -58,9 +60,13 @@ const AUTO_SKIP_KEY = "coligo:geo:auto-skip";
 // Marqueur « boot de session » (sessionStorage, par onglet) : posé après le
 // premier passage → les montages suivants ne re-forcent plus le GPS sur un
 // choix manuel fait PENDANT la session.
-const BOOT_DONE_KEY = "coligo:geo:boot-done";
+const BOOT_DONE_KEY = GEO_BOOT_KEY;
 // Ne pas rafraîchir plus d'une fois par fenêtre (reprises groupées au focus).
 const REFRESH_THROTTLE_MS = 45_000;
+// Délai de garde de l'ouverture : au-delà, on rend la main à l'accueil avec la
+// position qu'on a (un GPS muet ne doit JAMAIS figer la marketplace sur des
+// squelettes). Calé large : un premier fix froid dépasse souvent 5 s.
+const RESOLVE_TIMEOUT_MS = 9_000;
 // En deçà de ce déplacement, on NE réécrit PAS (évite un refetch inutile).
 const MIN_MOVE_KM = 0.05; // 50 m
 // Absence (app en arrière-plan) au-delà de laquelle un RETOUR au premier plan est
@@ -76,23 +82,19 @@ const REOPEN_GRACE_MS = 30_000;
  * `source: "gps"` → la position reste éligible aux refreshs ultérieurs.
  */
 async function persistGpsPosition(latitude: number, longitude: number) {
-  // Wilaya + commune (best-effort).
-  let geo;
-  try {
-    geo = await reverseGeocode({ latitude, longitude });
-  } catch {
-    geo = { ok: false } as const;
-  }
+  // Les DEUX géocodages sont INDÉPENDANTS (l'adresse lisible ne dépend pas de
+  // la wilaya) : en PARALLÈLE, pas en cascade. En série, l'accueil restait
+  // plusieurs secondes de plus sur l'ancienne zone — c'est la moitié du délai
+  // d'ouverture ressenti.
+  const [geo, address] = await Promise.all([
+    reverseGeocode({ latitude, longitude }).catch(
+      () => ({ ok: false }) as const
+    ),
+    // Adresse exacte lisible (best-effort) pour le header.
+    reverseGeocodeAddress(latitude, longitude).catch(() => null),
+  ]);
   const wilayaCode = geo.ok ? (geo.wilaya_code ?? null) : null;
   const commune = geo.ok ? (geo.commune ?? null) : null;
-
-  // Adresse exacte lisible (best-effort) pour le header.
-  let address: string | null = null;
-  try {
-    address = await reverseGeocodeAddress(latitude, longitude);
-  } catch {
-    /* géocodage indispo : le header retombe sur commune · wilaya */
-  }
 
   writeStoredLocation({
     latitude,
@@ -102,6 +104,11 @@ async function persistGpsPosition(latitude: number, longitude: number) {
     address,
     source: "gps",
   });
+
+  // La position est écrite : l'accueil peut reprendre la main TOUT DE SUITE.
+  // On ne fait surtout pas attendre l'écriture en base ci-dessous — elle ne
+  // change rien à l'affichage et ajoutait un aller-retour réseau de squelettes.
+  setLocationResolving(false);
 
   // Sync DB si l'user est connecté (no-op silencieux sinon).
   try {
@@ -223,16 +230,44 @@ export function LocationAutoDetect() {
     }
   }, []);
 
-  // Au montage : acquisition (prompt autorisé) ou 1er refresh.
+  // OUVERTURE DE L'APP : acquisition (prompt autorisé) ou 1er refresh. Le
+  // drapeau « en cours de détection » est déjà levé par le store (lecture
+  // synchrone du marqueur de session) — l'accueil montre donc ses squelettes
+  // au lieu des commerces de l'ancienne zone. On le baisse quoi qu'il arrive :
+  // à la fin du passage, ou au plus tard au délai de garde.
   useEffect(() => {
-    void run(true);
+    const guard = setTimeout(
+      () => setLocationResolving(false),
+      RESOLVE_TIMEOUT_MS
+    );
+    void run(true).finally(() => {
+      clearTimeout(guard);
+      setLocationResolving(false);
+    });
+    return () => clearTimeout(guard);
   }, [run]);
 
   // À la reprise au premier plan : refresh SILENCIEUX. On transmet la durée
   // d'absence → une reprise après une absence > grâce est traitée comme une
   // réouverture (reprend la position GPS réelle, même sur une zone manuelle).
+  // Une VRAIE réouverture (app restée en arrière-plan longtemps, WebView non
+  // détruite → le marqueur de session survit) relève le drapeau : le client
+  // retrouve l'accueil sur sa position du moment, pas sur celle d'hier.
   useResumeResync((hiddenMs) => {
-    void run(false, hiddenMs);
+    const reopening = hiddenMs > REOPEN_GRACE_MS;
+    if (!reopening) {
+      void run(false, hiddenMs);
+      return;
+    }
+    setLocationResolving(true);
+    const guard = setTimeout(
+      () => setLocationResolving(false),
+      RESOLVE_TIMEOUT_MS
+    );
+    void run(false, hiddenMs).finally(() => {
+      clearTimeout(guard);
+      setLocationResolving(false);
+    });
   });
 
   return null;

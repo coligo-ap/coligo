@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import {
   LOCATION_COOKIE,
   LOCATION_COOKIE_MAX_AGE,
@@ -39,6 +39,64 @@ export type CustomerLocation = {
 };
 
 const STORAGE_KEY = "coligo:customer:location";
+
+// =============================================================================
+// « POSITION EN COURS DE DÉTECTION » — état de démarrage de l'app.
+// =============================================================================
+// Règle produit (calquée sur Uber Eats) : à CHAQUE ouverture, la marketplace
+// part de la position ACTUELLE, pas de la zone choisie la fois d'avant. Le GPS
+// met 2 à 5 s à répondre ; sans cet état, l'accueil affichait pendant tout ce
+// temps les commerces de l'ANCIENNE zone — le client voyait sa vieille adresse
+// et une liste qui ne le concernait plus, puis tout changeait sous ses yeux.
+//
+// Tant que ce drapeau est levé : la grille montre ses SQUELETTES (jamais une
+// liste périmée) et le header annonce « Localisation… ». `LocationAutoDetect`
+// le baisse dès que la position est écrite — ou au plus tard au bout de son
+// délai de garde, pour qu'un GPS muet ne fige jamais l'accueil.
+//
+// Il est levé SYNCHRONEMENT au tout premier accès de la session (marqueur
+// `sessionStorage`) : sinon la grille aurait déjà peint la vieille liste avant
+// que l'effet de détection n'ait eu le temps de tourner.
+// =============================================================================
+
+/** Partagé avec LocationAutoDetect : « ce contexte a déjà démarré une fois ». */
+export const GEO_BOOT_KEY = "coligo:geo:boot-done";
+
+let resolving: boolean | null = null;
+const resolvingListeners = new Set<() => void>();
+
+function readResolving(): boolean {
+  if (typeof window === "undefined") return false;
+  if (resolving === null) {
+    try {
+      // Ouverture de l'app (ou nouvel onglet) → une détection va être tentée.
+      resolving = window.sessionStorage.getItem(GEO_BOOT_KEY) !== "1";
+    } catch {
+      resolving = false;
+    }
+  }
+  return resolving;
+}
+
+export function setLocationResolving(next: boolean): void {
+  if (typeof window === "undefined") return;
+  if (readResolving() === next) return;
+  resolving = next;
+  for (const l of resolvingListeners) l();
+}
+
+/** Vrai pendant la détection de la position à l'ouverture de l'app. */
+export function useLocationResolving(): boolean {
+  return useSyncExternalStore(
+    (cb) => {
+      resolvingListeners.add(cb);
+      return () => resolvingListeners.delete(cb);
+    },
+    () => readResolving(),
+    // SSR : jamais « en cours » (le serveur rend avec la position du cookie).
+    () => false
+  );
+}
 
 // -----------------------------------------------------------------------------
 // Feuille « Où veux-tu commander ? » — il n'en existe QU'UNE, rendue par le

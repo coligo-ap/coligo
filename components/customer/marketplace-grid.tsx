@@ -11,6 +11,7 @@ import { ArrowRight, Loader2, MapPin } from "lucide-react";
 import {
   openLocationPicker,
   useCustomerLocation,
+  useLocationResolving,
 } from "@/lib/customer/location-store";
 import { categoryLabelFrom, useCategories } from "@/lib/hooks/use-categories";
 import { isOpenNow } from "@/lib/merchant/opening-hours";
@@ -74,6 +75,7 @@ export function MarketplaceGrid({
   const t = useTranslations("browse");
   const locale = useLocale();
   const loc = useCustomerLocation();
+  const locResolving = useLocationResolving();
   // Libellés de catégorie pilotés en base (nouvelles catégories/renommages).
   const dbCategories = useCategories();
   const filters = useMemo<Filters>(
@@ -155,7 +157,11 @@ export function MarketplaceGrid({
   // liste charge → l'utilisateur croit que SA ville n'a aucun commerce.
   // → squelettes le temps du fetch ; le fallback ne sert qu'en cas d'ÉCHEC
   // réseau avéré (mieux que rien).
-  const zoneLoading = shouldFetch && !zoneQuery.data && !zoneQuery.isError;
+  // …et pendant la DÉTECTION de la position à l'ouverture de l'app : la liste
+  // de l'ancienne zone n'a plus rien à faire à l'écran (le client a pu changer
+  // de ville depuis). Squelettes le temps que le GPS réponde, comme Uber Eats.
+  const zoneLoading =
+    locResolving || (shouldFetch && !zoneQuery.data && !zoneQuery.isError);
   const items = !shouldFetch
     ? fallback
     : (zoneQuery.data?.items ?? (zoneQuery.isError ? fallback : []));

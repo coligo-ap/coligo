@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import {
   LOCATION_PICKER_OPEN_EVENT,
   useCustomerLocation,
+  useLocationResolving,
 } from "@/lib/customer/location-store";
 import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
@@ -46,6 +47,10 @@ export function CustomerHeader({
   const themed = !!homeTheme && pathname === "/";
   const tp = themed ? APP_THEMES[homeTheme.theme] : null;
   const loc = useCustomerLocation();
+  // Détection de la position à l'ouverture de l'app : tant qu'elle tourne, le
+  // header n'affiche PAS l'ancienne adresse (le client a pu changer de ville
+  // depuis) — il annonce la détection en cours.
+  const locResolving = useLocationResolving();
   const cart = useCart();
   const cartCount = totalUnits(cart);
   const [pickerOpen, setPickerOpen] = useState(false);
@@ -59,15 +64,18 @@ export function CustomerHeader({
     return () => window.removeEventListener(LOCATION_PICKER_OPEN_EVENT, onOpen);
   }, []);
 
-  const wilayaLabel = loc?.wilaya_code
-    ? (WILAYAS.find((w) => w.code === loc.wilaya_code)?.name ??
-      `Wilaya ${loc.wilaya_code}`)
-    : t("chooseZone");
+  const wilayaLabel = locResolving
+    ? t("locating")
+    : loc?.wilaya_code
+      ? (WILAYAS.find((w) => w.code === loc.wilaya_code)?.name ??
+        `Wilaya ${loc.wilaya_code}`)
+      : t("chooseZone");
 
   // Si le client a confirmé une POSITION EXACTE (GPS ou repère carte), on
   // affiche son adresse précise telle quelle → il voit que sa vraie position
   // est prise en compte. Sinon on retombe sur « wilaya · commune ».
-  const exactAddress = loc?.address?.trim() ? loc.address.trim() : null;
+  const exactAddress =
+    !locResolving && loc?.address?.trim() ? loc.address.trim() : null;
 
   return (
     <>
@@ -130,7 +138,7 @@ export function CustomerHeader({
               {exactAddress ?? (
                 <>
                   {wilayaLabel}
-                  {loc?.commune && (
+                  {!locResolving && loc?.commune && (
                     <span className={themed ? "text-white/70" : "text-muted"}>
                       {" "}
                       · {loc.commune}
@@ -257,7 +265,7 @@ export function CustomerHeader({
                   {exactAddress ?? (
                     <>
                       {wilayaLabel}
-                      {loc?.commune && (
+                      {!locResolving && loc?.commune && (
                         <span
                           className={themed ? "text-white/70" : "text-muted"}
                         >
