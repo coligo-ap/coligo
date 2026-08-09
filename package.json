@@ -126,6 +126,7 @@
     "@zxing/library": "^0.22.0",
     "agora-rtc-sdk-ng": "^4.24.4",
     "agora-token": "^2.0.5",
+    "capacitor-native-settings": "^8.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dexie": "^4.4.2",

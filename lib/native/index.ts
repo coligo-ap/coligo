@@ -9,6 +9,8 @@
 
 export * from "./context";
 export * from "./geolocation";
+export * from "./geo-permission";
+export * from "./settings";
 export * from "./notify";
 export * from "./printer";
 export * from "./scanner";

@@ -20,6 +20,7 @@ import { IdvRequiredScreen } from "@/components/idv/idv-required-screen";
 import { idvBlocksAccess, idvRouteFor } from "@/lib/idv/compliance";
 import { headers } from "next/headers";
 import { DriverInstallBanner } from "@/components/driver/driver-install-banner";
+import { DriverLocationGate } from "@/components/driver/driver-location-gate";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { getDriverGate } from "@/lib/auth/driver-gate";
 import { APP_CONFIG } from "@/lib/config/app-config";
@@ -158,6 +159,11 @@ export default async function DriverLayout({
         {/* Organes opérationnels : réservés au compte activé. */}
         {isActive && (
           <>
+            {/* LOCALISATION OBLIGATOIRE : sans position exacte, écran bloquant
+                plein écran (z-[200]) + mise hors ligne → plus aucune course
+                Express proposée. Réservé au compte ACTIVÉ : on n'impose pas la
+                géoloc à quelqu'un qui remplit encore son dossier. */}
+            <DriverLocationGate />
             {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
             <DriverDispatchMount userId={driver?.user_id ?? null} />
             {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants

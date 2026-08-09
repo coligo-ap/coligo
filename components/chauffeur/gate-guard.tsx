@@ -3,6 +3,7 @@ import { getChauffeurGate } from "@/app/(chauffeur)/actions";
 import { idvBlocksAccess, idvRouteFor } from "@/lib/idv/compliance";
 import { IdvRequiredScreen } from "@/components/idv/idv-required-screen";
 import { DBlocked, DFrozen } from "@/components/chauffeur/d-gate";
+import { ChauffeurLocationGate } from "@/components/chauffeur/chauffeur-location-gate";
 import { ChauffeurGateProvider } from "./gate-context";
 
 /**
@@ -42,5 +43,14 @@ export async function ChauffeurGateGuard({
       <IdvRequiredScreen route={idvRouteFor("chauffeur")} profile="chauffeur" />
     );
   }
-  return <ChauffeurGateProvider gate={gate}>{children}</ChauffeurGateProvider>;
+  return (
+    <ChauffeurGateProvider gate={gate}>
+      {/* LOCALISATION OBLIGATOIRE — écran bloquant + mise hors ligne quand la
+          position exacte manque. Monté ICI et pas dans la coque : un compte
+          BLOQUÉ, GELÉ ou en attente d'IDV a déjà son propre écran, et on ne
+          va pas lui réclamer son GPS par-dessus. */}
+      <ChauffeurLocationGate />
+      {children}
+    </ChauffeurGateProvider>
+  );
 }

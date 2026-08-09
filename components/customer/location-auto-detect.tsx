@@ -5,7 +5,11 @@ import {
   readStoredLocation,
   writeStoredLocation,
 } from "@/lib/customer/location-store";
-import { getPosition, geolocationSupported } from "@/lib/native";
+import {
+  getPosition,
+  geolocationSupported,
+  readGeoPermission,
+} from "@/lib/native";
 import {
   reverseGeocode,
   updateCustomerLocation,
@@ -45,6 +49,11 @@ import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 // met à jour, sans rechargement de page.
 // =============================================================================
 
+// Marqueur « on a déjà essayé et échoué » — en sessionStorage, PAS en
+// localStorage : la règle produit est « à CHAQUE ouverture de l'app, on
+// détecte la position actuelle ». Un refus ne doit donc pas éteindre la
+// détection pour toujours ; il éteint seulement les tentatives restantes de
+// CETTE session, et la prochaine ouverture retente.
 const AUTO_SKIP_KEY = "coligo:geo:auto-skip";
 // Marqueur « boot de session » (sessionStorage, par onglet) : posé après le
 // premier passage → les montages suivants ne re-forcent plus le GPS sur un
@@ -61,21 +70,6 @@ const MIN_MOVE_KM = 0.05; // 50 m
 // de partage, coup d'œil dans une autre app), on respecte le choix manuel en
 // cours. Aligné sur le seuil « longue absence » de useResumeResync.
 const REOPEN_GRACE_MS = 30_000;
-
-/** État de la permission Geolocation (sans jamais déclencher de prompt). */
-async function readPermission(): Promise<PermissionState | "unknown"> {
-  try {
-    if (navigator.permissions?.query) {
-      const status = await navigator.permissions.query({
-        name: "geolocation" as PermissionName,
-      });
-      return status.state;
-    }
-  } catch {
-    /* Permissions API indisponible (Safari iOS ≤ 15) */
-  }
-  return "unknown";
-}
 
 /**
  * Reverse-géocode + persiste une position GPS (localStorage + DB si connecté).
@@ -160,15 +154,24 @@ export function LocationAutoDetect() {
     // est déjà accordée (jamais de prompt par-dessus un choix manuel).
     if (hasPosition && current?.source !== "gps" && !reopen) return;
 
-    const permission = await readPermission();
+    // Permission lue par le socle NATIF quand on tourne en APK : dans le
+    // WebView, `navigator.permissions` ne reflète PAS le grant Android runtime
+    // (il répondait « unknown » → l'app native ne détectait JAMAIS la position
+    // à la première utilisation, le bug que corrige ce passage).
+    const permission = await readGeoPermission();
 
     if (!hasPosition) {
-      // ACQUISITION. Refusé → bandeau legacy. Inconnu (Safari) → pas de prompt
-      // surprise. Prompt → seulement sur un montage (jamais sur une reprise).
+      // ACQUISITION. Refusé → bandeau legacy (l'OS ne réafficherait rien).
       if (permission === "denied") return;
-      if (permission === "unknown") return;
+      // « unknown » (Safari ancien, Permissions API absente) : impossible de
+      // savoir sans demander. À la PREMIÈRE UTILISATION on tente quand même —
+      // c'est la règle produit (« détecter la position dès l'ouverture ») et la
+      // tentative EST la demande. Jamais sur une reprise en arrière-plan.
+      if (permission === "unknown" && !allowPrompt) return;
       if (permission === "prompt" && !allowPrompt) return;
-      if (window.localStorage.getItem(AUTO_SKIP_KEY) === "1") return;
+      // Déjà tenté et échoué DANS CETTE session → on n'insiste plus ici (la
+      // prochaine ouverture de l'app retentera).
+      if (window.sessionStorage.getItem(AUTO_SKIP_KEY) === "1") return;
     } else {
       // REFRESH SILENCIEUX : uniquement si déjà autorisé (jamais de prompt).
       if (permission !== "granted") return;
@@ -190,9 +193,9 @@ export function LocationAutoDetect() {
         // (permission accordée) → on ne désactive rien, on retentera à la reprise.
         if (!hasPosition) {
           try {
-            window.localStorage.setItem(AUTO_SKIP_KEY, "1");
+            window.sessionStorage.setItem(AUTO_SKIP_KEY, "1");
           } catch {
-            /* localStorage plein / privé — ignore */
+            /* sessionStorage indispo — ignore */
           }
         }
         return;
