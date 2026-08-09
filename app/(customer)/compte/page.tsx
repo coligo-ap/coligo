@@ -22,6 +22,7 @@ import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import { CustomerLanguageRow } from "@/components/customer/customer-language-row";
+import { CustomerThemeRow } from "@/components/customer/customer-theme-row";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
@@ -326,14 +327,17 @@ export default async function CustomerAccountPage({
           )}
         </div>
 
-        {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré.
-            (Le mode sombre se bascule depuis le header — décision produit du
-            09/08/2026 : la lune reste dans la barre du haut.) */}
+        {/* Section PRÉFÉRENCES — langue (FR / العربية / EN) + mode sombre, les
+            deux enregistrés en cookie. Le mode sombre a rejoint cette section
+            le 09/08/2026 : le header téléphone ne porte plus que la zone (au
+            centre) + cloche + panier, il fallait donc autant de place de chaque
+            côté. Sur ordinateur, la lune reste dans la barre du haut. */}
         <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionPreferences")}
         </p>
         <div className="divide-border shadow-float mx-4 divide-y overflow-hidden rounded-xl bg-white">
           <CustomerLanguageRow title={t("language")} />
+          <CustomerThemeRow title={t("darkMode")} />
         </div>
 
         {/* Section AIDE — live chat support (Tawk.to) */}

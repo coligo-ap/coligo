@@ -16,6 +16,7 @@
   },
   "header": {
     "chooseZone": "اختر منطقة",
+    "deliverTo": "التوصيل إلى",
     "becomeMerchant": "كن تاجراً",
     "cart": "السلة",
     "signIn": "تسجيل الدخول",
@@ -733,6 +734,7 @@
     "sectionHelp": "المساعدة",
     "sectionPreferences": "التفضيلات",
     "language": "اللغة",
+    "darkMode": "الوضع الداكن",
     "helpSupport": "المساعدة والدعم",
     "helpSupportDesc": "دردشة مباشرة مع الدعم بخصوص طلبك",
     "personalInfo": "المعلومات الشخصية",

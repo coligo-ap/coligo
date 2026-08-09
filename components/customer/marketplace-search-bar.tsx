@@ -85,7 +85,10 @@ export function MarketplaceSearchBar({
       {floating && <div ref={sentinelRef} aria-hidden className="h-px" />}
       <div
         className={cn(
-          "sticky top-[57px] z-20 -mx-4 px-4 pt-1.5 pb-3 transition-colors lg:top-16 lg:-mx-6 lg:px-6",
+          // Collée SOUS le header client : offset lu sur --customer-header-h
+          // (hauteur réelle, ENCOCHE COMPRISE) — en dur, la barre passait sous
+          // le header dès qu'il y avait une barre de statut (APK Android).
+          "sticky top-[var(--customer-header-h)] z-20 -mx-4 px-4 pt-1.5 pb-3 transition-colors lg:-mx-6 lg:px-6",
           onHero ? "bg-transparent" : "bg-surface"
         )}
       >
