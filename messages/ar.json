@@ -37,7 +37,10 @@
     "filterDelivery": "توصيل",
     "filterExpress": "سريع",
     "filterTopRated": "الأعلى تقييماً",
-    "filterOpen": "مفتوح"
+    "filterOpen": "مفتوح",
+    "filters": "الفلاتر",
+    "filtersReset": "مسح",
+    "filtersApply": "عرض المتاجر"
   },
   "merchant": {
     "promoBanner": "تخفيضات سارية اليوم على مجموعة مختارة من المنتجات.",

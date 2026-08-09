@@ -27,7 +27,6 @@ import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { InstallAppBanner } from "@/components/shared/install-app-banner";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
-import { HomeFilterPills } from "@/components/customer/home-filter-pills";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
 import { LocationBanner } from "@/components/customer/location-banner";
 import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
@@ -36,7 +35,10 @@ import { PromoBanner } from "@/components/customer/promo-banner";
 import { HomeWheelEntry } from "@/components/customer/home-wheel-entry";
 import { WheelBubble } from "@/components/customer/wheel/wheel-bubble";
 import { ReviewPrompt } from "@/components/customer/review-prompt";
-import { HomeThemeHero } from "@/components/customer/home-theme-hero";
+import {
+  HomeThemeHero,
+  shouldShowThemeStrip,
+} from "@/components/customer/home-theme-hero";
 
 export const dynamic = "force-dynamic";
 
@@ -153,24 +155,19 @@ export default async function CustomerHomePage() {
       <LocationAutoDetect />
 
       <div className="bg-surface min-h-screen">
-        {/* Héro thémé « occasion » INTÉGRÉ (header peint en g1 par la coque +
-            dégradé ici + recherche flottante) — UNIQUEMENT si activé par le
-            super-admin (désactivé = accueil simple actuel, rien n'est rendu). */}
-        {appTheme.marketplaceHero && (
-          <HomeThemeHero
-            theme={appTheme.theme}
-            model={appTheme.model}
-            locale={locale}
-            extended={appTheme.heroCategories}
-          />
-        )}
+        {/* Bande « occasion » — UNE LIGNE qui prolonge le header peint en g1
+            par la coque (mig 0415/0416, activée par le super-admin). Masquée
+            pour un connecté sur le thème par défaut : « Bienvenue sur Coligo »
+            est du décor pour quelqu'un qui est déjà entré. */}
+        {appTheme.marketplaceHero &&
+          shouldShowThemeStrip({ theme: appTheme.theme, isAuth }) && (
+            <HomeThemeHero theme={appTheme.theme} locale={locale} />
+          )}
         <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
-          {/* Recherche pleine largeur (sticky sous le header) + scan
-              code-barres (flag barcode_marketplace, piloté /admin/controle).
-              Accueil thémé : pilule blanche FLOTTANTE sur le dégradé du héro. */}
+          {/* ─── STRATE 1 — RECHERCHE (+ filtres, + scan si le flag
+              barcode_marketplace est actif). Zone neutre, collée au header. */}
           <MarketplaceSearchBar
             scanEnabled={flags.barcode_marketplace.status === "active"}
-            floating={appTheme.marketplaceHero}
           />
 
           {/* Visiteur sur le WEB MOBILE : proposition d'installer l'app, vers
@@ -178,37 +175,16 @@ export default async function CustomerHomePage() {
               ordinateur, et après un refus. */}
           <InstallAppBanner />
 
-          {/* Catégories rondes (mécanique Uber Eats). Héro thémé : soit ELLES
-              SONT DANS le design (hero_categories, libellés blancs), soit un
-              petit espace les sépare de la fin du design (jamais de
-              chevauchement avec le bord arrondi). */}
-          <div
-            className={
-              appTheme.marketplaceHero && !appTheme.heroCategories
-                ? "pt-4"
-                : "pt-1"
-            }
-          >
-            <CategoryStrip
-              categories={categories}
-              onHero={appTheme.marketplaceHero && appTheme.heroCategories}
-            />
-          </div>
-
-          {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés.
-              Le filtre ACTIF se voit par sa COULEUR (pilule pleine, tuile
-              cerclée violet) — jamais de bandeau récapitulatif en plus
-              (demande produit du 06/08). */}
-          <div className="pt-3.5 pb-1">
-            <HomeFilterPills />
-          </div>
+          {/* ─── STRATE 2 — CATÉGORIES. Le filtre appliqué se voit par sa
+              COULEUR (tuile cerclée violet), jamais par un bandeau en plus. */}
+          <CategoryStrip categories={categories} />
 
           {/* Localisation manuelle — fallback si la géoloc auto échoue. */}
           <LocationBanner />
 
           {/* Encart "Donne ton avis" — uniquement si commandes à noter. */}
           {reviewableOrders.length > 0 && (
-            <section className="mt-3">
+            <section className="mt-section">
               <ReviewPrompt orders={reviewableOrders} />
             </section>
           )}
@@ -219,7 +195,7 @@ export default async function CustomerHomePage() {
           {isAuth &&
             flags.wheel.status === "active" &&
             banners.length === 0 && (
-              <section className="mt-3">
+              <section className="mt-section">
                 <HomeWheelEntry />
               </section>
             )}
@@ -248,7 +224,8 @@ export default async function CustomerHomePage() {
               contenu — bissection du 13/07/2026). La page est force-dynamic :
               la frontière de route loading.tsx couvre déjà le streaming, et
               useSearchParams n'exige un Suspense qu'en rendu STATIQUE. */}
-          <section className="mt-3 pb-8">
+          {/* ─── STRATE 3 — CONTENU. */}
+          <section className="mt-section pb-8">
             <MarketplaceSection
               fallback={rankedFallback}
               promoIds={promoIds}

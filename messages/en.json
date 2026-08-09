@@ -37,7 +37,10 @@
     "filterDelivery": "Delivery",
     "filterExpress": "Express",
     "filterTopRated": "Top rated",
-    "filterOpen": "Open"
+    "filterOpen": "Open",
+    "filters": "Filters",
+    "filtersReset": "Clear",
+    "filtersApply": "See shops"
   },
   "merchant": {
     "promoBanner": "Deals running today on a selection of products.",

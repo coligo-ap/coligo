@@ -1,17 +1,17 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { memo, useEffect, useState } from "react";
 import { useTranslations } from "next-intl";
-import { Bike, Clock, MapPin, Star, Tag, Zap } from "lucide-react";
-import { cn, formatDA } from "@/lib/utils";
+import { Bike, MapPin, Star, Tag } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { logMerchantEvent } from "@/lib/customer/reco-events";
 import { trackSelectItem } from "@/lib/analytics/ecommerce";
 import { isOpenNow, nowInAlgiers } from "@/lib/merchant/opening-hours";
-import { WILAYAS } from "@/lib/config/wilayas";
 import { cldUrl } from "@/lib/images/cloudinary";
 import { categoryImageFor } from "@/lib/images/category-images";
 import { FavoriteHeart } from "@/components/customer/favorite-heart";
+import { MetaItem, MetaRow } from "@/components/customer/merchant-meta";
 import type { PublicMerchant, PromoLabel } from "@/lib/data/merchants-public";
 
 type Props = {
@@ -31,10 +31,19 @@ type Props = {
 };
 
 /**
- * Carte commerce style Uber Eats : grande image de couverture, badge Ouvert +
- * cœur favori + ETA sur l'image, puis nom + note, ligne d'infos (frais /
- * distance / ville) et tags de mode. Refonte visuelle — on garde les mêmes
- * données (`PublicMerchant`) et la même navigation (`/m/[slug]`).
+ * Carte commerce — grande photo puis nom + UNE ligne de méta.
+ *
+ * DÉGRAISSAGE (refonte accueil) : la carte portait 14 éléments simultanés
+ * (photo, ouvert, cœur, promo, ETA, nom, note, « Retrait gratuit » en vert,
+ * distance, ville, minimum de commande, et 3 tags de mode) — dont plusieurs
+ * redondants entre le texte et les badges. Il n'en reste que ce qui sert à
+ * CHOISIR : photo · ouvert/fermé · nom · note · distance · mode principal.
+ * ETA, minimum de commande, ville et modes secondaires vivent sur la fiche
+ * (`merchant-compact-header.tsx`) : rien n'a disparu du parcours.
+ *
+ * COULEUR : les badges d'information sont neutres (token --color-photo-badge,
+ * lisible en clair comme en sombre) ; seul le badge PROMO garde l'accent rose.
+ * La photo redevient la principale source de couleur de l'écran.
  */
 function MerchantCardImpl({
   merchant,
@@ -58,10 +67,6 @@ function MerchantCardImpl({
   useEffect(() => {
     setOpen(isOpenNow(merchant.opening_hours, nowInAlgiers()));
   }, [merchant.opening_hours]);
-  const wilayaName = merchant.wilaya_code
-    ? WILAYAS.find((w) => w.code === merchant.wilaya_code)?.name
-    : null;
-  const cityLabel = merchant.commune || wilayaName || null;
 
   const coverSrc =
     merchant.cover_url ?? categoryImageFor(merchant.category) ?? null;
@@ -76,6 +81,12 @@ function MerchantCardImpl({
     distanceKm != null && distanceKm >= 0
       ? `${distanceKm.toFixed(1).replace(".", ",")} km`
       : null;
+
+  // MODE PRINCIPAL, un seul : la livraison quand elle existe, sinon le retrait
+  // (toujours possible). Express / tournée sont des variantes de livraison →
+  // détaillées sur la fiche, pas empilées ici.
+  const ModeIcon = merchant.delivery_enabled ? Bike : MapPin;
+  const modeLabel = merchant.delivery_enabled ? t("delivery") : t("pickup");
 
   return (
     <Link
@@ -96,10 +107,12 @@ function MerchantCardImpl({
         open === false && "opacity-90"
       )}
     >
-      {/* ─── Image de couverture + overlays ─── */}
+      {/* ─── Photo de couverture + overlays ─── */}
       {/* Cadre façon Yassir : bordure fine autour de la photo seule, le texte
-          vit dessous (couverture = bannière → cover, pas contain). */}
-      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-sm border">
+          vit dessous (couverture = bannière → cover, pas contain). Plus de
+          voile dégradé sur toute l'image : les badges portent leur propre
+          plaque, la photo garde ses vraies couleurs. */}
+      <div className="border-border bg-surface-2 relative h-[158px] overflow-hidden rounded-md border">
         {coverOptimized ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -110,147 +123,67 @@ function MerchantCardImpl({
             className="h-full w-full object-cover"
           />
         ) : (
-          <div className="bg-primary-50 text-primary-700/70 flex h-full w-full items-center justify-center text-4xl font-bold">
+          <div className="bg-surface-3 text-subtle flex h-full w-full items-center justify-center text-4xl font-bold">
             {merchant.name.charAt(0)}
           </div>
         )}
-        {/* dégradé pour la lisibilité des badges */}
-        <span
-          aria-hidden
-          className="pointer-events-none absolute inset-0 bg-gradient-to-b from-black/20 via-transparent to-black/25"
-        />
 
-        {/* badge Ouvert / Fermé (haut-gauche) — affiché une fois l'état connu
-            (post-montage) pour éviter tout mismatch d'hydratation (#418). */}
+        {/* badge Ouvert / Fermé (haut, côté début) — affiché une fois l'état
+            connu (post-montage) pour éviter tout mismatch d'hydratation
+            (#418). Plaque NEUTRE : seule la pastille porte l'état. */}
         {open !== null && (
-          <span className="text-foreground text-caption absolute top-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 rounded-full bg-white/95 px-2.5 py-1.5 font-extrabold shadow-sm backdrop-blur">
+          <span className="bg-photo-badge text-photo-badge-ink text-caption rounded-chip absolute start-2.5 top-2.5 z-20 inline-flex items-center gap-1.5 px-2 py-1 font-semibold backdrop-blur">
             <span
               className={cn(
                 "size-[5px] rounded-full",
-                open
-                  ? "animate-pulse bg-[var(--color-success-600)]"
-                  : "bg-subtle"
+                open ? "bg-success-600" : "bg-subtle"
               )}
             />
             {open ? t("open") : t("closed")}
           </span>
         )}
 
-        {/* cœur favori (haut-droite) */}
+        {/* cœur favori (haut, côté fin) */}
         <FavoriteHeart
           merchantId={merchant.id}
           initialFavorite={initialFavorite}
           isAuth={isAuth}
           refreshOnToggle={refreshOnToggle}
-          className="absolute top-2.5 right-2.5 z-20"
+          className="absolute end-2.5 top-2.5 z-20"
         />
 
-        {/* promo (bas-gauche, rose) — étiquette d'ORIGINE (ne pas aplatir :
-            les codes couleurs promo sont volontairement saillants). */}
+        {/* promo (bas, côté début) — SEUL badge coloré de la carte : les codes
+            couleurs promo sont volontairement saillants. */}
         {showPromo && (
-          <span className="bg-accent-600 rounded-chip text-label absolute bottom-2.5 left-2.5 z-20 inline-flex items-center gap-1.5 px-2.5 py-1.5 font-extrabold text-white shadow-md">
+          <span className="bg-accent-600 text-on-brand rounded-chip text-caption absolute start-2.5 bottom-2.5 z-20 inline-flex items-center gap-1.5 px-2 py-1 font-bold">
             <Tag className="size-3" />
             {showPromo.text}
           </span>
         )}
-
-        {/* ETA (bas-droite) */}
-        {merchant.prep_time_min > 0 && (
-          <span className="text-foreground text-caption-lg absolute right-2.5 bottom-2.5 z-20 inline-flex items-center gap-1 rounded-full bg-white/95 px-2.5 py-1.5 font-extrabold shadow-sm backdrop-blur">
-            <Clock className="size-3" />
-            {merchant.prep_time_min} min
-          </span>
-        )}
       </div>
 
-      {/* ─── Infos sous l'image ─── */}
+      {/* ─── Nom + UNE ligne de méta ─── */}
       <div className="px-0.5 pt-2.5">
-        <div className="flex items-center justify-between gap-2">
-          <h3 className="text-foreground text-title-lg line-clamp-1 font-extrabold tracking-[-0.3px]">
-            {merchant.name}
-          </h3>
-          {/* Note : 5,0 par DÉFAUT tant qu'aucun avis (tous les commerçants
-              affichent 5 étoiles au départ). */}
-          <span className="bg-surface-2 text-foreground inline-flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold">
-            <Star className="size-3 fill-current" />
+        {/* Une seule information dominante par bloc : le NOM. */}
+        <h3 className="text-foreground text-title-sm line-clamp-1 font-extrabold tracking-[-0.2px]">
+          {merchant.name}
+        </h3>
+
+        {/* Note · mode principal · distance — patron partagé `MetaRow` (gris
+            moyen, graisse normale). Note = 5,0 par DÉFAUT tant qu'aucun avis. */}
+        <MetaRow className="mt-1">
+          <MetaItem first>
+            <Star className="size-3.5 fill-current" />
             {(merchant.rating_count > 0 ? merchant.rating_avg : 5).toFixed(1)}
-          </span>
-        </div>
-
-        {/* ligne d'infos : frais · distance · ville/min */}
-        <div className="text-muted text-body mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 font-semibold">
-          <span className="text-success-700 inline-flex items-center gap-1 font-bold whitespace-nowrap">
-            <MapPin className="size-3.5 shrink-0" />
-            {t("freePickup")}
-          </span>
-          {distLabel && (
-            <>
-              <Dot />
-              <span>{distLabel}</span>
-            </>
-          )}
-          {cityLabel && (
-            <>
-              <Dot />
-              <span>{cityLabel}</span>
-            </>
-          )}
-          {merchant.min_order_da > 0 && (
-            <>
-              <Dot />
-              <span>
-                {t("min", { amount: formatDA(merchant.min_order_da) })}
-              </span>
-            </>
-          )}
-        </div>
-
-        {/* tags de mode */}
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {merchant.delivery_enabled && (
-            <Mode tone="deliv">
-              <Bike className="size-3.5" />
-              {t("delivery")}
-            </Mode>
-          )}
-          {merchant.express_enabled && (
-            <Mode>
-              <Zap className="size-3.5" />
-              {t("express")}
-            </Mode>
-          )}
-          <Mode>
-            <MapPin className="size-3.5" />
-            {t("pickup")}
-          </Mode>
-        </div>
+          </MetaItem>
+          <MetaItem>
+            <ModeIcon className="size-3.5" />
+            {modeLabel}
+          </MetaItem>
+          {distLabel && <MetaItem>{distLabel}</MetaItem>}
+        </MetaRow>
       </div>
     </Link>
-  );
-}
-
-function Dot() {
-  return <span className="bg-subtle size-[3px] rounded-full" aria-hidden />;
-}
-
-function Mode({
-  children,
-  tone,
-}: {
-  children: React.ReactNode;
-  tone?: "deliv";
-}) {
-  return (
-    <span
-      className={cn(
-        "text-caption inline-flex items-center gap-1 rounded-full px-2.5 py-1.5 font-bold",
-        tone === "deliv"
-          ? "bg-primary-50 text-primary-700"
-          : "bg-surface-2 text-muted"
-      )}
-    >
-      {children}
-    </span>
   );
 }
 

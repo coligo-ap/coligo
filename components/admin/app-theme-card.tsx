@@ -35,7 +35,6 @@ export function AppThemeCard({
   const [selected, setSelected] = useState<AppThemeKey>(current);
   const [model, setModel] = useState<AppThemeModel>(currentModel);
   const [heroOn, setHeroOn] = useState(marketplaceHero);
-  const [catsIn, setCatsIn] = useState(heroCategories);
   const [pending, startTransition] = useTransition();
   const [note, setNote] = useActionNote();
 
@@ -43,11 +42,14 @@ export function AppThemeCard({
     selected !== current ||
     model !== currentModel ||
     heroOn !== marketplaceHero ||
-    catsIn !== heroCategories;
+    // La bande d'accueil étant devenue COMPACTE (une ligne), l'option
+    // « catégories DANS le dégradé » (mig 0417) n'a plus de surface où
+    // s'appliquer : on l'éteint définitivement au prochain enregistrement.
+    heroCategories;
 
   const save = () =>
     startTransition(async () => {
-      const res = await setAppTheme(selected, model, heroOn, catsIn);
+      const res = await setAppTheme(selected, model, heroOn, false);
       if (res.error) return setNote({ ok: false, text: res.error });
       setNote({ ok: true, text: "Thème appliqué partout." });
     });
@@ -152,7 +154,7 @@ export function AppThemeCard({
         })}
       </div>
 
-      {/* Accueil marketplace : bandeau thémé optionnel. */}
+      {/* Accueil marketplace : bande d'occasion optionnelle. */}
       <label className="border-border mt-3 flex cursor-pointer items-start gap-2.5 rounded-md border p-3">
         <input
           type="checkbox"
@@ -163,39 +165,17 @@ export function AppThemeCard({
         />
         <span className="min-w-0 text-xs">
           <span className="text-foreground block font-medium">
-            Habiller aussi l&apos;accueil marketplace (header + recherche)
+            Habiller aussi l&apos;accueil marketplace (bande compacte)
           </span>
           <span className="text-muted mt-0.5 block">
-            Le haut de l&apos;accueil (header, message d&apos;occasion, barre de
-            recherche flottante) prend le thème. Décoché = accueil simple
-            actuel.
+            Le header de l&apos;accueil prend la couleur du thème et une ligne
+            annonce l&apos;occasion. Volontairement COMPACT : le premier
+            commerce reste visible sans défiler, et le message est masqué pour
+            un client déjà connecté sur le thème Coligo par défaut. Décoché =
+            accueil neutre.
           </span>
         </span>
       </label>
-
-      {/* Étendre le design aux catégories (mig 0417) — pertinent seulement
-          quand l'accueil est habillé. */}
-      {heroOn && (
-        <label className="border-border ms-6 mt-2 flex cursor-pointer items-start gap-2.5 rounded-md border p-3">
-          <input
-            type="checkbox"
-            checked={catsIn}
-            onChange={(e) => setCatsIn(e.target.checked)}
-            disabled={pending}
-            className="accent-primary-600 mt-0.5 size-4 shrink-0"
-          />
-          <span className="min-w-0 text-xs">
-            <span className="text-foreground block font-medium">
-              Inclure aussi les catégories de commerçants dans le design
-            </span>
-            <span className="text-muted mt-0.5 block">
-              Coché = la bande de catégories rondes est DANS le dégradé
-              (libellés blancs). Décoché = elle reste sous le design, avec un
-              petit espace.
-            </span>
-          </span>
-        </label>
-      )}
 
       <div className="mt-3 flex items-center gap-2">
         <Button

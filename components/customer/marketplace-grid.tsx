@@ -7,7 +7,7 @@ import {
 } from "@/lib/customer/marketplace-filters";
 import { useQuery, keepPreviousData } from "@tanstack/react-query";
 import { useLocale, useTranslations } from "next-intl";
-import { ArrowRight, Loader2, MapPin } from "lucide-react";
+import { Loader2, MapPin } from "lucide-react";
 import {
   openLocationPicker,
   useCustomerLocation,
@@ -46,8 +46,8 @@ type Props = {
 // MarketplaceGrid — la liste de commerces de la home (style Uber Eats).
 // =============================================================================
 // La recherche (q) vient de `MarketplaceSearchBar`, la catégorie des ronds
-// (`CategoryStrip`), et les modes/tri/ouvert des pilules (`HomeFilterPills`).
-// Les quatre se synchronisent UNIQUEMENT via les URL params. Ce composant relit
+// (`CategoryStrip`), et les modes/tri/ouvert de la feuille de filtres
+// (`HomeFilterButton`). Les quatre se synchronisent UNIQUEMENT via les URL params. Ce composant relit
 // l'URL, refetch par zone, applique les filtres client (ouvert / mode / tri).
 // =============================================================================
 
@@ -276,16 +276,14 @@ export function MarketplaceGrid({
 
   return (
     <div className="space-y-3">
+      {/* Titre de section RÉDUIT (21px extrabold → 16px semibold) : il annonce
+          le contenu, il ne rivalise plus avec les noms de commerces. Le rond
+          fléché à droite était purement décoratif (aucun lien) → retiré. */}
       <div className="flex items-center justify-between gap-3">
-        <h2 className="text-foreground text-display-sm font-extrabold tracking-[-0.6px]">
+        <h2 className="text-foreground text-title font-semibold tracking-[-0.2px]">
           {heading}
         </h2>
-        <div className="flex items-center gap-2">
-          {pending && <Loader2 className="text-muted size-4 animate-spin" />}
-          <span className="bg-surface-2 grid size-8 place-items-center rounded-full">
-            <ArrowRight className="text-foreground size-4 rtl:-scale-x-100" />
-          </span>
-        </div>
+        {pending && <Loader2 className="text-muted size-4 animate-spin" />}
       </div>
 
       {hasActiveFilter && (
@@ -304,10 +302,12 @@ export function MarketplaceGrid({
       {zoneLoading ? (
         /* Premier chargement de la zone : squelettes (jamais la liste d'une
            autre ville pendant que la vraie liste arrive). */
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="gap-card grid sm:grid-cols-2 lg:grid-cols-3">
           {[0, 1, 2].map((i) => (
             <div key={i} className="animate-pulse">
-              <div className="bg-surface-3 h-[150px] rounded-lg" />
+              {/* Mêmes dimensions que la vraie carte (158px, rounded-md) : le
+                  contenu ne « saute » pas quand les données arrivent. */}
+              <div className="bg-surface-3 h-[158px] rounded-md" />
               <div className="bg-surface-3 mt-2.5 h-4 w-2/3 rounded" />
               <div className="bg-surface-3 mt-1.5 h-3 w-1/2 rounded" />
             </div>
@@ -370,7 +370,7 @@ export function MarketplaceGrid({
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <div className="gap-card grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
           {visible.map((m) => (
             <MerchantCard
               key={m.id}

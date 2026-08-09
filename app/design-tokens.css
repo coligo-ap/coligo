@@ -142,6 +142,22 @@
   --color-border: #ececf2;
   --color-border-strong: #dcdce6;
 
+  /* === Badge posé SUR une photo (statut ouvert/fermé d'une carte commerce,
+     étiquette de vignette) : fond translucide + encre lisibles dans les DEUX
+     thèmes, là où un `bg-white/95` en dur restait blanc en sombre.
+     DISCIPLINE : un badge d'INFORMATION reste neutre — la couleur est
+     réservée à l'action et à l'état actif ; seul le badge PROMO garde
+     l'accent rose (--color-accent-*). */
+  --color-photo-badge: rgba(255, 255, 255, 0.94);
+  --color-photo-badge-ink: #17171f;
+
+  /* === Respiration — rythme vertical des écrans de CONTENU (accueil client,
+     listes, fiches). `mt-section` entre deux sections, `gap-card` entre deux
+     cartes d'une grille : la valeur se change ICI et tout l'app s'écarte
+     d'un coup, sans repasser dans 40 composants. */
+  --spacing-section: 28px;
+  --spacing-card: 20px;
+
   /* === Teintes translucides d'état (halos) — les rgba() récurrents.
      Utilitaires : bg-success-tint, bg-danger-tint, border-primary-tint… */
   --color-primary-tint: rgba(108, 43, 217, 0.1);
@@ -216,6 +232,15 @@
      contenu + zone sûre du bas. Tout ce qui flotte au-dessus s'y réfère
      (.above-nav / .over-nav / .pb-safe-nav, cf. globals.css). */
   --partner-nav-h: calc(66px + env(safe-area-inset-bottom));
+
+  /* HAUTEUR RÉELLE du header client (CustomerHeader) : 38px de contrôles +
+     2×12px de padding en mobile, h-16 en desktop. Tout ce qui se colle
+     dessous (recherche sticky de l'accueil) s'y réfère — avant, la recherche
+     recopiait `top-[57px]` sous un header de 62px et se glissait de 5px
+     DERRIÈRE lui. La zone sûre du haut s'ajoute au point de consommation
+     (le header l'inclut déjà dans son propre padding). */
+  --customer-header-h: 62px;
+  --customer-header-h-lg: 64px;
 }
 
 /* ── Drive (client/chauffeur) : tokens --d-* clair/sombre ──
@@ -276,6 +301,10 @@
   --color-subtle: #80849a;
   --color-border: #262838;
   --color-border-strong: #343852;
+  /* Badge sur photo : plaque SOMBRE translucide + encre claire (en clair c'est
+     l'inverse) — le contraste sur l'image est garanti des deux côtés. */
+  --color-photo-badge: rgba(16, 17, 26, 0.9);
+  --color-photo-badge-ink: #f4f5fa;
   color-scheme: dark;
 }
 
@@ -391,6 +420,8 @@
   --color-subtle: #80849a;
   --color-border: #262838;
   --color-border-strong: #343852;
+  --color-photo-badge: rgba(16, 17, 26, 0.9);
+  --color-photo-badge-ink: #f4f5fa;
   color-scheme: dark;
 }
 

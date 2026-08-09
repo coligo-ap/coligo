@@ -372,15 +372,22 @@ export function MerchantCompactHeader({
             ⚠️ max-w = 50 % − demi-logo (44 px, anneau compris) − 12 px d'ÉCART
             VISIBLE : la pastille ne touche JAMAIS le logo centré. Padding
             serré (règle produit : pas d'air superflu texte ↔ carte). */}
+        {/* COHÉRENCE avec les cartes de liste (refonte accueil) : le statut
+            posé sur une photo utilise PARTOUT la même plaque neutre
+            (--color-photo-badge, lisible en clair comme en sombre) ; seule la
+            pastille porte la couleur d'état. Plus de pilule pleine verte/rose
+            ni d'ombre décorative — la photo garde ses couleurs. */}
         <button
           type="button"
           onClick={() => setShowHours(true)}
-          className={cn(
-            "text-label absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-56px)] items-center gap-1 rounded-full px-2.5 py-1 font-extrabold text-white shadow-[0_4px_14px_-4px_rgba(0,0,0,.35)] transition-transform active:scale-[0.96] lg:start-5",
-            isOpen ? "bg-[#2B8659]" : "bg-rose-600"
-          )}
+          className="text-label bg-photo-badge text-photo-badge-ink rounded-chip absolute start-3 bottom-8 z-[2] inline-flex max-w-[calc(50%-56px)] items-center gap-1.5 px-2 py-1 font-semibold backdrop-blur transition-transform active:scale-[0.96] lg:start-5"
         >
-          <span className="size-1.5 shrink-0 rounded-full bg-white" />
+          <span
+            className={cn(
+              "size-1.5 shrink-0 rounded-full",
+              isOpen ? "bg-success-600" : "bg-danger-600"
+            )}
+          />
           {/* Libellé COURT (« Ouvert ») : « Ouvert maintenant » ne tient pas à
               côté du logo centré sur 390 px sans le toucher ni se tronquer —
               le libellé complet vit dans Plus d'infos. */}
