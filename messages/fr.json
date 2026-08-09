@@ -1710,7 +1710,12 @@
       "via": "Trajet complet du chauffeur · via {stops}",
       "boardAt": "Montée",
       "alightAt": "Descente",
-      "call": "Appeler {name}"
+      "call": "Appeler {name}",
+      "needFrom": "Choisis ton point de départ",
+      "needTo": "Choisis ta destination",
+      "needBoth": "Choisis le départ et l'arrivée pour rechercher",
+      "promptTitle": "Où vas-tu ?",
+      "promptSub": "Indique ton départ et ton arrivée : on te montre les trajets qui passent par là."
     }
   },
   "push": {

@@ -1716,7 +1716,12 @@
       "via": "Driver's full route · via {stops}",
       "boardAt": "Pickup",
       "alightAt": "Drop-off",
-      "call": "Call {name}"
+      "call": "Call {name}",
+      "needFrom": "Choose your pick-up point",
+      "needTo": "Choose your destination",
+      "needBoth": "Choose departure and arrival to search",
+      "promptTitle": "Where are you going?",
+      "promptSub": "Set your departure and arrival: we show the rides passing through."
     }
   },
   "push": {

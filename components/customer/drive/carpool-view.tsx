@@ -126,6 +126,16 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
     date: string;
   }>({ from: "", to: "", date: "" });
   const [sort, setSort] = useState<"time" | "price">("time");
+  // Validation INLINE du couple départ/arrivée : quel champ manque, et le
+  // message à afficher juste sous les champs.
+  const [searchError, setSearchError] = useState<{
+    field: "from" | "to" | "both";
+    msg: string;
+  } | null>(null);
+  // Une recherche a-t-elle été lancée ? Tant que non, on n'affiche AUCUN
+  // trajet — l'écran invite à renseigner le trajet (décision produit : plus de
+  // catalogue national de tous les départs).
+  const searched = !!(applied.from && applied.to);
   // Accordéon des résultats : UNE carte ouverte à la fois (liste fermante).
   const [openTrip, setOpenTrip] = useState<string | null>(null);
 
@@ -181,8 +191,30 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
     const f = fromPick;
     setFromPick(toPick);
     setToPick(f);
+    setSearchError(null);
   };
+
+  /**
+   * Lance la recherche — mais SEULEMENT si le départ ET l'arrivée sont
+   * renseignés. Sinon, message INLINE sous les champs (règle projet : jamais
+   * de toast pour une validation de formulaire) et le champ manquant se
+   * souligne en rouge. Le bouton reste TAPABLE : un bouton grisé sans
+   * explication laisse le client deviner ce qui bloque.
+   */
   const search = () => {
+    const missFrom = !fromPick?.wilaya;
+    const missTo = !toPick?.wilaya;
+    if (missFrom || missTo) {
+      setSearchError(
+        missFrom && missTo
+          ? { field: "both", msg: t("carpool.needBoth") }
+          : missFrom
+            ? { field: "from", msg: t("carpool.needFrom") }
+            : { field: "to", msg: t("carpool.needTo") }
+      );
+      return;
+    }
+    setSearchError(null);
     setApplied({
       from: fromPick?.wilaya ?? "",
       to: toPick?.wilaya ?? "",
@@ -352,10 +384,23 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
           >
             <div className="flex items-center gap-2">
               <div className="min-w-0 flex-1">
-                <div className="rounded-control border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                {/* Champ manquant → bordure rouge : le client voit LEQUEL des
+                    deux bloque, pas seulement qu'il manque quelque chose. */}
+                <div
+                  className="rounded-control border bg-[var(--d-soft)] px-3.5 py-1"
+                  style={{
+                    borderColor:
+                      searchError && searchError.field !== "to"
+                        ? RED
+                        : "var(--d-line)",
+                  }}
+                >
                   <PlaceField
                     value={fromPick}
-                    onChange={setFromPick}
+                    onChange={(p) => {
+                      setFromPick(p);
+                      if (p) setSearchError(null);
+                    }}
                     placeholder={t("carpool.fromPlaceholder")}
                     marker="origin"
                   />
@@ -365,10 +410,21 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                   aria-hidden
                   className="ms-[19px] block h-3 w-0 border-s-2 border-dashed border-[var(--d-line)]"
                 />
-                <div className="rounded-control border border-[var(--d-line)] bg-[var(--d-soft)] px-3.5 py-1">
+                <div
+                  className="rounded-control border bg-[var(--d-soft)] px-3.5 py-1"
+                  style={{
+                    borderColor:
+                      searchError && searchError.field !== "from"
+                        ? RED
+                        : "var(--d-line)",
+                  }}
+                >
                   <PlaceField
                     value={toPick}
-                    onChange={setToPick}
+                    onChange={(p) => {
+                      setToPick(p);
+                      if (p) setSearchError(null);
+                    }}
                     placeholder={t("carpool.toPlaceholder")}
                     bias={
                       fromPick ? { lat: fromPick.lat, lng: fromPick.lng } : null
@@ -376,6 +432,16 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
                     marker="dest"
                   />
                 </div>
+                {/* Message INLINE, juste sous les champs (jamais un toast). */}
+                {searchError && (
+                  <p
+                    role="alert"
+                    className="text-caption mt-1.5 font-bold"
+                    style={{ color: RED }}
+                  >
+                    {searchError.msg}
+                  </p>
+                )}
               </div>
               <button
                 type="button"
@@ -471,8 +537,26 @@ export function CarpoolPanel({ embedded = false }: { embedded?: boolean }) {
             </div>
           </div>
 
-          {/* ── Résultats ── */}
-          {loading ? (
+          {/* ── Résultats ──
+              Tant qu'aucune recherche n'a été lancée, on n'affiche AUCUN
+              trajet : on demande le trajet. Un catalogue de tous les départs
+              d'Algérie n'apprend rien au client (décision produit). */}
+          {!searched ? (
+            <div className="mt-3 rounded-md border border-[var(--d-line)] bg-[var(--d-soft)] px-5 py-9 text-center">
+              <span
+                className="mx-auto mb-2.5 grid size-12 place-items-center rounded-full"
+                style={{ background: "var(--d-accent)" }}
+              >
+                <Search className="size-5" style={{ color: VIOLET }} />
+              </span>
+              <p className="drive-sora text-title-sm font-extrabold">
+                {t("carpool.promptTitle")}
+              </p>
+              <p className="text-body-sm mx-auto mt-1 max-w-[280px] text-[var(--d-muted)]">
+                {t("carpool.promptSub")}
+              </p>
+            </div>
+          ) : loading ? (
             <div className="flex justify-center py-10">
               <Loader2
                 className="size-7 animate-spin"

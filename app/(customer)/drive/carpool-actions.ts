@@ -116,11 +116,20 @@ export async function getCarpoolHome(filters?: {
   if (flag.status !== "active") return { flag, trips: [], bookings: [] };
 
   const rpc = await rpcClient();
-  const { data: tripsData } = await rpc("carpool_search_trips", {
-    p_from_wilaya: filters?.fromWilaya || null,
-    p_to_wilaya: filters?.toWilaya || null,
-    p_date: filters?.date || null,
-  });
+
+  // RECHERCHE D'ABORD (décision produit) : on ne déverse plus TOUS les départs
+  // publiés en Algérie. Tant que le client n'a pas donné son point de DÉPART
+  // ET son point d'ARRIVÉE, on ne va même pas chercher — l'écran l'invite à
+  // renseigner son trajet. Un catalogue national n'a aucun intérêt pour lui,
+  // et la requête coûtait pour rien à chaque ouverture.
+  const searched = !!(filters?.fromWilaya && filters?.toWilaya);
+  const { data: tripsData } = searched
+    ? await rpc("carpool_search_trips", {
+        p_from_wilaya: filters?.fromWilaya || null,
+        p_to_wilaya: filters?.toWilaya || null,
+        p_date: filters?.date || null,
+      })
+    : { data: null };
   const { data: bookingsData } = await rpc("carpool_my_bookings", {});
 
   const trips = ((tripsData as Record<string, unknown>[] | null) ?? []).map(
