@@ -1,6 +1,5 @@
 import type { ReactNode } from "react";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { ThemeSwitcher } from "@/components/shared/theme-switcher";
 import { ThemeDecor } from "@/components/shared/theme-decor";
 
 /**
@@ -78,14 +77,9 @@ export function AuthCard({
       {/* FEUILLE FORMULAIRE — chevauche le héro (mobile) ; desktop : fondue. */}
       <div className="relative z-10 -mt-9 w-full max-w-md self-center px-4 pb-6 lg:mt-0 lg:px-0 lg:pb-0">
         <div className="auth-sheet-in rounded-panel bg-white p-5 shadow-[0_18px_50px_-20px_rgba(76,27,155,0.45)] lg:rounded-none lg:bg-transparent lg:p-0 lg:shadow-none">
-          {/* Langue + mode sombre (mobile) — le titre, lui, vit dans le héro.
-              La lune est ici parce qu'un VISITEUR n'a plus d'autre porte sur
-              téléphone : le header marketplace ne porte que la zone (centrée),
-              la cloche et le panier, et la section Préférences du Compte exige
-              d'être connecté. */}
-          <div className="-mt-1 mb-2 flex items-center justify-end gap-2 lg:hidden">
+          {/* Langue (mobile) — le titre, lui, vit dans le héro. */}
+          <div className="-mt-1 mb-2 flex justify-end lg:hidden">
             <LanguageSwitcher compact />
-            <ThemeSwitcher />
           </div>
           {modeTabs}
           {/* Titre + sélecteur de langue (desktop uniquement). */}
@@ -96,10 +90,7 @@ export function AuthCard({
               </h2>
               <p className="text-muted text-sm leading-snug">{subtitle}</p>
             </div>
-            <div className="flex shrink-0 items-center gap-2">
-              <LanguageSwitcher compact />
-              <ThemeSwitcher />
-            </div>
+            <LanguageSwitcher compact />
           </div>
           {children}
         </div>

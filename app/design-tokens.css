@@ -221,7 +221,7 @@
      sûre du haut. Tout ce qui se colle DESSOUS s'y réfère (barre de recherche
      de l'accueil) — sans l'encoche dans le calcul, le sticky passait SOUS le
      header dans l'APK Android (barre de statut). */
-  --customer-header-h: calc(57px + env(safe-area-inset-top));
+  --customer-header-h: calc(63px + env(safe-area-inset-top));
 }
 @media (min-width: 1024px) {
   :root {
