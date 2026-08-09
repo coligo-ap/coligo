@@ -9,6 +9,13 @@ interface LogoProps {
   size?: "sm" | "md" | "lg" | "xl";
   iconOnly?: boolean;
   subtitle?: string;
+  /**
+   * Posé sur une SURFACE COLORÉE PLEINE (header « occasion » violet, héro de
+   * marque) : force la version BLANCHE du logo. Sans ça, le logo violet se
+   * noyait dans le fond violet — le basculement automatique ne connaît que le
+   * mode sombre (`.theme-dark`), pas les fonds colorés.
+   */
+  onColor?: boolean;
   className?: string;
 }
 
@@ -29,6 +36,7 @@ export function Logo({
   size = "md",
   iconOnly = false,
   subtitle,
+  onColor = false,
   className,
 }: LogoProps) {
   const s = sizes[size];
@@ -56,20 +64,26 @@ export function Logo({
 
   return (
     <div className={cn("flex flex-col items-start", className)}>
-      <Image
-        src={BRAND_ASSETS.full}
-        alt={APP_CONFIG.name}
-        width={1000}
-        height={401}
-        className={cn("w-auto [.theme-dark_&]:hidden", s.mark)}
-        priority
-      />
+      {!onColor && (
+        <Image
+          src={BRAND_ASSETS.full}
+          alt={APP_CONFIG.name}
+          width={1000}
+          height={401}
+          className={cn("w-auto [.theme-dark_&]:hidden", s.mark)}
+          priority
+        />
+      )}
       <Image
         src={BRAND_ASSETS.fullWhite}
         alt={APP_CONFIG.name}
         width={1000}
         height={401}
-        className={cn("hidden w-auto [.theme-dark_&]:block", s.mark)}
+        className={cn(
+          "w-auto",
+          onColor ? "block" : "hidden [.theme-dark_&]:block",
+          s.mark
+        )}
         priority
       />
       {subtitle && (

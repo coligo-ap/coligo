@@ -120,7 +120,11 @@ export function CustomerHeader({
             <CustomerDrawer hiddenKeys={hiddenKeys} />
 
             <Link href="/" className="shrink-0">
-              <Logo variant="amber" size="md" />
+              {/* Header « occasion » = fond violet plein : le logo doit passer
+                  en BLANC, sinon c'est du violet sur du violet (constaté en
+                  prod). Le basculement automatique ne connaît que le mode
+                  sombre, pas les fonds colorés. */}
+              <Logo variant="amber" size="md" onColor={themed} />
             </Link>
 
             {/* Lien MARKETING, rangé à GAUCHE avec la marque (et plus au
