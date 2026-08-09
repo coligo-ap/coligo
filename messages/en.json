@@ -37,10 +37,7 @@
     "filterDelivery": "Delivery",
     "filterExpress": "Express",
     "filterTopRated": "Top rated",
-    "filterOpen": "Open",
-    "filters": "Filters",
-    "filtersReset": "Clear",
-    "filtersApply": "See shops"
+    "filterOpen": "Open"
   },
   "merchant": {
     "promoBanner": "Deals running today on a selection of products.",
@@ -736,8 +733,6 @@
     "sectionHelp": "Help",
     "sectionPreferences": "Preferences",
     "language": "Language",
-    "appearance": "Dark mode",
-    "appearanceDesc": "Darker background, easier on the eyes at night",
     "helpSupport": "Help & support",
     "helpSupportDesc": "Live chat with support about your order",
     "personalInfo": "Personal information",

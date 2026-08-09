@@ -1,9 +1,11 @@
 import { Flag, Moon, Percent, Snowflake, Sparkles, Sun } from "lucide-react";
 import {
   APP_THEMES,
-  DEFAULT_APP_THEME,
+  themeGradientVertical,
   type AppThemeKey,
+  type AppThemeModel,
 } from "@/lib/config/app-themes";
+import { ThemeDecor } from "@/components/shared/theme-decor";
 
 const ICONS = {
   sparkles: Sparkles,
@@ -15,49 +17,52 @@ const ICONS = {
 } as const;
 
 /**
- * Bande « occasion » de l'accueil marketplace (mig 0415/0416, activée par le
- * super-admin — désactivée = accueil simple, rien n'est rendu).
+ * Héro « occasion » INTÉGRÉ de l'accueil marketplace (mig 0415/0416, activé
+ * par le super-admin — désactivé = accueil simple, rien n'est rendu).
  *
- * REFONTE (allègement de la home) : c'était un héro en dégradé de ~170px qui,
- * cumulé au header peint et à la pilule de recherche flottante, occupait ~30%
- * du premier écran — le premier commerce n'était plus visible sans défiler.
- * C'est désormais **une seule ligne** prolongeant le header (même aplat `g1`,
- * aucune couture, aucune marge négative) : l'occasion reste annoncée, le
- * contenu revient au premier plan.
- *
- * Elle ne s'affiche PAS pour un client connecté sur le thème par défaut
- * (« Bienvenue sur Coligo » = décor pour quelqu'un qui est déjà entré) ; une
- * vraie occasion (Ramadan, Aïd, soldes…) reste annoncée à tout le monde.
- * Décision prise ici, pas dans la page : une seule règle à lire.
+ * Il forme UN SEUL bloc coloré avec le header (peint en `g1` uni par
+ * CustomerHeader sur la route « / ») : ici le dégradé VERTICAL part de g1 →
+ * aucune couture. La barre de recherche de la page vient FLOTTER dessus
+ * (marge négative) : le bloc réserve l'espace en bas (pb) et arrondit ses
+ * angles sous elle. Décor selon le MODÈLE choisi (blobs/vagues/halo/motifs).
  */
-export function shouldShowThemeStrip({
-  theme,
-  isAuth,
-}: {
-  theme: AppThemeKey;
-  isAuth: boolean;
-}): boolean {
-  return !(isAuth && theme === DEFAULT_APP_THEME);
-}
-
 export function HomeThemeHero({
   theme,
+  model,
   locale,
+  extended = false,
 }: {
   theme: AppThemeKey;
+  model: AppThemeModel;
   locale: string;
+  /** mig 0417 : le dégradé englobe AUSSI la bande de catégories. */
+  extended?: boolean;
 }) {
   const t = APP_THEMES[theme];
   const lang = locale === "ar" ? "ar" : locale === "en" ? "en" : "fr";
   const Icon = ICONS[t.homeIcon];
   return (
-    <div style={{ backgroundColor: t.g1 }}>
-      <div className="text-on-brand mx-auto flex max-w-[1400px] items-center gap-2 px-4 pb-2 lg:px-6">
-        <Icon className="size-3.5 shrink-0 opacity-90" aria-hidden />
-        {/* Une seule information, une seule ligne : le sous-titre marketing
-            (« Courses, repas et commerces près de chez toi ») disait ce que
-            la grille montre juste en dessous. */}
-        <p className="text-caption-lg truncate font-semibold">{t.home[lang]}</p>
+    <div
+      className={
+        extended
+          ? "relative -mb-[168px] overflow-hidden rounded-b-2xl pb-[180px] text-white"
+          : "relative -mb-[72px] overflow-hidden rounded-b-2xl pb-[84px] text-white"
+      }
+      style={{ backgroundImage: themeGradientVertical(t) }}
+    >
+      <ThemeDecor model={model} a={t.blobA} b={t.blobB} />
+      <div className="relative z-10 mx-auto flex max-w-[1400px] items-center gap-3 px-4 pt-1 lg:px-6">
+        <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/15 shadow-inner shadow-white/10">
+          <Icon className="size-5 drop-shadow-sm" />
+        </div>
+        <div className="min-w-0">
+          <p className="text-title-lg drop- leading-tight font-bold">
+            {t.home[lang]}
+          </p>
+          <p className="mt-0.5 text-xs leading-snug text-white/85">
+            {t.homeSub[lang]}
+          </p>
+        </div>
       </div>
     </div>
   );

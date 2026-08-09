@@ -22,7 +22,6 @@ import { getCurrentMerchant } from "@/lib/auth/merchant";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { CustomerLogoutButton } from "@/components/customer/logout-button";
 import { CustomerLanguageRow } from "@/components/customer/customer-language-row";
-import { CustomerThemeRow } from "@/components/customer/customer-theme-row";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
 import { CustomerSupportRow } from "@/components/support/customer-support-row";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
@@ -327,19 +326,14 @@ export default async function CustomerAccountPage({
           )}
         </div>
 
-        {/* Section PRÉFÉRENCES — langue (FR / العربية) + apparence (clair /
-            sombre). Les deux choix sont persistés en cookie. La bascule sombre
-            vivait dans le header de l'accueil : elle est ici depuis qu'on a
-            dégagé le header des gestes non fréquents. */}
+        {/* Section PRÉFÉRENCES — langue (FR / العربية), choix enregistré.
+            (Le mode sombre se bascule depuis le header — décision produit du
+            09/08/2026 : la lune reste dans la barre du haut.) */}
         <p className="text-muted text-caption px-5 pt-5 pb-2 font-extrabold tracking-wide uppercase">
           {t("sectionPreferences")}
         </p>
         <div className="divide-border shadow-float mx-4 divide-y overflow-hidden rounded-xl bg-white">
           <CustomerLanguageRow title={t("language")} />
-          <CustomerThemeRow
-            title={t("appearance")}
-            subtitle={t("appearanceDesc")}
-          />
         </div>
 
         {/* Section AIDE — live chat support (Tawk.to) */}

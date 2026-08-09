@@ -37,10 +37,7 @@
     "filterDelivery": "توصيل",
     "filterExpress": "سريع",
     "filterTopRated": "الأعلى تقييماً",
-    "filterOpen": "مفتوح",
-    "filters": "الفلاتر",
-    "filtersReset": "مسح",
-    "filtersApply": "عرض المتاجر"
+    "filterOpen": "مفتوح"
   },
   "merchant": {
     "promoBanner": "تخفيضات سارية اليوم على مجموعة مختارة من المنتجات.",
@@ -736,8 +733,6 @@
     "sectionHelp": "المساعدة",
     "sectionPreferences": "التفضيلات",
     "language": "اللغة",
-    "appearance": "الوضع الليلي",
-    "appearanceDesc": "خلفية داكنة، أرفق بالعين ليلاً",
     "helpSupport": "المساعدة والدعم",
     "helpSupportDesc": "دردشة مباشرة مع الدعم بخصوص طلبك",
     "personalInfo": "المعلومات الشخصية",

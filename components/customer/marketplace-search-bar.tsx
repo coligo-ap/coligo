@@ -8,32 +8,31 @@ import {
   applyFilters,
 } from "@/lib/customer/marketplace-filters";
 import { BarcodeScanButton } from "@/components/customer/barcode-scan-button";
-import { HomeFilterButton } from "@/components/customer/home-filter-sheet";
+import { cn } from "@/lib/utils";
 
 // =============================================================================
-// MarketplaceSearchBar — barre de recherche de l'accueil, en zone NEUTRE
-// (fond de page), collée sous le header. Elle ne gère QUE le texte et
-// communique avec la grille via l'URL param `q` (découplage).
+// MarketplaceSearchBar — barre de recherche pleine largeur (style Uber Eats),
+// placée sous le header de l'accueil. Fond gris doux "Rechercher sur Coligo".
 //
-// REFONTE (allègement de la home) :
-//  - plus de mode « flottant » : la pilule blanche posée sur le dégradé du héro
-//    imposait 6 couleurs en dur (immunisées contre le mode sombre) et forçait
-//    ~170px de violet au-dessus d'elle. Le fond de page suffit ;
-//  - le bouton FILTRES vit dans cette même ligne (`HomeFilterButton`) : les 6
-//    pilules qui s'empilaient sous les catégories ne sont plus une strate.
+// Le filtrage par catégorie / mode passe désormais par les CATÉGORIES rondes et
+// les PILULES (HomeFilterPills). Cette barre ne gère QUE le texte. Comme avant,
+// elle communique avec la grille uniquement via l'URL param `q` (découplage).
 //
-// L'offset sticky vient du token `--customer-header-h` (+ zone sûre du haut) :
-// avant, `top-[57px]` en dur passait 5px SOUS un header de 62px.
+// `floating` (accueil thémé, mig 0415/0416) : la pilule FLOTTE en blanc sur le
+// dégradé du héro (ombre douce, texte foncé FORCÉ — socle clair, lisible aussi
+// en dark mode) tant qu'elle n'est pas collée au header ; dès qu'elle se colle
+// (scroll), elle reprend son fond de page normal. Détection par une sentinelle
+// 1px + IntersectionObserver — aucun listener scroll coûteux.
 // =============================================================================
 
 export function MarketplaceSearchBar({
   scanEnabled = false,
-  filters = true,
+  floating = false,
 }: {
   /** Scan code-barres (feature flag `barcode_marketplace`, décidé serveur). */
   scanEnabled?: boolean;
-  /** Bouton Filtres dans la ligne (accueil). */
-  filters?: boolean;
+  /** Accueil thémé : pilule blanche flottante sur le héro. */
+  floating?: boolean;
 }) {
   const params = useFilterParams();
   const t = useTranslations("home");
@@ -43,6 +42,22 @@ export function MarketplaceSearchBar({
   // Buffer local pour l'input — debounce → URL (sans round-trip serveur).
   const [qBuffer, setQBuffer] = useState(q);
   useEffect(() => setQBuffer(q), [q]);
+
+  // Collée au header ? (mode flottant uniquement.)
+  const [stuck, setStuck] = useState(false);
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!floating) return;
+    const el = sentinelRef.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      ([e]) => setStuck(!e.isIntersecting),
+      // La sentinelle « disparaît » quand elle passe sous le header sticky.
+      { rootMargin: "-70px 0px 0px 0px" }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [floating]);
 
   function pushQuery(value: string) {
     applyFilters((sp) => {
@@ -63,48 +78,81 @@ export function MarketplaceSearchBar({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [qBuffer]);
 
+  const onHero = floating && !stuck;
+
   return (
-    <div className="bg-surface sticky top-[calc(var(--customer-header-h)+env(safe-area-inset-top))] z-20 -mx-4 flex items-center gap-2 px-4 pt-3 pb-3 lg:top-[var(--customer-header-h-lg)] lg:-mx-6 lg:px-6">
-      <form
-        className="min-w-0 flex-1"
-        onSubmit={(e) => {
-          e.preventDefault();
-          if (debounceRef.current) clearTimeout(debounceRef.current);
-          pushQuery(qBuffer);
-        }}
+    <>
+      {floating && <div ref={sentinelRef} aria-hidden className="h-px" />}
+      <div
+        className={cn(
+          "sticky top-[57px] z-20 -mx-4 px-4 pt-1.5 pb-3 transition-colors lg:top-16 lg:-mx-6 lg:px-6",
+          onHero ? "bg-transparent" : "bg-surface"
+        )}
       >
-        <div className="bg-surface-2 rounded-control focus-within:ring-primary-400/40 flex h-[46px] items-center gap-2.5 px-3.5 focus-within:ring-2">
-          <Search className="text-muted size-[18px] shrink-0" />
-          <input
-            type="search"
-            value={qBuffer}
-            onChange={(e) => setQBuffer(e.target.value)}
-            placeholder={t("searchPlaceholder")}
-            aria-label={t("searchPlaceholder")}
-            className="text-title-sm text-foreground placeholder:text-muted w-full bg-transparent font-medium outline-none"
-          />
-          {qBuffer && (
-            <button
-              type="button"
-              onClick={() => setQBuffer("")}
-              className="text-muted hover:text-foreground shrink-0 rounded-full p-0.5"
-              aria-label={t("clearSearch")}
-            >
-              <X className="size-4" />
-            </button>
-          )}
-          {scanEnabled && (
-            <BarcodeScanButton
-              surface="marketplace"
-              onFound={(name) => {
-                setQBuffer(name);
-                pushQuery(name);
-              }}
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (debounceRef.current) clearTimeout(debounceRef.current);
+            pushQuery(qBuffer);
+          }}
+        >
+          <div
+            className={cn(
+              "rounded-card-lg flex items-center gap-2.5 px-4 py-3 transition-shadow focus-within:ring-2",
+              onHero
+                ? // Socle CLAIR fixe (hex littéraux, immunisés contre le remap
+                  // des tokens en dark) : pilule blanche lisible sur le dégradé
+                  // dans LES DEUX modes.
+                  "shadow-sheet bg-[#ffffff] focus-within:ring-white/50"
+                : "bg-surface-2 focus-within:ring-primary-400/40"
+            )}
+          >
+            <Search
+              className={cn(
+                "size-[18px] shrink-0",
+                onHero ? "text-[#1f2937]" : "text-foreground"
+              )}
             />
-          )}
-        </div>
-      </form>
-      {filters && <HomeFilterButton />}
-    </div>
+            <input
+              type="search"
+              value={qBuffer}
+              onChange={(e) => setQBuffer(e.target.value)}
+              placeholder={t("searchPlaceholder")}
+              aria-label={t("searchPlaceholder")}
+              className={cn(
+                "text-title-sm w-full bg-transparent font-medium outline-none",
+                onHero
+                  ? "text-[#111827] placeholder:text-[#6b7280]"
+                  : "text-foreground placeholder:text-muted"
+              )}
+            />
+            {qBuffer && (
+              <button
+                type="button"
+                onClick={() => setQBuffer("")}
+                className={cn(
+                  "shrink-0 rounded-full p-0.5",
+                  onHero
+                    ? "text-[#6b7280] hover:text-[#111827]"
+                    : "text-muted hover:text-foreground"
+                )}
+                aria-label={t("clearSearch")}
+              >
+                <X className="size-4" />
+              </button>
+            )}
+            {scanEnabled && (
+              <BarcodeScanButton
+                surface="marketplace"
+                onFound={(name) => {
+                  setQBuffer(name);
+                  pushQuery(name);
+                }}
+              />
+            )}
+          </div>
+        </form>
+      </div>
+    </>
   );
 }

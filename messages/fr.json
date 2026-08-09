@@ -37,10 +37,7 @@
     "filterDelivery": "Livraison",
     "filterExpress": "Express",
     "filterTopRated": "Mieux notés",
-    "filterOpen": "Ouvert",
-    "filters": "Filtres",
-    "filtersReset": "Effacer",
-    "filtersApply": "Voir les commerces"
+    "filterOpen": "Ouvert"
   },
   "merchant": {
     "promoBanner": "Promotions en cours sur une sélection de produits aujourd'hui.",
@@ -736,8 +733,6 @@
     "sectionHelp": "Aide",
     "sectionPreferences": "Préférences",
     "language": "Langue",
-    "appearance": "Mode sombre",
-    "appearanceDesc": "Fond foncé, plus reposant le soir",
     "helpSupport": "Aide & support",
     "helpSupportDesc": "Chat en direct avec le support pour ta commande",
     "personalInfo": "Informations personnelles",

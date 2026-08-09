@@ -54,8 +54,11 @@ const isSticker = (src: string) => src.startsWith("/categories/stickers/");
 
 export function CategoryStrip({
   categories,
+  onHero = false,
 }: {
   categories: { name: string; count: number }[];
+  /** Posée SUR le héro thémé (mig 0417) : libellés blancs, anneau blanc. */
+  onHero?: boolean;
 }) {
   const params = useFilterParams();
   const active = params.get("category");
@@ -82,12 +85,20 @@ export function CategoryStrip({
   }
 
   return (
-    <div className="scrollbar-hide border-border -mx-4 flex gap-2.5 overflow-x-auto border-b px-4 pb-3 lg:mx-0 lg:px-0">
+    <div
+      className={cn(
+        "scrollbar-hide -mx-4 flex gap-2.5 overflow-x-auto px-4 pb-3 lg:mx-0 lg:px-0",
+        // Sur le héro thémé (mig 0417) : pas de trait de séparation — la fin
+        // du design (bord arrondi) fait office de séparation.
+        onHero ? "" : "border-b border-[var(--color-border)]"
+      )}
+    >
       <Tile
         emoji="🛍️"
         imageSrc="/categories/photos/tous.jpg"
         label={t("all")}
         active={!active}
+        onHero={onHero}
         onClick={() => go(null)}
       />
       {ordered
@@ -111,6 +122,7 @@ export function CategoryStrip({
                   : shortLabel(c.name, locale)
               }
               active={active === c.name}
+              onHero={onHero}
               onClick={() => go(c.name)}
             />
           );
@@ -124,12 +136,14 @@ function Tile({
   imageSrc,
   label,
   active,
+  onHero = false,
   onClick,
 }: {
   emoji: string;
   imageSrc?: string;
   label: string;
   active: boolean;
+  onHero?: boolean;
   onClick: () => void;
 }) {
   return (
@@ -147,8 +161,12 @@ function Tile({
           // de bandeau récapitulatif ailleurs (demande produit 06/08).
           "grid size-[56px] place-items-center overflow-hidden rounded-full text-[24px] leading-none transition-all",
           active
-            ? "border-primary-600 ring-primary-500/25 bg-primary-50 border-2 ring-2"
-            : "bg-surface-2 border-[1.5px] border-transparent"
+            ? onHero
+              ? "border-2 border-white bg-white/20 ring-2 ring-white/40"
+              : "border-primary-600 ring-primary-500/25 bg-primary-50 border-2 ring-2"
+            : onHero
+              ? "border-[1.5px] border-white/25 bg-white/10"
+              : "bg-surface-2 border-[1.5px] border-transparent"
         )}
       >
         {imageSrc ? (
@@ -175,10 +193,14 @@ function Tile({
       </span>
       <span
         className={cn(
-          // Le libellé ACTIF est le seul en couleur/graisse forte : hiérarchie
-          // typographique — une information dominante par bloc.
           "text-caption max-w-[62px] truncate leading-tight",
-          active ? "text-primary-700 font-bold" : "text-muted font-medium"
+          active
+            ? onHero
+              ? "font-extrabold text-white"
+              : "text-primary-700 font-extrabold"
+            : onHero
+              ? "font-semibold text-white/85"
+              : "text-foreground font-semibold"
         )}
       >
         {label}
