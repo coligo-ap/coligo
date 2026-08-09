@@ -736,6 +736,8 @@
     "sectionHelp": "المساعدة",
     "sectionPreferences": "التفضيلات",
     "language": "اللغة",
+    "appearance": "الوضع الليلي",
+    "appearanceDesc": "خلفية داكنة، أرفق بالعين ليلاً",
     "helpSupport": "المساعدة والدعم",
     "helpSupportDesc": "دردشة مباشرة مع الدعم بخصوص طلبك",
     "personalInfo": "المعلومات الشخصية",

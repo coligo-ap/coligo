@@ -736,6 +736,8 @@
     "sectionHelp": "Aide",
     "sectionPreferences": "Préférences",
     "language": "Langue",
+    "appearance": "Mode sombre",
+    "appearanceDesc": "Fond foncé, plus reposant le soir",
     "helpSupport": "Aide & support",
     "helpSupportDesc": "Chat en direct avec le support pour ta commande",
     "personalInfo": "Informations personnelles",

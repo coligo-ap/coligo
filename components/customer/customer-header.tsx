@@ -231,9 +231,18 @@ export function CustomerHeader({
                 )}
               />
             </button>
+            {/* MOBILE — le header ne porte que les gestes FRÉQUENTS : zone,
+                langue, notifications, panier.
+                  · le COMPTE est retiré : l'onglet « Compte » de la barre du
+                    bas y mène déjà (et /compte renvoie un visiteur vers la
+                    connexion) — deux portes pour la même pièce ;
+                  · le MODE SOMBRE est retiré : un réglage d'apparence se change
+                    une fois, sa place est dans Compte › Préférences
+                    (`CustomerThemeRow`), pas dans une barre permanente.
+                Le header DESKTOP garde les deux : il n'y a pas de barre du bas
+                au-dessus de `lg`, c'est lui qui fait la navigation. */}
             <div className="flex shrink-0 items-center gap-2">
               <LanguageSwitcher compact onColor={themed} />
-              <ThemeSwitcher onColor={themed} />
               {isAuth && (
                 <NotificationBell
                   source={{ table: "user_notifications", audience: "customer" }}
@@ -244,33 +253,6 @@ export function CustomerHeader({
                       : "bg-surface-2 text-foreground"
                   )}
                 />
-              )}
-              {isAuth ? (
-                <Link
-                  href="/compte"
-                  aria-label={t("myAccount")}
-                  className={cn(
-                    "grid size-[38px] place-items-center rounded-full text-sm font-bold",
-                    themed
-                      ? "bg-white/15 text-white"
-                      : "bg-surface-2 text-primary-700"
-                  )}
-                >
-                  {(customerName ?? "C").charAt(0).toUpperCase()}
-                </Link>
-              ) : (
-                <Link
-                  href="/se-connecter"
-                  aria-label={t("signIn")}
-                  className={cn(
-                    "grid size-[38px] place-items-center rounded-full",
-                    themed
-                      ? "bg-white/15 text-white"
-                      : "bg-surface-2 text-foreground"
-                  )}
-                >
-                  <User className="size-[18px]" />
-                </Link>
               )}
               <Link
                 href="/cart"
