@@ -63,11 +63,24 @@ export function NotificationBell({
   source,
   className,
   iconClassName = "size-[18px]",
+  hideWhenEmpty = false,
 }: {
   source: NotifSource;
   /** Style du bouton (repris du header de l'espace hôte). */
   className?: string;
   iconClassName?: string;
+  /**
+   * N'affiche RIEN tant qu'il n'y a aucune notification (espace client) : une
+   * cloche qui n'ouvre qu'un écran vide est un bouton mort dans le header. Dès
+   * la première notification — y compris reçue en temps réel, l'abonnement
+   * tourne même bouton masqué — la cloche apparaît et reste : l'historique
+   * doit rester atteignable une fois les notifications lues.
+   *
+   * Les espaces PARTENAIRES gardent la cloche en permanence : elle y fait
+   * partie du poste de travail (le livreur/chauffeur doit voir qu'il a un
+   * canal, même vide).
+   */
+  hideWhenEmpty?: boolean;
 }) {
   const t = useTranslations("notifs");
   const locale = useLocale();
@@ -92,6 +105,10 @@ export function NotificationBell({
   };
 
   const groups = useMemo(() => items, [items]);
+
+  // Rien à montrer → pas de bouton. Placé APRÈS tous les hooks (l'abonnement
+  // temps réel continue de tourner : c'est lui qui fera réapparaître la cloche).
+  if (hideWhenEmpty && items.length === 0) return null;
 
   return (
     <>

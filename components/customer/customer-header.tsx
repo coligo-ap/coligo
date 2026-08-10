@@ -165,6 +165,9 @@ export function CustomerHeader({
             {isAuth && (
               <NotificationBell
                 source={{ table: "user_notifications", audience: "customer" }}
+                // Aucune notification → aucune cloche : elle n'ouvrirait qu'un
+                // écran vide. Elle apparaît à la première reçue et reste.
+                hideWhenEmpty
                 className={cn(
                   "rounded-full p-2",
                   themed ? "text-white hover:bg-white/10" : "hover:bg-surface-2"
@@ -290,6 +293,10 @@ export function CustomerHeader({
               {isAuth && (
                 <NotificationBell
                   source={{ table: "user_notifications", audience: "customer" }}
+                  // Idem téléphone : pas de cloche sans notification. Le bloc
+                  // d'actions est `ms-auto`, donc le panier reste collé à
+                  // droite — rien ne bouge quand la cloche apparaît.
+                  hideWhenEmpty
                   className={cn(
                     "grid size-[38px] place-items-center rounded-full",
                     themed
