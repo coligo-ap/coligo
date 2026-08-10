@@ -4,7 +4,9 @@ import { getTranslations } from "next-intl/server";
 import {
   ArrowLeft,
   Check,
+  ChevronRight,
   Clock,
+  KeyRound,
   MapPin,
   PackageCheck,
   Truck,
@@ -599,8 +601,9 @@ export default async function CustomerOrderDetailPage({
                     <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
                       {t("total")}
                     </small>
-                    <b className="text-success-700 text-sm font-black tracking-tight">
-                      ✓ {t("paid")} · {formatDA(order.total_da)}
+                    <b className="text-success-700 inline-flex items-center gap-1 text-sm font-black tracking-tight">
+                      <Check className="size-3.5" strokeWidth={3} />
+                      {t("paid")} · {formatDA(order.total_da)}
                     </b>
                   </>
                 )}
@@ -648,6 +651,18 @@ export default async function CustomerOrderDetailPage({
             ) : null
           ))}
 
+        {/* ════════════════ SECTION LIVRAISON / RETRAIT ════════════════
+            Tout ce qui concerne la REMISE de la commande, regroupé sous un
+            seul intitulé, dans l'ordre du besoin : code à présenter → suivi
+            live → confirmation → chat → adresse ou créneau. L'adresse vivait
+            tout en bas de page alors que c'est LA question du client pendant
+            une livraison. Masquée si annulée (plus rien à remettre). */}
+        {!isCancelled && (
+          <p className="text-muted text-caption px-1 pt-4 pb-1.5 font-extrabold tracking-wide uppercase">
+            {isDelivery ? t("sectionDelivery") : t("sectionPickup")}
+          </p>
+        )}
+
         {/* ═══ PREUVE DE DÉPÔT (No-Show en ligne) ═══
             Le livreur a déposé la commande à l'adresse après votre absence
             (commande déjà payée en ligne). Photo + commentaire du livreur. */}
@@ -679,11 +694,13 @@ export default async function CustomerOrderDetailPage({
         {/* ═══ CODE PIN + QR (payé en ligne : livraison ou retrait) ═══
             Le client le montre/à scanner par le livreur (livraison) ou le
             commerçant (retrait) pour valider. PIN visible client uniquement. */}
-        {needsCode && !isCancelled && order.pickup_code && (
-          <div className="border-primary-100 bg-primary-50 mt-2.5 rounded-lg border p-3.5">
+        {/* `!isCompleted` : le code ne sert qu'à VALIDER la remise — sur une
+            commande déjà livrée/récupérée, l'afficher encore sème le doute. */}
+        {needsCode && !isCancelled && !isCompleted && order.pickup_code && (
+          <div className="border-primary-100 bg-primary-50 mt-1 rounded-lg border p-3.5">
             <div className="flex items-center justify-between gap-3">
-              <span className="text-primary-800 text-label-lg font-extrabold">
-                🔑{" "}
+              <span className="text-primary-800 text-label-lg inline-flex items-center gap-1.5 font-extrabold">
+                <KeyRound className="size-4 shrink-0" />
                 {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
               </span>
               <span className="text-primary-600 text-[26px] leading-none font-black tracking-[6px] tabular-nums">
@@ -758,14 +775,96 @@ export default async function CustomerOrderDetailPage({
           </div>
         )}
 
-        {/* ═══ DÉTAIL DE LA COMMANDE ═══ */}
-        <div className="border-border bg-surface rounded-sheet-lg mt-3 border p-4">
-          <h3 className="text-body-sm mb-2.5 flex items-center justify-between font-extrabold">
-            <span>{t("detailTitle")}</span>
-            <span className="text-muted text-caption font-semibold">
-              {t("itemsCount", { count: items.length })}
+        {/* ═══ ADRESSE (livraison) / CRÉNEAU (retrait) + note client ═══
+            Remonté depuis le bas de page : il ferme la section Livraison /
+            Retrait au lieu de flotter après le reçu. */}
+        {!isCancelled && (
+          <div className="border-border bg-surface mt-3 rounded-lg border p-4">
+            <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-semibold">
+              {isDelivery ? (
+                <MapPin className="size-3.5" />
+              ) : (
+                <Clock className="size-3.5" />
+              )}
+              {isDelivery ? t("deliveryAddress") : t("pickupSlot")}
+            </div>
+            <p className="text-foreground text-sm">
+              {isDelivery
+                ? ((order as { delivery_address_text: string | null })
+                    .delivery_address_text ?? t("addressProvidedAtOrder"))
+                : isSlot
+                  ? formatSlotRange(
+                      new Date(order.pickup_slot_start as string),
+                      new Date(order.pickup_slot_end as string)
+                    )
+                  : formatAsapReady(new Date(order.pickup_slot_at))}
+            </p>
+            {order.customer_note && (
+              <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
+                {t("note")} : {order.customer_note}
+              </p>
+            )}
+          </div>
+        )}
+
+        {/* ════════════════════ SECTION COMMANDE ════════════════════
+            UN reçu complet, comme un ticket : la boutique en en-tête (on sait
+            chez qui avant de lire les lignes), les articles, les totaux, puis
+            comment ça a été payé. La carte « Boutique » séparée est morte —
+            elle coupait le reçu en deux et répétait le contexte. */}
+        <p className="text-muted text-caption px-1 pt-4 pb-1.5 font-extrabold tracking-wide uppercase">
+          {t("sectionOrder")}
+        </p>
+        <div className="border-border bg-surface rounded-sheet-lg border p-4">
+          {/* En-tête du reçu — boutique + lien vers sa fiche. */}
+          <Link
+            href={`/m/${merchant.slug}`}
+            className="border-border -m-1 mb-1.5 flex items-center gap-3 rounded-lg border-b p-1 pb-3"
+          >
+            {merchant.logo_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={
+                  cldUrl(merchant.logo_url, {
+                    width: 96,
+                    height: 96,
+                    crop: "fill",
+                    gravity: "auto",
+                  }) ?? merchant.logo_url
+                }
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="border-border size-10 shrink-0 rounded-xl border bg-white object-cover"
+              />
+            ) : (
+              <div className="bg-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold text-white">
+                {merchant.name.charAt(0)}
+              </div>
+            )}
+            <div className="min-w-0 flex-1">
+              <b className="text-foreground block truncate text-sm font-bold">
+                {merchant.name}
+              </b>
+              <small className="text-muted flex items-center gap-1 text-xs">
+                <MapPin className="size-3 shrink-0" />
+                <span className="truncate">
+                  {[merchant.address, merchant.commune]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </span>
+              </small>
+            </div>
+            <span className="text-primary-600 text-body-sm inline-flex shrink-0 items-center font-bold">
+              {t("see")}
+              <ChevronRight className="size-4 rtl:-scale-x-100" />
             </span>
-          </h3>
+          </Link>
+
+          {/* Articles. */}
+          <div className="text-muted text-caption mb-0.5 flex justify-end pt-1 font-semibold">
+            {t("itemsCount", { count: items.length })}
+          </div>
           {items.map((it) => (
             <div
               key={it.id}
@@ -804,6 +903,23 @@ export default async function CustomerOrderDetailPage({
               </span>
             </div>
           )}
+          {/* Soldes DÉDUITS (cashback / Coligo Pay utilisés au paiement) :
+              sans ces lignes, un reçu passait de « Sous-total 1 170 DA » à
+              « Total 0 DA » sans explication — le client croyait à une
+              erreur. Chaque dinar entre le sous-total et le total est
+              désormais tracé. */}
+          {cashbackUsed > 0 && (
+            <div className="text-success-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
+              <span>{t("cashbackUsed")}</span>
+              <span className="tabular-nums">− {formatDA(cashbackUsed)}</span>
+            </div>
+          )}
+          {topupUsed > 0 && (
+            <div className="text-success-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
+              <span>{t("topupUsed")}</span>
+              <span className="tabular-nums">− {formatDA(topupUsed)}</span>
+            </div>
+          )}
           {order.cashback_estimate_da > 0 && (
             <div className="text-primary-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
               <span>{t("cashbackEstimated")}</span>
@@ -835,78 +951,6 @@ export default async function CustomerOrderDetailPage({
             />
           </div>
         </div>
-
-        {/* ═══ BOUTIQUE ═══ */}
-        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-lg border px-4 py-3">
-          {merchant.logo_url ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={
-                cldUrl(merchant.logo_url, {
-                  width: 96,
-                  height: 96,
-                  crop: "fill",
-                  gravity: "auto",
-                }) ?? merchant.logo_url
-              }
-              alt=""
-              loading="lazy"
-              decoding="async"
-              className="border-border size-10 shrink-0 rounded-xl border bg-white object-cover"
-            />
-          ) : (
-            <div className="bg-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold text-white">
-              {merchant.name.charAt(0)}
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <b className="text-foreground block truncate text-sm font-bold">
-              {merchant.name}
-            </b>
-            <small className="text-muted text-xs">
-              <MapPin className="me-0.5 -mt-0.5 inline size-3" />
-              {[merchant.address, merchant.commune]
-                .filter(Boolean)
-                .join(" · ") || "—"}
-            </small>
-          </div>
-          <Link
-            href={`/m/${merchant.slug}`}
-            className="text-primary-600 text-body-sm shrink-0 font-bold hover:underline"
-          >
-            {t("see")} ›
-          </Link>
-        </div>
-
-        {/* ═══ INFOS PRATIQUES (créneau / adresse + note) — secondaire ═══ */}
-        {!isCancelled && (
-          <div className="border-border bg-surface mt-3 rounded-lg border p-4">
-            <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-semibold">
-              {isDelivery ? (
-                <MapPin className="size-3.5" />
-              ) : (
-                <Clock className="size-3.5" />
-              )}
-              {isDelivery ? t("deliveryAddress") : t("pickupSlot")}
-            </div>
-            <p className="text-foreground text-sm">
-              {isDelivery
-                ? ((order as { delivery_address_text: string | null })
-                    .delivery_address_text ?? t("addressProvidedAtOrder"))
-                : isSlot
-                  ? formatSlotRange(
-                      new Date(order.pickup_slot_start as string),
-                      new Date(order.pickup_slot_end as string)
-                    )
-                  : formatAsapReady(new Date(order.pickup_slot_at))}
-            </p>
-            {order.customer_note && (
-              <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
-                {t("note")} : {order.customer_note}
-              </p>
-            )}
-          </div>
-        )}
 
         {/* ═══ Notation du livreur (commande livrée + livreur assigné) ═══ */}
         {driverReview && (
