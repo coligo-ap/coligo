@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslations } from "next-intl";
 import { ChevronDown, MapPin, ShoppingCart, User } from "lucide-react";
 import { Logo } from "@/components/shared/logo";
@@ -54,6 +54,28 @@ export function CustomerHeader({
   const cart = useCart();
   const cartCount = totalUnits(cart);
   const [pickerOpen, setPickerOpen] = useState(false);
+
+  // Gouttières du bloc d'emplacement MOBILE, mesurées sur les blocs latéraux
+  // RÉELS (16 px de marge du conteneur + bloc + 6 px d'air). Mesurer plutôt que
+  // figer : quand la cloche est absente (aucune notification), l'adresse
+  // récupère sa place — et elle la rend à l'instant où la cloche apparaît
+  // (Realtime), le ResizeObserver voit le bloc grossir. Valeurs initiales =
+  // l'estimation statique (identiques serveur/client, pas d'écart d'hydratation).
+  const sideStartRef = useRef<HTMLDivElement | null>(null);
+  const sideEndRef = useRef<HTMLDivElement | null>(null);
+  const [gutters, setGutters] = useState({ start: 133, end: 60 });
+  useEffect(() => {
+    const measure = () => {
+      const s = sideStartRef.current?.offsetWidth ?? 0;
+      const e = sideEndRef.current?.offsetWidth ?? 0;
+      if (s > 0 && e > 0) setGutters({ start: 16 + s + 6, end: 16 + e + 6 });
+    };
+    measure();
+    const ro = new ResizeObserver(measure);
+    if (sideStartRef.current) ro.observe(sideStartRef.current);
+    if (sideEndRef.current) ro.observe(sideEndRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   // D'autres écrans (état vide de la home…) ouvrent LA MÊME feuille de
   // position que le header via cet événement — une seule UX de changement
@@ -231,24 +253,30 @@ export function CustomerHeader({
         <div className="lg:hidden">
           <div className="relative flex items-center gap-2 px-4 py-3">
             {/* Gauche — langue + thème. */}
-            <div className="flex shrink-0 items-center gap-2">
+            <div
+              ref={sideStartRef}
+              className="flex shrink-0 items-center gap-2"
+            >
               <LanguageSwitcher compact onColor={themed} />
               <ThemeSwitcher onColor={themed} />
             </div>
 
-            {/* CENTRE — l'emplacement, centré au pixel : posé en absolu avec
-                des GOUTTIÈRES SYMÉTRIQUES larges comme le plus gros bloc
-                latéral — mesuré : langue + thème = 111 px + les 16 px de
-                marge, arrondi à 132 (le côté droit, cloche + panier, ne fait
-                que 84 px). Une
-                grille `1fr auto 1fr` ne suffirait pas : dès qu'une adresse
-                remplit la barre, le côté le plus large force son plancher,
-                l'autre s'écrase, et le bloc part à côté du centre. Ici le
-                centre ne dépend plus du contenu des côtés, et il ne bouge PAS
-                quand la cloche apparaît à la connexion. */}
+            {/* CENTRE — l'emplacement, posé en absolu entre les deux blocs
+                latéraux, avec des gouttières MESURÉES en direct (ResizeObserver
+                sur chaque bloc). Tout l'espace libre va donc à l'adresse : pas
+                de cloche (aucune notification) = ~40 px de plus pour le texte,
+                et l'agrandissement de police système est absorbé aussi (les
+                blocs mesurés grossissent, les gouttières suivent). Une grille
+                `1fr auto 1fr` ne suffirait pas : dès qu'une adresse remplit la
+                barre, le côté le plus large force son plancher, l'autre
+                s'écrase, et le bloc chevauche les contrôles. Ici le bouton se
+                centre entre les contrôles et ne les touche jamais. */}
             <div
               className="pointer-events-none absolute inset-0 flex items-center justify-center"
-              style={{ paddingInline: 132 }}
+              style={{
+                paddingInlineStart: gutters.start,
+                paddingInlineEnd: gutters.end,
+              }}
             >
               <button
                 type="button"
@@ -289,7 +317,10 @@ export function CustomerHeader({
             </div>
 
             {/* Droite — notifications + panier. */}
-            <div className="ms-auto flex shrink-0 items-center gap-2">
+            <div
+              ref={sideEndRef}
+              className="ms-auto flex shrink-0 items-center gap-2"
+            >
               {isAuth && (
                 <NotificationBell
                   source={{ table: "user_notifications", audience: "customer" }}

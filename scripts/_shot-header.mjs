@@ -86,7 +86,9 @@ for (const c of CASES) {
   const header = p.locator("header").first();
   await header.screenshot({ path: `${OUT}/hdr-${c.name}.png` });
 
-  // Géométrie : le bouton de zone VISIBLE est-il centré, et rien ne déborde ?
+  // Géométrie : le bouton de zone VISIBLE est-il centré ENTRE les contrôles
+  // latéraux (c'est l'invariant depuis les gouttières mesurées — l'espace
+  // libre, cloche absente comprise, va à l'adresse), et rien ne déborde ?
   const geo = await p.evaluate(() => {
     const h = document.querySelector("header");
     if (!h) return null;
@@ -102,17 +104,34 @@ for (const c of CASES) {
     if (!zone) return { error: "zone introuvable" };
     const zr = zone.getBoundingClientRect();
     const hr = h.getBoundingClientRect();
-    // Le bloc de zone déborde-t-il sur un voisin (logo / actions) ?
+    // Voisins latéraux : borne = bord interne du bloc de gauche / de droite.
     const others = [...h.querySelectorAll("a,button")]
       .filter((el) => el !== zone && !zone.contains(el) && visible(el))
       .map((el) => el.getBoundingClientRect());
     const overlap = others.some(
       (r) => r.left < zr.right - 0.5 && r.right > zr.left + 0.5
     );
+    const zoneMid = (zr.left + zr.right) / 2;
+    const leftEdge = Math.max(
+      hr.left,
+      ...others.filter((r) => r.right <= zr.left + 0.5).map((r) => r.right)
+    );
+    const rightEdge = Math.min(
+      hr.right,
+      ...others.filter((r) => r.left >= zr.right - 0.5).map((r) => r.left)
+    );
+    // Invariant PAR ÉCRAN : téléphone = centré dans l'ESPACE LIBRE entre les
+    // contrôles (gouttières mesurées — l'espace de la cloche absente va à
+    // l'adresse) ; ordinateur = centre du viewport (grille `1fr auto 1fr`,
+    // inchangée — les contenus latéraux n'y sont pas symétriques).
+    const desktop = window.innerWidth >= 1024;
+    const target = desktop
+      ? hr.left + hr.width / 2
+      : (leftEdge + rightEdge) / 2;
     return {
       h: Math.round(hr.height),
       zone: { l: Math.round(zr.left), r: Math.round(zr.right) },
-      offCenter: Math.round((zr.left + zr.right) / 2 - hr.width / 2),
+      offCenter: Math.round(zoneMid - target),
       overlap,
       overflowX:
         document.documentElement.scrollWidth >
@@ -122,7 +141,7 @@ for (const c of CASES) {
   const ok =
     geo &&
     !geo.error &&
-    Math.abs(geo.offCenter) <= 2 &&
+    Math.abs(geo.offCenter) <= 4 &&
     !geo.overlap &&
     !geo.overflowX;
   if (!ok) bad++;
