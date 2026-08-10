@@ -17,7 +17,6 @@ import {
 import { useCart, totalUnits } from "@/lib/customer/cart-store";
 import { LocationPicker } from "@/components/customer/location-picker";
 import { LanguageSwitcher } from "@/components/i18n/language-switcher";
-import { ThemeSwitcher } from "@/components/shared/theme-switcher";
 import { NotificationBell } from "@/components/shared/notification-bell";
 import { CustomerDrawer } from "@/components/customer/customer-drawer";
 
@@ -177,12 +176,13 @@ export function CustomerHeader({
             />
           </button>
 
-          {/* Colonne de droite — mêmes actions qu'avant, dans le même ordre. */}
+          {/* Colonne de droite. La LUNE n'est plus ici (décision produit du
+              10/08/2026) : l'app s'ouvre toujours en clair, le mode sombre se
+              choisit dans Compte › Préférences. */}
           <div className="flex items-center justify-end gap-4">
-            {/* Sur fond thémé, déclencheurs en blanc (prop explicite — les
+            {/* Sur fond thémé, déclencheur en blanc (prop explicite — les
                 MENUS en portal restent normaux). */}
             <LanguageSwitcher onColor={themed} />
-            <ThemeSwitcher onColor={themed} />
 
             {isAuth && (
               <NotificationBell
@@ -252,13 +252,15 @@ export function CustomerHeader({
             qui fait la navigation. */}
         <div className="lg:hidden">
           <div className="relative flex items-center gap-2 px-4 py-3">
-            {/* Gauche — langue + thème. */}
+            {/* Gauche — langue seule. La LUNE est partie dans Compte ›
+                Préférences (décision produit du 10/08/2026 : l'app s'ouvre
+                toujours en clair) — et l'espace libéré revient à l'adresse
+                via les gouttières mesurées. */}
             <div
               ref={sideStartRef}
               className="flex shrink-0 items-center gap-2"
             >
               <LanguageSwitcher compact onColor={themed} />
-              <ThemeSwitcher onColor={themed} />
             </div>
 
             {/* CENTRE — l'emplacement, posé en absolu entre les deux blocs
