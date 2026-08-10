@@ -14,7 +14,8 @@ import { cn } from "@/lib/utils";
  * 10/08/2026) : l'app s'ouvre TOUJOURS en clair par défaut — elle ne suit
  * jamais le réglage sombre du téléphone (le thème est piloté par notre cookie,
  * pas par prefers-color-scheme) — et la lune a été retirée du header. Le choix
- * fait ici est persisté (cookie 1 an) et survit aux réouvertures.
+ * fait ici tient LE TEMPS DE LA SESSION (cookie de session) : à chaque
+ * réouverture de l'app, on repart en clair — demande explicite du 10/08/2026.
  *
  * Bascule INSTANTANÉE (même mécanique que ThemeSwitcher) : on toggle la classe
  * `theme-dark` sur <html> — le thème est piloté 100 % en CSS — et le cookie est
