@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getChauffeurGate } from "@/app/(chauffeur)/actions";
+import { getFeatureFlag } from "@/lib/data/feature-flags";
 import { idvBlocksAccess, idvRouteFor } from "@/lib/idv/compliance";
 import { IdvRequiredScreen } from "@/components/idv/idv-required-screen";
 import { DBlocked, DFrozen } from "@/components/chauffeur/d-gate";
@@ -26,12 +27,16 @@ export async function ChauffeurGateGuard({
 }: {
   children: React.ReactNode;
 }) {
-  // PERF : les deux lectures sont INDÉPENDANTES (idvBlocksAccess n'a besoin
-  // que du profil "chauffeur", pas du résultat du gate) — en parallèle plutôt
-  // qu'en cascade pour ne pas empiler leurs allers-retours réseau.
-  const [gate, idvBlocked] = await Promise.all([
+  // PERF : les trois lectures sont INDÉPENDANTES (idvBlocksAccess n'a besoin
+  // que du profil "chauffeur", pas du résultat du gate ; le drapeau vient de
+  // la table feature_flags) — en parallèle plutôt qu'en cascade pour ne pas
+  // empiler leurs allers-retours réseau.
+  const [gate, idvBlocked, locationGateFlag] = await Promise.all([
     getChauffeurGate(),
     idvBlocksAccess("chauffeur"),
+    // Vanne de sécurité /admin/controle (mig 0451) : autre que « active » =
+    // la garde GPS n'est pas montée. Défaut actif (ligne absente comprise).
+    getFeatureFlag("partner_location_gate"),
   ]);
   if (!gate) redirect("/chauffeur/login");
   if (gate.isBlocked) return <DBlocked />;
@@ -48,8 +53,9 @@ export async function ChauffeurGateGuard({
       {/* LOCALISATION OBLIGATOIRE — écran bloquant + mise hors ligne quand la
           position exacte manque. Monté ICI et pas dans la coque : un compte
           BLOQUÉ, GELÉ ou en attente d'IDV a déjà son propre écran, et on ne
-          va pas lui réclamer son GPS par-dessus. */}
-      <ChauffeurLocationGate />
+          va pas lui réclamer son GPS par-dessus. Débrayable par le super-admin
+          (/admin/controle, vanne de sécurité). */}
+      {locationGateFlag.status === "active" && <ChauffeurLocationGate />}
       {children}
     </ChauffeurGateProvider>
   );

@@ -23,6 +23,7 @@ import { DriverInstallBanner } from "@/components/driver/driver-install-banner";
 import { DriverLocationGate } from "@/components/driver/driver-location-gate";
 import { getCurrentDriver } from "@/lib/auth/driver";
 import { getDriverGate } from "@/lib/auth/driver-gate";
+import { getFeatureFlag } from "@/lib/data/feature-flags";
 import { APP_CONFIG } from "@/lib/config/app-config";
 
 /**
@@ -56,10 +57,13 @@ export default async function DriverLayout({
   // lien instable, multipliés par 3 en séquentiel = ressenti « ça ne répond
   // pas »). Elles partagent déjà le même utilisateur via `getAuthUser()`
   // (cache() par requête).
-  const [driver, gate, idvBlocked] = await Promise.all([
+  const [driver, gate, idvBlocked, locationGateFlag] = await Promise.all([
     getCurrentDriver(),
     getDriverGate(),
     idvBlocksAccess("driver"),
+    // Vanne de sécurité /admin/controle (mig 0451) : autre que « active » =
+    // la garde GPS n'est pas montée. Défaut actif (ligne absente comprise).
+    getFeatureFlag("partner_location_gate"),
   ]);
 
   // BLOCAGE (sanction dure) : un livreur bloqué n'a AUCUN accès à ses pages —
@@ -162,8 +166,9 @@ export default async function DriverLayout({
             {/* LOCALISATION OBLIGATOIRE : sans position exacte, écran bloquant
                 plein écran (z-[200]) + mise hors ligne → plus aucune course
                 Express proposée. Réservé au compte ACTIVÉ : on n'impose pas la
-                géoloc à quelqu'un qui remplit encore son dossier. */}
-            <DriverLocationGate />
+                géoloc à quelqu'un qui remplit encore son dossier. Débrayable
+                par le super-admin (/admin/controle, vanne de sécurité). */}
+            {locationGateFlag.status === "active" && <DriverLocationGate />}
             {/* Réception Express globale (pilotée par l'intention « en ligne »). */}
             <DriverDispatchMount userId={driver?.user_id ?? null} />
             {/* Notification TOURNÉE temps réel (bandeau in-app) chez les commerçants

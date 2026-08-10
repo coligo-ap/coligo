@@ -33,7 +33,8 @@ export type FeatureKey =
   | "recruit_merchant"
   | "recruit_driver"
   | "recruit_chauffeur"
-  | "recruit_agent";
+  | "recruit_agent"
+  | "partner_location_gate";
 export type FeatureStatus = "active" | "hidden" | "coming_soon" | "maintenance";
 
 export type FeatureFlag = {
@@ -72,6 +73,7 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "recruit_driver",
   "recruit_chauffeur",
   "recruit_agent",
+  "partner_location_gate",
 ];
 
 function defaultFlag(key: FeatureKey): FeatureFlag {

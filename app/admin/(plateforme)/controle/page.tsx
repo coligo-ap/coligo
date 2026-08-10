@@ -101,6 +101,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Kill-switch du parcours automatisé document + selfie (scan, liveness, comparaison du visage). Masqué = retiré partout. Les règles par profil et les seuils se pilotent dans Confiance → Identité.",
   },
   {
+    key: "partner_location_gate",
+    label: "Localisation obligatoire (chauffeurs + livreurs)",
+    hint: "Vanne de SÉCURITÉ de la garde GPS : « active » = un chauffeur/livreur sans position exacte voit l'écran bloquant et passe hors ligne (comportement Uber/Bolt). Tout autre état = garde désactivée pour toute la flotte — à n'utiliser QUE si la garde bloque à tort (bug appareil, régression) le temps du correctif. Aucun écran « bientôt » : couper ne se voit pas, ça ne fait que lever le blocage.",
+  },
+  {
     key: "recruit_merchant",
     label: "Recrutement — commerçants (/recrute)",
     hint: "La carte « Devenir commerçant » de la page publique coligo.app/recrute. Masqué = carte retirée ; bientôt/maintenance = grisée sans lien. Le portail /signup lui-même n'est pas coupé (les dossiers restent validés par l'équipe).",
