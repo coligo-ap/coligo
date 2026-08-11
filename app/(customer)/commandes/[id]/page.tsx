@@ -7,6 +7,7 @@ import {
   Check,
   ChevronRight,
   Clock,
+  CreditCard,
   KeyRound,
   MapPin,
   PackageCheck,
@@ -552,16 +553,8 @@ export default async function CustomerOrderDetailPage({
                 </small>
               </div>
             </div>
-            {orderNumber && (
-              <span className="shrink-0 text-end">
-                <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
-                  {t("orderNumberShort")}
-                </small>
-                <b className="text-foreground text-title-lg leading-tight font-black tracking-wide">
-                  #{orderNumber}
-                </b>
-              </span>
-            )}
+            {/* Le NUMÉRO n'est plus ici : il est porté EN GRAND par la tuile
+                juste dessous (règle projet — une info, un seul endroit). */}
           </div>
 
           {/* ligne 2 : suivi HORIZONTAL (masqué si annulée) */}
@@ -573,49 +566,23 @@ export default async function CustomerOrderDetailPage({
             />
           )}
 
-          {/* ligne 3 : délai (gauche) + montant (droite) */}
-          {!isCancelled && (
-            <div className="border-border mt-3.5 flex items-center justify-between gap-3 border-t pt-3">
-              {delai ? (
-                <div className="text-foreground text-label-lg flex items-center gap-1.5 font-semibold">
-                  <delai.Icon className="text-primary-600 size-3.5" />
-                  <span>
-                    {delai.label}
-                    {delai.strong && (
-                      <>
-                        {" "}
-                        <b className="text-foreground font-extrabold">
-                          {delai.strong}
-                        </b>
-                      </>
-                    )}
-                  </span>
-                </div>
-              ) : (
-                <span />
-              )}
-              <div className="text-end">
-                {isCash ? (
+          {/* ligne 3 : le DÉLAI seul (ETA / créneau). Le montant n'est plus
+              ici : il est porté EN GRAND par la tuile juste dessous — il ne
+              doit apparaître qu'une fois sur l'écran. */}
+          {!isCancelled && delai && (
+            <div className="border-border text-foreground text-label-lg mt-3.5 flex items-center gap-1.5 border-t pt-3 font-semibold">
+              <delai.Icon className="text-primary-600 size-3.5" />
+              <span>
+                {delai.label}
+                {delai.strong && (
                   <>
-                    <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
-                      {t("toPayCash")}
-                    </small>
-                    <b className="text-foreground text-heading-sm font-black tracking-tight">
-                      {formatDA(order.total_da)}
-                    </b>
-                  </>
-                ) : (
-                  <>
-                    <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
-                      {t("total")}
-                    </small>
-                    <b className="text-success-700 inline-flex items-center gap-1 text-sm font-black tracking-tight">
-                      <Check className="size-3.5" strokeWidth={3} />
-                      {t("paid")} · {formatDA(order.total_da)}
+                    {" "}
+                    <b className="text-foreground font-extrabold">
+                      {delai.strong}
                     </b>
                   </>
                 )}
-              </div>
+              </span>
             </div>
           )}
 
@@ -633,12 +600,44 @@ export default async function CustomerOrderDetailPage({
           {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
         </div>
 
-        {/* ═══ INFORMATIONS — l'état civil de la commande, façon Uber ═══
-            JUSTE SOUS le statut (demande explicite : les infos dont le client
-            a toujours besoin se lisent SANS défiler). Rangées compactes
-            libellé à gauche / valeur à droite : quand, quel type, comment
-            c'est payé, et le code SELON LE CAS — la référence vit ici,
-            l'ACTION (« donne ce code ») vit dans la section remise. */}
+        {/* ═══ CHIFFRES CLÉS — ce que le client cherche en 1 seconde ═══
+            Deux tuiles en GRAND (numéro de commande, montant), lisibles à bout
+            de bras : ce sont les deux valeurs qu'on épelle au téléphone au
+            support ou qu'on montre en caisse. Le libellé reste discret, la
+            VALEUR domine. */}
+        {!isCancelled && (
+          <div className="mt-2.5 grid grid-cols-2 gap-2.5">
+            {orderNumber && (
+              <div className="border-border bg-surface rounded-lg border px-4 py-3">
+                <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
+                  {t("statOrder")}
+                </small>
+                <b className="text-foreground text-display-sm block leading-tight font-black tracking-tight tabular-nums">
+                  #{orderNumber}
+                </b>
+              </div>
+            )}
+            <div className="border-border bg-surface rounded-lg border px-4 py-3">
+              <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
+                {isCash ? t("statToPay") : t("statPaid")}
+              </small>
+              <b
+                className={cn(
+                  "text-display-sm block leading-tight font-black tracking-tight tabular-nums",
+                  isCash ? "text-foreground" : "text-success-700"
+                )}
+              >
+                {formatDA(order.total_da)}
+              </b>
+            </div>
+          </div>
+        )}
+
+        {/* ═══ INFORMATIONS — l'état civil de la commande ═══
+            JUSTE SOUS le statut (les infos dont le client a toujours besoin se
+            lisent SANS défiler). Libellé DISCRET à gauche, valeur LISIBLE à
+            droite. Le code n'est ici qu'en RÉFÉRENCE ; l'ACTION (« présente ce
+            code ») a sa grande carte dédiée dans la section remise. */}
         <div className="border-border bg-surface divide-border mt-2.5 divide-y rounded-lg border">
           {/* Quand — date + heure exactes de la commande (fuseau Alger). */}
           <InfoRow
@@ -668,7 +667,7 @@ export default async function CustomerOrderDetailPage({
               derniers chiffres), statut. La date de paiement n'est pas
               répétée : la ligne « Commandée le » ci-dessus la porte déjà. */}
           <InfoRow
-            icon={null}
+            icon={<CreditCard className="size-4" />}
             label={t("infoPayment")}
             value={
               <PaymentLine
@@ -685,11 +684,11 @@ export default async function CustomerOrderDetailPage({
               />
             }
           />
-          {/* Le code, SELON LE CAS : commande TERMINÉE avec code → on le garde
-              en référence (litiges) ; commande 100 % espèces → on dit
-              explicitement qu'il n'y en a pas (le client n'attend pas un code
-              qui ne viendra jamais). Commande ACTIVE avec code → rien ici, la
-              grande carte de la section remise l'affiche juste en dessous. */}
+          {/* RÈGLE MÉTIER du code (mig 0090 / validate_delivery) : il n'existe
+              que s'il y a une part PRÉPAYÉE (en ligne, cashback ou Coligo Pay)
+              — une commande 100 % espèces n'en a JAMAIS. Il ne sert qu'à
+              VALIDER la remise : une fois la commande terminée on le garde en
+              simple référence (litiges), et il disparaît si elle est annulée. */}
           {!isCancelled && needsCode && isCompleted && order.pickup_code && (
             <InfoRow
               icon={<KeyRound className="size-4" />}
@@ -782,36 +781,42 @@ export default async function CustomerOrderDetailPage({
         {/* `!isCompleted` : le code ne sert qu'à VALIDER la remise — sur une
             commande déjà livrée/récupérée, l'afficher encore sème le doute. */}
         {needsCode && !isCancelled && !isCompleted && order.pickup_code && (
-          <div className="border-primary-100 bg-primary-50 mt-1 rounded-lg border p-3.5">
-            <div className="flex items-center justify-between gap-3">
-              <span className="text-primary-800 text-label-lg inline-flex items-center gap-1.5 font-extrabold">
-                <KeyRound className="size-4 shrink-0" />
-                {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
-              </span>
-              <span className="text-primary-600 text-[26px] leading-none font-black tracking-[6px] tabular-nums">
-                {order.pickup_code}
-              </span>
+          <div className="border-primary-200 bg-primary-50 mt-1 rounded-xl border p-4 text-center">
+            <span className="text-primary-800 text-label-lg inline-flex items-center gap-1.5 font-extrabold">
+              <KeyRound className="size-4 shrink-0" />
+              {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
+            </span>
+
+            {/* LE CODE, en très grand : c'est le geste de l'écran. Lisible à
+                bout de bras par le livreur/commerçant sans prendre le
+                téléphone des mains du client. */}
+            <p className="text-primary-600 text-code mt-2 leading-none font-black tracking-[10px] tabular-nums">
+              {order.pickup_code}
+            </p>
+
+            {/* Le QR fait la MÊME chose que le code, en plus rapide : plaque
+                blanche pour le contraste de scan, tap = plein écran. */}
+            <div className="mt-3.5 flex justify-center">
+              <div className="rounded-card border-primary-100 border bg-white p-2.5">
+                <QrZoom
+                  value={order.pickup_code}
+                  size={132}
+                  fullValue={order.pickup_code}
+                  caption={
+                    isDelivery
+                      ? t("codeScanHintDriver")
+                      : t("codeScanHintMerchant")
+                  }
+                />
+              </div>
             </div>
-            <div className="border-primary-100 mt-3 flex items-center gap-3.5 border-t pt-3">
-              <QrZoom
-                value={order.pickup_code}
-                size={92}
-                fullValue={order.pickup_code}
-                caption={
-                  isDelivery
-                    ? t("codeScanHintDriver")
-                    : t("codeScanHintMerchant")
-                }
-              />
-              <p className="text-primary-700/90 text-label font-semibold">
-                {isDelivery
-                  ? t("codeScanHintDriver")
-                  : t("codeScanHintMerchant")}
-                <span className="text-caption mt-1 block font-bold opacity-80">
-                  {t("tapToEnlarge")}
-                </span>
-              </p>
-            </div>
+
+            <p className="text-primary-700/90 text-label mx-auto mt-2.5 max-w-[280px] font-semibold">
+              {isDelivery ? t("codeStepDriver") : t("codeStepMerchant")}
+              <span className="text-caption mt-1 block font-bold opacity-80">
+                {t("tapToEnlarge")}
+              </span>
+            </p>
           </div>
         )}
 

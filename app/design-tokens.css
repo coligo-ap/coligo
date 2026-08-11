@@ -194,6 +194,10 @@
   --text-heading-lg: 20px;
   --text-display-sm: 21px; /* montants, chiffres héro  */
   --text-display: 22px;
+  /* Code à PRÉSENTER (PIN de retrait/livraison) : hors échelle de lecture,
+     c'est un objet à déchiffrer À DISTANCE — le livreur ou le commerçant le
+     lit sans prendre le téléphone des mains du client. */
+  --text-code: 44px;
 
   /* === Élévation FONCTIONNELLE uniquement (dropdown, feuille, overlay qui
      doivent se détacher) — le décor reste FLAT (bordures + fonds doux). */
