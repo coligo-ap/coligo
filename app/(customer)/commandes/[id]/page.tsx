@@ -3,12 +3,14 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
   ArrowLeft,
+  CalendarDays,
   Check,
   ChevronRight,
   Clock,
   KeyRound,
   MapPin,
   PackageCheck,
+  ShoppingBag,
   Truck,
   X,
 } from "lucide-react";
@@ -37,7 +39,12 @@ import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { OrderSupportButton } from "@/components/support/order-support-button";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
-import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
+import {
+  formatAsapReady,
+  formatOrderDateTime,
+  formatSlotRange,
+} from "@/lib/customer/pickup-format";
+import { getLocale } from "next-intl/server";
 import { formatQtyUnit } from "@/lib/ticket/ticket-format";
 
 export const dynamic = "force-dynamic";
@@ -52,6 +59,7 @@ export default async function CustomerOrderDetailPage({
   const { id } = await params;
   const { placed } = await searchParams;
   const t = await getTranslations("orders");
+  const locale = await getLocale();
   const supabase = await createClient();
   const {
     data: { user },
@@ -932,24 +940,81 @@ export default async function CustomerOrderDetailPage({
             <span>{isCash ? t("total") : t("totalPaid")}</span>
             <span className="tabular-nums">{formatDA(order.total_da)}</span>
           </div>
-          {/* Comment ça a été payé : moyen, fournisseur, carte (marque + 4
-              derniers chiffres), statut et horodatage. Même composant que
-              l'historique des courses. */}
-          <div className="text-muted mt-1.5 flex justify-end">
-            <PaymentLine
-              withDate
-              payment={{
-                mode: isCash ? "cash" : receipt ? "card" : "online",
-                provider: receipt?.provider ?? null,
-                brand: receipt?.card_brand ?? null,
-                last4: receipt?.card_last4 ?? null,
-                wallet: receipt?.wallet ?? null,
-                method: receipt?.method ?? null,
-                status: receipt?.status ?? null,
-                paid_at: receipt?.paid_at ?? null,
-              }}
+        </div>
+
+        {/* ═══ INFORMATIONS — l'état civil de la commande, façon Uber ═══
+            Une ligne par fait : quand, quel type, comment c'est payé, et le
+            code SELON LE CAS — la référence à retrouver plus tard vit ici,
+            l'ACTION (« donne ce code ») vit dans la section remise. */}
+        <div className="border-border bg-surface divide-border mt-3 divide-y rounded-lg border">
+          {/* Quand — date + heure exactes de la commande (fuseau Alger). */}
+          <InfoRow
+            icon={<CalendarDays className="size-4" />}
+            label={t("infoDate")}
+            value={formatOrderDateTime(new Date(order.created_at), locale)}
+          />
+          {/* Quoi — retrait sur place / Express / tournée. */}
+          <InfoRow
+            icon={
+              isDelivery ? (
+                <Truck className="size-4" />
+              ) : (
+                <ShoppingBag className="size-4" />
+              )
+            }
+            label={t("infoType")}
+            value={
+              isDelivery
+                ? order.delivery_mode === "tour"
+                  ? t("typeTour")
+                  : t("typeExpress")
+                : t("typePickup")
+            }
+          />
+          {/* Comment c'est payé — moyen, fournisseur, carte (marque + 4
+              derniers chiffres), statut. La date de paiement n'est pas
+              répétée : la ligne « Commandée le » ci-dessus la porte déjà. */}
+          <InfoRow
+            icon={null}
+            label={t("infoPayment")}
+            value={
+              <PaymentLine
+                payment={{
+                  mode: isCash ? "cash" : receipt ? "card" : "online",
+                  provider: receipt?.provider ?? null,
+                  brand: receipt?.card_brand ?? null,
+                  last4: receipt?.card_last4 ?? null,
+                  wallet: receipt?.wallet ?? null,
+                  method: receipt?.method ?? null,
+                  status: receipt?.status ?? null,
+                  paid_at: receipt?.paid_at ?? null,
+                }}
+              />
+            }
+          />
+          {/* Le code, SELON LE CAS : commande TERMINÉE avec code → on le garde
+              en référence (litiges) ; commande 100 % espèces → on dit
+              explicitement qu'il n'y en a pas (le client n'attend pas un code
+              qui ne viendra jamais). Commande ACTIVE avec code → rien ici, la
+              grande carte de la section remise l'affiche déjà. */}
+          {!isCancelled && needsCode && isCompleted && order.pickup_code && (
+            <InfoRow
+              icon={<KeyRound className="size-4" />}
+              label={t("infoCode")}
+              value={
+                <span className="tracking-[3px] tabular-nums">
+                  {order.pickup_code}
+                </span>
+              }
             />
-          </div>
+          )}
+          {!isCancelled && !needsCode && (
+            <InfoRow
+              icon={<KeyRound className="size-4" />}
+              label={t("infoCode")}
+              value={t("noCodeCash")}
+            />
+          )}
         </div>
 
         {/* ═══ Notation du livreur (commande livrée + livreur assigné) ═══ */}
@@ -965,5 +1030,36 @@ export default async function CustomerOrderDetailPage({
         )}
       </div>
     </CustomerShell>
+  );
+}
+
+/**
+ * Ligne du bloc « Informations » — pastille d'icône + libellé + valeur en
+ * bout de ligne (même gabarit que les rangées de la page Compte). `icon` à
+ * null quand la valeur porte déjà la sienne (ligne de paiement).
+ */
+function InfoRow({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode | null;
+  label: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="flex items-center gap-3 px-4 py-3">
+      {icon && (
+        <span className="bg-surface-2 text-muted grid size-9 shrink-0 place-items-center rounded-lg">
+          {icon}
+        </span>
+      )}
+      <span className="text-muted text-label-lg min-w-0 flex-1 font-semibold">
+        {label}
+      </span>
+      <span className="text-foreground text-body-sm min-w-0 text-end font-bold">
+        {value}
+      </span>
+    </div>
   );
 }
