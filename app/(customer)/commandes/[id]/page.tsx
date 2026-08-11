@@ -633,6 +633,83 @@ export default async function CustomerOrderDetailPage({
           {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
         </div>
 
+        {/* ═══ INFORMATIONS — l'état civil de la commande, façon Uber ═══
+            JUSTE SOUS le statut (demande explicite : les infos dont le client
+            a toujours besoin se lisent SANS défiler). Rangées compactes
+            libellé à gauche / valeur à droite : quand, quel type, comment
+            c'est payé, et le code SELON LE CAS — la référence vit ici,
+            l'ACTION (« donne ce code ») vit dans la section remise. */}
+        <div className="border-border bg-surface divide-border mt-2.5 divide-y rounded-lg border">
+          {/* Quand — date + heure exactes de la commande (fuseau Alger). */}
+          <InfoRow
+            icon={<CalendarDays className="size-4" />}
+            label={t("infoDate")}
+            value={formatOrderDateTime(new Date(order.created_at), locale)}
+          />
+          {/* Quoi — retrait sur place / Express / tournée. */}
+          <InfoRow
+            icon={
+              isDelivery ? (
+                <Truck className="size-4" />
+              ) : (
+                <ShoppingBag className="size-4" />
+              )
+            }
+            label={t("infoType")}
+            value={
+              isDelivery
+                ? order.delivery_mode === "tour"
+                  ? t("typeTour")
+                  : t("typeExpress")
+                : t("typePickup")
+            }
+          />
+          {/* Comment c'est payé — moyen, fournisseur, carte (marque + 4
+              derniers chiffres), statut. La date de paiement n'est pas
+              répétée : la ligne « Commandée le » ci-dessus la porte déjà. */}
+          <InfoRow
+            icon={null}
+            label={t("infoPayment")}
+            value={
+              <PaymentLine
+                payment={{
+                  mode: isCash ? "cash" : receipt ? "card" : "online",
+                  provider: receipt?.provider ?? null,
+                  brand: receipt?.card_brand ?? null,
+                  last4: receipt?.card_last4 ?? null,
+                  wallet: receipt?.wallet ?? null,
+                  method: receipt?.method ?? null,
+                  status: receipt?.status ?? null,
+                  paid_at: receipt?.paid_at ?? null,
+                }}
+              />
+            }
+          />
+          {/* Le code, SELON LE CAS : commande TERMINÉE avec code → on le garde
+              en référence (litiges) ; commande 100 % espèces → on dit
+              explicitement qu'il n'y en a pas (le client n'attend pas un code
+              qui ne viendra jamais). Commande ACTIVE avec code → rien ici, la
+              grande carte de la section remise l'affiche juste en dessous. */}
+          {!isCancelled && needsCode && isCompleted && order.pickup_code && (
+            <InfoRow
+              icon={<KeyRound className="size-4" />}
+              label={t("infoCode")}
+              value={
+                <span className="tracking-[3px] tabular-nums">
+                  {order.pickup_code}
+                </span>
+              }
+            />
+          )}
+          {!isCancelled && !needsCode && (
+            <InfoRow
+              icon={<KeyRound className="size-4" />}
+              label={t("infoCode")}
+              value={t("noCodeCash")}
+            />
+          )}
+        </div>
+
         {/* ═══ PARTAGE POST-COMMANDE (mégaphone viral + code parrain) ═══
             Activation + design pilotés par Marketing > Story (mig 0440) ;
             cadeaux ami/partageur = conditions de Marketing > Parrainage. */}
@@ -942,81 +1019,6 @@ export default async function CustomerOrderDetailPage({
           </div>
         </div>
 
-        {/* ═══ INFORMATIONS — l'état civil de la commande, façon Uber ═══
-            Une ligne par fait : quand, quel type, comment c'est payé, et le
-            code SELON LE CAS — la référence à retrouver plus tard vit ici,
-            l'ACTION (« donne ce code ») vit dans la section remise. */}
-        <div className="border-border bg-surface divide-border mt-3 divide-y rounded-lg border">
-          {/* Quand — date + heure exactes de la commande (fuseau Alger). */}
-          <InfoRow
-            icon={<CalendarDays className="size-4" />}
-            label={t("infoDate")}
-            value={formatOrderDateTime(new Date(order.created_at), locale)}
-          />
-          {/* Quoi — retrait sur place / Express / tournée. */}
-          <InfoRow
-            icon={
-              isDelivery ? (
-                <Truck className="size-4" />
-              ) : (
-                <ShoppingBag className="size-4" />
-              )
-            }
-            label={t("infoType")}
-            value={
-              isDelivery
-                ? order.delivery_mode === "tour"
-                  ? t("typeTour")
-                  : t("typeExpress")
-                : t("typePickup")
-            }
-          />
-          {/* Comment c'est payé — moyen, fournisseur, carte (marque + 4
-              derniers chiffres), statut. La date de paiement n'est pas
-              répétée : la ligne « Commandée le » ci-dessus la porte déjà. */}
-          <InfoRow
-            icon={null}
-            label={t("infoPayment")}
-            value={
-              <PaymentLine
-                payment={{
-                  mode: isCash ? "cash" : receipt ? "card" : "online",
-                  provider: receipt?.provider ?? null,
-                  brand: receipt?.card_brand ?? null,
-                  last4: receipt?.card_last4 ?? null,
-                  wallet: receipt?.wallet ?? null,
-                  method: receipt?.method ?? null,
-                  status: receipt?.status ?? null,
-                  paid_at: receipt?.paid_at ?? null,
-                }}
-              />
-            }
-          />
-          {/* Le code, SELON LE CAS : commande TERMINÉE avec code → on le garde
-              en référence (litiges) ; commande 100 % espèces → on dit
-              explicitement qu'il n'y en a pas (le client n'attend pas un code
-              qui ne viendra jamais). Commande ACTIVE avec code → rien ici, la
-              grande carte de la section remise l'affiche déjà. */}
-          {!isCancelled && needsCode && isCompleted && order.pickup_code && (
-            <InfoRow
-              icon={<KeyRound className="size-4" />}
-              label={t("infoCode")}
-              value={
-                <span className="tracking-[3px] tabular-nums">
-                  {order.pickup_code}
-                </span>
-              }
-            />
-          )}
-          {!isCancelled && !needsCode && (
-            <InfoRow
-              icon={<KeyRound className="size-4" />}
-              label={t("infoCode")}
-              value={t("noCodeCash")}
-            />
-          )}
-        </div>
-
         {/* ═══ Notation du livreur (commande livrée + livreur assigné) ═══ */}
         {driverReview && (
           <div className="mt-3">
@@ -1048,9 +1050,12 @@ function InfoRow({
   value: React.ReactNode;
 }) {
   return (
-    <div className="flex items-center gap-3 px-4 py-3">
+    // COMPACT (py-2.5, pastille 32 px) : le bloc vit juste sous le statut —
+    // il doit renseigner d'un coup d'œil sans repousser les cartes d'action
+    // (code, carte live) hors du premier écran.
+    <div className="flex items-center gap-2.5 px-3.5 py-2.5">
       {icon && (
-        <span className="bg-surface-2 text-muted grid size-9 shrink-0 place-items-center rounded-lg">
+        <span className="bg-surface-2 text-muted grid size-8 shrink-0 place-items-center rounded-lg">
           {icon}
         </span>
       )}
