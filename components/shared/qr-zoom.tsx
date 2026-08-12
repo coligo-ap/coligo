@@ -16,6 +16,7 @@ export function QrZoom({
   size = 96,
   caption,
   fullValue,
+  expandLabel,
 }: {
   value: string;
   /** Taille de la vignette (px). */
@@ -24,22 +25,41 @@ export function QrZoom({
   caption?: string;
   /** Texte lisible affiché en grand sous le QR (ex. le code). Défaut: value. */
   fullValue?: string;
+  /**
+   * Libellé d'un VRAI bouton « Agrandir » sous la vignette. Sans lui, la seule
+   * affordance est la pastille d'angle — que beaucoup d'utilisateurs ne voient
+   * pas. Avec un scan à faire par un tiers (livreur, commerçant), le geste
+   * doit être ÉVIDENT : on écrit ce qu'il fait.
+   */
+  expandLabel?: string;
 }) {
   const [open, setOpen] = useState(false);
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        aria-label="Agrandir le QR"
-        className="relative inline-flex shrink-0 transition-transform active:scale-95"
-      >
-        <OrderQr value={value} size={size} />
-        <span className="bg-foreground/80 absolute right-1 bottom-1 grid size-6 place-items-center rounded-full text-white shadow">
-          <Maximize2 className="size-3.5" />
-        </span>
-      </button>
+      <span className="inline-flex flex-col items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          aria-label={expandLabel ?? "Agrandir le QR"}
+          className="relative inline-flex shrink-0 transition-transform active:scale-95"
+        >
+          <OrderQr value={value} size={size} />
+          <span className="bg-foreground/80 absolute right-1 bottom-1 grid size-6 place-items-center rounded-full text-white shadow">
+            <Maximize2 className="size-3.5" />
+          </span>
+        </button>
+        {expandLabel && (
+          <button
+            type="button"
+            onClick={() => setOpen(true)}
+            className="rounded-control border-border bg-surface text-foreground hover:bg-surface-2 text-label-lg inline-flex items-center gap-1.5 border px-3 py-1.5 font-bold transition-colors"
+          >
+            <Maximize2 className="size-3.5" />
+            {expandLabel}
+          </button>
+        )}
+      </span>
 
       {open && (
         <div

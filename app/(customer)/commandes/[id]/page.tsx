@@ -794,14 +794,23 @@ export default async function CustomerOrderDetailPage({
               {order.pickup_code}
             </p>
 
+            {/* POURQUOI ce code — la question que se pose tout client qui le
+                découvre. Deux phrases, pas un paragraphe. */}
+            <p className="text-primary-700/90 text-label mx-auto mt-2 max-w-[300px] font-semibold">
+              {t("codeWhy")}
+            </p>
+
             {/* Le QR fait la MÊME chose que le code, en plus rapide : plaque
-                blanche pour le contraste de scan, tap = plein écran. */}
+                blanche pour le contraste de scan. Le bouton « Agrandir »
+                est EXPLICITE — c'est un tiers (livreur/commerçant) qui doit
+                scanner, le geste ne doit pas se deviner. */}
             <div className="mt-3.5 flex justify-center">
               <div className="rounded-card border-primary-100 border bg-white p-2.5">
                 <QrZoom
                   value={order.pickup_code}
                   size={132}
                   fullValue={order.pickup_code}
+                  expandLabel={t("enlargeQr")}
                   caption={
                     isDelivery
                       ? t("codeScanHintDriver")
@@ -811,11 +820,8 @@ export default async function CustomerOrderDetailPage({
               </div>
             </div>
 
-            <p className="text-primary-700/90 text-label mx-auto mt-2.5 max-w-[280px] font-semibold">
+            <p className="text-primary-700/90 text-label mx-auto mt-2.5 max-w-[300px] font-semibold">
               {isDelivery ? t("codeStepDriver") : t("codeStepMerchant")}
-              <span className="text-caption mt-1 block font-bold opacity-80">
-                {t("tapToEnlarge")}
-              </span>
             </p>
           </div>
         )}

@@ -466,6 +466,8 @@
     "codeScanHintDriver": "À la réception, donne ce code au livreur — il peut aussi scanner ce QR pour valider la livraison.",
     "codeScanHintMerchant": "Au retrait, donne ce code au commerçant — il peut aussi scanner ce QR.",
     "tapToEnlarge": "Touche le QR pour l'agrandir en plein écran.",
+    "enlargeQr": "Agrandir le QR",
+    "codeWhy": "Ta commande est déjà payée. Ce code prouve que c'est bien toi qui la reçois — ne le donne qu'au moment de la remise.",
     "callName": "Appeler {name}",
     "detailTitle": "Détail",
     "sectionDelivery": "Livraison",

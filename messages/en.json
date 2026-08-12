@@ -466,6 +466,8 @@
     "codeScanHintDriver": "On delivery, give this code to the courier — they can also scan this QR to validate the delivery.",
     "codeScanHintMerchant": "At pickup, give this code to the merchant — they can also scan this QR.",
     "tapToEnlarge": "Tap the QR to enlarge it full screen.",
+    "enlargeQr": "Enlarge QR",
+    "codeWhy": "Your order is already paid. This code proves you are the one receiving it — only share it at handover.",
     "callName": "Call {name}",
     "detailTitle": "Details",
     "sectionDelivery": "Delivery",
