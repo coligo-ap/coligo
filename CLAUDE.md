@@ -398,11 +398,43 @@ et CHAQUE nouvel écran/coque :
 Toute nouvelle coque/page se vérifie mentalement contre ces 5 points AVANT de
 livrer — ne plus jamais reproduire le bug « contenu sous les barres système ».
 
-## Réutiliser les composants partagés (anti-duplication)
+## RÈGLE ABSOLUE — TOUJOURS réutiliser les composants du système
 
-Quand une fonctionnalité existe déjà (carte, feuille/sheet de course, sélecteur
-de position, toggle dark, carte d'adresse…), **réutiliser le composant partagé**
-au lieu de réécrire le markup. Le copier-coller recrée les mêmes bugs partout
-(ex. une feuille de course qui n'adapte pas le dark à un seul endroit). Un
-composant central corrigé une fois = corrigé partout (client + chauffeur +
-livreur).
+**Consigne permanente du propriétaire (rappelée le 12/08/2026).** Avant
+d'écrire le moindre bloc d'interface, on CHERCHE le composant qui existe déjà
+et on l'utilise. On ne réinvente jamais un `fixed inset-0`, un voile, une
+feuille, un bouton, un champ, une pastille ou une modale à la main.
+
+Le socle à utiliser, dans cet ordre :
+
+1. `components/ui/` — les primitives : `Sheet` (feuille/modale, ancrée en bas
+   sur mobile et centrée ≥ `sm`), `Button`, `Input`, `Field`, `Segmented`,
+   `Toggle`, `Badge`, `Skeleton`, `Spinner`, `Toast`, `Confirm`, `Portal`,
+   `EmptyState`, `Pagination`, `PhoneField`.
+2. `components/shared/` — les briques transverses : `PlaceField`, `QrZoom`,
+   `MapPositionPicker`, `AuthCard`, `PartnerMenuRow/Group`, `Logo`,
+   `NotificationBell`, `ThemeSwitcher`, `LanguageSwitcher`, `StepWizard`.
+3. Les tokens de `app/design-tokens.css` pour TOUTE valeur visuelle.
+
+Pourquoi c'est non négociable :
+
+- **Les pièges sont déjà payés dans la primitive.** `Sheet` gère le `Portal`
+  (sinon un `z-index` élevé reste piégé dans un parent `position: fixed` et
+  passe SOUS la nav), la fermeture Échap + voile, la zone sûre du bas, et le
+  RTL. Refaire ça à la main, c'est re-signer chaque bug déjà corrigé.
+- **La SUPERPOSITION est décidée au niveau du système, pas de l'écran.**
+  Échelle en vigueur : nav du bas `z-30` · carte plein écran `z-[80..95]` ·
+  bandeaux `z-[120..140]` · feuilles/modales `z-[200]` · garde de connexion
+  `z-[300]`. Une feuille ouverte RECOUVRE la nav — c'est voulu. Vécu :
+  remonter une feuille au-dessus de la nav avec une marge la faisait paraître
+  COUPÉE, avec un bandeau étranger collé dessous. On ne « corrige » pas une
+  superposition avec des marges : on utilise la primitive et son `z-index`.
+- Un composant central corrigé une fois = corrigé partout (client, chauffeur,
+  livreur, commerçant, admin). Le copier-coller recrée les mêmes bugs à
+  l'infini (ex. une feuille de course qui n'adaptait pas le dark à un seul
+  endroit).
+
+**Si le composant n'existe pas** : le créer DANS `components/ui/` ou
+`components/shared/` (avec ses variantes via `cva`, ses propriétés logiques
+`ms-`/`me-`/`start-`/`end-` pour l'arabe), puis l'utiliser — jamais un
+composant local jetable dupliqué d'écran en écran.
