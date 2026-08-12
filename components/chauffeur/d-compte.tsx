@@ -12,6 +12,7 @@ import {
   CreditCard,
   FileCheck,
   Globe,
+  Headphones,
   Home,
   Loader2,
   Moon,
@@ -45,6 +46,7 @@ import { getDriverBadge } from "@/lib/drive/driver-badge";
 import { PLAN_LABEL, PLAN_LABEL_AR, fmtPct } from "./d-ui";
 import { Portal } from "@/components/ui/portal";
 import { InstallAppButton } from "@/components/pwa/install-app-button";
+import { openSupportChat } from "@/components/support/tawk-chat";
 import {
   PartnerLogoutRow,
   PartnerMenuGroup,
@@ -338,6 +340,24 @@ export function DCompte({ gate }: { gate: ChauffeurGate }) {
         />
         <DarkModeRow />
         <SoundRow />
+      </PartnerMenuGroup>
+
+      {/* ── Catégorie : Aide ──
+          L'espace chauffeur enregistrait bien son contexte support (rôle,
+          identité, véhicule) mais n'avait AUCUN bouton pour l'ouvrir : un
+          chauffeur ne pouvait tout simplement pas joindre l'équipe depuis
+          l'app. C'est la porte manquante. */}
+      <PartnerMenuGroup title={tr("Aide", "المساعدة")}>
+        <PartnerMenuRow
+          icon={<Headphones className="size-4" />}
+          label={tr("Aide & support", "المساعدة والدعم")}
+          value={tr("Chat avec l'équipe Coligo", "دردشة مع فريق كوليغو")}
+          onClick={() =>
+            openSupportChat({
+              subject: tr("Compte chauffeur", "حساب السائق"),
+            })
+          }
+        />
       </PartnerMenuGroup>
 
       {/* Déconnexion — pending immédiat + erreur INLINE (composant partagé,

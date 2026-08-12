@@ -1835,5 +1835,24 @@
     "availableOn": "Disponible sur iPhone et Android",
     "footerTitle": "L'application",
     "subtitleShort": "Plus rapide, avec les notifications."
+  },
+  "support": {
+    "title": "Aide & support",
+    "subtitle": "Notre équipe répond en quelques minutes",
+    "topicsTitle": "Ton souci concerne…",
+    "topicOrder": "Ma commande",
+    "topicPayment": "Paiement",
+    "topicDelivery": "Livraison",
+    "topicAccount": "Mon compte",
+    "topicOther": "Autre",
+    "chat": "Discuter avec un agent",
+    "chatHint": "Chat en direct, réponse en quelques minutes",
+    "email": "Écrire par e-mail",
+    "emailHint": "Réponse sous 24 h",
+    "opening": "Ouverture du chat…",
+    "unavailable": "Le chat en direct est indisponible pour le moment.",
+    "unavailableHint": "Ta connexion ou ton navigateur le bloque. Écris-nous par e-mail : on garde tout le contexte de ta demande.",
+    "contextOrder": "Commande {ref}",
+    "close": "Fermer"
   }
 }

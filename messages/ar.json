@@ -1830,5 +1830,24 @@
     "availableOn": "متوفر على آيفون وأندرويد",
     "footerTitle": "التطبيق",
     "subtitleShort": "أسرع، مع الإشعارات."
+  },
+  "support": {
+    "title": "المساعدة والدعم",
+    "subtitle": "يردّ فريقنا خلال دقائق",
+    "topicsTitle": "مشكلتك تتعلق بـ…",
+    "topicOrder": "طلبي",
+    "topicPayment": "الدفع",
+    "topicDelivery": "التوصيل",
+    "topicAccount": "حسابي",
+    "topicOther": "أخرى",
+    "chat": "التحدث مع وكيل",
+    "chatHint": "دردشة مباشرة، ردّ خلال دقائق",
+    "email": "راسلنا بالبريد",
+    "emailHint": "ردّ خلال 24 ساعة",
+    "opening": "جارٍ فتح الدردشة…",
+    "unavailable": "الدردشة المباشرة غير متاحة حاليًا.",
+    "unavailableHint": "اتصالك أو متصفحك يحجبها. راسلنا بالبريد: نحتفظ بكل تفاصيل طلبك.",
+    "contextOrder": "الطلب {ref}",
+    "close": "إغلاق"
   }
 }

@@ -1841,5 +1841,24 @@
     "availableOn": "Available on iPhone and Android",
     "footerTitle": "The app",
     "subtitleShort": "Faster, with order notifications."
+  },
+  "support": {
+    "title": "Help & support",
+    "subtitle": "Our team replies within minutes",
+    "topicsTitle": "What is it about?",
+    "topicOrder": "My order",
+    "topicPayment": "Payment",
+    "topicDelivery": "Delivery",
+    "topicAccount": "My account",
+    "topicOther": "Other",
+    "chat": "Chat with an agent",
+    "chatHint": "Live chat, reply within minutes",
+    "email": "Email us",
+    "emailHint": "Reply within 24 h",
+    "opening": "Opening chat…",
+    "unavailable": "Live chat is unavailable right now.",
+    "unavailableHint": "Your connection or browser is blocking it. Email us — we keep all your request context.",
+    "contextOrder": "Order {ref}",
+    "close": "Close"
   }
 }
