@@ -172,7 +172,11 @@ export function SupportSheet() {
       // fenêtre Tawk qui prenait tout l'écran. Le client garde sa navigation
       // pendant qu'il demande de l'aide. Sur ordinateur (≥ sm) la feuille est
       // centrée et il n'y a pas de barre : on annule la marge.
-      className="mb-[calc(54px+env(safe-area-inset-bottom))] sm:mb-0"
+      // MÊME LANGAGE que la carte « Commande envoyée » du paiement réussi :
+      // une CARTE qui MONTE DU BAS (partner-sheet-in) avec le grand rayon
+      // haut, pas une pop-up qui apparaît en fondu au milieu de l'écran.
+      // Elle s'arrête juste au-dessus de la barre du bas, qui reste utilisable.
+      className="partner-sheet-in rounded-t-panel-lg sm:rounded-panel-lg mb-[calc(54px+env(safe-area-inset-bottom))] sm:mb-0"
     >
       {/* ── CHAT INTÉGRÉ ──
           La conversation vit DANS la feuille, aux dimensions de l'app : pas de
