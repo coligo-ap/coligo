@@ -55,22 +55,23 @@ export function SupportSheet() {
   const [open, setOpen] = useState(false);
   const [opts, setOpts] = useState<OpenSupportOptions | null>(null);
   const [topic, setTopic] = useState<string | null>(null);
-  const [phase, setPhase] = useState<"idle" | "opening" | "failed">("idle");
+  const [phase, setPhase] = useState<"idle" | "opening" | "slow" | "failed">(
+    "idle"
+  );
   /** Le chat est-il affiché DANS la feuille (iframe) ? */
   const [chatting, setChatting] = useState(false);
   /** URL du chat FIGÉE à l'ouverture (cf. onChat) — l'iframe ne doit pas se
    *  recharger si l'état change, sinon la conversation en cours est perdue. */
   const [chatSrc, setChatSrc] = useState<string | null>(null);
 
-  // Le chat tiers peut ne jamais répondre (réseau, blocage) : au-delà du
-  // délai, on retire le cadre et on bascule sur l'e-mail. Un cadre vide qui
-  // tourne indéfiniment est pire que pas de chat du tout.
+  // Le chat tiers peut TARDER (Tawk froid, réseau algérien) ou ne jamais
+  // répondre. Au-delà du délai on n'ARRÊTE PAS le chargement — tuer un chat
+  // simplement lent, c'est couper le client juste avant que l'agent arrive :
+  // on retire seulement le voile d'attente et on propose l'e-mail EN PLUS,
+  // sous le cadre. Le chat peut donc encore s'afficher derrière.
   useEffect(() => {
     if (!chatting || phase !== "opening") return;
-    const id = window.setTimeout(() => {
-      setChatting(false);
-      setPhase("failed");
-    }, 12_000);
+    const id = window.setTimeout(() => setPhase("slow"), 15_000);
     return () => window.clearTimeout(id);
   }, [chatting, phase]);
 
@@ -194,6 +195,19 @@ export function SupportSheet() {
             className="block h-[58dvh] w-full border-0"
           />
         </div>
+      )}
+
+      {/* Le chat tarde → on ne le coupe pas, on offre juste une porte de
+          sortie écrite. Le cadre continue de charger au-dessus. */}
+      {chatting && phase === "slow" && (
+        <button
+          type="button"
+          onClick={onEmail}
+          className="border-border bg-surface hover:bg-surface-2 rounded-card-lg text-body-sm mt-2 flex w-full items-center justify-center gap-2 border px-4 py-2.5 font-bold transition-colors"
+        >
+          <Mail className="size-4" />
+          {t("email")}
+        </button>
       )}
 
       {/* Le menu disparaît pendant la conversation : un seul objet à l'écran. */}
