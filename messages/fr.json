@@ -1823,6 +1823,7 @@
     "cash": "Espèces",
     "wallet": "Coligo Pay",
     "card": "Carte bancaire",
+    "cardOf": "Carte {type}",
     "failed": "Paiement échoué",
     "refunded": "Remboursé"
   },

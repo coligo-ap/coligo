@@ -53,7 +53,10 @@ export function QrZoom({
           <button
             type="button"
             onClick={() => setOpen(true)}
-            className="rounded-control border-border bg-surface text-foreground hover:bg-surface-2 text-label-lg inline-flex items-center gap-1.5 border px-3 py-1.5 font-bold transition-colors"
+            // `whitespace-nowrap` : la colonne est large comme la VIGNETTE
+            // (92 px sur la commande) — sans lui, « Agrandir le QR » se coupe
+            // en deux lignes.
+            className="rounded-control border-border bg-surface text-foreground hover:bg-surface-2 text-label-lg inline-flex items-center gap-1.5 border px-3 py-1.5 font-bold whitespace-nowrap transition-colors"
           >
             <Maximize2 className="size-3.5" />
             {expandLabel}

@@ -1829,6 +1829,7 @@
     "cash": "Cash",
     "wallet": "Coligo Pay",
     "card": "Bank card",
+    "cardOf": "{type} card",
     "failed": "Payment failed",
     "refunded": "Refunded"
   },

@@ -3,15 +3,10 @@ import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import {
   ArrowLeft,
-  CalendarDays,
   Check,
-  ChevronRight,
   Clock,
-  CreditCard,
-  KeyRound,
   MapPin,
   PackageCheck,
-  ShoppingBag,
   Truck,
   X,
 } from "lucide-react";
@@ -40,12 +35,7 @@ import { DriverReviewCard } from "@/components/customer/driver-review-card";
 import { OrderSupportButton } from "@/components/support/order-support-button";
 import { estimateDeliveryEtaMin } from "@/lib/delivery/eta";
 import { cldUrl } from "@/lib/images/cloudinary";
-import {
-  formatAsapReady,
-  formatOrderDateTime,
-  formatSlotRange,
-} from "@/lib/customer/pickup-format";
-import { getLocale } from "next-intl/server";
+import { formatAsapReady, formatSlotRange } from "@/lib/customer/pickup-format";
 import { formatQtyUnit } from "@/lib/ticket/ticket-format";
 
 export const dynamic = "force-dynamic";
@@ -60,7 +50,6 @@ export default async function CustomerOrderDetailPage({
   const { id } = await params;
   const { placed } = await searchParams;
   const t = await getTranslations("orders");
-  const locale = await getLocale();
   const supabase = await createClient();
   const {
     data: { user },
@@ -553,8 +542,16 @@ export default async function CustomerOrderDetailPage({
                 </small>
               </div>
             </div>
-            {/* Le NUMÉRO n'est plus ici : il est porté EN GRAND par la tuile
-                juste dessous (règle projet — une info, un seul endroit). */}
+            {orderNumber && (
+              <span className="shrink-0 text-end">
+                <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
+                  {t("orderNumberShort")}
+                </small>
+                <b className="text-foreground text-title-lg leading-tight font-black tracking-wide">
+                  #{orderNumber}
+                </b>
+              </span>
+            )}
           </div>
 
           {/* ligne 2 : suivi HORIZONTAL (masqué si annulée) */}
@@ -566,23 +563,48 @@ export default async function CustomerOrderDetailPage({
             />
           )}
 
-          {/* ligne 3 : le DÉLAI seul (ETA / créneau). Le montant n'est plus
-              ici : il est porté EN GRAND par la tuile juste dessous — il ne
-              doit apparaître qu'une fois sur l'écran. */}
-          {!isCancelled && delai && (
-            <div className="border-border text-foreground text-label-lg mt-3.5 flex items-center gap-1.5 border-t pt-3 font-semibold">
-              <delai.Icon className="text-primary-600 size-3.5" />
-              <span>
-                {delai.label}
-                {delai.strong && (
+          {/* ligne 3 : délai (gauche) + montant (droite) */}
+          {!isCancelled && (
+            <div className="border-border mt-3.5 flex items-center justify-between gap-3 border-t pt-3">
+              {delai ? (
+                <div className="text-foreground text-label-lg flex items-center gap-1.5 font-semibold">
+                  <delai.Icon className="text-primary-600 size-3.5" />
+                  <span>
+                    {delai.label}
+                    {delai.strong && (
+                      <>
+                        {" "}
+                        <b className="text-foreground font-extrabold">
+                          {delai.strong}
+                        </b>
+                      </>
+                    )}
+                  </span>
+                </div>
+              ) : (
+                <span />
+              )}
+              <div className="text-end">
+                {isCash ? (
                   <>
-                    {" "}
-                    <b className="text-foreground font-extrabold">
-                      {delai.strong}
+                    <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
+                      {t("toPayCash")}
+                    </small>
+                    <b className="text-foreground text-heading-sm font-black tracking-tight">
+                      {formatDA(order.total_da)}
+                    </b>
+                  </>
+                ) : (
+                  <>
+                    <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
+                      {t("total")}
+                    </small>
+                    <b className="text-success-700 text-sm font-black tracking-tight">
+                      ✓ {t("paid")} · {formatDA(order.total_da)}
                     </b>
                   </>
                 )}
-              </span>
+              </div>
             </div>
           )}
 
@@ -598,115 +620,6 @@ export default async function CustomerOrderDetailPage({
 
           {/* « Commander à nouveau » — sur une commande terminée ou annulée. */}
           {(isCompleted || isCancelled) && <ReorderButton orderId={order.id} />}
-        </div>
-
-        {/* ═══ CHIFFRES CLÉS — ce que le client cherche en 1 seconde ═══
-            Deux tuiles en GRAND (numéro de commande, montant), lisibles à bout
-            de bras : ce sont les deux valeurs qu'on épelle au téléphone au
-            support ou qu'on montre en caisse. Le libellé reste discret, la
-            VALEUR domine. */}
-        {!isCancelled && (
-          <div className="mt-2.5 grid grid-cols-2 gap-2.5">
-            {orderNumber && (
-              <div className="border-border bg-surface rounded-lg border px-4 py-3">
-                <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
-                  {t("statOrder")}
-                </small>
-                <b className="text-foreground text-display-sm block leading-tight font-black tracking-tight tabular-nums">
-                  #{orderNumber}
-                </b>
-              </div>
-            )}
-            <div className="border-border bg-surface rounded-lg border px-4 py-3">
-              <small className="text-muted text-nano-lg block font-bold tracking-wide uppercase">
-                {isCash ? t("statToPay") : t("statPaid")}
-              </small>
-              <b
-                className={cn(
-                  "text-display-sm block leading-tight font-black tracking-tight tabular-nums",
-                  isCash ? "text-foreground" : "text-success-700"
-                )}
-              >
-                {formatDA(order.total_da)}
-              </b>
-            </div>
-          </div>
-        )}
-
-        {/* ═══ INFORMATIONS — l'état civil de la commande ═══
-            JUSTE SOUS le statut (les infos dont le client a toujours besoin se
-            lisent SANS défiler). Libellé DISCRET à gauche, valeur LISIBLE à
-            droite. Le code n'est ici qu'en RÉFÉRENCE ; l'ACTION (« présente ce
-            code ») a sa grande carte dédiée dans la section remise. */}
-        <div className="border-border bg-surface divide-border mt-2.5 divide-y rounded-lg border">
-          {/* Quand — date + heure exactes de la commande (fuseau Alger). */}
-          <InfoRow
-            icon={<CalendarDays className="size-4" />}
-            label={t("infoDate")}
-            value={formatOrderDateTime(new Date(order.created_at), locale)}
-          />
-          {/* Quoi — retrait sur place / Express / tournée. */}
-          <InfoRow
-            icon={
-              isDelivery ? (
-                <Truck className="size-4" />
-              ) : (
-                <ShoppingBag className="size-4" />
-              )
-            }
-            label={t("infoType")}
-            value={
-              isDelivery
-                ? order.delivery_mode === "tour"
-                  ? t("typeTour")
-                  : t("typeExpress")
-                : t("typePickup")
-            }
-          />
-          {/* Comment c'est payé — moyen, fournisseur, carte (marque + 4
-              derniers chiffres), statut. La date de paiement n'est pas
-              répétée : la ligne « Commandée le » ci-dessus la porte déjà. */}
-          <InfoRow
-            icon={<CreditCard className="size-4" />}
-            label={t("infoPayment")}
-            value={
-              <PaymentLine
-                payment={{
-                  mode: isCash ? "cash" : receipt ? "card" : "online",
-                  provider: receipt?.provider ?? null,
-                  brand: receipt?.card_brand ?? null,
-                  last4: receipt?.card_last4 ?? null,
-                  wallet: receipt?.wallet ?? null,
-                  method: receipt?.method ?? null,
-                  status: receipt?.status ?? null,
-                  paid_at: receipt?.paid_at ?? null,
-                }}
-              />
-            }
-          />
-          {/* RÈGLE MÉTIER du code (mig 0090 / validate_delivery) : il n'existe
-              que s'il y a une part PRÉPAYÉE (en ligne, cashback ou Coligo Pay)
-              — une commande 100 % espèces n'en a JAMAIS. Il ne sert qu'à
-              VALIDER la remise : une fois la commande terminée on le garde en
-              simple référence (litiges), et il disparaît si elle est annulée. */}
-          {!isCancelled && needsCode && isCompleted && order.pickup_code && (
-            <InfoRow
-              icon={<KeyRound className="size-4" />}
-              label={t("infoCode")}
-              value={
-                <span className="tracking-[3px] tabular-nums">
-                  {order.pickup_code}
-                </span>
-              }
-            />
-          )}
-          {!isCancelled && !needsCode && (
-            <InfoRow
-              icon={<KeyRound className="size-4" />}
-              label={t("infoCode")}
-              value={t("noCodeCash")}
-            />
-          )}
         </div>
 
         {/* ═══ PARTAGE POST-COMMANDE (mégaphone viral + code parrain) ═══
@@ -734,18 +647,6 @@ export default async function CustomerOrderDetailPage({
               />
             ) : null
           ))}
-
-        {/* ════════════════ SECTION LIVRAISON / RETRAIT ════════════════
-            Tout ce qui concerne la REMISE de la commande, regroupé sous un
-            seul intitulé, dans l'ordre du besoin : code à présenter → suivi
-            live → confirmation → chat → adresse ou créneau. L'adresse vivait
-            tout en bas de page alors que c'est LA question du client pendant
-            une livraison. Masquée si annulée (plus rien à remettre). */}
-        {!isCancelled && (
-          <p className="text-muted text-caption px-1 pt-4 pb-1.5 font-extrabold tracking-wide uppercase">
-            {isDelivery ? t("sectionDelivery") : t("sectionPickup")}
-          </p>
-        )}
 
         {/* ═══ PREUVE DE DÉPÔT (No-Show en ligne) ═══
             Le livreur a déposé la commande à l'adresse après votre absence
@@ -778,51 +679,42 @@ export default async function CustomerOrderDetailPage({
         {/* ═══ CODE PIN + QR (payé en ligne : livraison ou retrait) ═══
             Le client le montre/à scanner par le livreur (livraison) ou le
             commerçant (retrait) pour valider. PIN visible client uniquement. */}
-        {/* `!isCompleted` : le code ne sert qu'à VALIDER la remise — sur une
-            commande déjà livrée/récupérée, l'afficher encore sème le doute. */}
-        {needsCode && !isCancelled && !isCompleted && order.pickup_code && (
-          <div className="border-primary-200 bg-primary-50 mt-1 rounded-xl border p-4 text-center">
-            <span className="text-primary-800 text-label-lg inline-flex items-center gap-1.5 font-extrabold">
-              <KeyRound className="size-4 shrink-0" />
-              {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
-            </span>
-
-            {/* LE CODE, en très grand : c'est le geste de l'écran. Lisible à
-                bout de bras par le livreur/commerçant sans prendre le
-                téléphone des mains du client. */}
-            <p className="text-primary-600 text-code mt-2 leading-none font-black tracking-[10px] tabular-nums">
-              {order.pickup_code}
-            </p>
-
-            {/* POURQUOI ce code — la question que se pose tout client qui le
-                découvre. Deux phrases, pas un paragraphe. */}
-            <p className="text-primary-700/90 text-label mx-auto mt-2 max-w-[300px] font-semibold">
-              {t("codeWhy")}
-            </p>
-
-            {/* Le QR fait la MÊME chose que le code, en plus rapide : plaque
-                blanche pour le contraste de scan. Le bouton « Agrandir »
-                est EXPLICITE — c'est un tiers (livreur/commerçant) qui doit
-                scanner, le geste ne doit pas se deviner. */}
-            <div className="mt-3.5 flex justify-center">
-              <div className="rounded-card border-primary-100 border bg-white p-2.5">
-                <QrZoom
-                  value={order.pickup_code}
-                  size={132}
-                  fullValue={order.pickup_code}
-                  expandLabel={t("enlargeQr")}
-                  caption={
-                    isDelivery
-                      ? t("codeScanHintDriver")
-                      : t("codeScanHintMerchant")
-                  }
-                />
-              </div>
+        {needsCode && !isCancelled && order.pickup_code && (
+          <div className="border-primary-100 bg-primary-50 mt-2.5 rounded-lg border p-3.5">
+            <div className="flex items-center justify-between gap-3">
+              <span className="text-primary-800 text-label-lg font-extrabold">
+                🔑{" "}
+                {isDelivery ? t("codeToGiveDriver") : t("codeToGiveMerchant")}
+              </span>
+              <span className="text-primary-600 text-[26px] leading-none font-black tracking-[6px] tabular-nums">
+                {order.pickup_code}
+              </span>
             </div>
-
-            <p className="text-primary-700/90 text-label mx-auto mt-2.5 max-w-[300px] font-semibold">
-              {isDelivery ? t("codeStepDriver") : t("codeStepMerchant")}
-            </p>
+            <div className="border-primary-100 mt-3 flex items-center gap-3.5 border-t pt-3">
+              <QrZoom
+                value={order.pickup_code}
+                size={92}
+                fullValue={order.pickup_code}
+                // Bouton « Agrandir » EXPLICITE : le scan est fait par un
+                // TIERS (livreur/commerçant), le geste ne doit pas se deviner
+                // derrière la seule pastille d'angle. Plein écran = QR 288 px
+                // + le code en gros juste dessous.
+                expandLabel={t("enlargeQr")}
+                caption={
+                  isDelivery
+                    ? t("codeScanHintDriver")
+                    : t("codeScanHintMerchant")
+                }
+              />
+              {/* « Touche le QR pour l'agrandir » a sauté : le bouton
+                  « Agrandir le QR » juste à gauche dit déjà le geste — deux
+                  fois la même consigne, c'est du bruit. */}
+              <p className="text-primary-700/90 text-label font-semibold">
+                {isDelivery
+                  ? t("codeScanHintDriver")
+                  : t("codeScanHintMerchant")}
+              </p>
+            </div>
           </div>
         )}
 
@@ -871,96 +763,14 @@ export default async function CustomerOrderDetailPage({
           </div>
         )}
 
-        {/* ═══ ADRESSE (livraison) / CRÉNEAU (retrait) + note client ═══
-            Remonté depuis le bas de page : il ferme la section Livraison /
-            Retrait au lieu de flotter après le reçu. */}
-        {!isCancelled && (
-          <div className="border-border bg-surface mt-3 rounded-lg border p-4">
-            <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-semibold">
-              {isDelivery ? (
-                <MapPin className="size-3.5" />
-              ) : (
-                <Clock className="size-3.5" />
-              )}
-              {isDelivery ? t("deliveryAddress") : t("pickupSlot")}
-            </div>
-            <p className="text-foreground text-sm">
-              {isDelivery
-                ? ((order as { delivery_address_text: string | null })
-                    .delivery_address_text ?? t("addressProvidedAtOrder"))
-                : isSlot
-                  ? formatSlotRange(
-                      new Date(order.pickup_slot_start as string),
-                      new Date(order.pickup_slot_end as string)
-                    )
-                  : formatAsapReady(new Date(order.pickup_slot_at))}
-            </p>
-            {order.customer_note && (
-              <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
-                {t("note")} : {order.customer_note}
-              </p>
-            )}
-          </div>
-        )}
-
-        {/* ════════════════════ SECTION COMMANDE ════════════════════
-            UN reçu complet, comme un ticket : la boutique en en-tête (on sait
-            chez qui avant de lire les lignes), les articles, les totaux, puis
-            comment ça a été payé. La carte « Boutique » séparée est morte —
-            elle coupait le reçu en deux et répétait le contexte. */}
-        <p className="text-muted text-caption px-1 pt-4 pb-1.5 font-extrabold tracking-wide uppercase">
-          {t("sectionOrder")}
-        </p>
-        <div className="border-border bg-surface rounded-sheet-lg border p-4">
-          {/* En-tête du reçu — boutique + lien vers sa fiche. */}
-          <Link
-            href={`/m/${merchant.slug}`}
-            className="border-border -m-1 mb-1.5 flex items-center gap-3 rounded-lg border-b p-1 pb-3"
-          >
-            {merchant.logo_url ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={
-                  cldUrl(merchant.logo_url, {
-                    width: 96,
-                    height: 96,
-                    crop: "fill",
-                    gravity: "auto",
-                  }) ?? merchant.logo_url
-                }
-                alt=""
-                loading="lazy"
-                decoding="async"
-                className="border-border size-10 shrink-0 rounded-xl border bg-white object-cover"
-              />
-            ) : (
-              <div className="bg-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold text-white">
-                {merchant.name.charAt(0)}
-              </div>
-            )}
-            <div className="min-w-0 flex-1">
-              <b className="text-foreground block truncate text-sm font-bold">
-                {merchant.name}
-              </b>
-              <small className="text-muted flex items-center gap-1 text-xs">
-                <MapPin className="size-3 shrink-0" />
-                <span className="truncate">
-                  {[merchant.address, merchant.commune]
-                    .filter(Boolean)
-                    .join(" · ") || "—"}
-                </span>
-              </small>
-            </div>
-            <span className="text-primary-600 text-body-sm inline-flex shrink-0 items-center font-bold">
-              {t("see")}
-              <ChevronRight className="size-4 rtl:-scale-x-100" />
+        {/* ═══ DÉTAIL DE LA COMMANDE ═══ */}
+        <div className="border-border bg-surface rounded-sheet-lg mt-3 border p-4">
+          <h3 className="text-body-sm mb-2.5 flex items-center justify-between font-extrabold">
+            <span>{t("detailTitle")}</span>
+            <span className="text-muted text-caption font-semibold">
+              {t("itemsCount", { count: items.length })}
             </span>
-          </Link>
-
-          {/* Articles. */}
-          <div className="text-muted text-caption mb-0.5 flex justify-end pt-1 font-semibold">
-            {t("itemsCount", { count: items.length })}
-          </div>
+          </h3>
           {items.map((it) => (
             <div
               key={it.id}
@@ -1000,10 +810,9 @@ export default async function CustomerOrderDetailPage({
             </div>
           )}
           {/* Soldes DÉDUITS (cashback / Coligo Pay utilisés au paiement) :
-              sans ces lignes, un reçu passait de « Sous-total 1 170 DA » à
-              « Total 0 DA » sans explication — le client croyait à une
-              erreur. Chaque dinar entre le sous-total et le total est
-              désormais tracé. */}
+              sans ces lignes, un reçu passe de « Sous-total 1 170 DA » à
+              « Total 0 DA » sans rien expliquer — le client croit à une
+              erreur. Chaque dinar entre le sous-total et le total est tracé. */}
           {cashbackUsed > 0 && (
             <div className="text-success-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
               <span>{t("cashbackUsed")}</span>
@@ -1028,7 +837,97 @@ export default async function CustomerOrderDetailPage({
             <span>{isCash ? t("total") : t("totalPaid")}</span>
             <span className="tabular-nums">{formatDA(order.total_da)}</span>
           </div>
+          {/* Comment ça a été payé : moyen, fournisseur, carte (marque + 4
+              derniers chiffres), statut et horodatage. Même composant que
+              l'historique des courses. */}
+          <div className="text-muted mt-1.5 flex justify-end">
+            <PaymentLine
+              withDate
+              payment={{
+                mode: isCash ? "cash" : receipt ? "card" : "online",
+                provider: receipt?.provider ?? null,
+                brand: receipt?.card_brand ?? null,
+                last4: receipt?.card_last4 ?? null,
+                wallet: receipt?.wallet ?? null,
+                method: receipt?.method ?? null,
+                status: receipt?.status ?? null,
+                paid_at: receipt?.paid_at ?? null,
+              }}
+            />
+          </div>
         </div>
+
+        {/* ═══ BOUTIQUE ═══ */}
+        <div className="border-border bg-surface mt-3 flex items-center gap-3 rounded-lg border px-4 py-3">
+          {merchant.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={
+                cldUrl(merchant.logo_url, {
+                  width: 96,
+                  height: 96,
+                  crop: "fill",
+                  gravity: "auto",
+                }) ?? merchant.logo_url
+              }
+              alt=""
+              loading="lazy"
+              decoding="async"
+              className="border-border size-10 shrink-0 rounded-xl border bg-white object-cover"
+            />
+          ) : (
+            <div className="bg-foreground flex size-10 shrink-0 items-center justify-center rounded-xl text-base font-extrabold text-white">
+              {merchant.name.charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <b className="text-foreground block truncate text-sm font-bold">
+              {merchant.name}
+            </b>
+            <small className="text-muted text-xs">
+              <MapPin className="me-0.5 -mt-0.5 inline size-3" />
+              {[merchant.address, merchant.commune]
+                .filter(Boolean)
+                .join(" · ") || "—"}
+            </small>
+          </div>
+          <Link
+            href={`/m/${merchant.slug}`}
+            className="text-primary-600 text-body-sm shrink-0 font-bold hover:underline"
+          >
+            {t("see")} ›
+          </Link>
+        </div>
+
+        {/* ═══ INFOS PRATIQUES (créneau / adresse + note) — secondaire ═══ */}
+        {!isCancelled && (
+          <div className="border-border bg-surface mt-3 rounded-lg border p-4">
+            <div className="text-muted mb-1 flex items-center gap-1.5 text-xs font-semibold">
+              {isDelivery ? (
+                <MapPin className="size-3.5" />
+              ) : (
+                <Clock className="size-3.5" />
+              )}
+              {isDelivery ? t("deliveryAddress") : t("pickupSlot")}
+            </div>
+            <p className="text-foreground text-sm">
+              {isDelivery
+                ? ((order as { delivery_address_text: string | null })
+                    .delivery_address_text ?? t("addressProvidedAtOrder"))
+                : isSlot
+                  ? formatSlotRange(
+                      new Date(order.pickup_slot_start as string),
+                      new Date(order.pickup_slot_end as string)
+                    )
+                  : formatAsapReady(new Date(order.pickup_slot_at))}
+            </p>
+            {order.customer_note && (
+              <p className="text-muted border-border mt-2 border-t pt-2 text-xs">
+                {t("note")} : {order.customer_note}
+              </p>
+            )}
+          </div>
+        )}
 
         {/* ═══ Notation du livreur (commande livrée + livreur assigné) ═══ */}
         {driverReview && (
@@ -1043,39 +942,5 @@ export default async function CustomerOrderDetailPage({
         )}
       </div>
     </CustomerShell>
-  );
-}
-
-/**
- * Ligne du bloc « Informations » — pastille d'icône + libellé + valeur en
- * bout de ligne (même gabarit que les rangées de la page Compte). `icon` à
- * null quand la valeur porte déjà la sienne (ligne de paiement).
- */
-function InfoRow({
-  icon,
-  label,
-  value,
-}: {
-  icon: React.ReactNode | null;
-  label: string;
-  value: React.ReactNode;
-}) {
-  return (
-    // COMPACT (py-2.5, pastille 32 px) : le bloc vit juste sous le statut —
-    // il doit renseigner d'un coup d'œil sans repousser les cartes d'action
-    // (code, carte live) hors du premier écran.
-    <div className="flex items-center gap-2.5 px-3.5 py-2.5">
-      {icon && (
-        <span className="bg-surface-2 text-muted grid size-8 shrink-0 place-items-center rounded-lg">
-          {icon}
-        </span>
-      )}
-      <span className="text-muted text-label-lg min-w-0 flex-1 font-semibold">
-        {label}
-      </span>
-      <span className="text-foreground text-body-sm min-w-0 text-end font-bold">
-        {value}
-      </span>
-    </div>
   );
 }
