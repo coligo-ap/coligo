@@ -7,6 +7,17 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { phoneToPartnerEmail } from "@/lib/auth/partner";
+import {
+  rateHit,
+  logSecurityEvent,
+  formatRetryDelay,
+} from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-context";
+import {
+  verifyTurnstileToken,
+  honeypotTripped,
+  TURNSTILE_FIELD,
+} from "@/lib/security/turnstile";
 
 export type PartnerAuthState = { error?: string };
 
@@ -70,6 +81,44 @@ export async function partnerSignup(
 
   const email = phoneToPartnerEmail(v.phone);
   if (!email) return { error: "Téléphone invalide." };
+
+  // ── Anti-bot / anti-abus (mig 0452) ────────────────────────────────────────
+  // 1. Honeypot : champ invisible que seuls les robots remplissent.
+  if (honeypotTripped(formData)) {
+    await logSecurityEvent("honeypot", { path: "/partenaire/signup" });
+    return { error: "Inscription impossible. Réessayez plus tard." };
+  }
+  // 2. Plafonds par IP — PARTAGÉS entre toutes les inscriptions (subject = IP
+  //    nue) : un script qui enchaîne les espaces épuise le même quota.
+  const signupIp = await getClientIp();
+  const [hourGate, dayGate] = await Promise.all([
+    rateHit("signup_ip_h", signupIp, 20, 3600),
+    rateHit("signup_ip_d", signupIp, 60, 86400),
+  ]);
+  if (!hourGate.allowed || !dayGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "signup_ip",
+      subject: "partner",
+      path: "/partenaire/signup",
+    });
+    const retry = Math.max(
+      hourGate.retryAfterSeconds,
+      dayGate.retryAfterSeconds
+    );
+    return {
+      error: `Trop d'inscriptions depuis ce réseau. Réessayez dans ${formatRetryDelay(retry)}.`,
+    };
+  }
+  // 3. Captcha Turnstile (actif dès que les clés sont posées, sinon dormant).
+  //    Pas de captchaToken en aval : le compte est créé via l'API admin
+  //    (service_role), qui ne vérifie pas de captcha.
+  const captcha = await verifyTurnstileToken(
+    formData.get(TURNSTILE_FIELD),
+    signupIp
+  );
+  if (!captcha.ok) {
+    return { error: "Vérification anti-robot échouée. Réessayez." };
+  }
 
   const admin = createAdminClient();
 
@@ -207,11 +256,45 @@ export async function partnerLogin(
   const supabase = await createClient();
   const email = phoneToPartnerEmail(parsed.data.phone);
   if (!email) return { error: "Téléphone invalide." };
+
+  // Anti-abus (mig 0452) : plafond par IP + verrou par identifiant qui ne
+  // compte que les ÉCHECS (peek avant tentative, hit après échec).
+  const loginIp = await getClientIp();
+  const emailLc = email.toLowerCase();
+  const ipGate = await rateHit("login_ip", `partner:${loginIp}`, 30, 600);
+  if (!ipGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "login_ip",
+      subject: "partner",
+      path: "/partenaire/login",
+    });
+    return {
+      error: `Trop de tentatives. Réessayez dans ${formatRetryDelay(ipGate.retryAfterSeconds)}.`,
+    };
+  }
+  const failGate = await rateHit(
+    "login_fail",
+    `partner:${emailLc}`,
+    10,
+    900,
+    0
+  );
+  if (!failGate.allowed) {
+    return {
+      error: `Trop de tentatives pour ce compte. Réessayez dans ${formatRetryDelay(failGate.retryAfterSeconds)}.`,
+    };
+  }
+
   const { error } = await supabase.auth.signInWithPassword({
     email,
     password: parsed.data.password,
   });
-  if (error) return { error: "Téléphone ou mot de passe incorrect." };
+  if (error) {
+    if (error.message.includes("Invalid login credentials")) {
+      await rateHit("login_fail", `partner:${emailLc}`, 10, 900);
+    }
+    return { error: "Téléphone ou mot de passe incorrect." };
+  }
   redirect("/partenaire");
 }
 

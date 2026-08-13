@@ -4,6 +4,7 @@ import { useActionState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ActionButton } from "@/components/ui/action-button";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import {
   sendPasswordResetEmail,
@@ -30,6 +31,8 @@ export function ForgotPasswordForm({
   return (
     <form action={formAction} className="space-y-3">
       <input type="hidden" name="audience" value={audience} />
+      {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+      <TurnstileField />
       <div className="space-y-1.5">
         <Label htmlFor="email">Email du compte</Label>
         <Input

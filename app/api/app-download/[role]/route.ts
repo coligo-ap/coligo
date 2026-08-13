@@ -1,4 +1,6 @@
 import { APP_CONFIG } from "@/lib/config/app-config";
+import { rateHit, logSecurityEvent } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-context";
 
 /**
  * Téléchargement des APK Coligo via une route MÊME-ORIGINE (sous /api, donc
@@ -25,6 +27,30 @@ export async function GET(
   const app = APPS[role];
   if (!app?.url) {
     return new Response("Application non disponible.", { status: 404 });
+  }
+
+  // Anti-abus (mig 0452) : chaque téléchargement relaie ~50 Mo depuis Supabase
+  // — sans limite, un script peut brûler la bande passante en boucle. Un
+  // humain télécharge 1 à 3 fois ; on tolère large (réinstallations, CGNAT).
+  const ip = await getClientIp();
+  const [hourGate, dayGate] = await Promise.all([
+    rateHit("apk_ip_h", ip, 10, 3600),
+    rateHit("apk_ip_d", ip, 30, 86400),
+  ]);
+  if (!hourGate.allowed || !dayGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "apk_ip",
+      subject: role,
+      path: "/api/app-download",
+    });
+    return new Response("Trop de téléchargements. Réessayez plus tard.", {
+      status: 429,
+      headers: {
+        "Retry-After": String(
+          Math.max(hourGate.retryAfterSeconds, dayGate.retryAfterSeconds)
+        ),
+      },
+    });
   }
 
   const upstream = await fetch(app.url, { cache: "no-store" });

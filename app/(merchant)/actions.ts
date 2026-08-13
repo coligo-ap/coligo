@@ -16,6 +16,17 @@ import { suggestedMinOrderForCategory } from "@/lib/config/payment-limits";
 import { markSignupDraftCompleted } from "@/app/(auth)/signup/draft-actions";
 import { getAllCategories } from "@/lib/data/categories";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  rateHit,
+  logSecurityEvent,
+  formatRetryDelay,
+} from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-context";
+import {
+  verifyTurnstileToken,
+  honeypotTripped,
+  TURNSTILE_FIELD,
+} from "@/lib/security/turnstile";
 
 export type AuthState = {
   error?: string;
@@ -156,11 +167,39 @@ export async function login(
     return { error: "Email ou mot de passe incorrect" };
   }
 
+  // Anti-abus (mig 0452) : plafond par IP + verrou par identifiant qui ne
+  // compte que les ÉCHECS (peek avant tentative, hit après échec).
+  const loginIp = await getClientIp();
+  const ipGate = await rateHit("login_ip", `merchant:${loginIp}`, 30, 600);
+  if (!ipGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "login_ip",
+      subject: "merchant",
+      path: "/login",
+    });
+    return {
+      error: `Trop de tentatives. Réessayez dans ${formatRetryDelay(ipGate.retryAfterSeconds)}.`,
+    };
+  }
+  const failGate = await rateHit(
+    "login_fail",
+    `merchant:${emailLc}`,
+    10,
+    900,
+    0
+  );
+  if (!failGate.allowed) {
+    return {
+      error: `Trop de tentatives pour ce compte. Réessayez dans ${formatRetryDelay(failGate.retryAfterSeconds)}.`,
+    };
+  }
+
   const supabase = await createClient();
   const { error } = await supabase.auth.signInWithPassword({ email, password });
 
   if (error) {
     if (error.message.includes("Invalid login credentials")) {
+      await rateHit("login_fail", `merchant:${emailLc}`, 10, 900);
       return { error: "Email ou mot de passe incorrect" };
     }
     if (error.message.includes("Email not confirmed")) {
@@ -376,6 +415,44 @@ export async function signup(
     return { error: "Adresse email invalide." };
   }
 
+  // ── Anti-bot / anti-abus (mig 0452) ────────────────────────────────────────
+  // 1. Honeypot : champ invisible que seuls les robots remplissent.
+  if (honeypotTripped(formData)) {
+    await logSecurityEvent("honeypot", { path: "/signup" });
+    return { error: "Inscription impossible. Réessayez plus tard." };
+  }
+  // 2. Plafonds par IP — PARTAGÉS entre les rôles (sujet = IP nue, mêmes
+  //    buckets que l'inscription client) : généreux (CGNAT mobile algérien :
+  //    une IP publique est partagée par des milliers d'abonnés), mais fatals
+  //    pour un script.
+  const signupIp = await getClientIp();
+  const [hourGate, dayGate] = await Promise.all([
+    rateHit("signup_ip_h", signupIp, 20, 3600),
+    rateHit("signup_ip_d", signupIp, 60, 86400),
+  ]);
+  if (!hourGate.allowed || !dayGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "signup_ip",
+      subject: "merchant",
+      path: "/signup",
+    });
+    const retry = Math.max(
+      hourGate.retryAfterSeconds,
+      dayGate.retryAfterSeconds
+    );
+    return {
+      error: `Trop d'inscriptions depuis ce réseau. Réessayez dans ${formatRetryDelay(retry)}.`,
+    };
+  }
+  // 3. Captcha Turnstile (actif dès que les clés sont posées, sinon dormant).
+  const captcha = await verifyTurnstileToken(
+    formData.get(TURNSTILE_FIELD),
+    signupIp
+  );
+  if (!captcha.ok) {
+    return { error: "Vérification anti-robot échouée. Réessayez." };
+  }
+
   const extras = await parseShopExtras(formData, parsed.data);
   if ("error" in extras) return { error: extras.error };
 
@@ -386,6 +463,7 @@ export async function signup(
     password,
     options: {
       data: { merchant_name: parsed.data.merchantName },
+      captchaToken: captcha.token ?? undefined,
     },
   });
 

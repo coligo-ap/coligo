@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PasswordInput } from "@/components/ui/password-input";
 import { PhoneField } from "@/components/ui/phone-field";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import {
   StepWizardHeader,
   StepWizardNav,
@@ -115,6 +116,8 @@ export function PartnerSignupForm() {
       className="space-y-3"
     >
       <StepWizardStyle />
+      {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+      <TurnstileField />
       <StepWizardHeader
         title={META[active].title}
         subtitle={META[active].subtitle}

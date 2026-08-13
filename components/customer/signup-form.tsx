@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PhoneField } from "@/components/ui/phone-field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { ReferralCodeField } from "@/components/customer/referral/referral-code-field";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import {
   StepWizardStyle,
   StepWizardHeader,
@@ -91,6 +92,8 @@ export function CustomerSignupWizard({
     >
       <StepWizardStyle />
       <input type="hidden" name="next" value={next} />
+      {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+      <TurnstileField />
 
       <StepWizardHeader
         title={meta[active].title}

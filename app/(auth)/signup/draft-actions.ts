@@ -3,6 +3,8 @@
 import { randomUUID } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { rateHit } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-context";
 
 // =============================================================================
 // Brouillons d'inscription commerçant (mig 0414) — enregistrés à CHAQUE étape
@@ -77,6 +79,12 @@ export async function saveSignupDraft(
   input: SignupDraftInput
 ): Promise<{ key: string }> {
   let key = UUID_RE.test(input.key ?? "") ? input.key.toLowerCase() : null;
+
+  // Anti-abus (mig 0452) : écriture service_role SANS session → plafond par
+  // IP, étouffé sans erreur (l'appel client est fire-and-forget).
+  const ip = await getClientIp();
+  const gate = await rateHit("merchant_draft_ip", ip, 120, 3600);
+  if (!gate.allowed) return { key: key ?? randomUUID() };
 
   const step = Math.min(Math.max(Math.trunc(Number(input.step) || 1), 1), 9);
   const stepsTotal = Math.min(
@@ -197,6 +205,10 @@ export async function markSignupDraftCompleted(
   draftKey: FormDataEntryValue | null
 ): Promise<void> {
   if (typeof draftKey !== "string" || !UUID_RE.test(draftKey)) return;
+  // Anti-abus (mig 0452) : plafond par IP, étouffé sans erreur (best-effort).
+  const ip = await getClientIp();
+  const gate = await rateHit("merchant_draft_ip", ip, 120, 3600);
+  if (!gate.allowed) return;
   try {
     await draftsTable()
       .update({ status: "completed", updated_at: new Date().toISOString() })

@@ -5,6 +5,8 @@ import {
 } from "@/lib/fcm/topics";
 import { wilayaTopic, isValidWilaya } from "@/lib/marketing/geo-topics";
 import { isRawApnsToken, importApnsToken } from "@/lib/fcm/apns-import";
+import { rateHit, logSecurityEvent } from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-context";
 
 /**
  * POST /api/marketing-topics — abonne l'appareil au topic MARKETING de sa wilaya.
@@ -18,6 +20,25 @@ import { isRawApnsToken, importApnsToken } from "@/lib/fcm/apns-import";
  * Validation stricte : token au format FCM (contient « : ») + wilaya 1..58.
  */
 export async function POST(req: Request) {
+  // Anti-abus (mig 0452) : route volontairement sans auth → plafond par IP
+  // pour empêcher les (dés)abonnements de topics FCM en masse. Un appareil
+  // légitime appelle 1-2 fois par changement de wilaya.
+  const ip = await getClientIp();
+  const gate = await rateHit("mkt_topics_ip", ip, 30, 3600);
+  if (!gate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "mkt_topics_ip",
+      path: "/api/marketing-topics",
+    });
+    return NextResponse.json(
+      { error: "rate_limited" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(gate.retryAfterSeconds) },
+      }
+    );
+  }
+
   let body: { token?: unknown; wilaya?: unknown; prevWilaya?: unknown };
   try {
     body = (await req.json()) as typeof body;
