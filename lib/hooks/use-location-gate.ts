@@ -26,15 +26,22 @@ import { useResumeResync } from "@/lib/hooks/use-resume-resync";
 //   - "denied"    : refusée. L'OS ne réaffichera plus rien (« Ne plus
 //                   demander ») → seul chemin restant : les réglages du
 //                   téléphone.
-//   - "off"       : autorisée, mais AUCUN point ne revient — le service de
-//                   localisation du téléphone est éteint, ou le GPS ne capte
-//                   rien du tout.
+//   - "off"       : le service de localisation du téléphone est éteint, ou le
+//                   GPS ne capte rien du tout malgré la permission.
 //
 // GRÂCE sur "off" : un tunnel, un parking souterrain ou un fix lent ne doivent
 // PAS jeter un chauffeur en course hors de son écran. On ne bascule sur "off"
 // qu'après GRACE_FAILURES tentatives infructueuses espacées de RETRY_MS — et
 // on ressort tout seul dès qu'un point arrive. Un REFUS de permission, lui, est
 // immédiat : il n'a rien d'accidentel.
+//
+// EXCEPTION à la grâce — service DÉCLARÉ éteint : en natif (iOS et Android),
+// le plugin sait dire que le service de localisation SYSTÈME est coupé
+// (`readGeoPermission()` → "off"). Ce n'est pas un tunnel, c'est un état que
+// l'utilisateur doit corriger : on bloque IMMÉDIATEMENT (comme Uber), sans
+// attendre 3 échecs de fix (~45 s de retard vécu sur iPhone). Le déblocage
+// reste automatique : battement RETRY_MS + reprise au premier plan relisent
+// la permission dès le retour des réglages.
 //
 // Re-vérification : à la reprise au premier plan (retour depuis les réglages du
 // téléphone — en natif, AUCUN événement ne le signale), au changement de
@@ -105,6 +112,13 @@ export function useLocationGate(): LocationGate {
         setStatus("denied");
         return;
       }
+      // Service système DÉCLARÉ éteint (natif) : blocage immédiat, sans grâce
+      // — inutile de tenter un fix, le plugin rejettera pareil.
+      if (perm === "off") {
+        failuresRef.current = 0;
+        setStatus("off");
+        return;
+      }
       // "unknown" (Safari ancien) : on ne peut trancher qu'en tentant un fix —
       // un refus se traduira par l'échec ci-dessous.
       if (perm === "prompt") {
@@ -152,6 +166,12 @@ export function useLocationGate(): LocationGate {
       if (!mountedRef.current) return;
       if (perm === "denied") {
         setStatus("denied");
+        return;
+      }
+      // La demande révèle un service éteint → l'écran « activez la
+      // localisation » (réglages de POSITION), pas celui du refus.
+      if (perm === "off") {
+        setStatus("off");
         return;
       }
       failuresRef.current = 0;

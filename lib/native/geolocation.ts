@@ -13,6 +13,7 @@
  */
 
 import { isNative } from "./context";
+import { isLocationServicesOffError } from "./geo-permission";
 
 export type Coords = {
   latitude: number;
@@ -106,9 +107,23 @@ function fromCap(pos: CapPosition): Coords {
 async function ensureNativePermission(
   Geolocation: typeof import("@capacitor/geolocation").Geolocation
 ): Promise<void> {
-  let perm = await Geolocation.checkPermissions();
-  if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
-    perm = await Geolocation.requestPermissions();
+  let perm;
+  try {
+    perm = await Geolocation.checkPermissions();
+    if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
+      perm = await Geolocation.requestPermissions();
+    }
+  } catch (err) {
+    // Plugin v7 : check/request REJETTENT quand le service de localisation
+    // SYSTÈME est éteint (iOS et Android). Ce n'est pas un refus : mapper en
+    // « indisponible » pour que les appelants classent l'échec correctement.
+    if (isLocationServicesOffError(err)) {
+      throw new GeolocationError(
+        "unavailable",
+        "Service de localisation éteint."
+      );
+    }
+    throw new GeolocationError("unknown", String(err));
   }
   if (perm.location !== "granted" && perm.coarseLocation !== "granted") {
     throw new GeolocationError("denied", "Permission de localisation refusée.");

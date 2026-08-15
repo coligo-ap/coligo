@@ -783,7 +783,10 @@
     "allowLocationSub": "Pour voir les commerces près de chez toi",
     "detectingLocation": "Localisation en cours…",
     "chooseManually": "Choisir manuellement",
-    "locationDeniedManual": "Localisation indisponible. Choisis ta zone manuellement."
+    "locationDeniedManual": "Localisation indisponible. Choisis ta zone manuellement.",
+    "openSettings": "Ouvrir les réglages",
+    "locationDeniedSettings": "Position refusée. Autorise Coligo dans les réglages.",
+    "locationOffSettings": "Service de localisation éteint. Active-le dans les réglages."
   },
   "promosPage": {
     "back": "Mon compte",

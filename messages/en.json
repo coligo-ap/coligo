@@ -783,7 +783,10 @@
     "allowLocationSub": "To see the shops near you",
     "detectingLocation": "Locating…",
     "chooseManually": "Choose manually",
-    "locationDeniedManual": "Location unavailable. Choose your area manually."
+    "locationDeniedManual": "Location unavailable. Choose your area manually.",
+    "openSettings": "Open settings",
+    "locationDeniedSettings": "Location denied. Allow Coligo in your settings.",
+    "locationOffSettings": "Location services are off. Turn them on in settings."
   },
   "promosPage": {
     "back": "My account",

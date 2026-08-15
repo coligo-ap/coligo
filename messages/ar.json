@@ -783,7 +783,10 @@
     "allowLocationSub": "لرؤية المتاجر القريبة منك",
     "detectingLocation": "جارٍ تحديد الموقع…",
     "chooseManually": "الاختيار يدويًا",
-    "locationDeniedManual": "تعذّر تحديد الموقع. اختر منطقتك يدويًا."
+    "locationDeniedManual": "تعذّر تحديد الموقع. اختر منطقتك يدويًا.",
+    "openSettings": "فتح الإعدادات",
+    "locationDeniedSettings": "تم رفض الموقع. اسمح لكوليغو من الإعدادات.",
+    "locationOffSettings": "خدمة تحديد الموقع مُطفأة. فعّلها من الإعدادات."
   },
   "promosPage": {
     "back": "حسابي",

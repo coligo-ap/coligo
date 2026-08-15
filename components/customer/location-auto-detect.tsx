@@ -132,12 +132,19 @@ export function LocationAutoDetect() {
     if (typeof window === "undefined") return;
     if (!geolocationSupported()) return;
     if (inFlightRef.current) return;
-    if (Date.now() - lastRunRef.current < REFRESH_THROTTLE_MS) return;
 
     const current = readStoredLocation();
 
     const hasPosition =
       !!current && (current.latitude != null || !!current.wilaya_code);
+
+    // Le throttle ne s'applique qu'au RAFRAÎCHISSEMENT (une position existe,
+    // on évite de marteler GPS + géocodage). Sans position, chaque occasion
+    // — ouverture, reprise, retour des réglages du téléphone — retente TOUT
+    // DE SUITE : attendre 45 s ici, c'est un accueil sans commerces
+    // pertinents pendant 45 s (vécu iPhone).
+    if (hasPosition && Date.now() - lastRunRef.current < REFRESH_THROTTLE_MS)
+      return;
 
     // Boot de session (ouverture de l'app/du site dans cet onglet) ?
     let isBoot = false;
@@ -168,17 +175,26 @@ export function LocationAutoDetect() {
     const permission = await readGeoPermission();
 
     if (!hasPosition) {
-      // ACQUISITION. Refusé → bandeau legacy (l'OS ne réafficherait rien).
-      if (permission === "denied") return;
+      // ACQUISITION. Refusé → bandeau (l'OS ne réafficherait rien). Service
+      // système ÉTEINT (natif, détecté instantanément) → pareil : inutile de
+      // tenter, et on ne grille PAS la session — dès que le client le rallume
+      // et revient, la reprise retente toute seule.
+      if (permission === "denied" || permission === "off") return;
       // « unknown » (Safari ancien, Permissions API absente) : impossible de
       // savoir sans demander. À la PREMIÈRE UTILISATION on tente quand même —
       // c'est la règle produit (« détecter la position dès l'ouverture ») et la
       // tentative EST la demande. Jamais sur une reprise en arrière-plan.
       if (permission === "unknown" && !allowPrompt) return;
       if (permission === "prompt" && !allowPrompt) return;
-      // Déjà tenté et échoué DANS CETTE session → on n'insiste plus ici (la
-      // prochaine ouverture de l'app retentera).
-      if (window.sessionStorage.getItem(AUTO_SKIP_KEY) === "1") return;
+      // Déjà tenté et échoué DANS CETTE session → on n'insiste plus… SAUF si
+      // la permission est désormais ACCORDÉE : le client sort des réglages du
+      // téléphone, une tentative silencieuse ne coûte aucun dialogue — c'est
+      // LE moment de détecter tout de suite (style Uber).
+      if (
+        permission !== "granted" &&
+        window.sessionStorage.getItem(AUTO_SKIP_KEY) === "1"
+      )
+        return;
     } else {
       // REFRESH SILENCIEUX : uniquement si déjà autorisé (jamais de prompt).
       if (permission !== "granted") return;
