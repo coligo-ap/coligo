@@ -59,6 +59,7 @@ async function main() {
   const mers = await client.query(
     `select id, user_id, name from merchants
       where is_active = true and user_id is not null
+        and coalesce(is_frozen, false) = false
       order by created_at limit 2`
   );
   const cust = await client.query(
@@ -620,6 +621,176 @@ async function main() {
     );
 
     // =========================================================================
+    console.log("TEST M — Phase 2 : cas combiné commande + fidélité (un tap)");
+    // =========================================================================
+    const mkLoyaltyOrder = async (cid, net, pin, status = "pending") =>
+      (
+        await client.query(
+          `insert into public.orders
+             (merchant_id, customer_id, customer_name, customer_phone, status,
+              payment_method, payment_status, pickup_type, pickup_slot_at,
+              pickup_code, subtotal_da, total_da, net_total_da)
+           values ($1, $2, 'TEST FID', '+213000000001', $5,
+              'cash', 'pending', 'asap', now() + interval '30 min',
+              $3, $4, $4, $4)
+           returning id`,
+          [MA.id, cid, pin, net, status]
+        )
+      ).rows[0].id;
+
+    const mOrder = await mkLoyaltyOrder(CU.id, 2400, "TLY1");
+    await client.query(
+      "update public.orders set status='completed' where id=$1",
+      [mOrder]
+    );
+
+    await asUser(MA.user_id);
+    r = await j(`select public.loyalty_order_context($1) j`, [mOrder]);
+    assert(
+      r.ok === true &&
+        r.customer === true &&
+        r.can_credit === true &&
+        r.credit_amount_da === 2400 &&
+        r.already_credited === false,
+      "M1 contexte commande : crédit un-tap proposé, montant repris (2400)",
+      JSON.stringify(r)
+    );
+
+    const opM = opId();
+    r = await j(`select public.loyalty_credit_order($1, $2) j`, [mOrder, opM]);
+    assert(
+      r.ok === true && r.earned_da === 120 && r.purchase_da === 2400,
+      "M2 crédit un-tap : 5 % de 2400 = 120, zéro double saisie",
+      JSON.stringify(r)
+    );
+    r = await j(`select public.loyalty_credit_order($1, $2) j`, [mOrder, opM]);
+    assert(
+      r.ok === true && r.already === true,
+      "M3 rejeu même opération → already:true",
+      JSON.stringify(r)
+    );
+    r = await j(`select public.loyalty_credit_order($1, $2) j`, [
+      mOrder,
+      opId(),
+    ]);
+    const mCredits = (
+      await client.query(
+        `select count(*)::int n, coalesce(sum(amount_da),0)::int s
+           from loyalty_entries where order_id = $1 and type='credit' and amount_da > 0`,
+        [mOrder]
+      )
+    ).rows[0];
+    assert(
+      r.ok === true &&
+        r.already === true &&
+        mCredits.n === 1 &&
+        mCredits.s === 120,
+      "M4 2ᵉ tentative (autre op) → UNE commande = UN crédit (index uq)",
+      `r=${JSON.stringify(r)} credits=${JSON.stringify(mCredits)}`
+    );
+    r = await j(`select public.loyalty_order_context($1) j`, [mOrder]);
+    assert(
+      r.already_credited === true && r.can_credit === false,
+      "M5 contexte après crédit : bouton un-tap retiré",
+      JSON.stringify(r)
+    );
+
+    const opM6 = opId();
+    r = await j(`select public.loyalty_redeem_order($1, $2, null, 50) j`, [
+      mOrder,
+      opM6,
+    ]);
+    assert(
+      r.ok === true && r.deducted_da === 50,
+      "M6 réduction à l'encaissement via la commande (50)",
+      JSON.stringify(r)
+    );
+    r = await j(`select public.loyalty_redeem_order($1, $2, null, 50) j`, [
+      mOrder,
+      opM6,
+    ]);
+    assert(
+      r.ok === true && r.already === true,
+      "M7 rejeu de la réduction → already:true",
+      JSON.stringify(r)
+    );
+
+    const guestOrder = await mkLoyaltyOrder(null, 1000, "TLY2");
+    await client.query(
+      "update public.orders set status='completed' where id=$1",
+      [guestOrder]
+    );
+    r = await j(`select public.loyalty_order_context($1) j`, [guestOrder]);
+    assert(
+      r.ok === true && r.customer === false,
+      "M8 commande invitée : pas de fidélité proposée",
+      JSON.stringify(r)
+    );
+    r = await j(`select public.loyalty_credit_order($1, $2) j`, [
+      guestOrder,
+      opId(),
+    ]);
+    assert(
+      r.ok === false && r.error === "no_customer",
+      "M9 crédit refusé sur commande sans compte",
+      JSON.stringify(r)
+    );
+    const pendingOrder = await mkLoyaltyOrder(CU.id, 1000, "TLY3");
+    r = await j(`select public.loyalty_credit_order($1, $2) j`, [
+      pendingOrder,
+      opId(),
+    ]);
+    assert(
+      r.ok === false && r.error === "order_not_completed",
+      "M10 crédit refusé avant validation du retrait",
+      JSON.stringify(r)
+    );
+
+    // =========================================================================
+    console.log("TEST N — bon DIFFÉRÉ visible en caisse, posé au scan suivant");
+    // =========================================================================
+    // Plafond serré : le palier gagné dépasse le plafond du jour → différé.
+    r = await j(
+      `select public.merchant_update_loyalty_program(true, 5, 2000, 200, 30, 500, 100) j`
+    );
+    assert(r.ok === true, "N0 plafond resserré à 500 pour le scénario");
+    const C5 = cards[4];
+    r = await j(`select public.loyalty_credit($1, 8000, $2) j`, [
+      C5.card_code,
+      opId(),
+    ]);
+    assert(
+      r.ok === true &&
+        r.earned_da === 400 &&
+        r.vouchers_granted.length === 0 &&
+        r.voucher_deferred_da === 200,
+      "N1 crédit : palier atteint mais plafond saturé → voucher_deferred_da VISIBLE",
+      JSON.stringify(r)
+    );
+    r = await j(`select public.loyalty_resolve_scan($1) j`, [C5.card_code]);
+    assert(
+      r.ok === true &&
+        r.voucher_deferred_da === 200 &&
+        r.summary.vouchers.length === 0,
+      "N2 fiche caisse : « Bon de 200 DA gagné — actif demain » affichable",
+      JSON.stringify({ d: r.voucher_deferred_da, v: r.summary.vouchers })
+    );
+    // Le plafond se libère (ici : relevé) → le bon se POSE au simple scan,
+    // sans nouvel achat — la promesse « actif demain » est tenue.
+    r = await j(
+      `select public.merchant_update_loyalty_program(true, 5, 2000, 200, 30, 5000, 100) j`
+    );
+    assert(r.ok === true, "N3 plafond libéré");
+    r = await j(`select public.loyalty_resolve_scan($1) j`, [C5.card_code]);
+    assert(
+      r.ok === true &&
+        r.summary.vouchers.length >= 1 &&
+        r.voucher_deferred_da === 0,
+      "N4 scan suivant : bon(s) posé(s) automatiquement, plus rien de différé",
+      JSON.stringify({ d: r.voucher_deferred_da, v: r.summary.vouchers.length })
+    );
+
+    // =========================================================================
     console.log("TEST J — append-only + intégrité");
     // =========================================================================
     let updRejected = false;
@@ -816,6 +987,25 @@ async function main() {
       },
     ],
     ["admin_loyalty_card_lookup", { p_query: "X" }],
+    [
+      "loyalty_credit_order",
+      {
+        p_order_id: "00000000-0000-0000-0000-000000000000",
+        p_client_operation_id: "aaaaaaaa",
+      },
+    ],
+    [
+      "loyalty_redeem_order",
+      {
+        p_order_id: "00000000-0000-0000-0000-000000000000",
+        p_client_operation_id: "aaaaaaaa",
+        p_amount_da: 1,
+      },
+    ],
+    [
+      "loyalty_order_context",
+      { p_order_id: "00000000-0000-0000-0000-000000000000" },
+    ],
     ["loyalty_expire_vouchers", {}],
     [
       "loyalty_program_account",
