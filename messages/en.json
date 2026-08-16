@@ -1356,7 +1356,14 @@
     "loyStores": "My stores",
     "loyChez": "At",
     "loySpendableHere": "Spend it here only",
-    "loyProgressShort": "{amount} to go to unlock {reward}"
+    "loyProgressShort": "{amount} to go to unlock {reward}",
+    "loySearchPlaceholder": "Search a store…",
+    "loySortBalance": "Balance",
+    "loySortProgress": "Progress",
+    "loySortName": "Name",
+    "loyNoResults": "No matching store.",
+    "loyProgramRate": "{rate}% cashback in store",
+    "loyProgramTier": "{reward} voucher for every {threshold} spent"
   },
   "productSearch": {
     "searching": "Searching…",

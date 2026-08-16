@@ -1356,7 +1356,14 @@
     "loyStores": "Mes magasins",
     "loyChez": "Chez",
     "loySpendableHere": "À dépenser ici uniquement",
-    "loyProgressShort": "Encore {amount} pour débloquer {reward}"
+    "loyProgressShort": "Encore {amount} pour débloquer {reward}",
+    "loySearchPlaceholder": "Rechercher un magasin…",
+    "loySortBalance": "Solde",
+    "loySortProgress": "Progression",
+    "loySortName": "Nom",
+    "loyNoResults": "Aucun magasin ne correspond.",
+    "loyProgramRate": "{rate} % de cashback en magasin",
+    "loyProgramTier": "Bon de {reward} tous les {threshold} d'achats"
   },
   "productSearch": {
     "searching": "Recherche…",

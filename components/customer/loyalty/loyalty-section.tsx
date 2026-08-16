@@ -9,7 +9,9 @@ import {
   ChevronRight,
   CreditCard,
   Gift,
+  Percent,
   Plus,
+  Search,
   Sparkles,
   Store,
 } from "lucide-react";
@@ -23,7 +25,10 @@ import {
   fetchLoyaltyHistory,
   fetchLoyaltyOverview,
   type LoyaltyAccountCard,
+  type LoyaltyHistoryEntry,
 } from "@/app/(customer)/cashback/actions";
+
+type StoreSort = "balance" | "progress" | "name";
 
 function dayFr(iso: string): string {
   const d = new Date(iso);
@@ -75,6 +80,9 @@ export function LoyaltySection({ userId }: { userId: string }) {
   const [historyFor, setHistoryFor] = useState<LoyaltyAccountCard | null>(null);
   const [blockPending, setBlockPending] = useState<string | null>(null);
   const [newVoucherIds, setNewVoucherIds] = useState<string[]>([]);
+  // Recherche + tri PUREMENT client sur les données déjà en cache → instantané.
+  const [query, setQuery] = useState("");
+  const [sort, setSort] = useState<StoreSort>("balance");
 
   const { data: overview, isPending } = useQuery({
     queryKey: ["loyalty-overview", userId],
@@ -137,6 +145,24 @@ export function LoyaltySection({ userId }: { userId: string }) {
     () => cards.filter((c) => c.status !== "blocked"),
     [cards]
   );
+
+  const visibleAccounts = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    const filtered = q
+      ? accounts.filter((a) => a.merchant_name.toLowerCase().includes(q))
+      : accounts;
+    const pctOf = (a: LoyaltyAccountCard) =>
+      a.summary.progress && a.summary.progress.threshold_da > 0
+        ? a.summary.progress.spent_da / a.summary.progress.threshold_da
+        : -1;
+    return [...filtered].sort((x, y) =>
+      sort === "name"
+        ? x.merchant_name.localeCompare(y.merchant_name)
+        : sort === "progress"
+          ? pctOf(y) - pctOf(x)
+          : y.summary.available_da - x.summary.available_da
+    );
+  }, [accounts, query, sort]);
 
   async function blockCard(cardId: string) {
     if (
@@ -228,6 +254,45 @@ export function LoyaltySection({ userId }: { userId: string }) {
         </p>
       </div>
 
+      {/* Recherche + tri INSTANTANÉS (données en cache, zéro round-trip). */}
+      {accounts.length > 1 && (
+        <div className="mb-3 space-y-2">
+          <div className="relative">
+            <Search className="text-subtle absolute start-3 top-1/2 size-4 -translate-y-1/2" />
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t("loySearchPlaceholder")}
+              className="border-border-strong focus:border-primary-400 focus:ring-primary-400/40 rounded-control h-11 w-full border bg-white ps-10 pe-3 text-sm font-medium focus:ring-2 focus:outline-none"
+            />
+          </div>
+          <div className="flex gap-1.5">
+            {(["balance", "progress", "name"] as const).map((k) => (
+              <button
+                key={k}
+                type="button"
+                aria-pressed={sort === k}
+                onClick={() => setSort(k)}
+                className={
+                  "rounded-full px-2.5 py-1 text-xs font-bold transition " +
+                  (sort === k
+                    ? "bg-primary-600 text-white"
+                    : "bg-surface-2 text-muted hover:text-foreground")
+                }
+              >
+                {t(
+                  k === "balance"
+                    ? "loySortBalance"
+                    : k === "progress"
+                      ? "loySortProgress"
+                      : "loySortName"
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {isPending && !overview ? (
         <div className="space-y-3">
           {Array.from({ length: 2 }).map((_, i) => (
@@ -247,9 +312,13 @@ export function LoyaltySection({ userId }: { userId: string }) {
             {t("loyEmptyDesc")}
           </p>
         </div>
+      ) : visibleAccounts.length === 0 ? (
+        <p className="text-muted py-6 text-center text-sm font-medium">
+          {t("loyNoResults")}
+        </p>
       ) : (
         <div className="space-y-3">
-          {accounts.map((a) => (
+          {visibleAccounts.map((a) => (
             <StoreCard
               key={a.merchant_id}
               account={a}
@@ -314,14 +383,155 @@ export function LoyaltySection({ userId }: { userId: string }) {
         />
       </Sheet>
 
-      {/* Feuille : historique du magasin sélectionné. */}
+      {/* Feuille : FICHE du magasin sélectionné — solde, programme, progression
+          colorée, bons, historique. */}
       <Sheet
         open={!!historyFor}
         onClose={() => setHistoryFor(null)}
         title={historyFor?.merchant_name ?? ""}
-        description={t("loyHistory")}
       >
-        {historyPending && !history ? (
+        {historyFor && (
+          <StoreDetail
+            account={historyFor}
+            history={history}
+            pending={historyPending}
+          />
+        )}
+      </Sheet>
+    </section>
+  );
+}
+
+/**
+ * FICHE MAGASIN (feuille) : tout ce que le client veut savoir sur SA fidélité
+ * chez ce commerçant — solde dépensable ici, conditions du programme (taux,
+ * palier), progression COLORÉE vers le prochain bon, bons actifs, historique.
+ */
+function StoreDetail({
+  account,
+  history,
+  pending,
+}: {
+  account: LoyaltyAccountCard;
+  history: LoyaltyHistoryEntry[] | undefined;
+  pending: boolean;
+}) {
+  const t = useTranslations("wallet");
+  const { summary, program } = account;
+  const progress = summary.progress;
+  const pct =
+    progress && progress.threshold_da > 0
+      ? Math.min(100, (progress.spent_da / progress.threshold_da) * 100)
+      : 0;
+  const [animPct, setAnimPct] = useState(0);
+  useEffect(() => {
+    const id = requestAnimationFrame(() => setAnimPct(pct));
+    return () => cancelAnimationFrame(id);
+  }, [pct]);
+
+  return (
+    <div className="space-y-4">
+      {/* Solde dépensable CHEZ CE magasin uniquement. */}
+      <div className="bg-surface-2 flex items-center justify-between gap-3 rounded-md p-3.5">
+        <div>
+          <p className="text-muted text-xs font-semibold">
+            {t("loySpendableHere")}
+          </p>
+          <p className="text-primary-700 mt-0.5 text-2xl font-black tabular-nums">
+            {formatDA(summary.available_da)}
+          </p>
+        </div>
+        {account.merchant_logo ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={account.merchant_logo}
+            alt=""
+            loading="lazy"
+            className="bg-surface size-11 shrink-0 rounded-full object-cover"
+          />
+        ) : (
+          <div className="bg-primary-50 text-primary-600 flex size-11 shrink-0 items-center justify-center rounded-full">
+            <Store className="size-5" />
+          </div>
+        )}
+      </div>
+
+      {/* Conditions du programme de CE commerçant (si actif chez lui). */}
+      {program?.enabled && (
+        <div className="flex flex-wrap gap-1.5">
+          <span className="bg-primary-50 text-primary-700 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
+            <Percent className="size-3.5" />
+            {t("loyProgramRate", {
+              rate: String(Number(program.earn_rate_pct)),
+            })}
+          </span>
+          {program.tier_threshold_da != null &&
+            program.tier_reward_da != null && (
+              <span className="bg-primary-50 text-primary-700 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-bold">
+                <Gift className="size-3.5" />
+                {t("loyProgramTier", {
+                  reward: formatDA(program.tier_reward_da),
+                  threshold: formatDA(program.tier_threshold_da),
+                })}
+              </span>
+            )}
+        </div>
+      )}
+
+      {/* Progression vers le prochain bon — barre COLORÉE + pourcentage. */}
+      {progress && progress.remaining_da > 0 && (
+        <div>
+          <div className="mb-1.5 flex items-center justify-between">
+            <p className="text-foreground text-xs font-bold">
+              {t("loySortProgress")}
+            </p>
+            <p className="text-primary-700 text-xs font-extrabold tabular-nums">
+              {Math.round(pct)} %
+            </p>
+          </div>
+          <div className="bg-surface-3 h-2.5 w-full overflow-hidden rounded-full">
+            <div
+              className="h-full rounded-full transition-[width] duration-700 ease-out"
+              style={{
+                width: `${animPct}%`,
+                backgroundImage:
+                  "linear-gradient(90deg, var(--color-primary-600), var(--color-accent-500))",
+              }}
+            />
+          </div>
+          <p className="text-muted mt-1.5 text-xs font-semibold">
+            {t("loyProgressShort", {
+              amount: formatDA(progress.remaining_da),
+              reward: formatDA(progress.reward_da),
+            })}
+          </p>
+        </div>
+      )}
+
+      {/* Bons actifs chez ce commerçant. */}
+      {summary.vouchers.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {summary.vouchers.map((v) => (
+            <span
+              key={v.id}
+              className="border-success-200 bg-success-50 text-success-800 flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold"
+            >
+              <Gift className="size-3.5" />
+              {t("loyVoucher", { amount: formatDA(v.amount_da) })}
+              <span className="text-success-600 font-medium">
+                · {t("loyVoucherExp", { date: dayFr(v.expires_at) })}
+              </span>
+            </span>
+          ))}
+        </div>
+      )}
+
+      {/* Historique chez ce commerçant. */}
+      <div>
+        <h4 className="text-foreground mb-1.5 text-sm font-extrabold">
+          {t("loyHistory")}
+        </h4>
+        {pending && !history ? (
           <div className="space-y-2">
             {Array.from({ length: 4 }).map((_, i) => (
               <div
@@ -357,8 +567,8 @@ export function LoyaltySection({ userId }: { userId: string }) {
             ))}
           </ul>
         )}
-      </Sheet>
-    </section>
+      </div>
+    </div>
   );
 }
 

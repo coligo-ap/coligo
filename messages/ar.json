@@ -1356,7 +1356,14 @@
     "loyStores": "متاجري",
     "loyChez": "لدى",
     "loySpendableHere": "تُصرف هنا فقط",
-    "loyProgressShort": "يتبقى {amount} لفتح {reward}"
+    "loyProgressShort": "يتبقى {amount} لفتح {reward}",
+    "loySearchPlaceholder": "ابحث عن متجر…",
+    "loySortBalance": "الرصيد",
+    "loySortProgress": "التقدّم",
+    "loySortName": "الاسم",
+    "loyNoResults": "لا يوجد متجر مطابق.",
+    "loyProgramRate": "{rate}٪ كاشباك في المتجر",
+    "loyProgramTier": "قسيمة {reward} عن كل {threshold} من المشتريات"
   },
   "productSearch": {
     "searching": "جارٍ البحث…",
