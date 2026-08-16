@@ -37,9 +37,13 @@ const STEPS: StepKey[] = ["identite", "acces", "confirm"];
 export function CustomerSignupWizard({
   next,
   refCode,
+  cardCode = "",
 }: {
   next: string;
   refCode: string;
+  /** Carte fidélité venue de la landing /c/<code> (pré-remplit l'étape
+   *  post-inscription — jamais bloquante). */
+  cardCode?: string;
 }) {
   const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
@@ -92,6 +96,7 @@ export function CustomerSignupWizard({
     >
       <StepWizardStyle />
       <input type="hidden" name="next" value={next} />
+      <input type="hidden" name="loyalty_card" value={cardCode} />
       {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
       <TurnstileField />
 

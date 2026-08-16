@@ -49,7 +49,8 @@ type Props = {
 function isBare(p: string): boolean {
   return (
     p === "/se-connecter" ||
-    p === "/inscription" ||
+    p.startsWith("/inscription") || // + /inscription/carte (étape fidélité)
+    p.startsWith("/c/") || // landing publique carte fidélité
     p.startsWith("/course") ||
     p.startsWith("/drive") || // /drive + /drive/historique (nav propre)
     p.startsWith("/coligo-pay/qr") ||

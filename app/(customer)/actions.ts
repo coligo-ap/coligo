@@ -25,6 +25,7 @@ import {
   TURNSTILE_FIELD,
 } from "@/lib/security/turnstile";
 import { attachReferralForNewCustomer } from "@/lib/referral/attach";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   listPublicMerchants,
   getPromoLabelsByMerchant,
@@ -292,6 +293,18 @@ export async function customerSignup(
   if (data.session) {
     const next = safeNextPath(formData.get("next"));
     revalidatePath("/", "layout");
+    // Étape fidélité POST-inscription (SPEC-FIDELITE 3.1) — jamais bloquante
+    // (« Passer » aussi visible que « Scanner »), et seulement une fois la
+    // fonctionnalité lancée : tant que le drapeau `loyalty` n'est pas
+    // « active », le parcours reste STRICTEMENT identique.
+    const flags = await getFeatureFlags();
+    if (flags.loyalty.status === "active") {
+      const rawCard = String(formData.get("loyalty_card") ?? "").trim();
+      redirect(
+        `/inscription/carte?next=${encodeURIComponent(next)}` +
+          (rawCard ? `&code=${encodeURIComponent(rawCard)}` : "")
+      );
+    }
     redirect(next);
   }
 

@@ -8,6 +8,7 @@ import { fetchCashbackHistory } from "@/app/(customer)/cashback/actions";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
 import { ThemeDecor } from "@/components/shared/theme-decor";
+import { LoyaltySection } from "@/components/customer/loyalty/loyalty-section";
 
 /**
  * Contenu de /cashback via TanStack Query (pattern OrdersLoader). Le RSC ne fait
@@ -16,7 +17,15 @@ import { ThemeDecor } from "@/components/shared/theme-decor";
  * et l'historique d'un cache persistant → plus de rechargement complet à chaque
  * navigation, juste une revalidation silencieuse.
  */
-export function CashbackLoader({ userId }: { userId: string }) {
+export function CashbackLoader({
+  userId,
+  loyaltyVisible = false,
+}: {
+  userId: string;
+  /** Section « Fidélité en magasin » (drapeau `loyalty` — dormant avant
+   *  lancement, zéro changement visuel tant qu'il est masqué). */
+  loyaltyVisible?: boolean;
+}) {
   const t = useTranslations("wallet");
   const tAccount = useTranslations("account");
   const { data: history, isPending } = useQuery({
@@ -81,6 +90,10 @@ export function CashbackLoader({ userId }: { userId: string }) {
           </p>
         </div>
       </Link>
+
+      {/* FIDÉLITÉ EN MAGASIN (SPEC-FIDELITE 3.2) : cagnottes CLOISONNÉES par
+          commerçant — une carte-magasin distincte chacune. */}
+      {loyaltyVisible && <LoyaltySection userId={userId} />}
 
       {/* Historique CASHBACK uniquement (timeline) */}
       <section className="mt-6">

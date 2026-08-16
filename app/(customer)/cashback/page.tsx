@@ -16,9 +16,10 @@ export default async function CustomerCashbackPage() {
   if (!user) redirect("/se-connecter?next=/cashback");
 
   // Garde commerçant + disponibilité (super-admin) en parallèle.
-  const [merchant, flag] = await Promise.all([
+  const [merchant, flag, loyaltyFlag] = await Promise.all([
     getCurrentMerchant(),
     getFeatureFlag("cashback"),
+    getFeatureFlag("loyalty"),
   ]);
   if (merchant) redirect("/dashboard");
   if (flag.status === "hidden") redirect("/");
@@ -27,5 +28,10 @@ export default async function CustomerCashbackPage() {
     return <CustomerFeatureBlocked flag={flag} />;
   }
 
-  return <CashbackLoader userId={user.id} />;
+  return (
+    <CashbackLoader
+      userId={user.id}
+      loyaltyVisible={loyaltyFlag.status === "active"}
+    />
+  );
 }
