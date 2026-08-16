@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import {
   Bug,
+  Gift,
   HelpCircle,
   LayoutDashboard,
   Loader2,
@@ -40,6 +41,7 @@ const DRAWER_ITEMS: DrawerItem[] = [
   { href: "/dashboard", label: "Tableau de bord", icon: LayoutDashboard },
   { href: "/encaisser", label: "Encaisser (QR)", icon: ScanLine },
   { href: "/promotions", label: "Promotions", icon: Tag },
+  { href: "/fidelite", label: "Fidélité", icon: Gift },
   { href: "/livreurs", label: "Livreurs", icon: Truck },
   { href: "/livraison/creneaux", label: "Créneaux livraison", icon: Truck },
   { href: "/finances", label: "Finances", icon: Wallet },

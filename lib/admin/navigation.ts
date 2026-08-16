@@ -203,6 +203,24 @@ export const ADMIN_NAV: AdminNavDomain[] = [
         ],
       },
       {
+        label: "Fidélité",
+        items: [
+          {
+            href: "/admin/merchants/fidelite",
+            label: "Fidélité",
+            icon: Gift,
+            keywords: [
+              "carte",
+              "cashback",
+              "bons",
+              "paliers",
+              "bornes",
+              "loyalty",
+            ],
+          },
+        ],
+      },
+      {
         label: "Contenu",
         items: [
           {
