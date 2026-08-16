@@ -1,5 +1,4 @@
 import { createClient } from "@/lib/supabase/server";
-import { getAllMerchantsForAdmin } from "@/lib/data/platform";
 import {
   LoyaltyBoundsForm,
   type LoyaltyBounds,
@@ -26,7 +25,9 @@ export default async function AdminLoyaltyTab() {
     args?: Record<string, unknown>
   ) => Promise<{ data: unknown; error: unknown }>;
 
-  const [{ data: bounds }, { data: batches }, merchants] = await Promise.all([
+  // Recherche d'abord (règle annuaires) : AUCUN chargement en masse des
+  // commerçants — le picker interroge admin_loyalty_search_merchants (0458).
+  const [{ data: bounds }, { data: batches }] = await Promise.all([
     rpc("admin_loyalty_settings") as Promise<{
       data: LoyaltyBounds | null;
       error: unknown;
@@ -35,13 +36,7 @@ export default async function AdminLoyaltyTab() {
       data: LoyaltyBatchRow[] | null;
       error: unknown;
     }>,
-    getAllMerchantsForAdmin(),
   ]);
-
-  const merchantOptions = merchants
-    .filter((m) => m.approval_status === "approved")
-    .sort((a, b) => a.name.localeCompare(b.name, "fr"))
-    .map((m) => ({ id: m.id, name: m.name }));
 
   return (
     <div className="space-y-6">
@@ -55,7 +50,6 @@ export default async function AdminLoyaltyTab() {
       </header>
 
       <LoyaltyCardsConsole
-        merchants={merchantOptions}
         batches={batches ?? []}
         maxBatch={Number(bounds?.max_batch_quantity ?? 1000)}
       />

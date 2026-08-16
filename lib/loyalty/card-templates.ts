@@ -70,3 +70,13 @@ export function getCardTemplate(key: string | null | undefined): CardTemplate {
 export function groupCardCode(code: string): string {
   return code.replace(/(.{4})/g, "$1 ").trim();
 }
+
+/**
+ * VAGUES du bas de carte (langage marketplace / ThemeDecor) — deux couches
+ * flat dans un viewBox 0 0 100 30, SOURCE UNIQUE partagée entre le PDF
+ * (drawSvgPath) et l'aperçu CSS de la console (même dessin, garanti).
+ */
+export const CARD_WAVE_BACK =
+  "M0 14 C 20 4, 34 22, 52 12 C 68 4, 84 18, 100 8 L 100 30 L 0 30 Z";
+export const CARD_WAVE_FRONT =
+  "M0 22 C 22 14, 40 28, 60 20 C 76 14, 90 24, 100 18 L 100 30 L 0 30 Z";

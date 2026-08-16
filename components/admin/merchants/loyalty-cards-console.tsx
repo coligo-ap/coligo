@@ -10,6 +10,8 @@ import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { cn } from "@/lib/utils";
 import {
   CARD_TEMPLATES,
+  CARD_WAVE_BACK,
+  CARD_WAVE_FRONT,
   DEFAULT_TEMPLATE_KEY,
   getCardTemplate,
 } from "@/lib/loyalty/card-templates";
@@ -17,7 +19,12 @@ import { LOYALTY_CARD } from "@/lib/design/tokens";
 import {
   adminCreateLoyaltyBatch,
   type CreateBatchResult,
+  type LoyaltyMerchantHit,
 } from "@/app/admin/merchants/fidelite/actions";
+import {
+  LoyaltyMerchantPicker,
+  RemoteProgramPanel,
+} from "@/components/admin/merchants/loyalty-merchant-picker";
 
 export type LoyaltyBatchRow = {
   id: string;
@@ -56,10 +63,20 @@ function TemplatePreview({
   const tpl = getCardTemplate(templateKey);
   return (
     <div
-      className="flex aspect-[856/540] w-full flex-col justify-between rounded-md border p-2"
+      className="relative flex aspect-[856/540] w-full flex-col justify-between overflow-hidden rounded-md border p-2"
       style={{ background: tpl.bg, borderColor: tpl.accent }}
     >
-      <div className="flex items-start justify-between">
+      {/* Vagues du bas — MÊMES tracés que le PDF (source unique). */}
+      <svg
+        viewBox="0 0 100 30"
+        preserveAspectRatio="none"
+        className="absolute inset-x-0 bottom-0 h-1/2 w-full"
+        aria-hidden
+      >
+        <path d={CARD_WAVE_BACK} fill={tpl.text} opacity={0.08} />
+        <path d={CARD_WAVE_FRONT} fill={tpl.accent} />
+      </svg>
+      <div className="relative z-10 flex items-start justify-between">
         <span
           className="text-micro leading-none font-black"
           style={{ color: tpl.text }}
@@ -79,7 +96,7 @@ function TemplatePreview({
           aria-hidden
         />
       </div>
-      <div>
+      <div className="relative z-10">
         <p
           className="text-[6px] tracking-widest uppercase"
           style={{ color: tpl.subtext }}
@@ -104,11 +121,9 @@ function TemplatePreview({
  * journal — le fichier est régénéré à la volée, jamais stocké.
  */
 export function LoyaltyCardsConsole({
-  merchants,
   batches,
   maxBatch,
 }: {
-  merchants: { id: string; name: string }[];
   batches: LoyaltyBatchRow[];
   maxBatch: number;
 }) {
@@ -122,9 +137,10 @@ export function LoyaltyCardsConsole({
     ok: state.ok,
     error: state.error,
   });
-  const [merchantId, setMerchantId] = useState("");
+  // Recherche d'abord (règle annuaires) : aucun chargement en masse.
+  const [selected, setSelected] = useState<LoyaltyMerchantHit | null>(null);
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_KEY);
-  const merchantName = merchants.find((m) => m.id === merchantId)?.name ?? "";
+  const merchantName = selected?.name ?? "";
 
   useEffect(() => {
     if (state.ok) router.refresh();
@@ -143,22 +159,13 @@ export function LoyaltyCardsConsole({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label htmlFor="merchant_id">Commerçant</Label>
-            <select
-              id="merchant_id"
+            <Label>Commerçant</Label>
+            <input
+              type="hidden"
               name="merchant_id"
-              value={merchantId}
-              onChange={(e) => setMerchantId(e.target.value)}
-              disabled={pending}
-              className="border-border-strong bg-surface focus-visible:ring-primary-400/40 focus-visible:border-primary-400 h-11 w-full rounded-md border px-3 text-sm focus-visible:ring-2 focus-visible:outline-none disabled:opacity-50"
-            >
-              <option value="">— Choisir —</option>
-              {merchants.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
+              value={selected?.id ?? ""}
+            />
+            <LoyaltyMerchantPicker selected={selected} onSelect={setSelected} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="quantity">Quantité</Label>
@@ -166,7 +173,7 @@ export function LoyaltyCardsConsole({
               id="quantity"
               name="quantity"
               inputMode="numeric"
-              defaultValue="100"
+              defaultValue="50"
               disabled={pending}
             />
             <p className="text-subtle text-xs">Max {maxBatch} par lot.</p>
@@ -237,7 +244,7 @@ export function LoyaltyCardsConsole({
         <ActionButton
           type="submit"
           state={fb}
-          disabled={!merchantId}
+          disabled={!selected}
           idleIcon={<Printer className="size-4" />}
           labels={{
             idle: "Générer le lot",
@@ -246,6 +253,10 @@ export function LoyaltyCardsConsole({
           }}
         />
       </form>
+
+      {/* Pilotage À DISTANCE : le programme du commerçant sélectionné, lisible
+          et modifiable ici même (intervention rapide support). */}
+      {selected && <RemoteProgramPanel merchant={selected} />}
 
       {/* Journal des lots : qui, quand, combien, pour quel commerçant. */}
       <div className="border-border bg-surface rounded-lg border">

@@ -9,7 +9,12 @@ import {
 import { PDF_INK, pdfColor, safe } from "@/lib/pdf/pdf-kit";
 import { LOYALTY_CARD } from "@/lib/design/tokens";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
-import { getCardTemplate, groupCardCode } from "@/lib/loyalty/card-templates";
+import {
+  CARD_WAVE_BACK,
+  CARD_WAVE_FRONT,
+  getCardTemplate,
+  groupCardCode,
+} from "@/lib/loyalty/card-templates";
 
 // =============================================================================
 // PDF D'IMPRESSION des cartes de fidélité (SPEC-FIDELITE 4.0) — pdf-lib
@@ -260,7 +265,8 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
   const textColor = pdfColor(tpl.text);
   const subColor = pdfColor(tpl.subtext);
 
-  // Fond jusqu'aux FONDS PERDUS + accent flat (disque en coin).
+  // Fond jusqu'aux FONDS PERDUS + VAGUES du bas (langage marketplace) :
+  // couche arrière subtile (encre du texte à 8 %) + vague d'accent pleine.
   rect(
     page,
     -g.bleed,
@@ -269,7 +275,22 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
     g.trimH + 2 * g.bleed,
     bgColor
   );
-  circle(page, 6, -7, 21, pdfColor(tpl.accent));
+  const waveScale = mm(g.trimW + 2 * g.bleed) / 100;
+  const waveX = mm(g.slug);
+  const waveTop = mm(g.slug) + 30 * waveScale;
+  page.drawSvgPath(CARD_WAVE_BACK, {
+    x: waveX,
+    y: waveTop,
+    scale: waveScale,
+    color: textColor,
+    opacity: 0.08,
+  });
+  page.drawSvgPath(CARD_WAVE_FRONT, {
+    x: waveX,
+    y: waveTop,
+    scale: waveScale,
+    color: pdfColor(tpl.accent),
+  });
 
   // Marque : « Coligo » vectoriel + pastille كوليغو (PNG blanc).
   text(page, "Coligo", 5, 45.2, 13, fonts.bold, textColor);
@@ -311,7 +332,9 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
     12.2,
     codeSize,
     fonts.mono,
-    textColor
+    // Posé SUR la vague d'accent (tous les accents sont soutenus) → blanc,
+    // sinon illisible sur le modèle « Clair ».
+    WHITE
   );
 
   drawCropMarks(page);

@@ -30,6 +30,11 @@ const SRC = {
   fr: join(PUB, "logo-coligo-FR-Bg_blanc-Ecr_Violet.png"),
   ar: join(PUB, "logo-coligo-AR-Bg_blanc-Ecr_Violet.png"),
   full: join(PUB, "logo-coligo-FRAR-complet-Bg_blanc-Ecr_Violet.png"),
+  // ICÔNE D'APP v2 (août 2026) : visuel carré COMPLET fourni par le
+  // propriétaire (fond violet, wordmark + illustrations) — remplace l'ancien
+  // « C » extrait pour TOUTES les icônes d'application (PWA, favicons,
+  // launcher Android, App Store / Play Store).
+  appViolet: join(PUB, "logo-app-coligo-v2-violet.png"),
 };
 
 /** Tous les pixels non transparents → blanc (garde l'alpha). */
@@ -178,17 +183,23 @@ async function main() {
   await save(cBuf, "icon-c.png", 512);
   await save(cWhite, "icon-c-white.png", 512);
 
-  // ── 3. Favicons / PWA (C blanc sur violet) ───────────────────────────
-  const icon = (size, ratio) => onViolet(cWhite, size, size, ratio);
-  await (await icon(512, 0.58)).toFile(join(PUB, "icon-512.png"));
-  await (await icon(192, 0.58)).toFile(join(PUB, "icon-192.png"));
-  await (await icon(512, 0.42)).toFile(join(PUB, "icon-maskable-512.png")); // safe zone maskable
-  await (await icon(180, 0.58)).toFile(join(PUB, "apple-touch-icon.png"));
-  await (await icon(32, 0.66)).toFile(join(PUB, "favicon-32.png"));
+  // ── 3. Favicons / PWA — icône d'app v2 PLEINE SURFACE (le visuel carré
+  //       porte déjà son fond violet ; le wordmark central reste dans la zone
+  //       sûre des masques adaptatifs/maskable). Aplatie (pas d'alpha).
+  const appIcon = (size) =>
+    sharp(SRC.appViolet)
+      .resize(size, size, { fit: "cover" })
+      .flatten({ background: VIOLET })
+      .png({ compressionLevel: 9 });
+  await appIcon(512).toFile(join(PUB, "icon-512.png"));
+  await appIcon(192).toFile(join(PUB, "icon-192.png"));
+  await appIcon(512).toFile(join(PUB, "icon-maskable-512.png"));
+  await appIcon(180).toFile(join(PUB, "apple-touch-icon.png"));
+  await appIcon(32).toFile(join(PUB, "favicon-32.png"));
 
   const icoPngs = [];
   for (const size of [16, 32, 48]) {
-    icoPngs.push({ size, buf: await (await icon(size, 0.66)).toBuffer() });
+    icoPngs.push({ size, buf: await appIcon(size).toBuffer() });
   }
   await writeFile(join(PUB, "favicon.ico"), buildIco(icoPngs));
 
@@ -207,36 +218,25 @@ async function main() {
   ];
   for (const [d, launcher, fg] of densities) {
     const dir = join(RES, `mipmap-${d}`);
-    await (
-      await onViolet(cWhite, launcher, launcher, 0.58)
-    ).toFile(join(dir, "ic_launcher.png"));
-    await (
-      await onViolet(cWhite, launcher, launcher, 0.58)
-    ).toFile(join(dir, "ic_launcher_round.png"));
-    // foreground adaptive : C blanc sur transparent, safe zone ~45%
-    const mark = await sharp(cWhite)
-      .resize(Math.round(fg * 0.42), Math.round(fg * 0.42), { fit: "inside" })
-      .png()
-      .toBuffer();
-    const mm = await sharp(mark).metadata();
-    await sharp({
-      create: {
-        width: fg,
-        height: fg,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        {
-          input: mark,
-          top: Math.round((fg - mm.height) / 2),
-          left: Math.round((fg - mm.width) / 2),
-        },
-      ])
-      .png()
-      .toFile(join(dir, "ic_launcher_foreground.png"));
+    await appIcon(launcher).toFile(join(dir, "ic_launcher.png"));
+    await appIcon(launcher).toFile(join(dir, "ic_launcher_round.png"));
+    // Foreground adaptive : le visuel v2 couvre TOUT le canvas 108 dp — le
+    // masque du launcher rogne les décors de coins, le wordmark central reste
+    // dans la zone sûre (66 dp). Le background (violet) est ainsi recouvert.
+    await appIcon(fg).toFile(join(dir, "ic_launcher_foreground.png"));
   }
+
+  // ── 5 bis. iOS : icône App Store (universelle 1024, OPAQUE obligatoire) ─
+  const iosIcon = join(
+    ROOT,
+    "ios",
+    "App",
+    "App",
+    "Assets.xcassets",
+    "AppIcon.appiconset",
+    "AppIcon-512@2x.png"
+  );
+  await appIcon(1024).toFile(iosIcon);
 
   // ── 6. Android : splash screens (mêmes dimensions que l'existant) ────
   const splashTargets = [

@@ -152,6 +152,159 @@ export async function adminCreateLoyaltyBatch(
   }
 }
 
+/* ── Recherche commerçant (règle annuaires : échantillon 3 + ilike) + pilotage
+     À DISTANCE du programme (mig 0458) ─────────────────────────────────── */
+
+export type LoyaltyMerchantHit = {
+  id: string;
+  name: string;
+  city: string | null;
+  phone: string | null;
+  email: string | null;
+  approved: boolean;
+  has_program: boolean;
+  program_enabled: boolean;
+};
+
+export async function adminSearchLoyaltyMerchants(
+  query: string
+): Promise<LoyaltyMerchantHit[]> {
+  if (!(await adminCan("commercants"))) return [];
+  try {
+    const data = await adminRpc("admin_loyalty_search_merchants", {
+      p_query: query,
+    });
+    return (Array.isArray(data) ? data : []) as LoyaltyMerchantHit[];
+  } catch {
+    return [];
+  }
+}
+
+export type MerchantProgramValues = {
+  enabled: boolean;
+  earn_rate_pct: number | string;
+  tier_threshold_da: number | null;
+  tier_reward_da: number | null;
+  voucher_validity_days: number;
+  daily_credit_cap_da: number;
+  link_bonus_da: number;
+};
+
+export async function adminGetMerchantLoyaltyProgram(
+  merchantId: string
+): Promise<{
+  ok: boolean;
+  merchant_name?: string;
+  program?: MerchantProgramValues | null;
+}> {
+  if (!(await adminCan("commercants"))) return { ok: false };
+  try {
+    const data = (await adminRpc("admin_loyalty_get_merchant_program", {
+      p_merchant_id: merchantId,
+    })) as AdminRpcRow | null;
+    if (!data || data.ok !== true) return { ok: false };
+    return data as unknown as {
+      ok: true;
+      merchant_name: string;
+      program: MerchantProgramValues | null;
+    };
+  } catch {
+    return { ok: false };
+  }
+}
+
+export type RemoteProgramResult = { error?: string; ok?: boolean };
+
+function programBoundsError(
+  code: string,
+  extra: { min?: number | string; max?: number | string }
+): string {
+  const min = extra.min !== undefined ? String(extra.min) : "?";
+  const max = extra.max !== undefined ? String(extra.max) : "?";
+  switch (code) {
+    case "bounds_earn_rate":
+      return `Taux autorisé : ${min} % à ${max} %.`;
+    case "bounds_tier_pair":
+      return "Seuil ET récompense du palier (ou aucun des deux).";
+    case "bounds_tier_threshold":
+      return `Seuil de palier ≥ ${min} DA.`;
+    case "bounds_tier_reward":
+      return `Récompense de palier ≤ ${max} DA.`;
+    case "bounds_validity":
+      return `Validité entre ${min} et ${max} jours.`;
+    case "bounds_daily_cap":
+      return `Plafond quotidien ≤ ${max} DA.`;
+    case "bounds_link_bonus":
+      return `Bonus de liaison ≤ ${max} DA.`;
+    case "not_found":
+      return "Commerçant introuvable.";
+    default:
+      return "Réglage refusé. Vérifiez les valeurs.";
+  }
+}
+
+/** Modification À DISTANCE du programme d'un commerçant (intervention rapide
+ *  support). Toutes les valeurs sont soumises (jamais de patch partiel). */
+export async function adminUpdateMerchantLoyaltyProgram(
+  _prev: RemoteProgramResult,
+  formData: FormData
+): Promise<RemoteProgramResult> {
+  if (!(await adminCan("commercants"))) {
+    return { error: "Accès réservé au domaine Commerçants." };
+  }
+  const merchantId = String(formData.get("merchant_id") ?? "").trim();
+  if (!merchantId) return { error: "Choisissez un commerçant." };
+
+  const readInt = (k: string): number | null => {
+    const raw = String(formData.get(k) ?? "").trim();
+    if (raw === "") return null;
+    const n = Number(raw.replace(",", "."));
+    return Number.isFinite(n) ? Math.round(n) : null;
+  };
+  const rawRate = String(formData.get("earn_rate_pct") ?? "").trim();
+  const earnRate = rawRate === "" ? null : Number(rawRate.replace(",", "."));
+  if (earnRate === null || !Number.isFinite(earnRate) || earnRate < 0) {
+    return { error: "Taux de cashback invalide." };
+  }
+  const tierOn = formData.get("tier_on") === "1";
+  const tierThreshold = tierOn ? readInt("tier_threshold_da") : null;
+  const tierReward = tierOn ? readInt("tier_reward_da") : null;
+  if (tierOn && (tierThreshold === null || tierReward === null)) {
+    return { error: "Renseignez le seuil ET la récompense du palier." };
+  }
+  const validity = readInt("voucher_validity_days");
+  const dailyCap = readInt("daily_credit_cap_da");
+  const linkBonus = readInt("link_bonus_da") ?? 0;
+  if (validity === null || dailyCap === null) {
+    return { error: "Validité et plafond quotidien obligatoires." };
+  }
+
+  try {
+    const data = (await adminRpc("admin_loyalty_update_merchant_program", {
+      p_merchant_id: merchantId,
+      p_enabled: formData.get("enabled") === "1",
+      p_earn_rate_pct: earnRate,
+      p_tier_threshold_da: tierThreshold,
+      p_tier_reward_da: tierReward,
+      p_voucher_validity_days: validity,
+      p_daily_credit_cap_da: dailyCap,
+      p_link_bonus_da: linkBonus,
+    })) as AdminRpcRow | null;
+    if (!data || data.ok !== true) {
+      return {
+        error: programBoundsError(
+          String(data?.error ?? ""),
+          (data ?? {}) as { min?: number; max?: number }
+        ),
+      };
+    }
+    revalidatePath("/admin/merchants/fidelite");
+    return { ok: true };
+  } catch {
+    return { error: "Enregistrement impossible. Réessayez." };
+  }
+}
+
 export type AdminCardLookup = {
   ok: boolean;
   reason?: string;
