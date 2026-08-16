@@ -1,7 +1,7 @@
 # Programme de fidélité — architecture & décisions
 
 > Chantier SPEC-FIDELITE (août 2026), livré en 5 phases avec validation à
-> chaque étape. Migrations 0453→0457. **Dormant en prod** : rien n'est visible
+> chaque étape. Migrations 0453→0458. **Dormant en prod** : rien n'est visible
 > tant que le drapeau `loyalty` n'est pas « active » (voir Lancement).
 
 ## Le modèle en une phrase
