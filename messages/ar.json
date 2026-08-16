@@ -786,7 +786,8 @@
     "locationDeniedManual": "تعذّر تحديد الموقع. اختر منطقتك يدويًا.",
     "openSettings": "فتح الإعدادات",
     "locationDeniedSettings": "تم رفض الموقع. اسمح لكوليغو من الإعدادات.",
-    "locationOffSettings": "خدمة تحديد الموقع مُطفأة. فعّلها من الإعدادات."
+    "locationOffSettings": "خدمة تحديد الموقع مُطفأة. فعّلها من الإعدادات.",
+    "cashbackLoyaltyTitle": "كاشباك والولاء"
   },
   "promosPage": {
     "back": "حسابي",
@@ -1348,7 +1349,14 @@
     "loyLandService1": "اطلب مسبقاً واستلم دون طابور — مجاناً",
     "loyLandService2": "التوصيل إلى المنزل",
     "loyLandService3": "اجمع الكاشباك عند تجارك المفضلين",
-    "loyLandApps": "حمّل التطبيق"
+    "loyLandApps": "حمّل التطبيق",
+    "cashTab": "كاشباك",
+    "loyTab": "الولاء",
+    "cashHeroEarn": "تكسبه مع كل طلب عبر التطبيق — توصيل أو استلام.",
+    "loyStores": "متاجري",
+    "loyChez": "لدى",
+    "loySpendableHere": "تُصرف هنا فقط",
+    "loyProgressShort": "يتبقى {amount} لفتح {reward}"
   },
   "productSearch": {
     "searching": "جارٍ البحث…",

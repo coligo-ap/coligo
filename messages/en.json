@@ -786,7 +786,8 @@
     "locationDeniedManual": "Location unavailable. Choose your area manually.",
     "openSettings": "Open settings",
     "locationDeniedSettings": "Location denied. Allow Coligo in your settings.",
-    "locationOffSettings": "Location services are off. Turn them on in settings."
+    "locationOffSettings": "Location services are off. Turn them on in settings.",
+    "cashbackLoyaltyTitle": "Cashback & Loyalty"
   },
   "promosPage": {
     "back": "My account",
@@ -1348,7 +1349,14 @@
     "loyLandService1": "Order ahead and pick up with no queue — free",
     "loyLandService2": "Get home delivery",
     "loyLandService3": "Earn cashback at your favorite merchants",
-    "loyLandApps": "Get the app"
+    "loyLandApps": "Get the app",
+    "cashTab": "Cashback",
+    "loyTab": "Loyalty",
+    "cashHeroEarn": "Earned on every order placed in the app — delivery or pickup.",
+    "loyStores": "My stores",
+    "loyChez": "At",
+    "loySpendableHere": "Spend it here only",
+    "loyProgressShort": "{amount} to go to unlock {reward}"
   },
   "productSearch": {
     "searching": "Searching…",

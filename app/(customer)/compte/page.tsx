@@ -90,6 +90,12 @@ export default async function CustomerAccountPage({
   // 'coming_soon'/'maintenance' = carte grisée non cliquable.
   const cashbackVisible = flags.cashback.status !== "hidden";
   const cashbackActive = flags.cashback.status === "active";
+  // Fidélité lancée → la tuile annonce les DEUX poches (cashback + cagnottes
+  // magasin) pour que le programme soit trouvable depuis /compte.
+  const cashbackTileLabel =
+    flags.loyalty.status === "active"
+      ? t("cashbackLoyaltyTitle")
+      : t("cashbackTitle");
   const payVisible = flags.coligo_pay.status !== "hidden";
   const payActive = flags.coligo_pay.status === "active";
   const visibleCount = (cashbackVisible ? 1 : 0) + (payVisible ? 1 : 0);
@@ -178,7 +184,7 @@ export default async function CustomerAccountPage({
                     <ChevronRight className="text-subtle size-4 rtl:-scale-x-100" />
                   </div>
                   <p className="text-muted text-caption-lg mt-2.5 font-extrabold">
-                    {t("cashbackTitle")}
+                    {cashbackTileLabel}
                   </p>
                   <p
                     className={`mt-0.5 text-xl font-black tabular-nums ${cashbackBalance > 0 ? "text-foreground" : "text-subtle"}`}
@@ -196,7 +202,7 @@ export default async function CustomerAccountPage({
                     <Gift className="size-[18px]" />
                   </span>
                   <p className="text-muted text-caption-lg mt-2.5 font-extrabold">
-                    {t("cashbackTitle")}
+                    {cashbackTileLabel}
                   </p>
                   <p className="text-subtle mt-0.5 text-sm font-bold">
                     {disabledLabel(flags.cashback.status)}

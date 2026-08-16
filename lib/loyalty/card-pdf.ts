@@ -49,7 +49,10 @@ export const CARD_PDF_GEOM = {
 };
 
 export type CardPdfInput = {
-  merchantName: string;
+  /** Vide/absent = carte GÉNÉRIQUE Coligo (valable chez tous). */
+  merchantName?: string | null;
+  /** false = ne pas imprimer « Chez X » même si un commerçant est rattaché. */
+  printMerchantName?: boolean;
   templateKey: string;
   cards: { code: string }[];
   /** Origine publique STABLE (les cartes vivent des années) — ex. https://coligo.app */
@@ -62,7 +65,8 @@ type Ctx = {
   fonts: { reg: PDFFont; bold: PDFFont; mono: PDFFont };
   arLogo: PDFImage | null;
   tpl: ReturnType<typeof getCardTemplate>;
-  merchantName: string;
+  /** Nom imprimé sur la carte — null = générique (« tous tes commerçants »). */
+  displayName: string | null;
 };
 
 // Encres partagées des documents (lib/design/tokens + pdf-kit) — zéro valeur
@@ -185,7 +189,8 @@ function circle(
   cx: number,
   cy: number,
   r: number,
-  color: ReturnType<typeof rgb>
+  color: ReturnType<typeof rgb>,
+  opacity = 1
 ) {
   const o = CARD_PDF_GEOM.origin;
   page.drawEllipse({
@@ -194,6 +199,32 @@ function circle(
     xScale: mm(r),
     yScale: mm(r),
     color,
+    opacity,
+  });
+}
+
+/** Rect à coins ARRONDIS (drawSvgPath — pdf-lib n'a pas de radius natif).
+ *  Tracé en unités mm (scale = M), ancré coin bas-gauche format fini. */
+function roundedRect(
+  page: PDFPage,
+  x: number,
+  y: number,
+  w: number,
+  h: number,
+  r: number,
+  color: ReturnType<typeof rgb>,
+  opacity = 1
+) {
+  const p =
+    `M ${r} 0 H ${w - r} Q ${w} 0 ${w} ${r} V ${h - r} ` +
+    `Q ${w} ${h} ${w - r} ${h} H ${r} Q 0 ${h} 0 ${h - r} V ${r} Q 0 0 ${r} 0 Z`;
+  const o = CARD_PDF_GEOM.origin;
+  page.drawSvgPath(p, {
+    x: mm(o + x),
+    y: mm(o + y + h),
+    scale: M,
+    color,
+    opacity,
   });
 }
 
@@ -230,7 +261,7 @@ function drawQr(
   panelSize: number,
   padding: number
 ) {
-  rect(page, panelX, panelY, panelSize, panelSize, WHITE);
+  roundedRect(page, panelX, panelY, panelSize, panelSize, 2, WHITE);
   const n = matrix.length;
   const qrSize = panelSize - 2 * padding;
   const cell = qrSize / n;
@@ -292,6 +323,9 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
     color: pdfColor(tpl.accent),
   });
 
+  // Halo doux derrière la colonne de marque (flat premium, 5 % d'encre).
+  circle(page, 16, 47, 24, textColor, 0.05);
+
   // Marque : « Coligo » vectoriel + pastille كوليغو (PNG blanc).
   text(page, "Coligo", 5, 45.2, 13, fonts.bold, textColor);
   const coligoW = fonts.bold.widthOfTextAtSize("Coligo", 13) / M; // pt → mm
@@ -299,19 +333,27 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
 
   text(page, "C A R T E   F I D É L I T É", 5, 38.6, 5.2, fonts.reg, subColor);
 
-  const name = safe(`Chez ${ctx.merchantName}`);
-  const nameSize = fitSize(name, fonts.bold, 11.5, mm(48), 6.5);
-  text(page, name, 5, 31.5, nameSize, fonts.bold, textColor);
+  if (ctx.displayName) {
+    const name = safe(`Chez ${ctx.displayName}`);
+    const nameSize = fitSize(name, fonts.bold, 11.5, mm(48), 6.5);
+    text(page, name, 5, 31.5, nameSize, fonts.bold, textColor);
+  } else {
+    // Carte GÉNÉRIQUE : valable chez tous les commerçants Coligo.
+    text(
+      page,
+      "Valable chez tous tes commerçants.",
+      5,
+      31.8,
+      5.6,
+      fonts.reg,
+      subColor
+    );
+  }
 
-  text(
-    page,
-    "Cumule du cashback et des bons à chaque achat.",
-    5,
-    25.8,
-    5,
-    fonts.reg,
-    subColor
-  );
+  // Puce de carte (métaphore bancaire, flat) : rect arrondi accent + fentes.
+  roundedRect(page, 5, 20.4, 8, 5.6, 1.2, pdfColor(tpl.accent));
+  rect(page, 6.4, 22.2, 5.2, 0.5, bgColor);
+  rect(page, 6.4, 23.8, 5.2, 0.5, bgColor);
 
   // Posé SUR le disque d'accent (tous les accents sont soutenus) → blanc,
   // sinon illisible sur le modèle « Clair » (encre sur violet).
@@ -369,11 +411,23 @@ function drawVerso(page: PDFPage, ctx: Ctx, index: number, total: number) {
   const tagW = fonts.reg.widthOfTextAtSize(tag, 5) / M;
   text(page, tag, g.trimW - tagW - 5, 48.9, 5, fonts.reg, WHITE);
 
+  // Écho de vague en pied de verso (cohérence recto/verso, très léger).
+  const vWaveScale = mm(g.trimW + 2 * g.bleed) / 100;
+  page.drawSvgPath(CARD_WAVE_FRONT, {
+    x: mm(g.slug),
+    y: mm(g.slug) + 30 * vWaveScale,
+    scale: vWaveScale,
+    color: accent,
+    opacity: 0.08,
+  });
+
   // Colonne gauche : mode d'emploi en 3 étapes (spec 4.0).
   text(page, "Mode d'emploi", 5, 40.2, 6.5, fonts.bold, INK);
   const steps = [
     "Présente cette carte à la caisse à chaque achat.",
-    "Cumule du cashback et des bons chez ce commerçant.",
+    ctx.displayName
+      ? "Cumule du cashback et des bons chez ce commerçant."
+      : "Cumule du cashback et des bons chez tes commerçants.",
     "Scanne le QR au recto pour créer ton compte et garder ton solde.",
   ];
   let y = 35.2;
@@ -430,8 +484,18 @@ function drawVerso(page: PDFPage, ctx: Ctx, index: number, total: number) {
 export async function buildLoyaltyCardsPdf(
   input: CardPdfInput
 ): Promise<Uint8Array> {
+  const displayName =
+    input.printMerchantName !== false &&
+    (input.merchantName ?? "").trim() !== ""
+      ? (input.merchantName ?? "").trim()
+      : null;
+
   const doc = await PDFDocument.create();
-  doc.setTitle(`Cartes fidélité Coligo — ${safe(input.merchantName)}`);
+  doc.setTitle(
+    displayName
+      ? `Cartes fidélité Coligo — ${safe(displayName)}`
+      : "Cartes fidélité Coligo — génériques"
+  );
   doc.setProducer("Coligo");
 
   const fonts = {
@@ -452,7 +516,7 @@ export async function buildLoyaltyCardsPdf(
     fonts,
     arLogo,
     tpl: getCardTemplate(input.templateKey),
-    merchantName: input.merchantName,
+    displayName,
   };
 
   const base = input.baseUrl.replace(/\/+$/, "");
@@ -469,7 +533,7 @@ export async function buildLoyaltyCardsPdf(
     drawRecto(recto, ctx, code, matrix);
     drawSlugInfo(
       recto,
-      `Coligo · ${safe(input.merchantName)} · carte ${i + 1}/${input.cards.length} · recto`,
+      `Coligo · ${safe(displayName ?? "générique")} · carte ${i + 1}/${input.cards.length} · recto`,
       fonts
     );
 

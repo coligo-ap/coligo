@@ -100,6 +100,7 @@ export type CreateBatchResult = {
   ok?: boolean;
   batchId?: string;
   quantity?: number;
+  preActivated?: boolean;
 };
 
 export async function adminCreateLoyaltyBatch(
@@ -109,12 +110,16 @@ export async function adminCreateLoyaltyBatch(
   if (!(await adminCan("commercants"))) {
     return { error: "Accès réservé au domaine Commerçants." };
   }
-  const merchantId = String(formData.get("merchant_id") ?? "").trim();
+  // Commerçant OPTIONNEL (0459) : vide = lot GÉNÉRIQUE Coligo, valable chez
+  // tous les commerçants (le cloisonnement vit dans le grand livre, pas sur la
+  // carte). Pré-activation par défaut (0460) : utilisable en caisse sans compte.
+  const merchantId = String(formData.get("merchant_id") ?? "").trim() || null;
   const quantity = Math.round(Number(formData.get("quantity") ?? 0));
   const templateKey = String(formData.get("template_key") ?? "").trim();
   const note = String(formData.get("note") ?? "").trim() || null;
+  const printName = formData.get("print_merchant_name") === "1";
+  const preActivated = formData.get("pre_activated") === "1";
 
-  if (!merchantId) return { error: "Choisissez un commerçant." };
   if (!Number.isFinite(quantity) || quantity <= 0) {
     return { error: "Quantité invalide." };
   }
@@ -128,6 +133,8 @@ export async function adminCreateLoyaltyBatch(
       p_quantity: quantity,
       p_template_key: templateKey,
       p_note: note,
+      p_print_merchant_name: printName,
+      p_activate_immediately: preActivated,
     })) as AdminRpcRow | null;
     if (!data || data.ok !== true) {
       const reason = String(data?.reason ?? "");
@@ -146,6 +153,7 @@ export async function adminCreateLoyaltyBatch(
       ok: true,
       batchId: String(data.batch_id),
       quantity: Number(data.quantity ?? quantity),
+      preActivated: data.pre_activated === true,
     };
   } catch {
     return { error: "Création impossible. Réessayez." };

@@ -786,7 +786,8 @@
     "locationDeniedManual": "Localisation indisponible. Choisis ta zone manuellement.",
     "openSettings": "Ouvrir les réglages",
     "locationDeniedSettings": "Position refusée. Autorise Coligo dans les réglages.",
-    "locationOffSettings": "Service de localisation éteint. Active-le dans les réglages."
+    "locationOffSettings": "Service de localisation éteint. Active-le dans les réglages.",
+    "cashbackLoyaltyTitle": "Cashback & Fidélité"
   },
   "promosPage": {
     "back": "Mon compte",
@@ -1348,7 +1349,14 @@
     "loyLandService1": "Commander à l'avance et retirer sans faire la file — gratuit",
     "loyLandService2": "Te faire livrer à domicile",
     "loyLandService3": "Cumuler du cashback chez tes commerçants préférés",
-    "loyLandApps": "Télécharge l'app"
+    "loyLandApps": "Télécharge l'app",
+    "cashTab": "Cashback",
+    "loyTab": "Fidélité",
+    "cashHeroEarn": "Gagné à chaque commande passée sur l'app — livraison ou retrait.",
+    "loyStores": "Mes magasins",
+    "loyChez": "Chez",
+    "loySpendableHere": "À dépenser ici uniquement",
+    "loyProgressShort": "Encore {amount} pour débloquer {reward}"
   },
   "productSearch": {
     "searching": "Recherche…",

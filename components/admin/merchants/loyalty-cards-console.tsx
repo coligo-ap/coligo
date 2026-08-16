@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Download, Layers, Printer } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { ToggleRow } from "@/components/ui/toggle";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { cn } from "@/lib/utils";
@@ -29,12 +30,16 @@ import {
 export type LoyaltyBatchRow = {
   id: string;
   created_at: string;
-  merchant_id: string;
-  merchant_name: string;
+  /** NULL = lot GÉNÉRIQUE Coligo (0459), valable chez tous les commerçants. */
+  merchant_id: string | null;
+  merchant_name: string | null;
   template_key: string;
   quantity: number;
   note: string | null;
   created_by_email: string | null;
+  print_merchant_name: boolean;
+  /** Cartes nées « activated » (0460) — utilisables en caisse sans compte. */
+  pre_activated: boolean;
   printed: number;
   activated: number;
   linked: number;
@@ -52,7 +57,8 @@ function dayFr(iso: string): string {
 
 const pdfHref = (batchId: string) => `/api/pdf/cartes-fidelite/${batchId}`;
 
-/** Aperçu miniature d'un modèle (mêmes teintes que le PDF — source unique). */
+/** Aperçu miniature d'un modèle (mêmes teintes que le PDF — source unique).
+ *  `merchantName` vide = carte générique (même mention que le PDF). */
 function TemplatePreview({
   templateKey,
   merchantName,
@@ -107,7 +113,9 @@ function TemplatePreview({
           className="truncate text-[8px] leading-tight font-bold"
           style={{ color: tpl.text }}
         >
-          Chez {merchantName || "…"}
+          {merchantName
+            ? `Chez ${merchantName}`
+            : "Valable chez tous tes commerçants."}
         </p>
       </div>
     </div>
@@ -140,7 +148,11 @@ export function LoyaltyCardsConsole({
   // Recherche d'abord (règle annuaires) : aucun chargement en masse.
   const [selected, setSelected] = useState<LoyaltyMerchantHit | null>(null);
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_KEY);
-  const merchantName = selected?.name ?? "";
+  // Options d'impression/usage (0459/0460) — défauts propriétaire : nom
+  // imprimé quand un commerçant est choisi, cartes PRÉ-ACTIVÉES.
+  const [printName, setPrintName] = useState(true);
+  const [preActivated, setPreActivated] = useState(true);
+  const merchantName = selected && printName ? selected.name : "";
 
   useEffect(() => {
     if (state.ok) router.refresh();
@@ -159,13 +171,16 @@ export function LoyaltyCardsConsole({
 
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
           <div className="space-y-1.5 sm:col-span-2">
-            <Label>Commerçant</Label>
+            <Label>Commerçant (optionnel)</Label>
             <input
               type="hidden"
               name="merchant_id"
               value={selected?.id ?? ""}
             />
             <LoyaltyMerchantPicker selected={selected} onSelect={setSelected} />
+            <p className="text-subtle text-xs">
+              Sans commerçant : cartes GÉNÉRIQUES Coligo, valables chez tous.
+            </p>
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="quantity">Quantité</Label>
@@ -210,6 +225,38 @@ export function LoyaltyCardsConsole({
           </div>
         </div>
 
+        {/* Options du lot (0459/0460) — envoyées en champs cachés "1"/"". */}
+        <input
+          type="hidden"
+          name="print_merchant_name"
+          value={printName ? "1" : ""}
+        />
+        <input
+          type="hidden"
+          name="pre_activated"
+          value={preActivated ? "1" : ""}
+        />
+        <div className="border-border divide-border divide-y rounded-md border px-3">
+          <ToggleRow
+            title="Imprimer « Chez … » sur la carte"
+            description={
+              selected
+                ? `La carte affichera « Chez ${selected.name} » (branding seul — elle marche partout).`
+                : "Choisissez un commerçant pour imprimer son nom."
+            }
+            checked={!!selected && printName}
+            onChange={setPrintName}
+            disabled={pending || !selected}
+          />
+          <ToggleRow
+            title="Cartes pré-activées"
+            description="Utilisables en caisse dès l'impression, sans compte ni application (personnes âgées). Décoché : activation au 1ᵉʳ crédit en caisse."
+            checked={preActivated}
+            onChange={setPreActivated}
+            disabled={pending}
+          />
+        </div>
+
         <div className="space-y-1.5">
           <Label htmlFor="note">Note (optionnel)</Label>
           <Input
@@ -226,8 +273,9 @@ export function LoyaltyCardsConsole({
         {state.ok && state.batchId && (
           <div className="border-success-200 bg-success-50 flex flex-wrap items-center justify-between gap-2 rounded-md border p-3">
             <p className="text-success-800 text-sm font-bold">
-              Lot de {state.quantity} cartes créé — pré-enregistrées « imprimées
-              », sans valeur avant activation en caisse.
+              {state.preActivated
+                ? `Lot de ${state.quantity} cartes créé — PRÉ-ACTIVÉES, prêtes à l'emploi en caisse (sans valeur tant qu'aucun crédit n'est posé).`
+                : `Lot de ${state.quantity} cartes créé — « imprimées », sans valeur avant activation en caisse.`}
             </p>
             <a
               href={pdfHref(state.batchId)}
@@ -244,7 +292,6 @@ export function LoyaltyCardsConsole({
         <ActionButton
           type="submit"
           state={fb}
-          disabled={!selected}
           idleIcon={<Printer className="size-4" />}
           labels={{
             idle: "Générer le lot",
@@ -279,11 +326,21 @@ export function LoyaltyCardsConsole({
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold">
-                      {b.merchant_name}
+                      {b.merchant_name ?? "Cartes génériques Coligo"}
                       <span className="text-muted font-medium">
                         {" "}
                         · {b.quantity} cartes
                       </span>
+                      {b.pre_activated && (
+                        <span className="bg-success-50 text-success-700 ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
+                          pré-activées
+                        </span>
+                      )}
+                      {b.merchant_name && !b.print_merchant_name && (
+                        <span className="bg-surface-2 text-muted ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
+                          sans nom imprimé
+                        </span>
+                      )}
                     </p>
                     <p className="text-subtle text-xs">
                       {dayFr(b.created_at)}

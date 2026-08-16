@@ -46,7 +46,9 @@ export async function GET(
   };
 
   const { data: batch } = await from("loyalty_card_batches")
-    .select("id, merchant_id, template_key, quantity, merchants(name)")
+    .select(
+      "id, merchant_id, template_key, quantity, print_merchant_name, merchants(name)"
+    )
     .eq("id", batchId)
     .maybeSingle();
   if (!batch) {
@@ -73,8 +75,10 @@ export async function GET(
     /* la carte sort sans la pastille arabe — jamais bloquant */
   }
 
+  // Lot GÉNÉRIQUE (merchant_id NULL) ou nom volontairement non imprimé.
   const merchantName =
-    ((batch.merchants as { name?: string } | null)?.name ?? "Commerçant") + "";
+    (batch.merchants as { name?: string } | null)?.name ?? null;
+  const printMerchantName = batch.print_merchant_name !== false;
   // Origine STABLE : une carte imprimée vit des années — jamais une URL de
   // déploiement (cf. app/sitemap.ts).
   const baseUrl = (
@@ -83,13 +87,14 @@ export async function GET(
 
   const bytes = await buildLoyaltyCardsPdf({
     merchantName,
+    printMerchantName,
     templateKey: String(batch.template_key ?? "violet"),
     cards: cards.map((c) => ({ code: c.card_code })),
     baseUrl,
     arabicLogoPng,
   });
 
-  const slug = merchantName
+  const slug = (merchantName ?? "generique")
     .toLowerCase()
     .normalize("NFD")
     .replace(/[̀-ͯ]/g, "")
@@ -99,7 +104,9 @@ export async function GET(
   return new NextResponse(Buffer.from(bytes), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `inline; filename="cartes-fidelite-${slug || "coligo"}-${batchId.slice(0, 8)}.pdf"`,
+      // TÉLÉCHARGEMENT DIRECT (demande propriétaire) : le clic enregistre le
+      // fichier — aucun onglet/popup, fiable aussi dans la WebView Capacitor.
+      "Content-Disposition": `attachment; filename="cartes-fidelite-${slug || "coligo"}-${batchId.slice(0, 8)}.pdf"`,
       "Cache-Control": "no-store",
     },
   });

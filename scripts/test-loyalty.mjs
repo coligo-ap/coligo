@@ -160,8 +160,12 @@ async function main() {
     console.log("TEST A — lot de cartes + activation au premier crédit");
     // =========================================================================
     await asAdmin();
+    // Scénario « activation au premier crédit » : depuis 0460 le DÉFAUT est
+    // pré-activé — on force explicitement p_activate_immediately => false.
     r = await j(
-      `select public.admin_loyalty_create_batch($1, 5, 'classic', 'lot de test') j`,
+      `select public.admin_loyalty_create_batch(
+         $1, 5, 'classic', 'lot de test',
+         p_activate_immediately => false) j`,
       [MA.id]
     );
     assert(
@@ -186,6 +190,48 @@ async function main() {
       cards.every((c) => /^[A-HJ-NP-Z2-9]{16}$/.test(c.card_code)) &&
         new Set(cards.map((c) => c.card_code)).size === 5,
       "A3 codes uniques, 16 car. Crockford (~80 bits)"
+    );
+
+    // 0459/0460 — nouveau DÉFAUT pré-activé + lot GÉNÉRIQUE sans commerçant.
+    r = await j(
+      `select public.admin_loyalty_create_batch($1, 2, 'classic', 'lot pré-activé') j`,
+      [MA.id]
+    );
+    assert(
+      r.ok === true && r.pre_activated === true,
+      "A7 défaut 0460 : lot PRÉ-ACTIVÉ (utilisable sans compte ni app)",
+      JSON.stringify(r)
+    );
+    const preCards = (
+      await client.query(
+        `select status, activated_at from loyalty_cards where batch_id = $1`,
+        [r.batch_id]
+      )
+    ).rows;
+    assert(
+      preCards.length === 2 &&
+        preCards.every((c) => c.status === "activated" && c.activated_at),
+      "A8 cartes nées `activated` + horodatage + journal",
+      JSON.stringify(preCards.map((c) => c.status))
+    );
+    r = await j(
+      `select public.admin_loyalty_create_batch(NULL, 2, 'classic', 'lot générique') j`
+    );
+    assert(
+      r.ok === true,
+      "A9 lot GÉNÉRIQUE (sans commerçant) accepté",
+      JSON.stringify(r)
+    );
+    const genCards = (
+      await client.query(
+        `select merchant_id from loyalty_cards where batch_id = $1`,
+        [r.batch_id]
+      )
+    ).rows;
+    assert(
+      genCards.length === 2 && genCards.every((c) => c.merchant_id === null),
+      "A10 cartes génériques : aucun commerçant rattaché",
+      JSON.stringify(genCards)
     );
 
     // Carte d'un lot JAMAIS distribué, scannée telle quelle en caisse

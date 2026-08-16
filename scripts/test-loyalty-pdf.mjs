@@ -167,6 +167,57 @@ async function main() {
   }
   assert(!!arLogo, "D2 logotype arabe كوليغو présent (public/)", AR_LOGO_PATH);
 
+  console.log("TEST E — lots génériques + nom optionnel (0459)");
+  // Même extraction hex que TEST B (pdf-lib écrit `<hex> Tj` en flux Flate).
+  const extractRaw = (b) => {
+    const parts = [b.toString("latin1")];
+    let cur = 0;
+    for (;;) {
+      const start = b.indexOf("stream", cur);
+      if (start < 0) break;
+      const dataStart = b.indexOf("\n", start) + 1;
+      const end = b.indexOf("endstream", dataStart);
+      if (end < 0) break;
+      try {
+        parts.push(inflateSync(b.subarray(dataStart, end)).toString("latin1"));
+      } catch {
+        /* flux non Flate : ignoré */
+      }
+      cur = end + 9;
+    }
+    return parts.join("\n").toUpperCase();
+  };
+  const hexOf = (s) => Buffer.from(s, "latin1").toString("hex").toUpperCase();
+  const genericBytes = await buildLoyaltyCardsPdf({
+    merchantName: null,
+    templateKey: "violet",
+    cards: [{ code: CODES[0] }],
+    baseUrl: "https://coligo.app",
+    arabicLogoPng: arLogo,
+  });
+  const rawGeneric = extractRaw(Buffer.from(genericBytes));
+  assert(
+    rawGeneric.includes(hexOf("Valable chez tous tes commer")),
+    "E1 carte GÉNÉRIQUE : mention « valable chez tous » imprimée"
+  );
+  assert(
+    !rawGeneric.includes(hexOf("Chez ")),
+    "E2 carte GÉNÉRIQUE : aucun « Chez … »"
+  );
+  const noNameBytes = await buildLoyaltyCardsPdf({
+    merchantName: "Superette Yemma",
+    printMerchantName: false,
+    templateKey: "violet",
+    cards: [{ code: CODES[0] }],
+    baseUrl: "https://coligo.app",
+    arabicLogoPng: arLogo,
+  });
+  const rawNoName = extractRaw(Buffer.from(noNameBytes));
+  assert(
+    !rawNoName.includes(hexOf("Chez ")),
+    "E3 nom volontairement non imprimé : pas de « Chez … »"
+  );
+
   console.log(
     failures === 0
       ? "\n✅ PDF cartes fidélité : tous les tests passent."

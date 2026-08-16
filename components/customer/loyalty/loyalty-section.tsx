@@ -6,10 +6,10 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import {
   Ban,
+  ChevronRight,
   CreditCard,
   Gift,
   Plus,
-  QrCode,
   Sparkles,
   Store,
 } from "lucide-react";
@@ -32,12 +32,37 @@ function dayFr(iso: string): string {
     .padStart(2, "0")}`;
 }
 
+/** Dégradé « carte fidélité Coligo » (référence imprimée : violet profond →
+ *  violet marque → rose accent) — uniquement des tokens, jamais d'hex ici. */
+const LOYALTY_GRADIENT =
+  "linear-gradient(130deg, var(--color-primary-900) 0%, var(--color-primary-700) 38%, var(--color-primary-600) 64%, var(--color-accent-500) 128%)";
+
+/** Facettes diagonales translucides (langage visuel de la carte imprimée). */
+function CardFacets() {
+  return (
+    <div aria-hidden className="pointer-events-none absolute inset-0">
+      <div className="absolute start-[46%] -top-10 bottom-0 w-24 -skew-x-12 bg-white/[.05]" />
+      <div className="absolute start-[68%] -top-10 bottom-0 w-40 -skew-x-12 bg-white/[.04]" />
+      <div
+        className="absolute -end-16 -bottom-24 size-64 rounded-full"
+        style={{
+          background:
+            "radial-gradient(closest-side, var(--color-accent-500) 0%, transparent 70%)",
+          opacity: 0.35,
+        }}
+      />
+    </div>
+  );
+}
+
 /**
- * Section « Fidélité en magasin » de /cashback (SPEC-FIDELITE 3.2).
+ * Onglet « Fidélité en magasin » de /cashback (SPEC-FIDELITE 3.2).
  * Le CLOISONNEMENT est rendu ÉVIDENT par la forme : une CARTE-MAGASIN
- * distincte par commerçant (logo + nom + cagnotte propre) — zéro jargon.
- * QR personnel présentable en caisse (le compte SERT de carte), liaison de
- * carte à tout moment, historique par magasin, blocage d'une carte perdue.
+ * distincte par commerçant, au design de la carte physique Coligo (dégradé
+ * violet → rose, facettes) — la cagnotte de chaque magasin se dépense CHEZ CE
+ * magasin uniquement, zéro jargon. QR personnel présentable en caisse (le
+ * compte SERT de carte), liaison de carte à tout moment, historique par
+ * magasin, blocage d'une carte perdue.
  */
 export function LoyaltySection({ userId }: { userId: string }) {
   const t = useTranslations("wallet");
@@ -131,29 +156,61 @@ export function LoyaltySection({ userId }: { userId: string }) {
   }
 
   return (
-    <section className="mt-6">
-      <div className="mb-2.5 flex items-center justify-between gap-2">
-        <h2 className="text-foreground text-heading-sm font-black tracking-tight">
-          {t("loySectionTitle")}
-        </h2>
-        <button
-          type="button"
-          onClick={() => {
-            setLinkPrefill(null);
-            setLinkOpen(true);
-          }}
-          className="bg-primary-600 hover:bg-primary-700 flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-bold text-white transition active:scale-[0.97]"
-        >
-          <Plus className="size-3.5" />
-          {t("loyLinkCard")}
-        </button>
-      </div>
-      <p className="text-muted mb-3 text-xs font-medium">
-        {t("loySectionDesc")}
-      </p>
+    <section>
+      {/* HERO « ma carte » — même langage que la carte physique Coligo :
+          dégradé violet → rose, facettes, QR sur panneau blanc. */}
+      <section
+        className="rounded-panel-lg relative overflow-hidden px-5 pt-5 pb-5 text-white"
+        style={{ backgroundImage: LOYALTY_GRADIENT }}
+      >
+        <CardFacets />
+        <div className="relative z-10">
+          <span className="text-caption rounded-full bg-white/15 px-2.5 py-1 font-extrabold tracking-wider uppercase">
+            {t("loySectionTitle")}
+          </span>
+
+          <div className="mt-4 flex items-center gap-3.5">
+            {/* Le QR vit sur un SOCLE BLANC (stage) — lisible en caisse et en
+                sombre, comme sur la carte imprimée. */}
+            {overview?.handle ? (
+              <div className="bg-on-brand isolate shrink-0 rounded-md p-1.5">
+                <QrZoom
+                  value={`coligo:user:${overview.handle}`}
+                  size={78}
+                  caption={t("loyMyQrDesc")}
+                  fullValue={t("loyMyQrTitle")}
+                  expandLabel={t("loyMyQrTitle")}
+                />
+              </div>
+            ) : (
+              <div className="size-[90px] shrink-0 animate-pulse rounded-md bg-white/25" />
+            )}
+            <div className="min-w-0 flex-1">
+              <p className="text-base leading-tight font-black tracking-tight">
+                {t("loyMyQrTitle")}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed font-semibold opacity-85">
+                {t("loyMyQrDesc")}
+              </p>
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              setLinkPrefill(null);
+              setLinkOpen(true);
+            }}
+            className="bg-on-brand text-primary-700 rounded-control mt-4 flex h-11 w-full items-center justify-center gap-1.5 text-sm font-extrabold transition active:scale-[.98]"
+          >
+            <Plus className="size-4" />
+            {t("loyLinkCard")}
+          </button>
+        </div>
+      </section>
 
       {newVoucherIds.length > 0 && (
-        <div className="border-success-200 bg-success-50 mb-3 flex items-center gap-2.5 rounded-md border p-3">
+        <div className="border-success-200 bg-success-50 mt-3 flex items-center gap-2.5 rounded-md border p-3">
           <Sparkles className="text-success-600 size-5 shrink-0" />
           <p className="text-success-800 text-sm font-bold">
             {t("loyNewVoucher", { count: newVoucherIds.length })}
@@ -161,29 +218,16 @@ export function LoyaltySection({ userId }: { userId: string }) {
         </div>
       )}
 
-      {/* QR personnel : le compte SERT de carte chez tous les commerçants. */}
-      {overview?.handle && (
-        <div className="rounded-sheet-lg mb-3 flex items-center gap-3 bg-white p-4">
-          <QrZoom
-            value={`coligo:user:${overview.handle}`}
-            size={64}
-            caption={t("loyMyQrDesc")}
-            fullValue={t("loyMyQrTitle")}
-            expandLabel={t("loyMyQrTitle")}
-          />
-          <div className="min-w-0 flex-1">
-            <p className="text-foreground flex items-center gap-1.5 text-sm font-extrabold">
-              <QrCode className="text-primary-600 size-4" />
-              {t("loyMyQrTitle")}
-            </p>
-            <p className="text-muted mt-0.5 text-xs font-medium">
-              {t("loyMyQrDesc")}
-            </p>
-          </div>
-        </div>
-      )}
+      {/* CARTES-MAGASINS : une cagnotte PAR commerçant, dépensable chez LUI. */}
+      <div className="mt-6 mb-2.5">
+        <h2 className="text-foreground text-heading-sm font-black tracking-tight">
+          {t("loyStores")}
+        </h2>
+        <p className="text-muted mt-1 text-xs font-medium">
+          {t("loySectionDesc")}
+        </p>
+      </div>
 
-      {/* CARTES-MAGASINS : une cagnotte PAR commerçant, visuellement séparées. */}
       {isPending && !overview ? (
         <div className="space-y-3">
           {Array.from({ length: 2 }).map((_, i) => (
@@ -231,7 +275,7 @@ export function LoyaltySection({ userId }: { userId: string }) {
                   <CreditCard className="size-5" />
                 </div>
                 <div className="min-w-0 flex-1">
-                  <p className="text-foreground font-mono text-sm font-bold">
+                  <p className="text-foreground font-mono text-sm font-bold tracking-widest">
                     {c.code_masked}
                   </p>
                   {c.merchant_name && (
@@ -341,7 +385,11 @@ function historyLabelKey(type: string): string {
   }
 }
 
-/** Carte-magasin : cagnotte, bons, progression animée vers le prochain bon. */
+/**
+ * Carte-magasin au design de la CARTE PHYSIQUE Coligo (dégradé violet → rose,
+ * facettes) : « Chez {magasin} », cagnotte dépensable ICI uniquement, bons, et
+ * barre de progression vers le prochain palier du commerçant.
+ */
 function StoreCard({
   account,
   onHistory,
@@ -367,67 +415,79 @@ function StoreCard({
     <button
       type="button"
       onClick={onHistory}
-      className="rounded-sheet-lg block w-full bg-white p-4 text-start transition-transform active:scale-[.99]"
+      className="rounded-panel-lg relative block w-full overflow-hidden p-4 text-start text-white transition-transform active:scale-[.99]"
+      style={{ backgroundImage: LOYALTY_GRADIENT }}
     >
-      <div className="flex items-center gap-3">
-        {account.merchant_logo ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={account.merchant_logo}
-            alt=""
-            loading="lazy"
-            className="bg-surface-2 size-11 shrink-0 rounded-full object-cover"
-          />
-        ) : (
-          <div className="bg-primary-50 text-primary-600 flex size-11 shrink-0 items-center justify-center rounded-full">
-            <Store className="size-5" />
+      <CardFacets />
+      <div className="relative z-10">
+        <div className="flex items-center gap-3">
+          {account.merchant_logo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={account.merchant_logo}
+              alt=""
+              loading="lazy"
+              className="bg-on-brand size-11 shrink-0 rounded-full border-2 border-white/60 object-cover"
+            />
+          ) : (
+            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-white/60 bg-white/15">
+              <Store className="size-5" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-caption leading-none font-extrabold tracking-wider uppercase opacity-70">
+              {t("loyChez")}
+            </p>
+            <p className="mt-0.5 truncate text-lg leading-tight font-black tracking-tight">
+              {account.merchant_name}
+            </p>
+          </div>
+          <ChevronRight className="size-4 shrink-0 opacity-60 rtl:-scale-x-100" />
+        </div>
+
+        <div className="mt-3.5 flex items-end justify-between gap-3">
+          <p className="text-xs font-semibold opacity-80">
+            {t("loySpendableHere")}
+          </p>
+          <p className="text-2xl leading-none font-black tabular-nums">
+            {formatDA(summary.available_da)}
+          </p>
+        </div>
+
+        {summary.vouchers.length > 0 && (
+          <div className="mt-2.5 flex flex-wrap gap-1.5">
+            {summary.vouchers.map((v) => (
+              <span
+                key={v.id}
+                className="bg-on-brand text-primary-700 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold"
+              >
+                <Gift className="size-3.5" />
+                {t("loyVoucher", { amount: formatDA(v.amount_da) })}
+                <span className="text-primary-400 font-semibold">
+                  · {t("loyVoucherExp", { date: dayFr(v.expires_at) })}
+                </span>
+              </span>
+            ))}
           </div>
         )}
-        <div className="min-w-0 flex-1">
-          <p className="text-foreground truncate text-base font-extrabold">
-            {account.merchant_name}
-          </p>
-          <p className="text-muted text-xs font-medium">{t("loyAvailable")}</p>
-        </div>
-        <p className="text-primary-700 text-2xl font-black tabular-nums">
-          {formatDA(summary.available_da)}
-        </p>
-      </div>
 
-      {summary.vouchers.length > 0 && (
-        <div className="mt-2.5 flex flex-wrap gap-1.5">
-          {summary.vouchers.map((v) => (
-            <span
-              key={v.id}
-              className="border-success-200 bg-success-50 text-success-800 flex items-center gap-1 rounded-full border px-2.5 py-1 text-xs font-bold"
-            >
-              <Gift className="size-3.5" />
-              {t("loyVoucher", { amount: formatDA(v.amount_da) })}
-              <span className="text-success-600 font-medium">
-                · {t("loyVoucherExp", { date: dayFr(v.expires_at) })}
-              </span>
-            </span>
-          ))}
-        </div>
-      )}
-
-      {progress && progress.remaining_da > 0 && (
-        <div className="mt-3">
-          <div className="bg-surface-3 h-2.5 w-full overflow-hidden rounded-full">
-            <div
-              className="bg-primary-600 h-full rounded-full transition-[width] duration-700 ease-out"
-              style={{ width: `${animPct}%` }}
-            />
+        {progress && progress.remaining_da > 0 && (
+          <div className="mt-3">
+            <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
+              <div
+                className="bg-on-brand h-full rounded-full transition-[width] duration-700 ease-out"
+                style={{ width: `${animPct}%` }}
+              />
+            </div>
+            <p className="mt-1.5 text-xs font-semibold opacity-85">
+              {t("loyProgressShort", {
+                amount: formatDA(progress.remaining_da),
+                reward: formatDA(progress.reward_da),
+              })}
+            </p>
           </div>
-          <p className="text-muted mt-1.5 text-xs font-semibold">
-            {t("loyProgressRemaining", {
-              amount: formatDA(progress.remaining_da),
-              merchant: account.merchant_name,
-              reward: formatDA(progress.reward_da),
-            })}
-          </p>
-        </div>
-      )}
+        )}
+      </div>
     </button>
   );
 }
