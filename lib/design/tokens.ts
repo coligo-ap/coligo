@@ -269,6 +269,43 @@ export const RECRUTE_HERO_GRADIENTS = {
   ambre: { g1: WARNING[700], g2: WARNING[600], g3: "#7c2d12", glow: "#f7bf4f" },
 } as const;
 
+/**
+ * Palette DOCUMENTS — cartes de FIDÉLITÉ physiques (PDF d'impression 85,6 ×
+ * 54 mm + aperçus de la console admin, lib/loyalty/card-templates.ts).
+ * Valeurs FIGÉES : des cartes déjà imprimées circulent — ne pas retoucher un
+ * modèle existant, en AJOUTER un.
+ */
+export const LOYALTY_CARD = {
+  /** Encre des modules QR et des traits de coupe (noir d'impression). */
+  qrInk: INK.black,
+  /** Panneau du QR + pastille du logotype arabe (papier). */
+  paper: INK.white,
+  violet: {
+    bg: PRIMARY[600],
+    accent: PRIMARY[400],
+    text: INK.white,
+    subtext: "#e9dffb",
+  },
+  nuit: {
+    bg: "#221040",
+    accent: ACCENT[500],
+    text: INK.white,
+    subtext: "#cdbdeb",
+  },
+  clair: {
+    bg: INK.white,
+    accent: PRIMARY[600],
+    text: "#1a1030",
+    subtext: "#6b7080",
+  },
+  rose: {
+    bg: ACCENT[500],
+    accent: "#ff6aa5",
+    text: INK.white,
+    subtext: "#ffe0ec",
+  },
+} as const;
+
 /** Durées et courbes de mouvement (miroir de `--duration-*` / `--ease-*`). */
 export const MOTION = {
   fast: 160,

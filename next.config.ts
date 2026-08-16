@@ -20,6 +20,11 @@ const nextConfig: NextConfig = {
       "./node_modules/tesseract.js/**",
       "./node_modules/tesseract.js-core/**",
     ],
+    // Logotype arabe كوليغو embarqué dans le PDF des cartes fidélité (lu par
+    // fs au runtime — le traçage statique ne voit pas les fichiers de public/).
+    "/api/pdf/cartes-fidelite/**": [
+      "./public/logo-coligo-AR-Bg_blanc-Ecr_Violet.png",
+    ],
   },
   // …et les binaires onnxruntime des AUTRES plateformes (222 Mo sur 259) sont
   // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo (vécu :
