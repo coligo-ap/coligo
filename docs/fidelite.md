@@ -82,8 +82,8 @@ blocked` via `loyalty_card_transition` uniquement + journal
   cartes-magasins au même langage visuel, **recherche + tri locaux**
   (Solde/Progression/Nom, instantané), fiche magasin en feuille (solde
   « à dépenser ici uniquement », conditions du programme, progression COLORÉE
-  - %, bons, historique), plusieurs cartes liables au même compte, blocage
-    carte, `?lier=CODE` / `?tab=fidelite` en deep-link.
+  avec pourcentage, bons, historique), plusieurs cartes liables au même
+  compte, blocage carte, `?lier=CODE` / `?tab=fidelite` en deep-link.
 - **Super-admin** (`/admin/merchants/fidelite`, domaine `commercants`) :
   bornes ; lots de cartes (4 modèles visuels — teintes uniques dans
   `lib/design/tokens` `LOYALTY_CARD`, partagées aperçus ↔ PDF) ; **lots
