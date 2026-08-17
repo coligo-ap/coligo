@@ -115,7 +115,11 @@ workflows:
               rm -f "$p"; echo "  → retiré (sans Apple Pay)"
             fi
           done
-          xcode-project use-profiles
+          # Diagnostic : identités réellement présentes dans le keychain
+          # (pairage profil ↔ cert) — --verbose dit POURQUOI un profil est
+          # écarté (échecs #20+ : le profil régénéré n'appariait plus).
+          security find-identity -v -p codesigning || true
+          xcode-project use-profiles --verbose
       - name: Numéro de build auto-incrémenté
         # App Store Connect refuse tout ré-upload dont le CFBundleVersion
         # n'est pas STRICTEMENT supérieur au précédent (même MARKETING_VERSION
