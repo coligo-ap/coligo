@@ -2,6 +2,7 @@ import {
   LineCapStyle,
   PDFDocument,
   StandardFonts,
+  degrees,
   rgb,
   type PDFFont,
   type PDFImage,
@@ -72,6 +73,14 @@ export type CardPdfInput = {
   merchantName?: string | null;
   /** false = ne pas imprimer « CHEZ X » même si un commerçant est rattaché. */
   printMerchantName?: boolean;
+  /** false = pas de bloc titre « CARTE DE FIDÉLITÉ / بطاقة الوفاء » (0462). */
+  printTitle?: boolean;
+  /** true = mention basse « Carte valable chez tous les commerçants » (0462). */
+  printValidAll?: boolean;
+  /** Logo du commerçant (PNG/JPEG DÉJÀ normalisé côté route — jamais de WebP),
+   *  posé sur un socle blanc du recto : chaque commerçant a un logo de format
+   *  différent, l'image est CONTENUE dans le socle (ratio gardé). */
+  merchantLogoPng?: Uint8Array | null;
   templateKey: string;
   cards: { code: string }[];
   /** Origine publique STABLE (les cartes vivent des années) — ex. https://coligo.app */
@@ -84,15 +93,25 @@ export type CardPdfInput = {
 };
 
 type Ctx = {
-  fonts: { reg: PDFFont; bold: PDFFont; mono: PDFFont };
+  fonts: {
+    reg: PDFFont;
+    bold: PDFFont;
+    mono: PDFFont;
+    /** Obliques du titre v2 (le design du recto est en ITALIQUE). */
+    boldItalic: PDFFont;
+    italic: PDFFont;
+  };
   bg: PDFImage | null;
   logo: PDFImage | null;
   arWafa: PDFImage | null;
+  merchantLogo: PDFImage | null;
   artRecto: PDFImage | null;
   artVerso: PDFImage | null;
   tpl: ReturnType<typeof getCardTemplate>;
   /** Nom imprimé sur la carte — null = générique (« tous tes commerçants »). */
   displayName: string | null;
+  printTitle: boolean;
+  printValidAll: boolean;
 };
 
 const WHITE = pdfColor(LOYALTY_CARD.paper);
@@ -284,48 +303,29 @@ function drawBackground(page: PDFPage, ctx: Ctx, art: PDFImage | null) {
   }
 }
 
-/** Pilule translucide (langage des maquettes) : texte FR + éventuel PNG arabe,
- *  ancrée par son bord DROIT. Renvoie la largeur totale (mm). */
-function drawPill(
-  page: PDFPage,
-  ctx: Ctx,
-  rightX: number,
-  y: number,
-  h: number,
-  label: string,
-  size: number,
-  withArabic: boolean
-) {
-  const { tpl, fonts } = ctx;
-  const padX = 2.6;
-  const gap = 1.5;
-  const arH = h * 0.48;
-  const arW =
-    withArabic && ctx.arWafa ? (ctx.arWafa.width / ctx.arWafa.height) * arH : 0;
-  const dot = withArabic && ctx.arWafa ? wOf("·", fonts.bold, size) : 0;
-  const labelW = wOf(label, fonts.bold, size);
-  const total = padX + labelW + (arW > 0 ? gap + dot + gap + arW : 0) + padX;
-  const x = rightX - total;
-  // Fond : blanc translucide sur modèles sombres, encre violette 8 % en clair.
-  roundedRect(
-    page,
-    x,
-    y,
-    total,
-    h,
-    h / 2,
-    tpl.light ? QR_INK : WHITE,
-    tpl.light ? 0.08 : 0.16
-  );
-  const textColor = pdfColor(tpl.text);
-  const textY = y + h / 2 - size / (2 * M) + 0.35;
-  text(page, label, x + padX, textY, size, fonts.bold, textColor);
-  if (arW > 0 && ctx.arWafa) {
-    const dotX = x + padX + labelW + gap;
-    text(page, "·", dotX, textY, size, fonts.bold, textColor, 0.75);
-    image(page, ctx.arWafa, dotX + dot + gap, y + (h - arH) / 2, arH);
-  }
-  return total;
+/** Logo du COMMERÇANT sur socle blanc arrondi (haut droite du recto). Chaque
+ *  commerçant a un logo de format différent : l'image est CONTENUE dans le
+ *  socle (ratio gardé, centrée) — un logo très large ou très haut reste net
+ *  et jamais déformé. */
+function drawMerchantLogo(page: PDFPage, ctx: Ctx) {
+  if (!ctx.merchantLogo) return;
+  const size = 11.6;
+  const pad = 1.4;
+  const x = CARD_PDF_GEOM.trimW - 4.5 - size;
+  const y = 37.9;
+  roundedRect(page, x, y, size, size, 2.4, WHITE);
+  const img = ctx.merchantLogo;
+  const box = size - 2 * pad;
+  const ratio = img.width / img.height;
+  const w = ratio >= 1 ? box : box * ratio;
+  const h = ratio >= 1 ? box / ratio : box;
+  const o = CARD_PDF_GEOM.origin;
+  page.drawImage(img, {
+    x: mm(o + x + pad + (box - w) / 2),
+    y: mm(o + y + pad + (box - h) / 2),
+    width: mm(w),
+    height: mm(h),
+  });
 }
 
 /** QR sur panneau blanc arrondi (zone de silence garantie par le padding),
@@ -443,45 +443,56 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
       text(page, "Coligo", 5.5, 42, 14, fonts.bold, textColor);
     }
 
-    // Pilule « CARTE FIDÉLITÉ · بطاقة الوفاء » ancrée en haut à droite.
-    drawPill(page, ctx, g.trimW - 4.5, 42.2, 5.8, "CARTE FIDÉLITÉ", 4.6, true);
+    // Logo du COMMERÇANT (option 0462) sur socle blanc, haut droite.
+    drawMerchantLogo(page, ctx);
 
-    // Colonne droite : « CHEZ » + nom du commerçant (maquette 11482).
+    // Colonne droite (à droite du QR) : bloc TITRE v2 (option 0462) —
+    // « CARTE DE FIDÉLITÉ » grand, MAJUSCULES, ITALIQUE, puis « بطاقة الوفاء »
+    // plus petit dessous (PNG incliné : pdf-lib ne shape pas l'arabe, l'italique
+    // vient du skew).
+    const colX = 33.5;
+    const colW = g.trimW - colX - 4.5;
+    if (ctx.printTitle) {
+      const title = "CARTE DE FIDÉLITÉ";
+      const size = fitSize(title, fonts.boldItalic, 12.5, mm(colW), 8);
+      text(page, title, colX, 31.8, size, fonts.boldItalic, textColor);
+      if (ctx.arWafa) {
+        const arH = 4.8;
+        const arW = (ctx.arWafa.width / ctx.arWafa.height) * arH;
+        const o = CARD_PDF_GEOM.origin;
+        page.drawImage(ctx.arWafa, {
+          x: mm(o + colX + 0.9),
+          y: mm(o + 25.2),
+          width: mm(arW),
+          height: mm(arH),
+          ySkew: degrees(10),
+        });
+      }
+    }
+
+    // « CHEZ » + nom du commerçant (optionnel, sous le titre).
     if (ctx.displayName) {
       const name = safe(ctx.displayName);
-      text(page, "CHEZ", 36.5, 29.6, 6, fonts.reg, subColor);
-      let size = 11.5;
-      let lines = wrap(name, fonts.bold, size, mm(g.trimW - 36.5 - 4.5), 2);
+      text(page, "CHEZ", colX, 19.6, 5.5, fonts.reg, subColor);
+      let size = 10.5;
+      let lines = wrap(name, fonts.bold, size, mm(colW), 2);
       while (
-        size > 7 &&
-        (lines.length > 2 ||
-          lines.some((l) => wOf(l, fonts.bold, size) > g.trimW - 41))
+        size > 6.5 &&
+        (lines.length > 2 || lines.some((l) => wOf(l, fonts.bold, size) > colW))
       ) {
         size -= 0.5;
-        lines = wrap(name, fonts.bold, size, mm(g.trimW - 36.5 - 4.5), 2);
+        lines = wrap(name, fonts.bold, size, mm(colW), 2);
       }
       lines.forEach((l, i) => {
         text(
           page,
           l,
-          36.5,
-          24.2 - i * (size / M + 1.2),
+          colX,
+          14.8 - i * (size / M + 1.1),
           size,
           fonts.bold,
           textColor
         );
-      });
-    } else {
-      // Carte GÉNÉRIQUE : valable chez tous les commerçants Coligo.
-      const lines = wrap(
-        "Valable chez tous tes commerçants.",
-        fonts.bold,
-        8,
-        mm(g.trimW - 36.5 - 4.5),
-        3
-      );
-      lines.forEach((l, i) => {
-        text(page, l, 36.5, 26.5 - i * 4.2, 8, fonts.bold, textColor);
       });
     }
   }
@@ -501,6 +512,24 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
     fonts.mono,
     artOnly ? WHITE : pdfColor(tpl.text)
   );
+
+  // Mention basse OPTIONNELLE (0462) : « Carte valable chez tous les
+  // commerçants » — petit, italique, ancrée en bas à droite.
+  if (!artOnly && ctx.printValidAll) {
+    const mention = "Carte valable chez tous les commerçants";
+    const size = fitSize(mention, fonts.italic, 4.2, mm(30), 3.2);
+    const w = wOf(mention, fonts.italic, size);
+    text(
+      page,
+      mention,
+      g.trimW - 4.5 - w,
+      5.2,
+      size,
+      fonts.italic,
+      textColor,
+      0.92
+    );
+  }
 
   drawCropMarks(page);
 }
@@ -731,6 +760,8 @@ export async function buildLoyaltyCardsPdf(
     reg: await doc.embedFont(StandardFonts.Helvetica),
     bold: await doc.embedFont(StandardFonts.HelveticaBold),
     mono: await doc.embedFont(StandardFonts.CourierBold),
+    boldItalic: await doc.embedFont(StandardFonts.HelveticaBoldOblique),
+    italic: await doc.embedFont(StandardFonts.HelveticaOblique),
   };
 
   const ctx: Ctx = {
@@ -738,10 +769,13 @@ export async function buildLoyaltyCardsPdf(
     bg: await embedArt(doc, input.assets?.backgroundPng),
     logo: await embedArt(doc, input.assets?.logoPng),
     arWafa: await embedArt(doc, input.assets?.arWafaPng),
+    merchantLogo: await embedArt(doc, input.merchantLogoPng),
     artRecto: await embedArt(doc, input.artRecto),
     artVerso: await embedArt(doc, input.artVerso),
     tpl: getCardTemplate(input.templateKey),
     displayName,
+    printTitle: input.printTitle !== false,
+    printValidAll: input.printValidAll === true,
   };
 
   const base = input.baseUrl.replace(/\/+$/, "");

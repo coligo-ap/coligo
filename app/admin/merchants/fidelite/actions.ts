@@ -122,6 +122,10 @@ export async function adminCreateLoyaltyBatch(
   const note = String(formData.get("note") ?? "").trim() || null;
   const printName = formData.get("print_merchant_name") === "1";
   const preActivated = formData.get("pre_activated") === "1";
+  // Options d'impression v2 (0462) : titre, logo commerçant, mention basse.
+  const printTitle = formData.get("print_title") === "1";
+  const printLogo = formData.get("print_merchant_logo") === "1";
+  const printValidAll = formData.get("print_valid_all") === "1";
 
   if (!Number.isFinite(quantity) || quantity <= 0) {
     return { error: "Quantité invalide." };
@@ -186,6 +190,9 @@ export async function adminCreateLoyaltyBatch(
       p_activate_immediately: preActivated,
       p_art_recto_path: artRectoPath,
       p_art_verso_path: artVersoPath,
+      p_print_title: printTitle,
+      p_print_merchant_logo: printLogo,
+      p_print_valid_all: printValidAll,
     })) as AdminRpcRow | null;
     if (!data || data.ok !== true) {
       const reason = String(data?.reason ?? "");

@@ -220,22 +220,55 @@ async function main() {
     return parts.join("\n").toUpperCase();
   };
   const hexOf = (s) => Buffer.from(s, "latin1").toString("hex").toUpperCase();
+  // Depuis 0462 la mention est une OPTION (la RPC la coche par défaut pour
+  // les lots génériques) : le builder l'imprime sur printValidAll, en bas.
   const genericBytes = await buildLoyaltyCardsPdf({
     merchantName: null,
+    printValidAll: true,
     templateKey: "violet",
     cards: [{ code: CODES[0] }],
     baseUrl: "https://coligo.app",
     assets: violetAssets,
   });
   const rawGeneric = extractRaw(Buffer.from(genericBytes));
-  // (le texte est REPLIÉ sur 2 lignes par wrap() → on sonde la 1ʳᵉ ligne)
   assert(
-    rawGeneric.includes(hexOf("Valable chez tous")),
-    "E1 carte GÉNÉRIQUE : mention « valable chez tous » imprimée"
+    rawGeneric.includes(hexOf("Carte valable chez tous les commer")),
+    "E1 mention « valable chez tous les commerçants » imprimée (option cochée)"
   );
   assert(
     !rawGeneric.includes(hexOf("Chez ")),
     "E2 carte GÉNÉRIQUE : aucun « Chez … »"
+  );
+  const genericOffBytes = await buildLoyaltyCardsPdf({
+    merchantName: null,
+    printValidAll: false,
+    templateKey: "violet",
+    cards: [{ code: CODES[0] }],
+    baseUrl: "https://coligo.app",
+    assets: violetAssets,
+  });
+  assert(
+    !extractRaw(Buffer.from(genericOffBytes)).includes(
+      hexOf("Carte valable chez tous")
+    ),
+    "E1b mention absente quand l'option est décochée"
+  );
+  // Titre v2 : « CARTE DE FIDÉLITÉ » imprimé par défaut, retirable (0462).
+  assert(
+    rawGeneric.includes(hexOf("CARTE DE FID")),
+    "E1c titre « CARTE DE FIDÉLITÉ » imprimé par défaut"
+  );
+  const noTitleBytes = await buildLoyaltyCardsPdf({
+    merchantName: null,
+    printTitle: false,
+    templateKey: "violet",
+    cards: [{ code: CODES[0] }],
+    baseUrl: "https://coligo.app",
+    assets: violetAssets,
+  });
+  assert(
+    !extractRaw(Buffer.from(noTitleBytes)).includes(hexOf("CARTE DE FID")),
+    "E1d titre absent quand l'option est décochée"
   );
   const noNameBytes = await buildLoyaltyCardsPdf({
     merchantName: "Superette Yemma",

@@ -10,6 +10,7 @@ import {
   Loader2,
   Printer,
   Search,
+  Store,
   Trash2,
   Undo2,
 } from "lucide-react";
@@ -65,6 +66,10 @@ export type LoyaltyBatchRow = {
   activated: number;
   linked: number;
   blocked: number;
+  /** Options d'impression v2 (0462) : titre FR+AR, logo commerçant, mention. */
+  print_title: boolean;
+  print_merchant_logo: boolean;
+  print_valid_all: boolean;
 };
 
 const initial: CreateBatchResult = {};
@@ -124,13 +129,20 @@ function PdfDownloadButton({
 }
 
 /** Aperçu miniature d'un modèle — MÊME PNG de fond que le PDF (source visuelle
- *  unique) + logo + pilule + QR factice + « CHEZ … » : la réplique du recto. */
+ *  unique) : réplique du RECTO v2 (titre italique FR+AR, logo commerçant sur
+ *  socle blanc, mention basse), fidèle aux options cochées. */
 function TemplatePreview({
   tpl,
   merchantName,
+  showTitle,
+  showLogo,
+  showValidAll,
 }: {
   tpl: CardTemplate;
   merchantName: string;
+  showTitle: boolean;
+  showLogo: boolean;
+  showValidAll: boolean;
 }) {
   return (
     <div
@@ -151,19 +163,18 @@ function TemplatePreview({
           className="h-3.5 w-auto"
           loading="lazy"
         />
-        <span
-          className="rounded-full px-1 py-px text-[4px] font-black tracking-wider"
-          style={{
-            backgroundColor: tpl.light
-              ? LOYALTY_CARD.pillOnLight
-              : LOYALTY_CARD.pillOnDark,
-          }}
-        >
-          CARTE FIDÉLITÉ
-        </span>
+        {showLogo && (
+          <span
+            className="flex size-4 items-center justify-center rounded-[3px]"
+            style={{ background: LOYALTY_CARD.paper }}
+            aria-hidden
+          >
+            <Store className="size-2.5" style={{ color: LOYALTY_CARD.qrInk }} />
+          </span>
+        )}
       </div>
       <div className="flex items-end justify-between gap-1.5">
-        <div>
+        <div className="shrink-0">
           {/* Faux QR : panneau blanc arrondi, encre violette (comme le PDF). */}
           <span
             className="block size-6 rounded-[3px]"
@@ -180,24 +191,31 @@ function TemplatePreview({
             AB3F 9K72 4C6D
           </p>
         </div>
-        <div className="min-w-0 text-end">
-          {merchantName ? (
+        <div className="min-w-0 flex-1 text-end">
+          {showTitle && (
+            <>
+              <p className="text-[7px] leading-none font-black tracking-tight italic">
+                CARTE DE FIDÉLITÉ
+              </p>
+              <p className="text-[5px] leading-tight italic">بطاقة الوفاء</p>
+            </>
+          )}
+          {merchantName && (
             <>
               <p
-                className="text-[5px] tracking-widest"
+                className="mt-0.5 text-[4px] tracking-widest"
                 style={{ color: tpl.subtext }}
               >
                 CHEZ
               </p>
-              <p className="truncate text-[8px] leading-tight font-black">
+              <p className="truncate text-[6.5px] leading-tight font-black">
                 {merchantName}
               </p>
             </>
-          ) : (
-            <p className="text-[6px] leading-tight font-bold">
-              Valable chez tous
-              <br />
-              tes commerçants.
+          )}
+          {showValidAll && (
+            <p className="mt-0.5 text-[4px] leading-none italic">
+              Carte valable chez tous les commerçants
             </p>
           )}
         </div>
@@ -234,12 +252,19 @@ export function LoyaltyCardsConsole({
   // Recherche d'abord (règle annuaires) : aucun chargement en masse.
   const [selected, setSelected] = useState<LoyaltyMerchantHit | null>(null);
   const [template, setTemplate] = useState(DEFAULT_TEMPLATE_KEY);
-  // Options d'impression/usage (0459/0460) — défauts propriétaire : nom
-  // imprimé quand un commerçant est choisi, cartes PRÉ-ACTIVÉES.
+  // Options d'impression/usage (0459/0460/0462) — défauts propriétaire : nom
+  // et logo imprimés quand un commerçant est choisi, titre affiché, cartes
+  // PRÉ-ACTIVÉES ; mention « valable partout » = suit le type de lot tant que
+  // l'admin n'y a pas touché (générique → oui, commerçant → non).
   const [printName, setPrintName] = useState(true);
+  const [printTitle, setPrintTitle] = useState(true);
+  const [printLogo, setPrintLogo] = useState(true);
+  const [validAll, setValidAll] = useState<boolean | null>(null);
   const [preActivated, setPreActivated] = useState(true);
   const [hasArtRecto, setHasArtRecto] = useState(false);
   const merchantName = selected && printName ? selected.name : "";
+  const validAllOn = validAll ?? !selected;
+  const printLogoOn = !!selected && printLogo;
 
   // Journal : recherche SERVEUR débouncée (ilike nom / note / n° / générique).
   const [query, setQuery] = useState("");
@@ -379,7 +404,13 @@ export function LoyaltyCardsConsole({
                     : "hover:bg-surface-2"
                 )}
               >
-                <TemplatePreview tpl={tplDef} merchantName={merchantName} />
+                <TemplatePreview
+                  tpl={tplDef}
+                  merchantName={merchantName}
+                  showTitle={printTitle}
+                  showLogo={printLogoOn}
+                  showValidAll={validAllOn}
+                />
                 <p className="mt-1.5 text-xs font-bold">{tplDef.label}</p>
                 <p className="text-subtle text-caption leading-tight">
                   {tplDef.desc}
@@ -435,11 +466,22 @@ export function LoyaltyCardsConsole({
           </p>
         </div>
 
-        {/* Options du lot (0459/0460) — envoyées en champs cachés "1"/"". */}
+        {/* Options du lot (0459/0460/0462) — envoyées en champs cachés "1"/"". */}
         <input
           type="hidden"
           name="print_merchant_name"
           value={printName ? "1" : ""}
+        />
+        <input type="hidden" name="print_title" value={printTitle ? "1" : ""} />
+        <input
+          type="hidden"
+          name="print_merchant_logo"
+          value={printLogoOn ? "1" : ""}
+        />
+        <input
+          type="hidden"
+          name="print_valid_all"
+          value={validAllOn ? "1" : ""}
         />
         <input
           type="hidden"
@@ -447,6 +489,13 @@ export function LoyaltyCardsConsole({
           value={preActivated ? "1" : ""}
         />
         <div className="border-border divide-border divide-y rounded-md border px-3">
+          <ToggleRow
+            title="Titre « CARTE DE FIDÉLITÉ »"
+            description="Grand titre en italique + « بطاقة الوفاء » en dessous, sur le recto."
+            checked={printTitle}
+            onChange={setPrintTitle}
+            disabled={pending}
+          />
           <ToggleRow
             title="Imprimer « Chez … » sur la carte"
             description={
@@ -457,6 +506,24 @@ export function LoyaltyCardsConsole({
             checked={!!selected && printName}
             onChange={setPrintName}
             disabled={pending || !selected}
+          />
+          <ToggleRow
+            title="Logo du commerçant sur la carte"
+            description={
+              selected
+                ? "Le logo de sa fiche, posé sur un socle blanc en haut à droite — la carte devient la sienne. Sans logo sur la fiche, la carte sort sans."
+                : "Choisissez un commerçant pour imprimer son logo."
+            }
+            checked={printLogoOn}
+            onChange={setPrintLogo}
+            disabled={pending || !selected}
+          />
+          <ToggleRow
+            title="Mention « valable chez tous les commerçants »"
+            description="Petite ligne en bas du recto. Cochée d'office pour les cartes génériques."
+            checked={validAllOn}
+            onChange={setValidAll}
+            disabled={pending}
           />
           <ToggleRow
             title="Cartes pré-activées"
@@ -585,6 +652,11 @@ export function LoyaltyCardsConsole({
                       {b.merchant_name && !b.print_merchant_name && (
                         <span className="bg-surface-2 text-muted ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
                           sans nom imprimé
+                        </span>
+                      )}
+                      {b.print_merchant_logo && (
+                        <span className="bg-primary-50 text-primary-700 ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
+                          logo imprimé
                         </span>
                       )}
                     </p>

@@ -34,6 +34,31 @@ async function readPublicAsset(rel: string): Promise<Uint8Array | null> {
   }
 }
 
+/** Logo du commerçant (option 0462) : téléchargé BORNÉ puis re-encodé PNG via
+ *  sharp — pdf-lib n'embarque ni WebP ni AVIF, et le re-encodage neutralise
+ *  tout contenu piégé (jamais l'octet d'origine dans le PDF). Échec = carte
+ *  sans logo, jamais bloquant. */
+async function fetchMerchantLogoPng(
+  url: string | null
+): Promise<Uint8Array | null> {
+  if (!url || !/^https?:\/\//i.test(url)) return null;
+  try {
+    const res = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!res.ok) return null;
+    const buf = Buffer.from(await res.arrayBuffer());
+    if (buf.length === 0 || buf.length > 10 * 1024 * 1024) return null;
+    const sharp = (await import("sharp")).default;
+    return new Uint8Array(
+      await sharp(buf)
+        .resize(600, 600, { fit: "inside", withoutEnlargement: true })
+        .png()
+        .toBuffer()
+    );
+  } catch {
+    return null;
+  }
+}
+
 export async function GET(
   _req: Request,
   ctx: { params: Promise<{ batchId: string }> }
@@ -65,7 +90,7 @@ export async function GET(
 
   const { data: batch } = await from("loyalty_card_batches")
     .select(
-      "id, merchant_id, template_key, quantity, print_merchant_name, art_recto_path, art_verso_path, merchants(name)"
+      "id, merchant_id, template_key, quantity, print_merchant_name, print_title, print_merchant_logo, print_valid_all, art_recto_path, art_verso_path, merchants(name, logo_url)"
     )
     .eq("id", batchId)
     .maybeSingle();
@@ -104,17 +129,23 @@ export async function GET(
   }
 
   // Lot GÉNÉRIQUE (merchant_id NULL) ou nom volontairement non imprimé.
-  const merchantName =
-    (batch.merchants as { name?: string } | null)?.name ?? null;
+  const merchant =
+    (batch.merchants as { name?: string; logo_url?: string | null } | null) ??
+    null;
+  const merchantName = merchant?.name ?? null;
   const printMerchantName = batch.print_merchant_name !== false;
   const templateKey = String(batch.template_key ?? "violet");
   const tpl = getCardTemplate(templateKey);
 
-  const [backgroundPng, logoPng, arWafaPng] = await Promise.all([
-    readPublicAsset(cardBgAssetPath(templateKey)),
-    readPublicAsset(cardLogoAssetPath(tpl)),
-    readPublicAsset(cardArWafaAssetPath(tpl)),
-  ]);
+  const [backgroundPng, logoPng, arWafaPng, merchantLogoPng] =
+    await Promise.all([
+      readPublicAsset(cardBgAssetPath(templateKey)),
+      readPublicAsset(cardLogoAssetPath(tpl)),
+      readPublicAsset(cardArWafaAssetPath(tpl)),
+      batch.print_merchant_logo === true
+        ? fetchMerchantLogoPng(merchant?.logo_url ?? null)
+        : Promise.resolve(null),
+    ]);
 
   // Origine STABLE : une carte imprimée vit des années — jamais une URL de
   // déploiement (cf. app/sitemap.ts).
@@ -125,6 +156,9 @@ export async function GET(
   const bytes = await buildLoyaltyCardsPdf({
     merchantName,
     printMerchantName,
+    printTitle: batch.print_title !== false,
+    printValidAll: batch.print_valid_all === true,
+    merchantLogoPng,
     templateKey,
     cards: cards.map((c) => ({ code: c.card_code })),
     baseUrl,
