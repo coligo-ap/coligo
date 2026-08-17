@@ -11,12 +11,18 @@ import {
   fetchCashbackHistory,
   fetchLoyaltyOverview,
 } from "@/app/(customer)/cashback/actions";
+import type { CustomerWalletEntry } from "@/lib/customer/cashback";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
+import { SeeMoreButton } from "@/components/customer/wallet/see-more-button";
+import { useSeeMore } from "@/lib/hooks/use-see-more";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
 import { ThemeDecor } from "@/components/shared/theme-decor";
 import { LoyaltySection } from "@/components/customer/loyalty/loyalty-section";
 
 type Tab = "cashback" | "fidelite";
+
+/** Taille de page des historiques (= serveur, cf. actions PAGINATION). */
+const HISTORY_PAGE = 20;
 
 /**
  * Contenu de /cashback via TanStack Query (pattern OrdersLoader). Le RSC ne fait
@@ -44,18 +50,25 @@ export function CashbackLoader({
   const tAccount = useTranslations("account");
   const params = useSearchParams();
 
-  // ?tab=fidelite (nav directe) ou ?lier=CODE (landing /c) → onglet fidélité.
+  // FIDÉLITÉ = onglet PAR DÉFAUT (demande propriétaire). ?tab=cashback (liens
+  // directs, ex. depuis Coligo Pay) force l'onglet cashback.
   const [tab, setTab] = useState<Tab>(() =>
-    loyaltyVisible && (params.get("tab") === "fidelite" || params.get("lier"))
-      ? "fidelite"
-      : "cashback"
+    !loyaltyVisible || params.get("tab") === "cashback"
+      ? "cashback"
+      : "fidelite"
   );
 
   const { data: history, isPending } = useQuery({
     queryKey: ["cashback-history", userId],
-    queryFn: fetchCashbackHistory,
+    queryFn: () => fetchCashbackHistory(0),
     staleTime: 30_000,
   });
+  // « Voir plus » : pages suivantes (20 par page, jamais tout d'un coup).
+  const more = useSeeMore<CustomerWalletEntry>(
+    fetchCashbackHistory,
+    HISTORY_PAGE
+  );
+  const entries = [...(history ?? []), ...more.extra];
 
   // Badge de l'onglet Fidélité = bons actifs (même clé de cache que la section
   // → une seule requête réseau, deux lecteurs).
@@ -69,11 +82,12 @@ export function CashbackLoader({
     overview?.accounts.reduce((s, a) => s + a.summary.vouchers.length, 0) ?? 0;
 
   // Bascule = état purement client ; l'URL suit via replaceState (zéro RSC).
+  // Fidélité étant l'onglet par défaut, seul ?tab=cashback est posé dans l'URL.
   function switchTab(next: Tab) {
     setTab(next);
     try {
       const u = new URL(window.location.href);
-      if (next === "fidelite") u.searchParams.set("tab", "fidelite");
+      if (next === "cashback") u.searchParams.set("tab", "cashback");
       else u.searchParams.delete("tab");
       window.history.replaceState(null, "", u);
     } catch {
@@ -101,15 +115,7 @@ export function CashbackLoader({
           value={tab}
           onChange={switchTab}
           options={[
-            {
-              key: "cashback",
-              label: (
-                <>
-                  <Coins className="size-4" />
-                  {t("cashTab")}
-                </>
-              ),
-            },
+            // Fidélité EN PREMIER : c'est l'onglet par défaut de la page.
             {
               key: "fidelite",
               label: (
@@ -119,6 +125,15 @@ export function CashbackLoader({
                 </>
               ),
               badge: voucherCount,
+            },
+            {
+              key: "cashback",
+              label: (
+                <>
+                  <Coins className="size-4" />
+                  {t("cashTab")}
+                </>
+              ),
             },
           ]}
         />
@@ -195,10 +210,19 @@ export function CashbackLoader({
               ))}
             </div>
           ) : (
-            <WalletEntryList
-              entries={history ?? []}
-              emptyHint={t("discoverMerchants")}
-            />
+            <>
+              <WalletEntryList
+                entries={entries}
+                emptyHint={t("discoverMerchants")}
+              />
+              {(history ?? []).length >= HISTORY_PAGE && !more.end && (
+                <SeeMoreButton
+                  onClick={() => void more.loadMore()}
+                  loading={more.loading}
+                  label={t("seeMore")}
+                />
+              )}
+            </>
           )}
         </section>
       </div>

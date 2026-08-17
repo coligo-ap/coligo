@@ -18,7 +18,13 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { inflateSync } from "node:zlib";
 import { PDFDocument } from "pdf-lib";
 import { buildLoyaltyCardsPdf, CARD_PDF_GEOM } from "@/lib/loyalty/card-pdf";
-import { CARD_TEMPLATES, groupCardCode } from "@/lib/loyalty/card-templates";
+import {
+  CARD_TEMPLATES,
+  cardArWafaAssetPath,
+  cardBgAssetPath,
+  cardLogoAssetPath,
+  groupCardCode,
+} from "@/lib/loyalty/card-templates";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
 
 let failures = 0;
@@ -33,16 +39,25 @@ function assert(cond, label, detail) {
 
 const MM = 72 / 25.4;
 const CODES = ["ABCD2345EFGH2345", "KLMN6789PQRS6789", "TVWX2345ABCD6789"];
-const AR_LOGO_PATH = "public/logo-coligo-AR-Bg_blanc-Ecr_Violet.png";
+
+/** Assets de marque du modèle (mêmes fichiers que la route PDF). */
+function assetsFor(tpl) {
+  const read = (rel) => {
+    try {
+      return readFileSync(`public${rel}`);
+    } catch {
+      return null;
+    }
+  };
+  return {
+    backgroundPng: read(cardBgAssetPath(tpl.key)),
+    logoPng: read(cardLogoAssetPath(tpl)),
+    arWafaPng: read(cardArWafaAssetPath(tpl)),
+  };
+}
 
 async function main() {
   const sampleIdx = process.argv.indexOf("--sample");
-  let arLogo = null;
-  try {
-    arLogo = readFileSync(AR_LOGO_PATH);
-  } catch {
-    /* testé plus bas */
-  }
 
   // ── Mode ÉCHANTILLON : 1 carte par modèle, pour tirage d'essai réel ──────
   if (sampleIdx >= 0) {
@@ -54,7 +69,7 @@ async function main() {
         templateKey: tpl.key,
         cards: [{ code: CODES[0] }],
         baseUrl: "https://coligo.app",
-        arabicLogoPng: arLogo,
+        assets: assetsFor(tpl),
       });
       const part = await PDFDocument.load(bytes);
       const pages = await doc.copyPages(part, part.getPageIndices());
@@ -65,13 +80,15 @@ async function main() {
     return;
   }
 
+  const violetAssets = assetsFor(CARD_TEMPLATES[0]);
+
   console.log("TEST A — géométrie d'impression");
   const bytes = await buildLoyaltyCardsPdf({
     merchantName: "Supérette Yemma",
     templateKey: "violet",
     cards: CODES.map((code) => ({ code })),
     baseUrl: "https://coligo.app",
-    arabicLogoPng: arLogo,
+    assets: violetAssets,
   });
   assert(bytes.length > 10_000, "A1 PDF non vide", bytes.length);
 
@@ -150,14 +167,14 @@ async function main() {
     `${moduleMm.toFixed(2)} mm`
   );
 
-  console.log("TEST D — modèles visuels");
+  console.log("TEST D — modèles visuels (design de référence)");
   for (const tpl of CARD_TEMPLATES) {
     const b = await buildLoyaltyCardsPdf({
       merchantName: "Boulangerie النور", // nom avec arabe : safe() ne crashe pas
       templateKey: tpl.key,
       cards: [{ code: CODES[0] }],
       baseUrl: "https://coligo.app",
-      arabicLogoPng: arLogo,
+      assets: assetsFor(tpl),
     });
     const d = await PDFDocument.load(b);
     assert(
@@ -165,7 +182,22 @@ async function main() {
       `D1 modèle « ${tpl.label} » généré (recto + verso)`
     );
   }
-  assert(!!arLogo, "D2 logotype arabe كوليغو présent (public/)", AR_LOGO_PATH);
+  assert(
+    !!violetAssets.backgroundPng &&
+      !!violetAssets.logoPng &&
+      !!violetAssets.arWafaPng,
+    "D2 assets de marque présents (fond dégradé, logo FR+AR, بطاقة الوفاء)"
+  );
+  for (const tpl of CARD_TEMPLATES) {
+    let has = false;
+    try {
+      readFileSync(`public${cardBgAssetPath(tpl.key)}`);
+      has = true;
+    } catch {
+      /* asseré faux */
+    }
+    assert(has, `D3 fond dégradé « ${tpl.key} » présent (public/brand/)`);
+  }
 
   console.log("TEST E — lots génériques + nom optionnel (0459)");
   // Même extraction hex que TEST B (pdf-lib écrit `<hex> Tj` en flux Flate).
@@ -193,11 +225,12 @@ async function main() {
     templateKey: "violet",
     cards: [{ code: CODES[0] }],
     baseUrl: "https://coligo.app",
-    arabicLogoPng: arLogo,
+    assets: violetAssets,
   });
   const rawGeneric = extractRaw(Buffer.from(genericBytes));
+  // (le texte est REPLIÉ sur 2 lignes par wrap() → on sonde la 1ʳᵉ ligne)
   assert(
-    rawGeneric.includes(hexOf("Valable chez tous tes commer")),
+    rawGeneric.includes(hexOf("Valable chez tous")),
     "E1 carte GÉNÉRIQUE : mention « valable chez tous » imprimée"
   );
   assert(
@@ -210,12 +243,47 @@ async function main() {
     templateKey: "violet",
     cards: [{ code: CODES[0] }],
     baseUrl: "https://coligo.app",
-    arabicLogoPng: arLogo,
+    assets: violetAssets,
   });
   const rawNoName = extractRaw(Buffer.from(noNameBytes));
   assert(
-    !rawNoName.includes(hexOf("Chez ")),
-    "E3 nom volontairement non imprimé : pas de « Chez … »"
+    !rawNoName.includes(hexOf("CHEZ")),
+    "E3 nom volontairement non imprimé : pas de « CHEZ … »"
+  );
+
+  console.log("TEST F — visuel PERSONNALISÉ du lot (0461)");
+  // PNG 1×1 valide (base64) : suffit à vérifier le chemin « art perso ».
+  const tinyPng = Buffer.from(
+    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==",
+    "base64"
+  );
+  const artBytes = await buildLoyaltyCardsPdf({
+    merchantName: "Superette Yemma",
+    templateKey: "violet",
+    cards: [{ code: CODES[0] }],
+    baseUrl: "https://coligo.app",
+    assets: violetAssets,
+    artRecto: tinyPng,
+    artVerso: tinyPng,
+  });
+  const artDoc = await PDFDocument.load(artBytes);
+  assert(artDoc.getPageCount() === 2, "F1 art perso : recto + verso générés");
+  const rawArt = extractRaw(Buffer.from(artBytes));
+  assert(
+    rawArt.includes(
+      Buffer.from(groupCardCode(CODES[0]), "latin1")
+        .toString("hex")
+        .toUpperCase()
+    ),
+    "F2 art perso : le NUMÉRO reste imprimé sur le recto"
+  );
+  assert(
+    !rawArt.includes(hexOf("SERVICE CLIENT")),
+    "F3 art perso : le verso est imprimé TEL QUEL (aucune surimpression)"
+  );
+  assert(
+    !rawArt.includes(hexOf("CHEZ")),
+    "F4 art perso : pas de « CHEZ … » ajouté sur le visuel fourni"
   );
 
   console.log(

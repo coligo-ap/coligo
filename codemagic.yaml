@@ -98,7 +98,24 @@ workflows:
           fi
           node -e "require('fs').writeFileSync('ios/App/App/GoogleService-Info.plist', Buffer.from(process.env.GOOGLE_SERVICE_INFO_PLIST_B64, 'base64'))"
       - name: Récupérer certificat + profil de provisionnement
-        script: xcode-project use-profiles
+        # Depuis le renouvellement du cert marchand Apple Pay (16/08), le fetch
+        # AUTOMATIQUE Codemagic ne rapporte AUCUN profil (le profil manuel du
+        # portail est ignoré par l'API ASC — limitation Apple Pay) → ce step
+        # échouait avec « Failed to set code signing settings » car le disque
+        # était vide. On installe donc le profil COMMITTÉ ici aussi (même
+        # logique que « Build .ipa signé », qui la rejoue sans danger).
+        script: |
+          PROFILES_DIR="$HOME/Library/MobileDevice/Provisioning Profiles"
+          mkdir -p "$PROFILES_DIR"
+          cp ios/certs/Coligo_Client_Apple_Pay.mobileprovision "$PROFILES_DIR/"
+          for p in "$PROFILES_DIR"/*.mobileprovision; do
+            name=$(security cms -D -i "$p" | plutil -extract Name raw -o - -)
+            echo "profil présent : $name"
+            if [ "$name" != "Coligo Client Apple Pay" ]; then
+              rm -f "$p"; echo "  → retiré (sans Apple Pay)"
+            fi
+          done
+          xcode-project use-profiles
       - name: Numéro de build auto-incrémenté
         # App Store Connect refuse tout ré-upload dont le CFBundleVersion
         # n'est pas STRICTEMENT supérieur au précédent (même MARKETING_VERSION

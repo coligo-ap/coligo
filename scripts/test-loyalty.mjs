@@ -957,6 +957,93 @@ async function main() {
       "K6 carte LIÉE : la landing ne montre ni solde ni identité",
       JSON.stringify(peekLinked)
     );
+
+    // =========================================================================
+    console.log("TEST O — cycle de vie du LOT entier (mig 0461)");
+    // =========================================================================
+    await asAdmin();
+    r = await j(
+      `select public.admin_loyalty_create_batch($1, 2, 'violet', 'lot cycle 0461') j`,
+      [MA.id]
+    );
+    assert(
+      r.ok === true,
+      "O1 lot de 2 cartes pré-activées créé",
+      JSON.stringify(r)
+    );
+    const oBatch = r.batch_id;
+    r = await j(
+      `select public.admin_loyalty_block_batch($1, 'série volée') j`,
+      [oBatch]
+    );
+    assert(
+      r.ok === true && r.blocked === 2,
+      "O2 blocage du LOT : 2 cartes bloquées d'un coup",
+      JSON.stringify(r)
+    );
+    let oRows = (
+      await client.query(
+        `select status from loyalty_cards where batch_id = $1`,
+        [oBatch]
+      )
+    ).rows;
+    assert(
+      oRows.every((c) => c.status === "blocked"),
+      "O3 toutes les cartes du lot sont `blocked`"
+    );
+    r = await j(`select public.admin_loyalty_unblock_batch($1) j`, [oBatch]);
+    assert(
+      r.ok === true && r.unblocked === 2,
+      "O4 déblocage du LOT : 2 cartes restaurées",
+      JSON.stringify(r)
+    );
+    oRows = (
+      await client.query(
+        `select status from loyalty_cards where batch_id = $1`,
+        [oBatch]
+      )
+    ).rows;
+    assert(
+      oRows.every((c) => c.status === "activated"),
+      "O5 état d'AVANT blocage restauré (activated)"
+    );
+    r = await j(
+      `select public.admin_loyalty_delete_batch($1, 'fin de série') j`,
+      [oBatch]
+    );
+    assert(
+      r.ok === true && r.blocked === 2,
+      "O6 suppression DOUCE : toutes les cartes désactivées",
+      JSON.stringify(r)
+    );
+    const oBatchRow = (
+      await client.query(
+        `select deleted_at from loyalty_card_batches where id = $1`,
+        [oBatch]
+      )
+    ).rows[0];
+    assert(
+      !!oBatchRow.deleted_at,
+      "O7 lot marqué supprimé (deleted_at) — la ligne RESTE (traçabilité)"
+    );
+    r = await j(`select public.admin_loyalty_unblock_batch($1) j`, [oBatch]);
+    assert(
+      r.ok === false && r.reason === "deleted",
+      "O8 lot supprimé : déblocage refusé",
+      JSON.stringify(r)
+    );
+    const oJournal = (
+      await client.query(
+        `select * from public.admin_loyalty_batches(20, 'cycle 0461')`
+      )
+    ).rows;
+    assert(
+      oJournal.some(
+        (b) => b.id === oBatch && b.deleted_at && b.has_custom_art === false
+      ),
+      "O9 journal : recherche par note + drapeaux 0461 (supprimé, design perso)",
+      JSON.stringify(oJournal.map((b) => b.id))
+    );
   } finally {
     await client.query("ROLLBACK");
   }
@@ -1037,6 +1124,19 @@ async function main() {
       },
     ],
     ["admin_loyalty_card_lookup", { p_query: "X" }],
+    // Cycle de vie du LOT entier (mig 0461).
+    [
+      "admin_loyalty_block_batch",
+      { p_batch_id: "00000000-0000-0000-0000-000000000000" },
+    ],
+    [
+      "admin_loyalty_unblock_batch",
+      { p_batch_id: "00000000-0000-0000-0000-000000000000" },
+    ],
+    [
+      "admin_loyalty_delete_batch",
+      { p_batch_id: "00000000-0000-0000-0000-000000000000" },
+    ],
     [
       "loyalty_credit_order",
       {

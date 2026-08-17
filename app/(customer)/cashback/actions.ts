@@ -32,14 +32,22 @@ export type CreateTopupResult =
   | { ok: true; checkout_url: string; checkout_id: string }
   | { ok: false; error: string; code?: "limit_reached" | "below_min" };
 
+// Taille de page des historiques client : 20 (PAGINATION OBLIGATOIRE — règle
+// produit : on ne télécharge jamais tout l'historique d'un coup). ⚠️ fichier
+// "use server" : pas d'export const possible — la même valeur 20 vit côté
+// clients (loaders) dans leur constante HISTORY_PAGE.
+
 /**
- * Historique cashback du client connecté, pour le loader client TanStack
- * (pattern OrdersLoader / ColigoPayLoader). Le solde, lui, vient du cache
- * partagé `wallet-balances` (WalletBalanceValue). Ré-authentifié côté serveur
- * (RLS) ; seules les écritures source='cashback' du client sont renvoyées.
+ * Historique cashback du client connecté, PAGINÉ, pour le loader client
+ * TanStack (useInfiniteQuery). Le solde, lui, vient du cache partagé
+ * `wallet-balances` (WalletBalanceValue). Ré-authentifié côté serveur (RLS) ;
+ * seules les écritures source='cashback' du client sont renvoyées.
  */
-export async function fetchCashbackHistory(): Promise<CustomerWalletEntry[]> {
-  return getMyCashbackHistory(100);
+export async function fetchCashbackHistory(
+  page = 0
+): Promise<CustomerWalletEntry[]> {
+  const p = Math.max(0, Math.floor(page));
+  return getMyCashbackHistory(20, p * 20);
 }
 
 /**
@@ -442,15 +450,19 @@ export type LoyaltyHistoryEntry = {
   created_at: string;
 };
 
-/** Historique des gains/utilisations (tous commerçants ou un seul). */
+/** Historique des gains/utilisations (tous commerçants ou un seul), PAGINÉ
+ *  (p_offset — mig 0461) : 20 lignes par page, jamais tout d'un coup. */
 export async function fetchLoyaltyHistory(
-  merchantId?: string | null
+  merchantId?: string | null,
+  page = 0
 ): Promise<LoyaltyHistoryEntry[]> {
   if (!(await getAuthUser())) return [];
   try {
+    const p = Math.max(0, Math.floor(page));
     const data = await loyaltyRpc("my_loyalty_history", {
       p_merchant_id: merchantId ?? null,
-      p_limit: 50,
+      p_limit: 20,
+      p_offset: p * 20,
     });
     return (Array.isArray(data) ? data : []) as LoyaltyHistoryEntry[];
   } catch {

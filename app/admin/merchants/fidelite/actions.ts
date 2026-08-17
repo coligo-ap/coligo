@@ -2,8 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { adminCan } from "@/lib/auth/admin";
 import { CARD_TEMPLATES } from "@/lib/loyalty/card-templates";
+import { MB, validateUploadedFile } from "@/lib/security/file-validation";
+import type { LoyaltyBatchRow } from "@/components/admin/merchants/loyalty-cards-console";
 
 export type LoyaltyBoundsResult = { error?: string; ok?: boolean };
 
@@ -127,6 +130,52 @@ export async function adminCreateLoyaltyBatch(
     return { error: "Choisissez un modèle de carte." };
   }
 
+  // DESIGN PERSONNALISÉ (0461) : visuels recto/verso fournis par l'équipe
+  // Coligo (fond perdu compris). Validation par MAGIC BYTES (jamais file.type),
+  // PNG/JPG seuls (pdf-lib ne pose pas le WebP), puis upload dans le bucket
+  // PRIVÉ `loyalty-card-art` — service_role APRÈS la garde adminCan (self-guard).
+  let artRectoPath: string | null = null;
+  let artVersoPath: string | null = null;
+  const artRecto = formData.get("art_recto");
+  const artVerso = formData.get("art_verso");
+  const hasArt = (f: unknown): f is File => f instanceof File && f.size > 0;
+  if (hasArt(artRecto) || hasArt(artVerso)) {
+    if (!hasArt(artRecto)) {
+      return { error: "Design personnalisé : le RECTO est obligatoire." };
+    }
+    const admin = createAdminClient();
+    const folder = crypto.randomUUID();
+    const uploadSide = async (
+      file: File,
+      side: "recto" | "verso"
+    ): Promise<string | { error: string }> => {
+      const v = await validateUploadedFile(file, {
+        kind: "image",
+        maxBytes: 8 * MB,
+      });
+      if (!v.ok) return { error: `Visuel ${side} : ${v.error}` };
+      if (v.mime === "image/webp") {
+        return {
+          error: `Visuel ${side} : PNG ou JPG uniquement (impression).`,
+        };
+      }
+      const path = `${folder}/${side}.${v.ext}`;
+      const { error } = await admin.storage
+        .from("loyalty-card-art")
+        .upload(path, v.bytes, { contentType: v.mime });
+      if (error) return { error: `Visuel ${side} : envoi impossible.` };
+      return path;
+    };
+    const recto = await uploadSide(artRecto, "recto");
+    if (typeof recto !== "string") return recto;
+    artRectoPath = recto;
+    if (hasArt(artVerso)) {
+      const verso = await uploadSide(artVerso, "verso");
+      if (typeof verso !== "string") return verso;
+      artVersoPath = verso;
+    }
+  }
+
   try {
     const data = (await adminRpc("admin_loyalty_create_batch", {
       p_merchant_id: merchantId,
@@ -135,6 +184,8 @@ export async function adminCreateLoyaltyBatch(
       p_note: note,
       p_print_merchant_name: printName,
       p_activate_immediately: preActivated,
+      p_art_recto_path: artRectoPath,
+      p_art_verso_path: artVersoPath,
     })) as AdminRpcRow | null;
     if (!data || data.ok !== true) {
       const reason = String(data?.reason ?? "");
@@ -420,6 +471,92 @@ export async function adminTransferLoyaltyCard(
       return { ok: false, reason: String(data?.reason ?? "network") };
     }
     return data as unknown as AdminTransferResult & { ok: true };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
+
+/* ── LOTS : recherche + cycle de vie du LOT ENTIER (mig 0461) ──────────────
+   Règle annuaires : liste courte par défaut, RECHERCHE serveur (ilike nom /
+   note / n° de lot / « générique »). Bloquer/débloquer/supprimer passent par
+   loyalty_card_transition carte par carte → chaque série désactivée reste
+   TRACÉE dans loyalty_card_events + admin_audit_log. */
+
+export async function adminListLoyaltyBatches(
+  query: string
+): Promise<LoyaltyBatchRow[]> {
+  if (!(await adminCan("commercants"))) return [];
+  try {
+    const data = await adminRpc("admin_loyalty_batches", {
+      p_limit: 20,
+      p_query: query.trim() || null,
+    });
+    return (Array.isArray(data) ? data : []) as LoyaltyBatchRow[];
+  } catch {
+    return [];
+  }
+}
+
+export type BatchOpResult = { ok: boolean; reason?: string; count?: number };
+
+export async function adminBlockLoyaltyBatch(
+  batchId: string,
+  note?: string | null
+): Promise<BatchOpResult> {
+  if (!(await adminCan("commercants")))
+    return { ok: false, reason: "forbidden" };
+  try {
+    const data = (await adminRpc("admin_loyalty_block_batch", {
+      p_batch_id: batchId,
+      p_note: note ?? null,
+    })) as AdminRpcRow | null;
+    if (data?.ok !== true) {
+      return { ok: false, reason: String(data?.reason ?? "network") };
+    }
+    revalidatePath("/admin/merchants/fidelite");
+    return { ok: true, count: Number(data.blocked ?? 0) };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
+
+export async function adminUnblockLoyaltyBatch(
+  batchId: string
+): Promise<BatchOpResult> {
+  if (!(await adminCan("commercants")))
+    return { ok: false, reason: "forbidden" };
+  try {
+    const data = (await adminRpc("admin_loyalty_unblock_batch", {
+      p_batch_id: batchId,
+    })) as AdminRpcRow | null;
+    if (data?.ok !== true) {
+      return { ok: false, reason: String(data?.reason ?? "network") };
+    }
+    revalidatePath("/admin/merchants/fidelite");
+    return { ok: true, count: Number(data.unblocked ?? 0) };
+  } catch {
+    return { ok: false, reason: "network" };
+  }
+}
+
+/** Suppression DOUCE : cartes toutes bloquées + lot marqué supprimé — rien
+ *  n'est effacé (journal, événements par carte et audit conservés). */
+export async function adminDeleteLoyaltyBatch(
+  batchId: string,
+  note?: string | null
+): Promise<BatchOpResult> {
+  if (!(await adminCan("commercants")))
+    return { ok: false, reason: "forbidden" };
+  try {
+    const data = (await adminRpc("admin_loyalty_delete_batch", {
+      p_batch_id: batchId,
+      p_note: note ?? null,
+    })) as AdminRpcRow | null;
+    if (data?.ok !== true) {
+      return { ok: false, reason: String(data?.reason ?? "network") };
+    }
+    revalidatePath("/admin/merchants/fidelite");
+    return { ok: true, count: Number(data.blocked ?? 0) };
   } catch {
     return { ok: false, reason: "network" };
   }

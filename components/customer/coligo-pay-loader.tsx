@@ -5,12 +5,21 @@ import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslations } from "next-intl";
 import { ArrowLeft, ChevronRight, Gift, Wallet } from "lucide-react";
-import { fetchColigoPayData } from "@/app/(customer)/coligo-pay/actions";
+import {
+  fetchColigoPayData,
+  fetchTopupHistory,
+} from "@/app/(customer)/coligo-pay/actions";
+import type { CustomerWalletEntry } from "@/lib/customer/cashback";
 import { WalletActions } from "@/components/customer/wallet-actions";
 import { MyPayTag } from "@/components/customer/my-pay-tag";
 import { WalletEntryList } from "@/components/customer/wallet/entry-list";
+import { SeeMoreButton } from "@/components/customer/wallet/see-more-button";
+import { useSeeMore } from "@/lib/hooks/use-see-more";
 import { WalletBalanceValue } from "@/components/customer/wallet/balance-value";
 import { ThemeDecor } from "@/components/shared/theme-decor";
+
+/** Taille de page de l'historique (= serveur, cf. actions PAGINATION). */
+const HISTORY_PAGE = 20;
 
 /**
  * Contenu de /coligo-pay via TanStack Query (pattern OrdersLoader). Le RSC ne
@@ -38,6 +47,9 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
     queryFn: fetchColigoPayData,
     staleTime: 30_000,
   });
+  // « Voir plus » : pages suivantes de l'historique (20 par page).
+  const more = useSeeMore<CustomerWalletEntry>(fetchTopupHistory, HISTORY_PAGE);
+  const entries = [...(data?.history ?? []), ...more.extra];
 
   return (
     <div className="pb-24">
@@ -99,8 +111,10 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
 
         {/* Lien cashback — carte bordée (affordance claire, cohérente avec le
           reste de la page). */}
+        {/* ?tab=cashback : la page /cashback ouvre désormais sur FIDÉLITÉ par
+            défaut — ce lien parle bien du cashback. */}
         <Link
-          href="/cashback"
+          href="/cashback?tab=cashback"
           className="border-border hover:bg-surface-2 mt-4 flex items-center gap-3 rounded-lg border bg-white p-3 transition-colors"
         >
           <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-amber-50 text-amber-600">
@@ -132,10 +146,16 @@ export function ColigoPayLoader({ userId }: { userId: string }) {
               ))}
             </div>
           ) : (
-            <WalletEntryList
-              entries={data?.history ?? []}
-              emptyHint={t("rechargeNow")}
-            />
+            <>
+              <WalletEntryList entries={entries} emptyHint={t("rechargeNow")} />
+              {(data?.history ?? []).length >= HISTORY_PAGE && !more.end && (
+                <SeeMoreButton
+                  onClick={() => void more.loadMore()}
+                  loading={more.loading}
+                  label={t("seeMore")}
+                />
+              )}
+            </>
           )}
         </section>
       </div>

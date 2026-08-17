@@ -20,6 +20,11 @@ import { useConfirm } from "@/components/ui/confirm";
 import { formatDA } from "@/lib/utils";
 import { QrZoom } from "@/components/shared/qr-zoom";
 import { LinkCardFlow } from "@/components/customer/loyalty/link-card-flow";
+import { LoyaltyCardFace } from "@/components/customer/loyalty/card-face";
+import { SeeMoreButton } from "@/components/customer/wallet/see-more-button";
+import { useSeeMore } from "@/lib/hooks/use-see-more";
+import { LOYALTY_CARD } from "@/lib/design/tokens";
+import { groupCardCode } from "@/lib/loyalty/card-templates";
 import {
   blockLoyaltyCard,
   fetchLoyaltyHistory,
@@ -30,34 +35,14 @@ import {
 
 type StoreSort = "balance" | "progress" | "name";
 
+/** Taille de page des historiques (= serveur, cf. actions PAGINATION). */
+const HISTORY_PAGE = 20;
+
 function dayFr(iso: string): string {
   const d = new Date(iso);
   return `${d.getDate().toString().padStart(2, "0")}/${(d.getMonth() + 1)
     .toString()
     .padStart(2, "0")}`;
-}
-
-/** Dégradé « carte fidélité Coligo » (référence imprimée : violet profond →
- *  violet marque → rose accent) — uniquement des tokens, jamais d'hex ici. */
-const LOYALTY_GRADIENT =
-  "linear-gradient(130deg, var(--color-primary-900) 0%, var(--color-primary-700) 38%, var(--color-primary-600) 64%, var(--color-accent-500) 128%)";
-
-/** Facettes diagonales translucides (langage visuel de la carte imprimée). */
-function CardFacets() {
-  return (
-    <div aria-hidden className="pointer-events-none absolute inset-0">
-      <div className="absolute start-[46%] -top-10 bottom-0 w-24 -skew-x-12 bg-white/[.05]" />
-      <div className="absolute start-[68%] -top-10 bottom-0 w-40 -skew-x-12 bg-white/[.04]" />
-      <div
-        className="absolute -end-16 -bottom-24 size-64 rounded-full"
-        style={{
-          background:
-            "radial-gradient(closest-side, var(--color-accent-500) 0%, transparent 70%)",
-          opacity: 0.35,
-        }}
-      />
-    </div>
-  );
 }
 
 /**
@@ -183,57 +168,54 @@ export function LoyaltySection({ userId }: { userId: string }) {
 
   return (
     <section>
-      {/* HERO « ma carte » — même langage que la carte physique Coligo :
-          dégradé violet → rose, facettes, QR sur panneau blanc. */}
-      <section
-        className="rounded-panel-lg relative overflow-hidden px-5 pt-5 pb-5 text-white"
-        style={{ backgroundImage: LOYALTY_GRADIENT }}
+      {/* HERO « ma carte » — RÉPLIQUE de la carte physique (maquette 11482) :
+          logo + pilule bilingue + QR VIOLET sur panneau blanc + numéro. */}
+      <LoyaltyCardFace
+        code={overview?.handle ? groupCardCode(overview.handle) : null}
       >
-        <CardFacets />
-        <div className="relative z-10">
-          <span className="text-caption rounded-full bg-white/15 px-2.5 py-1 font-extrabold tracking-wider uppercase">
-            {t("loySectionTitle")}
-          </span>
-
-          <div className="mt-4 flex items-center gap-3.5">
-            {/* Le QR vit sur un SOCLE BLANC (stage) — lisible en caisse et en
-                sombre, comme sur la carte imprimée. */}
-            {overview?.handle ? (
-              <div className="bg-on-brand isolate shrink-0 rounded-md p-1.5">
-                <QrZoom
-                  value={`coligo:user:${overview.handle}`}
-                  size={78}
-                  caption={t("loyMyQrDesc")}
-                  fullValue={t("loyMyQrTitle")}
-                  expandLabel={t("loyMyQrTitle")}
-                />
-              </div>
-            ) : (
-              <div className="size-[90px] shrink-0 animate-pulse rounded-md bg-white/25" />
-            )}
-            <div className="min-w-0 flex-1">
-              <p className="text-base leading-tight font-black tracking-tight">
-                {t("loyMyQrTitle")}
-              </p>
-              <p className="mt-1 text-xs leading-relaxed font-semibold opacity-85">
-                {t("loyMyQrDesc")}
-              </p>
+        <div className="mt-4 flex items-center gap-3.5">
+          {/* Le QR vit sur un PANNEAU BLANC arrondi (stage) — lisible en caisse
+              et en sombre, modules violets comme sur la carte imprimée. */}
+          {overview?.handle ? (
+            <div
+              className="isolate shrink-0 rounded-xl p-2"
+              style={{ backgroundColor: LOYALTY_CARD.paper }}
+            >
+              <QrZoom
+                bare
+                ink={LOYALTY_CARD.qrInk}
+                value={`coligo:user:${overview.handle}`}
+                size={86}
+                caption={t("loyMyQrDesc")}
+                fullValue={t("loyMyQrTitle")}
+                expandLabel={t("loyMyQrTitle")}
+              />
             </div>
+          ) : (
+            <div className="size-[102px] shrink-0 animate-pulse rounded-xl bg-white/25" />
+          )}
+          <div className="min-w-0 flex-1">
+            <p className="text-base leading-tight font-black tracking-tight">
+              {t("loyMyQrTitle")}
+            </p>
+            <p className="mt-1 text-xs leading-relaxed font-semibold opacity-85">
+              {t("loyMyQrDesc")}
+            </p>
           </div>
-
-          <button
-            type="button"
-            onClick={() => {
-              setLinkPrefill(null);
-              setLinkOpen(true);
-            }}
-            className="bg-on-brand text-primary-700 rounded-control mt-4 flex h-11 w-full items-center justify-center gap-1.5 text-sm font-extrabold transition active:scale-[.98]"
-          >
-            <Plus className="size-4" />
-            {t("loyLinkCard")}
-          </button>
         </div>
-      </section>
+
+        <button
+          type="button"
+          onClick={() => {
+            setLinkPrefill(null);
+            setLinkOpen(true);
+          }}
+          className="bg-on-brand text-primary-700 rounded-control mt-4 flex h-11 w-full items-center justify-center gap-1.5 text-sm font-extrabold transition active:scale-[.98]"
+        >
+          <Plus className="size-4" />
+          {t("loyLinkCard")}
+        </button>
+      </LoyaltyCardFace>
 
       {newVoucherIds.length > 0 && (
         <div className="border-success-200 bg-success-50 mt-3 flex items-center gap-2.5 rounded-md border p-3">
@@ -429,6 +411,18 @@ function StoreDetail({
     return () => cancelAnimationFrame(id);
   }, [pct]);
 
+  // « Voir plus » : pages suivantes de l'historique (20 par page, mig 0461).
+  const fetchMore = useMemo(
+    () => (page: number) => fetchLoyaltyHistory(account.merchant_id, page),
+    [account.merchant_id]
+  );
+  const more = useSeeMore<LoyaltyHistoryEntry>(
+    fetchMore,
+    HISTORY_PAGE,
+    account.merchant_id
+  );
+  const entries = [...(history ?? []), ...more.extra];
+
   return (
     <div className="space-y-4">
       {/* Solde dépensable CHEZ CE magasin uniquement. */}
@@ -540,32 +534,43 @@ function StoreDetail({
               />
             ))}
           </div>
-        ) : (history ?? []).length === 0 ? (
+        ) : entries.length === 0 ? (
           <p className="text-muted py-4 text-center text-sm">
             {t("loyHistoryEmpty")}
           </p>
         ) : (
-          <ul className="divide-border divide-y">
-            {(history ?? []).map((e) => (
-              <li key={e.id} className="flex items-center gap-3 py-2.5">
-                <div className="min-w-0 flex-1">
-                  <p className="text-foreground text-sm font-semibold">
-                    {t(historyLabelKey(e.type))}
-                  </p>
-                  <p className="text-subtle text-xs">{dayFr(e.created_at)}</p>
-                </div>
-                <span
-                  className={
-                    "text-sm font-extrabold tabular-nums " +
-                    (e.amount_da >= 0 ? "text-success-700" : "text-foreground")
-                  }
-                >
-                  {e.amount_da >= 0 ? "+" : "−"}
-                  {formatDA(Math.abs(e.amount_da))}
-                </span>
-              </li>
-            ))}
-          </ul>
+          <>
+            <ul className="divide-border divide-y">
+              {entries.map((e) => (
+                <li key={e.id} className="flex items-center gap-3 py-2.5">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-foreground text-sm font-semibold">
+                      {t(historyLabelKey(e.type))}
+                    </p>
+                    <p className="text-subtle text-xs">{dayFr(e.created_at)}</p>
+                  </div>
+                  <span
+                    className={
+                      "text-sm font-extrabold tabular-nums " +
+                      (e.amount_da >= 0
+                        ? "text-success-700"
+                        : "text-foreground")
+                    }
+                  >
+                    {e.amount_da >= 0 ? "+" : "−"}
+                    {formatDA(Math.abs(e.amount_da))}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {(history ?? []).length >= HISTORY_PAGE && !more.end && (
+              <SeeMoreButton
+                onClick={() => void more.loadMore()}
+                loading={more.loading}
+                label={t("seeMore")}
+              />
+            )}
+          </>
         )}
       </div>
     </div>
@@ -625,12 +630,10 @@ function StoreCard({
     <button
       type="button"
       onClick={onHistory}
-      className="rounded-panel-lg relative block w-full overflow-hidden p-4 text-start text-white transition-transform active:scale-[.99]"
-      style={{ backgroundImage: LOYALTY_GRADIENT }}
+      className="block w-full text-start transition-transform active:scale-[.99]"
     >
-      <CardFacets />
-      <div className="relative z-10">
-        <div className="flex items-center gap-3">
+      <LoyaltyCardFace compact>
+        <div className="mt-3.5 flex items-center gap-3">
           {account.merchant_logo ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img
@@ -697,7 +700,7 @@ function StoreCard({
             </p>
           </div>
         )}
-      </div>
+      </LoyaltyCardFace>
     </button>
   );
 }

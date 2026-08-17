@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Gift, Sparkles, Ticket, Users, Wallet } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Segmented } from "@/components/ui/segmented";
 import { Toggle } from "@/components/ui/toggle";
 import { ActionButton } from "@/components/ui/action-button";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
@@ -65,6 +66,11 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
 
   const [enabled, setEnabled] = useState(program?.enabled ?? false);
   const [rate, setRate] = useState(String(program?.earn_rate_pct ?? 5));
+  // Mode POINTS = taux 0 % (accepté par le cœur : progression seule) — le
+  // client cumule uniquement vers les PALIERS (« tous les X DA → un bon »).
+  const [mode, setMode] = useState<"cash" | "points">(
+    program && Number(program.earn_rate_pct) === 0 ? "points" : "cash"
+  );
   const [tierOn, setTierOn] = useState(
     program ? program.tier_threshold_da !== null : true
   );
@@ -87,16 +93,20 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
     if (formState.ok) router.refresh();
   }, [formState, router]);
 
+  const isPoints = mode === "points";
+  // En mode points : palier OBLIGATOIRE (c'est le seul gain) et taux forcé à 0.
+  const effTierOn = isPoints || tierOn;
+
   const preview = useMemo(() => {
     const amount = Math.max(0, Math.round(Number(sim) || 0));
-    const r = Number(rate.replace(",", ".")) || 0;
-    const th = tierOn ? Math.round(Number(threshold) || 0) : 0;
-    const rw = tierOn ? Math.round(Number(reward) || 0) : 0;
+    const r = isPoints ? 0 : Number(rate.replace(",", ".")) || 0;
+    const th = effTierOn ? Math.round(Number(threshold) || 0) : 0;
+    const rw = effTierOn ? Math.round(Number(reward) || 0) : 0;
     const cash = Math.round((amount * r) / 100);
     const vouchers = th > 0 ? Math.floor(amount / th) : 0;
     const towardNext = th > 0 ? th - (amount % th) : 0;
     return { amount, cash, vouchers, reward: rw, towardNext, hasTier: th > 0 };
-  }, [sim, rate, tierOn, threshold, reward]);
+  }, [sim, rate, isPoints, effTierOn, threshold, reward]);
 
   const hasActivity =
     stats.members > 0 || stats.earned_30d_da > 0 || stats.redeemed_30d_da > 0;
@@ -104,7 +114,8 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
   return (
     <form action={action} className="space-y-4">
       <input type="hidden" name="enabled" value={enabled ? "1" : "0"} />
-      <input type="hidden" name="tier_on" value={tierOn ? "1" : "0"} />
+      <input type="hidden" name="tier_on" value={effTierOn ? "1" : "0"} />
+      {isPoints && <input type="hidden" name="earn_rate_pct" value="0" />}
 
       {hasActivity && (
         <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -145,24 +156,47 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
         />
       </div>
 
-      {/* Cashback */}
+      {/* Mode : cashback en % OU points (paliers seuls, taux 0). */}
       <div className="border-border bg-surface space-y-3 rounded-md border p-3">
-        <p className="text-sm font-semibold">Cashback</p>
-        <div className="space-y-1.5">
-          <Label htmlFor="earn_rate_pct">Taux sur chaque achat (%)</Label>
-          <Input
-            id="earn_rate_pct"
-            name="earn_rate_pct"
-            inputMode="decimal"
-            value={rate}
-            onChange={(e) => setRate(e.target.value)}
-            disabled={pending}
-          />
-          <p className="text-subtle text-xs">
-            Autorisé : {String(bounds.min_earn_rate_pct)} % à{" "}
-            {String(bounds.max_earn_rate_pct)} %.
-          </p>
-        </div>
+        <p className="text-sm font-semibold">Mode de récompense</p>
+        <Segmented<"cash" | "points">
+          ariaLabel="Mode de récompense"
+          value={mode}
+          onChange={(m) => {
+            setMode(m);
+            if (m === "points") {
+              setTierOn(true);
+            } else if (Number(rate.replace(",", ".")) === 0) {
+              setRate("5");
+            }
+          }}
+          options={[
+            { key: "cash", label: "Cashback %" },
+            { key: "points", label: "Points (paliers)" },
+          ]}
+        />
+        <p className="text-muted text-xs">
+          {isPoints
+            ? "Aucun % crédité : le client PROGRESSE à chaque achat vers un bon (« tous les X DA → un bon de Y DA »)."
+            : "Un % de chaque achat est crédité en cagnotte, dépensable chez vous."}
+        </p>
+        {!isPoints && (
+          <div className="space-y-1.5">
+            <Label htmlFor="earn_rate_pct">Taux sur chaque achat (%)</Label>
+            <Input
+              id="earn_rate_pct"
+              name="earn_rate_pct"
+              inputMode="decimal"
+              value={rate}
+              onChange={(e) => setRate(e.target.value)}
+              disabled={pending}
+            />
+            <p className="text-subtle text-xs">
+              Autorisé : {String(bounds.min_earn_rate_pct)} % à{" "}
+              {String(bounds.max_earn_rate_pct)} %.
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Palier */}
@@ -174,9 +208,19 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
               « Tous les X DA dépensés → un bon d&apos;achat de Y DA. »
             </p>
           </div>
-          <Toggle checked={tierOn} onChange={setTierOn} label="Palier bonus" />
+          {isPoints ? (
+            <span className="bg-primary-50 text-primary-700 rounded-full px-2.5 py-1 text-xs font-bold">
+              obligatoire en mode points
+            </span>
+          ) : (
+            <Toggle
+              checked={tierOn}
+              onChange={setTierOn}
+              label="Palier bonus"
+            />
+          )}
         </div>
-        {tierOn && (
+        {effTierOn && (
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
               <Label htmlFor="tier_threshold_da">Seuil (DA)</Label>
@@ -225,7 +269,7 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
             </div>
           </div>
         )}
-        {!tierOn && (
+        {!effTierOn && (
           <input type="hidden" name="voucher_validity_days" value={validity} />
         )}
       </div>
@@ -248,18 +292,35 @@ export function LoyaltyProgramForm({ state }: { state: LoyaltyState }) {
           <span className="text-primary-900 text-sm">DA</span>
         </div>
         <p className="text-primary-900 text-sm">
-          Il gagnera <strong>{formatDA(preview.cash)} de cashback</strong>
-          {preview.hasTier && preview.vouchers > 0 && (
+          {isPoints ? (
+            preview.hasTier && preview.vouchers > 0 ? (
+              <>
+                Il gagnera{" "}
+                <strong>
+                  {preview.vouchers} bon{preview.vouchers > 1 ? "s" : ""} de{" "}
+                  {formatDA(preview.reward)}
+                </strong>
+                .
+              </>
+            ) : (
+              <>Il progresse vers son prochain bon (aucun % crédité).</>
+            )
+          ) : (
             <>
-              {" "}
-              +{" "}
-              <strong>
-                {preview.vouchers} bon{preview.vouchers > 1 ? "s" : ""} de{" "}
-                {formatDA(preview.reward)}
-              </strong>
+              Il gagnera <strong>{formatDA(preview.cash)} de cashback</strong>
+              {preview.hasTier && preview.vouchers > 0 && (
+                <>
+                  {" "}
+                  +{" "}
+                  <strong>
+                    {preview.vouchers} bon{preview.vouchers > 1 ? "s" : ""} de{" "}
+                    {formatDA(preview.reward)}
+                  </strong>
+                </>
+              )}
+              .
             </>
           )}
-          .
         </p>
         {preview.hasTier && preview.towardNext > 0 && (
           <p className="text-primary-800 text-xs">

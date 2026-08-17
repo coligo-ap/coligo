@@ -97,8 +97,42 @@ blocked` via `loyalty_card_transition` uniquement + journal
   direct) ; outil support (recherche, blocage, déblocage, transfert).
   PDF : 1 carte/page recto puis verso (duplex), CR80 85,6×54 mm + fonds
   perdus 3 mm + traits de coupe, QR = `https://coligo.app/c/<code>`
-  (`NEXT_PUBLIC_SITE_URL` — origine STABLE), pastille كوليغو = PNG embarqué
-  (`outputFileTracingIncludes`).
+  (`NEXT_PUBLIC_SITE_URL` — origine STABLE), assets de marque embarqués
+  (`outputFileTracingIncludes` → `public/brand/**`).
+
+## Design de RÉFÉRENCE + gestion des lots (17/08/2026, mig 0461)
+
+- **Design des cartes = maquettes du propriétaire (11482/11483), à
+  l'identique** : dégradé diagonal violet → rose à facettes (PNG pré-rendus
+  `public/brand/loyalty-card-bg-<modèle>.png`, générés une fois — la MÊME
+  image sert au PDF ET à l'aperçu console), logotype Coligo FR+AR
+  (`brand/logo-full-white.png`), pilule « CARTE FIDÉLITÉ · بطاقة الوفاء »
+  (texte arabe = PNG `brand/loyalty-ar-wafa-*.png`, pdf-lib ne façonne pas
+  l'arabe), **QR à modules VIOLETS** sur panneau blanc arrondi, « CHEZ +
+  commerçant », numéro mono en pied. Verso : QR de téléchargement (`/app`),
+  badges stores flat, « SERVICES EXCLUSIFS » (icônes lucide au trait),
+  service client. Côté app : `LoyaltyCardFace`
+  (`components/customer/loyalty/card-face.tsx`) réplique le recto (héro « ma
+  carte » + cartes-magasins) — couleurs FIXES, c'est l'objet physique.
+- **Visuel PERSONNALISÉ par lot** : l'équipe Coligo peut fournir recto/verso
+  (PNG/JPG, fond perdu compris, validés par MAGIC BYTES, bucket PRIVÉ
+  `loyalty-card-art`, service_role après garde admin). Recto = image + QR +
+  numéro SEULEMENT ; verso = image telle quelle.
+- **Cycle de vie du LOT entier** : bloquer / débloquer (chaque carte
+  retrouve son état d'avant blocage) / **supprimer (DOUX)** — le lot reste
+  au journal (badge « supprimé »), chaque carte tracée dans
+  `loyalty_card_events` + `admin_audit_log`. Recherche serveur du journal
+  (nom / note / n° de lot / « générique »).
+- **Téléchargement DIRECT du PDF partout** : `lib/native/download-file.ts`
+  (fetch même-origine → Filesystem+Share en APK, `<a download>` en
+  navigateur) — plus jamais la redirection WebView vers l'accueil.
+- **Client** : onglet **Fidélité par DÉFAUT** sur `/cashback`
+  (`?tab=cashback` force l'autre onglet) ; historiques **PAGINÉS 20/page**
+  (« Voir plus » — fidélité `my_loyalty_history(p_offset)`, cashback et
+  Coligo Pay par `range()`), hook partagé `useSeeMore`.
+- **Commerçant** : sélecteur de mode **« Cashback % » / « Points
+  (paliers) »** — points = taux 0 (accepté par le cœur : progression seule
+  vers les bons), palier obligatoire.
 
 ## Tests
 

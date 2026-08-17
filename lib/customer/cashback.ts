@@ -120,23 +120,26 @@ export async function getTopupCreditedLast30dForCustomer(
  * (Coligo Pay) — chacun a sa page dédiée côté client.
  */
 export async function getMyCashbackHistory(
-  limit = 100
+  limit = 100,
+  offset = 0
 ): Promise<CustomerWalletEntry[]> {
-  return getMyWalletHistory("cashback", limit);
+  return getMyWalletHistory("cashback", limit, offset);
 }
 
 /**
  * Historique COLIGO PAY (topup) uniquement du client connecté.
  */
 export async function getMyTopupHistory(
-  limit = 100
+  limit = 100,
+  offset = 0
 ): Promise<CustomerWalletEntry[]> {
-  return getMyWalletHistory("topup", limit);
+  return getMyWalletHistory("topup", limit, offset);
 }
 
 async function getMyWalletHistory(
   source: "cashback" | "topup",
-  limit: number
+  limit: number,
+  offset = 0
 ): Promise<CustomerWalletEntry[]> {
   const supabase = await createClient();
   const {
@@ -151,13 +154,15 @@ async function getMyWalletHistory(
     .maybeSingle();
   if (!customer) return [];
 
+  // PAGINATION OBLIGATOIRE (règle produit) : jamais « tout télécharger » —
+  // la fenêtre demandée seulement, l'appelant enchaîne les pages.
   const { data } = await supabase
     .from("customer_wallet_entries")
     .select("id, order_id, type, source, amount_da, note, created_at")
     .eq("customer_id", customer.id)
     .eq("source", source)
     .order("created_at", { ascending: false })
-    .limit(limit);
+    .range(Math.max(0, offset), Math.max(0, offset) + limit - 1);
 
   return (data ?? []) as CustomerWalletEntry[];
 }

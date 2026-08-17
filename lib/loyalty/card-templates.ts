@@ -1,59 +1,56 @@
 import { LOYALTY_CARD } from "@/lib/design/tokens";
 
 /**
- * MODÈLES VISUELS des cartes de fidélité physiques (SPEC-FIDELITE 4.0).
- * SOURCE UNIQUE partagée entre :
- *   - le PDF d'impression (lib/loyalty/card-pdf.ts, pdf-lib serveur) ;
- *   - l'aperçu de la console super-admin (mini-cartes CSS).
- * Design FLAT (règle maison) : fonds pleins + une forme d'accent, zéro ombre.
- * Les TEINTES vivent dans lib/design/tokens.ts (section LOYALTY_CARD) — des
- * cartes imprimées circulent, on n'y retouche jamais un modèle : on en ajoute.
+ * MODÈLES VISUELS des cartes de fidélité physiques — design de RÉFÉRENCE du
+ * propriétaire (maquettes 11482/11483) : dégradé diagonal violet → rose à
+ * facettes. SOURCE UNIQUE partagée entre :
+ *   - le PDF d'impression (lib/loyalty/card-pdf.ts, pdf-lib serveur) qui
+ *     embarque le PNG public/brand/loyalty-card-bg-<clé>.png ;
+ *   - l'aperçu de la console super-admin (mini-cartes CSS, MÊME PNG) ;
+ *   - les cartes fidélité de l'app client (dégradé CSS, mêmes stops).
+ * Les TEINTES vivent dans lib/design/tokens.ts (section LOYALTY_CARD).
  */
 
 export type CardTemplate = {
   key: string;
   label: string;
   desc: string;
-  /** Fond du recto (aplat, étendu jusqu'aux fonds perdus). */
-  bg: string;
-  /** Forme d'accent (disque plein en coin) + filets du verso. */
-  accent: string;
-  /** Texte principal du recto. */
+  /** Stops du dégradé diagonal 135° (mêmes teintes que le PNG de fond). */
+  g1: string;
+  g2: string;
+  g3: string;
+  /** Texte principal / secondaire posé sur le dégradé. */
   text: string;
-  /** Texte secondaire du recto (mentions, sous-titres). */
   subtext: string;
-  /** Le verso reste clair (lisibilité imprimeur) : bandeau + accents. */
-  versoAccent: string;
+  /** true = modèle CLAIR : logo/pilules/encres FONCÉS (violet). */
+  light?: boolean;
 };
 
 export const CARD_TEMPLATES: CardTemplate[] = [
   {
     key: "violet",
     label: "Violet Coligo",
-    desc: "La marque, plein aplat — le classique.",
+    desc: "La maquette de référence — violet profond → rose.",
     ...LOYALTY_CARD.violet,
-    versoAccent: LOYALTY_CARD.violet.bg,
   },
   {
     key: "nuit",
     label: "Nuit",
-    desc: "Encre profonde, accent rose — premium.",
+    desc: "Encre profonde, finale rose — premium.",
     ...LOYALTY_CARD.nuit,
-    versoAccent: LOYALTY_CARD.nuit.bg,
   },
   {
     key: "clair",
     label: "Clair",
     desc: "Fond blanc, accents violets — sobre.",
     ...LOYALTY_CARD.clair,
-    versoAccent: LOYALTY_CARD.clair.accent,
+    light: true,
   },
   {
     key: "rose",
     label: "Rose",
     desc: "Rose Coligo, énergique — commerces mode/beauté.",
     ...LOYALTY_CARD.rose,
-    versoAccent: LOYALTY_CARD.rose.bg,
   },
 ];
 
@@ -66,17 +63,30 @@ export function getCardTemplate(key: string | null | undefined): CardTemplate {
   );
 }
 
+/** Dégradé CSS du modèle (cartes client + aperçus) — mêmes stops que le PNG. */
+export function cardGradientCss(tpl: CardTemplate): string {
+  return `linear-gradient(135deg, ${tpl.g1} 0%, ${tpl.g2} 55%, ${tpl.g3} 100%)`;
+}
+
+/** Fond dégradé pré-rendu (fonds perdus compris) — embarqué dans le PDF et
+ *  affiché tel quel dans l'aperçu console (fidélité garantie). */
+export function cardBgAssetPath(key: string): string {
+  return `/brand/loyalty-card-bg-${getCardTemplate(key).key}.png`;
+}
+
+/** Logotype Coligo FR+AR adapté au modèle (blanc sur sombre, encre sur clair). */
+export function cardLogoAssetPath(tpl: CardTemplate): string {
+  return tpl.light ? "/brand/logo-full.png" : "/brand/logo-full-white.png";
+}
+
+/** « بطاقة الوفاء » (pilule du recto) adapté au modèle. */
+export function cardArWafaAssetPath(tpl: CardTemplate): string {
+  return tpl.light
+    ? "/brand/loyalty-ar-wafa-violet.png"
+    : "/brand/loyalty-ar-wafa-white.png";
+}
+
 /** Numéro imprimé sous le QR : groupes de 4, lisible et re-saisissable. */
 export function groupCardCode(code: string): string {
   return code.replace(/(.{4})/g, "$1 ").trim();
 }
-
-/**
- * VAGUES du bas de carte (langage marketplace / ThemeDecor) — deux couches
- * flat dans un viewBox 0 0 100 30, SOURCE UNIQUE partagée entre le PDF
- * (drawSvgPath) et l'aperçu CSS de la console (même dessin, garanti).
- */
-export const CARD_WAVE_BACK =
-  "M0 14 C 20 4, 34 22, 52 12 C 68 4, 84 18, 100 8 L 100 30 L 0 30 Z";
-export const CARD_WAVE_FRONT =
-  "M0 22 C 22 14, 40 28, 60 20 C 76 14, 90 24, 100 18 L 100 30 L 0 30 Z";

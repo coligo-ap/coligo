@@ -1,24 +1,41 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Layers, Printer } from "lucide-react";
+import {
+  Ban,
+  Download,
+  ImagePlus,
+  Layers,
+  Loader2,
+  Printer,
+  Search,
+  Trash2,
+  Undo2,
+} from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ToggleRow } from "@/components/ui/toggle";
 import { ActionButton } from "@/components/ui/action-button";
+import { useConfirm } from "@/components/ui/confirm";
 import { useFormActionFeedback } from "@/lib/hooks/use-action-button";
 import { cn } from "@/lib/utils";
-import {
-  CARD_TEMPLATES,
-  CARD_WAVE_BACK,
-  CARD_WAVE_FRONT,
-  DEFAULT_TEMPLATE_KEY,
-  getCardTemplate,
-} from "@/lib/loyalty/card-templates";
+import { downloadFile } from "@/lib/native/download-file";
 import { LOYALTY_CARD } from "@/lib/design/tokens";
 import {
+  CARD_TEMPLATES,
+  DEFAULT_TEMPLATE_KEY,
+  cardBgAssetPath,
+  cardLogoAssetPath,
+  getCardTemplate,
+  type CardTemplate,
+} from "@/lib/loyalty/card-templates";
+import {
+  adminBlockLoyaltyBatch,
   adminCreateLoyaltyBatch,
+  adminDeleteLoyaltyBatch,
+  adminListLoyaltyBatches,
+  adminUnblockLoyaltyBatch,
   type CreateBatchResult,
   type LoyaltyMerchantHit,
 } from "@/app/admin/merchants/fidelite/actions";
@@ -40,6 +57,10 @@ export type LoyaltyBatchRow = {
   print_merchant_name: boolean;
   /** Cartes nées « activated » (0460) — utilisables en caisse sans compte. */
   pre_activated: boolean;
+  /** Visuel recto/verso fourni par l'équipe Coligo (0461). */
+  has_custom_art: boolean;
+  /** Suppression DOUCE (0461) : lot conservé, cartes toutes bloquées. */
+  deleted_at: string | null;
   printed: number;
   activated: number;
   linked: number;
@@ -57,76 +78,140 @@ function dayFr(iso: string): string {
 
 const pdfHref = (batchId: string) => `/api/pdf/cartes-fidelite/${batchId}`;
 
-/** Aperçu miniature d'un modèle (mêmes teintes que le PDF — source unique).
- *  `merchantName` vide = carte générique (même mention que le PDF). */
+/** Téléchargement DIRECT du PDF (helper natif) : fiable navigateur ET WebView
+ *  Capacitor — plus jamais la redirection vers l'app au clic. État local. */
+function PdfDownloadButton({
+  batchId,
+  className,
+  label = "PDF",
+}: {
+  batchId: string;
+  className?: string;
+  label?: string;
+}) {
+  const [busy, setBusy] = useState(false);
+  const [failed, setFailed] = useState(false);
+  return (
+    <button
+      type="button"
+      disabled={busy}
+      onClick={async () => {
+        setBusy(true);
+        setFailed(false);
+        const r = await downloadFile(
+          pdfHref(batchId),
+          `cartes-fidelite-${batchId.slice(0, 8)}.pdf`
+        );
+        if (!r.ok) setFailed(true);
+        setBusy(false);
+      }}
+      className={cn(
+        "flex items-center gap-1.5 rounded-md text-xs font-bold disabled:opacity-60",
+        failed
+          ? "border-danger-300 text-danger-700 border px-2.5 py-1.5"
+          : "border-border hover:bg-surface-2 border px-2.5 py-1.5",
+        className
+      )}
+    >
+      {busy ? (
+        <Loader2 className="size-3.5 animate-spin" />
+      ) : (
+        <Download className="size-3.5" />
+      )}
+      {failed ? "Réessayer" : label}
+    </button>
+  );
+}
+
+/** Aperçu miniature d'un modèle — MÊME PNG de fond que le PDF (source visuelle
+ *  unique) + logo + pilule + QR factice + « CHEZ … » : la réplique du recto. */
 function TemplatePreview({
-  templateKey,
+  tpl,
   merchantName,
 }: {
-  templateKey: string;
+  tpl: CardTemplate;
   merchantName: string;
 }) {
-  const tpl = getCardTemplate(templateKey);
   return (
     <div
-      className="relative flex aspect-[856/540] w-full flex-col justify-between overflow-hidden rounded-md border p-2"
-      style={{ background: tpl.bg, borderColor: tpl.accent }}
+      className="relative flex aspect-[856/540] w-full flex-col justify-between overflow-hidden rounded-md border p-1.5"
+      style={{
+        backgroundImage: `url(${cardBgAssetPath(tpl.key)})`,
+        backgroundSize: "cover",
+        backgroundPosition: "center",
+        borderColor: tpl.g2,
+        color: tpl.text,
+      }}
     >
-      {/* Vagues du bas — MÊMES tracés que le PDF (source unique). */}
-      <svg
-        viewBox="0 0 100 30"
-        preserveAspectRatio="none"
-        className="absolute inset-x-0 bottom-0 h-1/2 w-full"
-        aria-hidden
-      >
-        <path d={CARD_WAVE_BACK} fill={tpl.text} opacity={0.08} />
-        <path d={CARD_WAVE_FRONT} fill={tpl.accent} />
-      </svg>
-      <div className="relative z-10 flex items-start justify-between">
-        <span
-          className="text-micro leading-none font-black"
-          style={{ color: tpl.text }}
-        >
-          Coligo
-        </span>
-        {/* Faux QR d'aperçu (teintes = tokens LOYALTY_CARD, comme le PDF). */}
-        <span
-          className="size-5 rounded-xs"
-          style={{
-            background: LOYALTY_CARD.paper,
-            backgroundImage: `repeating-linear-gradient(0deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px),repeating-linear-gradient(90deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px)`,
-            backgroundSize: "70% 70%",
-            backgroundPosition: "center",
-            backgroundRepeat: "no-repeat",
-          }}
-          aria-hidden
+      <div className="flex items-start justify-between gap-1">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={cardLogoAssetPath(tpl)}
+          alt=""
+          className="h-3.5 w-auto"
+          loading="lazy"
         />
+        <span
+          className="rounded-full px-1 py-px text-[4px] font-black tracking-wider"
+          style={{
+            backgroundColor: tpl.light
+              ? LOYALTY_CARD.pillOnLight
+              : LOYALTY_CARD.pillOnDark,
+          }}
+        >
+          CARTE FIDÉLITÉ
+        </span>
       </div>
-      <div className="relative z-10">
-        <p
-          className="text-[6px] tracking-widest uppercase"
-          style={{ color: tpl.subtext }}
-        >
-          Carte fidélité
-        </p>
-        <p
-          className="truncate text-[8px] leading-tight font-bold"
-          style={{ color: tpl.text }}
-        >
-          {merchantName
-            ? `Chez ${merchantName}`
-            : "Valable chez tous tes commerçants."}
-        </p>
+      <div className="flex items-end justify-between gap-1.5">
+        <div>
+          {/* Faux QR : panneau blanc arrondi, encre violette (comme le PDF). */}
+          <span
+            className="block size-6 rounded-[3px]"
+            style={{
+              background: LOYALTY_CARD.paper,
+              backgroundImage: `repeating-linear-gradient(0deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px),repeating-linear-gradient(90deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px)`,
+              backgroundSize: "70% 70%",
+              backgroundPosition: "center",
+              backgroundRepeat: "no-repeat",
+            }}
+            aria-hidden
+          />
+          <p className="mt-0.5 font-mono text-[4.5px] font-bold tracking-widest">
+            AB3F 9K72 4C6D
+          </p>
+        </div>
+        <div className="min-w-0 text-end">
+          {merchantName ? (
+            <>
+              <p
+                className="text-[5px] tracking-widest"
+                style={{ color: tpl.subtext }}
+              >
+                CHEZ
+              </p>
+              <p className="truncate text-[8px] leading-tight font-black">
+                {merchantName}
+              </p>
+            </>
+          ) : (
+            <p className="text-[6px] leading-tight font-bold">
+              Valable chez tous
+              <br />
+              tes commerçants.
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );
 }
 
 /**
- * Console de génération des LOTS de cartes (SPEC-FIDELITE 4.0) : choix du
- * commerçant, du MODÈLE VISUEL (aperçus), de la quantité (plafond réglé dans
- * les bornes), puis PDF d'impression retéléchargeable À TOUT MOMENT depuis le
- * journal — le fichier est régénéré à la volée, jamais stocké.
+ * Console de génération des LOTS de cartes : choix du commerçant, du MODÈLE
+ * VISUEL (aperçus = mêmes fonds que le PDF) ou d'un VISUEL PERSONNALISÉ
+ * recto/verso (0461), quantité bornée, puis PDF d'impression retéléchargeable
+ * À TOUT MOMENT depuis le journal (régénéré à la volée, jamais stocké).
+ * Journal : recherche serveur, blocage/déblocage/suppression du LOT ENTIER.
  */
 export function LoyaltyCardsConsole({
   batches,
@@ -136,6 +221,7 @@ export function LoyaltyCardsConsole({
   maxBatch: number;
 }) {
   const router = useRouter();
+  const confirm = useConfirm();
   const [state, action, pending] = useActionState(
     adminCreateLoyaltyBatch,
     initial
@@ -152,11 +238,91 @@ export function LoyaltyCardsConsole({
   // imprimé quand un commerçant est choisi, cartes PRÉ-ACTIVÉES.
   const [printName, setPrintName] = useState(true);
   const [preActivated, setPreActivated] = useState(true);
+  const [hasArtRecto, setHasArtRecto] = useState(false);
   const merchantName = selected && printName ? selected.name : "";
+
+  // Journal : recherche SERVEUR débouncée (ilike nom / note / n° / générique).
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<LoyaltyBatchRow[] | null>(null);
+  const [searching, setSearching] = useState(false);
+  const searchSeq = useRef(0);
+  useEffect(() => {
+    const q = query.trim();
+    if (!q) {
+      setResults(null);
+      setSearching(false);
+      return;
+    }
+    setSearching(true);
+    const seq = ++searchSeq.current;
+    const id = window.setTimeout(async () => {
+      const rows = await adminListLoyaltyBatches(q);
+      if (searchSeq.current === seq) {
+        setResults(rows);
+        setSearching(false);
+      }
+    }, 350);
+    return () => window.clearTimeout(id);
+  }, [query]);
+
+  // Opérations de lot : état LOCAL par ligne (jamais un verrou global).
+  const [rowBusy, setRowBusy] = useState<string | null>(null);
+  const [rowError, setRowError] = useState<string | null>(null);
+
+  async function runBatchOp(
+    b: LoyaltyBatchRow,
+    op: "block" | "unblock" | "delete"
+  ) {
+    const label = b.merchant_name ?? "cartes génériques";
+    const confirmed = await confirm(
+      op === "delete"
+        ? {
+            title: `Supprimer le lot (${label}, ${b.quantity} cartes) ?`,
+            message:
+              "Toutes les cartes de la série sont désactivées immédiatement. Le lot reste consultable dans le journal (traçabilité).",
+            confirmLabel: "Supprimer le lot",
+            danger: true,
+          }
+        : op === "block"
+          ? {
+              title: `Bloquer les cartes du lot (${label}) ?`,
+              message: `${b.quantity - b.blocked} carte(s) seront refusées en caisse jusqu'au déblocage.`,
+              confirmLabel: "Bloquer",
+              danger: true,
+            }
+          : {
+              title: `Débloquer les cartes du lot (${label}) ?`,
+              message: `${b.blocked} carte(s) retrouvent leur état d'avant blocage.`,
+              confirmLabel: "Débloquer",
+            }
+    );
+    if (!confirmed) return;
+    setRowBusy(`${b.id}:${op}`);
+    setRowError(null);
+    const r =
+      op === "delete"
+        ? await adminDeleteLoyaltyBatch(b.id)
+        : op === "block"
+          ? await adminBlockLoyaltyBatch(b.id)
+          : await adminUnblockLoyaltyBatch(b.id);
+    setRowBusy(null);
+    if (!r.ok) {
+      setRowError(
+        r.reason === "deleted"
+          ? "Lot supprimé : déblocage impossible."
+          : "Opération impossible. Réessayez."
+      );
+      return;
+    }
+    router.refresh();
+    if (query.trim()) setResults(await adminListLoyaltyBatches(query));
+  }
 
   useEffect(() => {
     if (state.ok) router.refresh();
   }, [state, router]);
+
+  const shown = results ?? batches;
 
   return (
     <section className="space-y-4">
@@ -195,7 +361,7 @@ export function LoyaltyCardsConsole({
           </div>
         </div>
 
-        <div className="space-y-1.5">
+        <div className={cn("space-y-1.5", hasArtRecto && "opacity-50")}>
           <Label>Modèle visuel</Label>
           <input type="hidden" name="template_key" value={template} />
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -205,6 +371,7 @@ export function LoyaltyCardsConsole({
                 type="button"
                 onClick={() => setTemplate(tplDef.key)}
                 aria-pressed={template === tplDef.key}
+                disabled={hasArtRecto}
                 className={cn(
                   "rounded-md p-1.5 text-start transition",
                   template === tplDef.key
@@ -212,10 +379,7 @@ export function LoyaltyCardsConsole({
                     : "hover:bg-surface-2"
                 )}
               >
-                <TemplatePreview
-                  templateKey={tplDef.key}
-                  merchantName={merchantName}
-                />
+                <TemplatePreview tpl={tplDef} merchantName={merchantName} />
                 <p className="mt-1.5 text-xs font-bold">{tplDef.label}</p>
                 <p className="text-subtle text-caption leading-tight">
                   {tplDef.desc}
@@ -223,6 +387,52 @@ export function LoyaltyCardsConsole({
               </button>
             ))}
           </div>
+          {hasArtRecto && (
+            <p className="text-subtle text-xs">
+              Modèle ignoré : le lot utilisera votre visuel personnalisé.
+            </p>
+          )}
+        </div>
+
+        {/* DESIGN PERSONNALISÉ (0461) : recto/verso fournis, fond perdu compris.
+            Le système ne pose alors QUE le QR + le numéro sur le recto. */}
+        <div className="border-border space-y-3 rounded-md border p-3">
+          <p className="flex items-center gap-2 text-sm font-bold">
+            <ImagePlus className="text-primary-600 size-4" />
+            Visuel personnalisé (optionnel)
+          </p>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label htmlFor="art_recto">Recto (PNG/JPG)</Label>
+              <input
+                id="art_recto"
+                name="art_recto"
+                type="file"
+                accept="image/png,image/jpeg"
+                disabled={pending}
+                onChange={(e) =>
+                  setHasArtRecto((e.target.files?.length ?? 0) > 0)
+                }
+                className="text-muted file:bg-primary-50 file:text-primary-700 block w-full text-xs file:me-3 file:rounded-md file:border-0 file:px-3 file:py-2 file:text-xs file:font-bold"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label htmlFor="art_verso">Verso (PNG/JPG)</Label>
+              <input
+                id="art_verso"
+                name="art_verso"
+                type="file"
+                accept="image/png,image/jpeg"
+                disabled={pending}
+                className="text-muted file:bg-primary-50 file:text-primary-700 block w-full text-xs file:me-3 file:rounded-md file:border-0 file:px-3 file:py-2 file:text-xs file:font-bold"
+              />
+            </div>
+          </div>
+          <p className="text-subtle text-xs">
+            Image COMPLÈTE de la carte, fonds perdus 3 mm compris (≥ 1082 × 709
+            px, 8 Mo max). Le système n&apos;ajoute que le QR et le numéro sur
+            le recto ; le verso est imprimé tel quel.
+          </p>
         </div>
 
         {/* Options du lot (0459/0460) — envoyées en champs cachés "1"/"". */}
@@ -277,15 +487,11 @@ export function LoyaltyCardsConsole({
                 ? `Lot de ${state.quantity} cartes créé — PRÉ-ACTIVÉES, prêtes à l'emploi en caisse (sans valeur tant qu'aucun crédit n'est posé).`
                 : `Lot de ${state.quantity} cartes créé — « imprimées », sans valeur avant activation en caisse.`}
             </p>
-            <a
-              href={pdfHref(state.batchId)}
-              target="_blank"
-              rel="noreferrer"
-              className="bg-success-600 hover:bg-success-700 flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-bold text-white"
-            >
-              <Download className="size-4" />
-              Télécharger le PDF
-            </a>
+            <PdfDownloadButton
+              batchId={state.batchId}
+              label="Télécharger le PDF"
+              className="bg-success-600 hover:bg-success-700 border-0 px-3 py-2 text-sm text-white"
+            />
           </div>
         )}
 
@@ -305,24 +511,49 @@ export function LoyaltyCardsConsole({
           et modifiable ici même (intervention rapide support). */}
       {selected && <RemoteProgramPanel merchant={selected} />}
 
-      {/* Journal des lots : qui, quand, combien, pour quel commerçant. */}
+      {/* Journal des lots : qui, quand, combien, pour quel commerçant —
+          recherche SERVEUR + opérations sur le lot entier (0461). */}
       <div className="border-border bg-surface rounded-lg border">
-        <p className="border-border flex items-center gap-2 border-b px-4 py-3 text-sm font-bold">
-          <Layers className="text-primary-600 size-4" />
-          Journal des lots
-        </p>
-        {batches.length === 0 ? (
+        <div className="border-border flex flex-wrap items-center gap-3 border-b px-4 py-3">
+          <p className="flex items-center gap-2 text-sm font-bold">
+            <Layers className="text-primary-600 size-4" />
+            Journal des lots
+          </p>
+          <div className="relative ms-auto w-full sm:w-64">
+            <Search className="text-subtle absolute start-2.5 top-1/2 size-4 -translate-y-1/2" />
+            <Input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Commerçant, note, n° de lot…"
+              className="h-9 ps-8 text-sm"
+            />
+          </div>
+        </div>
+        {rowError && (
+          <p className="text-danger-600 border-border border-b px-4 py-2 text-sm">
+            {rowError}
+          </p>
+        )}
+        {searching && !results ? (
+          <p className="text-muted px-4 py-6 text-center text-sm">Recherche…</p>
+        ) : shown.length === 0 ? (
           <p className="text-muted px-4 py-6 text-center text-sm">
-            Aucun lot généré pour l&apos;instant.
+            {query.trim()
+              ? "Aucun lot ne correspond."
+              : "Aucun lot généré pour l'instant."}
           </p>
         ) : (
           <ul className="divide-border divide-y">
-            {batches.map((b) => {
+            {shown.map((b) => {
               const tpl = getCardTemplate(b.template_key);
+              const deleted = !!b.deleted_at;
               return (
                 <li
                   key={b.id}
-                  className="flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3"
+                  className={cn(
+                    "flex flex-wrap items-center gap-x-4 gap-y-2 px-4 py-3",
+                    deleted && "opacity-60"
+                  )}
                 >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-bold">
@@ -331,6 +562,21 @@ export function LoyaltyCardsConsole({
                         {" "}
                         · {b.quantity} cartes
                       </span>
+                      {deleted && (
+                        <span className="bg-danger-50 text-danger-700 ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
+                          supprimé
+                        </span>
+                      )}
+                      {!deleted && b.blocked === b.quantity && (
+                        <span className="bg-danger-50 text-danger-700 ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
+                          bloqué
+                        </span>
+                      )}
+                      {b.has_custom_art && (
+                        <span className="bg-primary-50 text-primary-700 ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
+                          design perso
+                        </span>
+                      )}
                       {b.pre_activated && (
                         <span className="bg-success-50 text-success-700 ms-1.5 rounded-full px-1.5 py-0.5 text-xs font-bold">
                           pré-activées
@@ -348,28 +594,72 @@ export function LoyaltyCardsConsole({
                       {b.note ? ` · ${b.note}` : ""}
                     </p>
                   </div>
-                  <span className="flex items-center gap-1.5 text-xs font-semibold">
-                    <span
-                      className="size-3 rounded-full border"
-                      style={{ background: tpl.bg, borderColor: tpl.accent }}
-                      aria-hidden
-                    />
-                    {tpl.label}
-                  </span>
+                  {!b.has_custom_art && (
+                    <span className="flex items-center gap-1.5 text-xs font-semibold">
+                      <span
+                        className="size-3 rounded-full border"
+                        style={{
+                          backgroundImage: `linear-gradient(135deg, ${tpl.g1}, ${tpl.g3})`,
+                          borderColor: tpl.g2,
+                        }}
+                        aria-hidden
+                      />
+                      {tpl.label}
+                    </span>
+                  )}
                   <span className="text-muted text-xs tabular-nums">
                     {b.printed} à distribuer · {b.activated} activées ·{" "}
                     {b.linked} liées
                     {b.blocked > 0 ? ` · ${b.blocked} bloquées` : ""}
                   </span>
-                  <a
-                    href={pdfHref(b.id)}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="border-border hover:bg-surface-2 flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 text-xs font-bold"
-                  >
-                    <Download className="size-3.5" />
-                    PDF
-                  </a>
+                  <span className="flex items-center gap-1.5">
+                    <PdfDownloadButton batchId={b.id} />
+                    {!deleted && b.blocked < b.quantity && (
+                      <button
+                        type="button"
+                        disabled={rowBusy === `${b.id}:block`}
+                        onClick={() => void runBatchOp(b, "block")}
+                        className="border-border text-danger-700 hover:bg-danger-50 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-bold disabled:opacity-60"
+                      >
+                        {rowBusy === `${b.id}:block` ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Ban className="size-3.5" />
+                        )}
+                        Bloquer
+                      </button>
+                    )}
+                    {!deleted && b.blocked > 0 && (
+                      <button
+                        type="button"
+                        disabled={rowBusy === `${b.id}:unblock`}
+                        onClick={() => void runBatchOp(b, "unblock")}
+                        className="border-border hover:bg-surface-2 flex items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-bold disabled:opacity-60"
+                      >
+                        {rowBusy === `${b.id}:unblock` ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Undo2 className="size-3.5" />
+                        )}
+                        Débloquer
+                      </button>
+                    )}
+                    {!deleted && (
+                      <button
+                        type="button"
+                        disabled={rowBusy === `${b.id}:delete`}
+                        onClick={() => void runBatchOp(b, "delete")}
+                        aria-label="Supprimer le lot"
+                        className="border-border text-danger-700 hover:bg-danger-50 flex items-center gap-1 rounded-md border px-2 py-1.5 text-xs font-bold disabled:opacity-60"
+                      >
+                        {rowBusy === `${b.id}:delete` ? (
+                          <Loader2 className="size-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="size-3.5" />
+                        )}
+                      </button>
+                    )}
+                  </span>
                 </li>
               );
             })}

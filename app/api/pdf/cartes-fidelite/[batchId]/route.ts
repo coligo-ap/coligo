@@ -3,18 +3,36 @@ import path from "node:path";
 import { NextResponse } from "next/server";
 import { adminCan } from "@/lib/auth/admin";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { buildLoyaltyCardsPdf } from "@/lib/loyalty/card-pdf";
+import {
+  cardArWafaAssetPath,
+  cardBgAssetPath,
+  cardLogoAssetPath,
+  getCardTemplate,
+} from "@/lib/loyalty/card-templates";
 
 export const dynamic = "force-dynamic";
 
-// PDF d'impression d'un LOT de cartes fidélité (SPEC-FIDELITE 4.0) — généré à
-// la VOLÉE depuis la base (jamais stocké, patron des contrats) : le super-admin
-// peut le retélécharger à tout moment, le fichier reflète toujours le lot réel.
-// Garde : domaine Commerçants (session admin, jamais service_role).
-
-// Logotype arabe كوليغو (fond blanc) embarqué dans la fonction serverless via
+// PDF d'impression d'un LOT de cartes fidélité — généré à la VOLÉE depuis la
+// base (jamais stocké, patron des contrats) : le super-admin peut le
+// retélécharger à tout moment, le fichier reflète toujours le lot réel (y
+// compris pour un lot supprimé/bloqué : archive imprimable).
+// Garde : domaine Commerçants (session admin). Le service_role ne sert QU'À
+// lire le bucket privé `loyalty-card-art` (visuels personnalisés, mig 0461),
+// APRÈS la garde admin.
+// Les assets de public/brand/ voyagent avec la fonction serverless via
 // outputFileTracingIncludes (next.config.ts) — même patron que les modèles IDV.
-const AR_LOGO_FILE = "logo-coligo-AR-Bg_blanc-Ecr_Violet.png";
+
+async function readPublicAsset(rel: string): Promise<Uint8Array | null> {
+  try {
+    return await fs.readFile(
+      path.join(process.cwd(), "public", rel.replace(/^\//, ""))
+    );
+  } catch {
+    return null; // jamais bloquant : la carte sort en repli vectoriel
+  }
+}
 
 export async function GET(
   _req: Request,
@@ -47,7 +65,7 @@ export async function GET(
 
   const { data: batch } = await from("loyalty_card_batches")
     .select(
-      "id, merchant_id, template_key, quantity, print_merchant_name, merchants(name)"
+      "id, merchant_id, template_key, quantity, print_merchant_name, art_recto_path, art_verso_path, merchants(name)"
     )
     .eq("id", batchId)
     .maybeSingle();
@@ -66,19 +84,38 @@ export async function GET(
     );
   }
 
-  let arabicLogoPng: Uint8Array | null = null;
-  try {
-    arabicLogoPng = await fs.readFile(
-      path.join(process.cwd(), "public", AR_LOGO_FILE)
-    );
-  } catch {
-    /* la carte sort sans la pastille arabe — jamais bloquant */
+  // Visuels PERSONNALISÉS du lot (bucket PRIVÉ — service_role après la garde).
+  let artRecto: Uint8Array | null = null;
+  let artVerso: Uint8Array | null = null;
+  const rectoPath = (batch.art_recto_path as string | null) ?? null;
+  const versoPath = (batch.art_verso_path as string | null) ?? null;
+  if (rectoPath || versoPath) {
+    const admin = createAdminClient();
+    const download = async (p: string | null): Promise<Uint8Array | null> => {
+      if (!p) return null;
+      const { data } = await admin.storage.from("loyalty-card-art").download(p);
+      if (!data) return null;
+      return new Uint8Array(await data.arrayBuffer());
+    };
+    [artRecto, artVerso] = await Promise.all([
+      download(rectoPath),
+      download(versoPath),
+    ]);
   }
 
   // Lot GÉNÉRIQUE (merchant_id NULL) ou nom volontairement non imprimé.
   const merchantName =
     (batch.merchants as { name?: string } | null)?.name ?? null;
   const printMerchantName = batch.print_merchant_name !== false;
+  const templateKey = String(batch.template_key ?? "violet");
+  const tpl = getCardTemplate(templateKey);
+
+  const [backgroundPng, logoPng, arWafaPng] = await Promise.all([
+    readPublicAsset(cardBgAssetPath(templateKey)),
+    readPublicAsset(cardLogoAssetPath(tpl)),
+    readPublicAsset(cardArWafaAssetPath(tpl)),
+  ]);
+
   // Origine STABLE : une carte imprimée vit des années — jamais une URL de
   // déploiement (cf. app/sitemap.ts).
   const baseUrl = (
@@ -88,10 +125,12 @@ export async function GET(
   const bytes = await buildLoyaltyCardsPdf({
     merchantName,
     printMerchantName,
-    templateKey: String(batch.template_key ?? "violet"),
+    templateKey,
     cards: cards.map((c) => ({ code: c.card_code })),
     baseUrl,
-    arabicLogoPng,
+    assets: { backgroundPng, logoPng, arWafaPng },
+    artRecto,
+    artVerso,
   });
 
   const slug = (merchantName ?? "generique")

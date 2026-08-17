@@ -276,31 +276,43 @@ export const RECRUTE_HERO_GRADIENTS = {
  * modèle existant, en AJOUTER un.
  */
 export const LOYALTY_CARD = {
-  /** Encre des modules QR et des traits de coupe (noir d'impression). */
-  qrInk: INK.black,
-  /** Panneau du QR + pastille du logotype arabe (papier). */
+  /** Modules du QR : VIOLET de marque sur panneau blanc (maquette 11482). */
+  qrInk: PRIMARY[600],
+  /** Panneau du QR (papier). */
   paper: INK.white,
+  /** Pilules translucides posées sur la carte (« CARTE FIDÉLITÉ »…). */
+  pillOnDark: "rgba(255,255,255,.16)",
+  pillOnLight: "rgba(108,43,217,.08)",
+  /** Badges stores du verso (App Store / Google Play) — noir profond. */
+  badgeInk: "#0a0a0f",
+  // Chaque modèle = STOPS du dégradé diagonal (135°, g1 → g2 → g3) — les MÊMES
+  // teintes que les PNG public/brand/loyalty-card-bg-<clé>.png (générés une
+  // fois, embarqués dans le PDF et affichés en aperçu console).
   violet: {
-    bg: PRIMARY[600],
-    accent: PRIMARY[400],
+    g1: PRIMARY[900],
+    g2: PRIMARY[600],
+    g3: ACCENT[500],
     text: INK.white,
     subtext: "#e9dffb",
   },
   nuit: {
-    bg: "#221040",
-    accent: ACCENT[500],
+    g1: "#0e0620",
+    g2: PRIMARY[800],
+    g3: ACCENT[600],
     text: INK.white,
     subtext: "#cdbdeb",
   },
   clair: {
-    bg: INK.white,
-    accent: PRIMARY[600],
+    g1: INK.white,
+    g2: PRIMARY[50],
+    g3: PRIMARY[100],
     text: "#1a1030",
     subtext: "#6b7080",
   },
   rose: {
-    bg: ACCENT[500],
-    accent: "#ff6aa5",
+    g1: ACCENT[800],
+    g2: ACCENT[500],
+    g3: ACCENT[400],
     text: INK.white,
     subtext: "#ffe0ec",
   },
