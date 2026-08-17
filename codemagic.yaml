@@ -4,10 +4,10 @@
 # Deux workflows de build PARTAGENT le même environnement + scripts (ancres YAML
 # `&ios_env` / `&ios_scripts` / `&ios_artifacts` / `&ios_int`) :
 #
-#   - ios-client-app-store : AUTO sur push `main` touchant du natif → TestFlight.
-#     Le web (server.url distant) se déploie par Vercel : inutile de rebuilder
-#     l'app native sur une modif web-only (filtre changeset), on économise les
-#     minutes Mac.
+#   - ios-client-app-store : MANUEL uniquement → TestFlight. (Depuis le
+#     17/08/2026 : plus aucun build auto sur push — le quota Codemagic partait
+#     en builds inutiles. Le web se déploie par Vercel, un binaire n'est utile
+#     que sur changement natif → on builde sur tag release-* ou à la demande.)
 #   - ios-client-release   : sur TAG `release-*` → soumission App Store (revue
 #     Apple), publication AUTO à l'approbation (AFTER_APPROVAL). C'est le signal
 #     explicite « mettre en prod ».
@@ -19,7 +19,7 @@
 
 workflows:
   ios-client-app-store:
-    name: Coligo Client — iOS TestFlight (auto)
+    name: Coligo Client — iOS TestFlight (manuel)
     max_build_duration: 60
     instance_type: mac_mini_m2
     integrations: &ios_int
@@ -51,33 +51,11 @@ workflows:
       #   PowerShell : [Convert]::ToBase64String([IO.File]::ReadAllBytes("GoogleService-Info.plist")) | Set-Clipboard
       groups:
         - firebase_ios
-    # DÉCLENCHEMENT AUTO — push sur `main` touchant du NATIF/config. Une modif
-    # web-only (app/, components/, sauf lib/native) ne rebuild PAS l'app : elle
-    # part déjà par Vercel puisque l'app charge server.url. ⚠️ Exige que le
-    # webhook du dépôt soit connecté dans Codemagic (Team → Applications →
-    # coligo → webhook GitHub actif).
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-    # `when` est un champ de WORKFLOW (pas sous `triggering`) : il SAUTE le build
-    # si aucun fichier natif/config n'a changé (une modif web-only part par
-    # Vercel). Ne s'applique qu'aux events push — un tag construit toujours
-    # (workflow `ios-client-release`, sans `when`).
-    when:
-      changeset:
-        includes:
-          - "ios"
-          - "capacitor.config.ts"
-          - "scripts/ios-client-config.mjs"
-          - "lib/native"
-          - "package.json"
-          - "package-lock.json"
-          - "codemagic.yaml"
-        excludes:
-          - "**/*.md"
+    # DÉCLENCHEMENT MANUEL UNIQUEMENT (décision 17/08/2026 — économie de quota).
+    # Plus AUCUN build automatique sur push : l'app est un shell Capacitor sur
+    # server.url Vercel, un binaire neuf n'est utile que sur un changement
+    # NATIF. Pour builder : tag `release-*` (workflow ios-client-release) ou
+    # trigger manuel (`node scripts/codemagic-build.mjs trigger` / UI Codemagic).
     scripts: &ios_scripts
       - name: Installer les dépendances Node
         script: npm ci
@@ -227,7 +205,7 @@ workflows:
   # CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD. Aucun de ces fichiers
   # n'est commité (keystore, google-services.json, service account = gitignorés).
   android-client-play:
-    name: Coligo Client — Android Play (auto push → interne + alpha)
+    name: Coligo Client — Android Play (manuel → interne + alpha)
     max_build_duration: 60
     instance_type: mac_mini_m2
     environment: &android_env
@@ -235,29 +213,9 @@ workflows:
       node: lts
       groups:
         - android_client
-    triggering:
-      events:
-        - push
-      branch_patterns:
-        - pattern: main
-          include: true
-    # `when` = champ de WORKFLOW (pas sous `triggering`) : saute le build si
-    # aucun fichier natif Android n'a changé (le web part par Vercel). Ne
-    # s'applique qu'au push — le tag construit toujours (android-client-release).
-    when:
-      changeset:
-        includes:
-          - "android"
-          - "capacitor.config.ts"
-          - "scripts/build-client-aab.mjs"
-          - "scripts/android-assets.mjs"
-          - "scripts/ci-android-versioncode.mjs"
-          - "scripts/play-upload.mjs"
-          - "scripts/play-promote.mjs"
-          - "package.json"
-          - "codemagic.yaml"
-        excludes:
-          - "**/*.md"
+    # DÉCLENCHEMENT MANUEL UNIQUEMENT (décision 17/08/2026 — économie de quota).
+    # Plus AUCUN build automatique sur push. Pour builder : tag `release-*`
+    # (workflow android-client-release) ou trigger manuel via l'API/UI.
     scripts: &android_scripts
       - name: Dépendances Node
         script: npm ci
