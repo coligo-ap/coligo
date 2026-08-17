@@ -75,15 +75,26 @@ blocked` via `loyalty_card_transition` uniquement + journal
   direct ; bornes plateforme appliquées par RPC **et** trigger.
 - **Client** : étape post-inscription `/inscription/carte` (Scanner / Saisir
   16 car. tolérant / **Passer aussi visible**, jamais bloquant, célébration) ;
-  section « Cashback & Fidélité » (`/cashback`) : cartes-magasins DISTINCTES,
-  bons + progression animée, QR personnel, historique par magasin, blocage
-  carte, `?lier=CODE` depuis la landing.
+  page « Cashback & Fidélité » (`/cashback`) en DEUX ONGLETS segmentés
+  (panneaux montés + fondu) : Cashback (commandes app) vs Fidélité en magasin.
+  Onglet Fidélité : hero au design de la carte physique (dégradé
+  violet → rose tokens, facettes, QR personnel sur socle blanc `bg-on-brand`),
+  cartes-magasins au même langage visuel, **recherche + tri locaux**
+  (Solde/Progression/Nom, instantané), fiche magasin en feuille (solde
+  « à dépenser ici uniquement », conditions du programme, progression COLORÉE
+  - %, bons, historique), plusieurs cartes liables au même compte, blocage
+    carte, `?lier=CODE` / `?tab=fidelite` en deep-link.
 - **Super-admin** (`/admin/merchants/fidelite`, domaine `commercants`) :
   bornes ; lots de cartes (4 modèles visuels — teintes uniques dans
-  `lib/design/tokens` `LOYALTY_CARD`, partagées aperçus ↔ PDF) ; journal
-  agrégé (`admin_loyalty_batches`, 0457) ; **PDF retéléchargeable à tout
-  moment** (`/api/pdf/cartes-fidelite/[batchId]`, régénéré à la volée, jamais
-  stocké) ; outil support (recherche, blocage, déblocage, transfert).
+  `lib/design/tokens` `LOYALTY_CARD`, partagées aperçus ↔ PDF) ; **lots
+  GÉNÉRIQUES sans commerçant** (0459 — carte « valable chez tous »),
+  impression du « Chez X » optionnelle, **cartes PRÉ-ACTIVÉES par défaut**
+  (0460 — utilisables en caisse sans compte ni app, valeur nulle tant
+  qu'aucun crédit commerçant n'est posé) ; journal agrégé
+  (`admin_loyalty_batches`) avec badges pré-activé/sans-nom ; **PDF
+  retéléchargeable à tout moment** (`/api/pdf/cartes-fidelite/[batchId]`,
+  régénéré à la volée, `Content-Disposition: attachment` = téléchargement
+  direct) ; outil support (recherche, blocage, déblocage, transfert).
   PDF : 1 carte/page recto puis verso (duplex), CR80 85,6×54 mm + fonds
   perdus 3 mm + traits de coupe, QR = `https://coligo.app/c/<code>`
   (`NEXT_PUBLIC_SITE_URL` — origine STABLE), pastille كوليغو = PNG embarqué
@@ -100,10 +111,13 @@ blocked` via `loyalty_card_transition` uniquement + journal
 
 ## Lancement (runbook)
 
+**Le drapeau `loyalty` est ACTIF en prod depuis le 17/08/2026** (parcours
+client + étape post-inscription visibles).
+
 1. Tirage d'essai imprimeur validé (QR scannés sur papier, couleurs).
-2. `/admin/controle` → « Fidélité (cartes + cashback commerçant) » → **active**
-   (avant : trigger DB refuse tout mouvement, section client masquée,
-   inscription inchangée).
+2. `/admin/controle` → « Fidélité (cartes + cashback commerçant) » pilote le
+   kill-switch (hidden = trigger DB refuse tout mouvement, section client
+   masquée, inscription inchangée).
 3. Générer les premiers lots dans Commerçants → Fidélité, livrer les cartes.
 
 ## Dette volontaire
