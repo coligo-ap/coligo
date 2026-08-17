@@ -25,8 +25,8 @@ function Facets() {
       {/* Bandes diagonales translucides (facettes de la maquette). */}
       <div className="absolute start-[48%] -top-10 -bottom-10 w-24 -skew-x-12 bg-white/[.05]" />
       <div className="absolute start-[70%] -top-10 -bottom-10 w-44 -skew-x-12 bg-white/[.04]" />
-      {/* Carré arrondi tourné, en contour (près du bloc « CHEZ »). */}
-      <div className="absolute end-[4%] top-[22%] size-40 rotate-12 rounded-3xl border-2 border-white/10" />
+      {/* Carré arrondi tourné, en contour discret (près du bloc « CHEZ »). */}
+      <div className="absolute end-[4%] top-[22%] size-40 rotate-12 rounded-3xl border border-white/[.07]" />
       {/* Voile doux dans le coin haut-droite. */}
       <div className="absolute -end-16 -top-24 size-72 rounded-full bg-white/10 blur-3xl" />
     </div>
