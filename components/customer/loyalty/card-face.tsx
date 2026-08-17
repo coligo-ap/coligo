@@ -59,14 +59,15 @@ export function LoyaltyCardFace({
             alt="Coligo"
             className="h-8 w-auto"
           />
-          {/* Titre du recto v2 : grand, MAJUSCULES, italique — l'arabe dessous. */}
+          {/* Titre du recto : MAJUSCULES italiques — l'arabe DROIT dessous
+              (l'italique n'existe pas en écriture arabe, l'incliner la casse). */}
           <span className="shrink-0 pt-0.5 text-end">
             <span className="block text-sm leading-none font-black tracking-tight italic">
               CARTE DE FIDÉLITÉ
             </span>
             <span
               dir="rtl"
-              className="mt-1 block text-xs leading-none italic opacity-90"
+              className="mt-1 block text-xs leading-none font-semibold not-italic opacity-90"
             >
               بطاقة الوفاء
             </span>

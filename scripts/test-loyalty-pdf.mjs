@@ -23,6 +23,7 @@ import {
   cardArWafaAssetPath,
   cardBgAssetPath,
   cardLogoAssetPath,
+  cardTitleFontPath,
   groupCardCode,
 } from "@/lib/loyalty/card-templates";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
@@ -53,6 +54,7 @@ function assetsFor(tpl) {
     backgroundPng: read(cardBgAssetPath(tpl.key)),
     logoPng: read(cardLogoAssetPath(tpl)),
     arWafaPng: read(cardArWafaAssetPath(tpl)),
+    titleFontBytes: read(cardTitleFontPath()),
   };
 }
 
@@ -253,10 +255,12 @@ async function main() {
     ),
     "E1b mention absente quand l'option est décochée"
   );
-  // Titre v2 : « CARTE DE FIDÉLITÉ » imprimé par défaut, retirable (0462).
+  // Titre v3 : Carlito-BoldItalic (= Calibri italique) embarqué SEULEMENT
+  // quand le titre est imprimé — le texte du titre passe par des glyphes
+  // sous-ensemble (plus d'ASCII en flux), le marqueur est la police.
   assert(
-    rawGeneric.includes(hexOf("CARTE DE FID")),
-    "E1c titre « CARTE DE FIDÉLITÉ » imprimé par défaut"
+    rawGeneric.includes("CARLITO"),
+    "E1c titre imprimé par défaut (police Carlito embarquée)"
   );
   const noTitleBytes = await buildLoyaltyCardsPdf({
     merchantName: null,
@@ -267,8 +271,8 @@ async function main() {
     assets: violetAssets,
   });
   assert(
-    !extractRaw(Buffer.from(noTitleBytes)).includes(hexOf("CARTE DE FID")),
-    "E1d titre absent quand l'option est décochée"
+    !extractRaw(Buffer.from(noTitleBytes)).includes("CARLITO"),
+    "E1d titre absent quand l'option est décochée (police non embarquée)"
   );
   const noNameBytes = await buildLoyaltyCardsPdf({
     merchantName: "Superette Yemma",

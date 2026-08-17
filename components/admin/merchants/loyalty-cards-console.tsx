@@ -129,8 +129,9 @@ function PdfDownloadButton({
 }
 
 /** Aperçu miniature d'un modèle — MÊME PNG de fond que le PDF (source visuelle
- *  unique) : réplique du RECTO v2 (titre italique FR+AR, logo commerçant sur
- *  socle blanc, mention basse), fidèle aux options cochées. */
+ *  unique) : réplique du RECTO v3. Générique : titre à droite du QR. Avec
+ *  commerçant : carte SCINDÉE en deux moitiés égales (QR+n° / logo+nom), tag
+ *  « COMMERÇANT » sur le QR. L'arabe reste DROIT (jamais d'italique). */
 function TemplatePreview({
   tpl,
   merchantName,
@@ -144,9 +145,34 @@ function TemplatePreview({
   showLogo: boolean;
   showValidAll: boolean;
 }) {
+  const split = !!merchantName || showLogo;
+  const fauxQr = (
+    <span className="relative block">
+      <span
+        className="block size-6 rounded-[3px]"
+        style={{
+          background: LOYALTY_CARD.paper,
+          backgroundImage: `repeating-linear-gradient(0deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px),repeating-linear-gradient(90deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px)`,
+          backgroundSize: "70% 70%",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+        }}
+        aria-hidden
+      />
+      <span
+        className="absolute start-1/2 -top-1 -translate-x-1/2 rounded-full px-1 py-px text-[3px] font-black tracking-wide whitespace-nowrap rtl:translate-x-1/2"
+        style={{
+          backgroundColor: tpl.light ? LOYALTY_CARD.qrInk : tpl.g2,
+          color: LOYALTY_CARD.paper,
+        }}
+      >
+        COMMERÇANT
+      </span>
+    </span>
+  );
   return (
     <div
-      className="relative flex aspect-[856/540] w-full flex-col justify-between overflow-hidden rounded-md border p-1.5"
+      className="relative flex aspect-[856/540] w-full flex-col overflow-hidden rounded-md border p-1.5"
       style={{
         backgroundImage: `url(${cardBgAssetPath(tpl.key)})`,
         backgroundSize: "cover",
@@ -160,66 +186,69 @@ function TemplatePreview({
         <img
           src={cardLogoAssetPath(tpl)}
           alt=""
-          className="h-3.5 w-auto"
+          className={split ? "h-2.5 w-auto" : "h-3.5 w-auto"}
           loading="lazy"
         />
-        {showLogo && (
-          <span
-            className="flex size-4 items-center justify-center rounded-[3px]"
-            style={{ background: LOYALTY_CARD.paper }}
-            aria-hidden
-          >
-            <Store className="size-2.5" style={{ color: LOYALTY_CARD.qrInk }} />
+        {showTitle && (
+          <span className="text-end">
+            <span className="block text-[6px] leading-none font-black tracking-tight italic">
+              CARTE DE FIDÉLITÉ
+            </span>
+            <span
+              dir="rtl"
+              className="block text-[4.5px] leading-tight not-italic"
+            >
+              بطاقة الوفاء
+            </span>
           </span>
         )}
       </div>
-      <div className="flex items-end justify-between gap-1.5">
-        <div className="shrink-0">
-          {/* Faux QR : panneau blanc arrondi, encre violette (comme le PDF). */}
-          <span
-            className="block size-6 rounded-[3px]"
-            style={{
-              background: LOYALTY_CARD.paper,
-              backgroundImage: `repeating-linear-gradient(0deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px),repeating-linear-gradient(90deg,${LOYALTY_CARD.qrInk} 0 1px,transparent 1px 2px)`,
-              backgroundSize: "70% 70%",
-              backgroundPosition: "center",
-              backgroundRepeat: "no-repeat",
-            }}
-            aria-hidden
-          />
-          <p className="mt-0.5 font-mono text-[4.5px] font-bold tracking-widest">
+      <div className="mt-auto flex items-end justify-between gap-1.5 pb-0.5">
+        <div className="flex flex-1 flex-col items-start">
+          {fauxQr}
+          <p className="mt-0.5 font-mono text-[4px] font-bold tracking-widest">
             AB3F 9K72 4C6D
           </p>
         </div>
-        <div className="min-w-0 flex-1 text-end">
-          {showTitle && (
-            <>
-              <p className="text-[7px] leading-none font-black tracking-tight italic">
-                CARTE DE FIDÉLITÉ
-              </p>
-              <p className="text-[5px] leading-tight italic">بطاقة الوفاء</p>
-            </>
-          )}
-          {merchantName && (
-            <>
-              <p
-                className="mt-0.5 text-[4px] tracking-widest"
-                style={{ color: tpl.subtext }}
-              >
-                CHEZ
-              </p>
-              <p className="truncate text-[6.5px] leading-tight font-black">
+        {split && (
+          <div className="flex flex-1 flex-col items-center">
+            <span
+              className="flex size-6 items-center justify-center rounded-[3px]"
+              style={{ background: LOYALTY_CARD.paper }}
+              aria-hidden
+            >
+              {showLogo ? (
+                <Store
+                  className="size-3.5"
+                  style={{ color: LOYALTY_CARD.qrInk }}
+                />
+              ) : (
+                <span
+                  className="text-[6px] font-black"
+                  style={{ color: LOYALTY_CARD.qrInk }}
+                >
+                  {(merchantName || "?").charAt(0).toUpperCase()}
+                </span>
+              )}
+            </span>
+            {merchantName && (
+              <p className="mt-0.5 max-w-full truncate text-[5px] leading-none font-black">
                 {merchantName}
               </p>
-            </>
-          )}
-          {showValidAll && (
-            <p className="mt-0.5 text-[4px] leading-none italic">
-              Carte valable chez tous les commerçants
-            </p>
-          )}
-        </div>
+            )}
+          </div>
+        )}
       </div>
+      {showValidAll && (
+        <p
+          className={
+            "text-[3.5px] leading-none italic " +
+            (split ? "text-center" : "text-end")
+          }
+        >
+          Carte valable chez tous les commerçants
+        </p>
+      )}
     </div>
   );
 }

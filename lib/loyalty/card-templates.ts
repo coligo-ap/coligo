@@ -79,11 +79,18 @@ export function cardLogoAssetPath(tpl: CardTemplate): string {
   return tpl.light ? "/brand/logo-full.png" : "/brand/logo-full-white.png";
 }
 
-/** « بطاقة الوفاء » (pilule du recto) adapté au modèle. */
+/** « بطاقة الوفاء » (titre arabe du recto, PNG en police arabe dédiée) adapté
+ *  au modèle. */
 export function cardArWafaAssetPath(tpl: CardTemplate): string {
   return tpl.light
     ? "/brand/loyalty-ar-wafa-violet.png"
     : "/brand/loyalty-ar-wafa-white.png";
+}
+
+/** Carlito-BoldItalic (= Calibri italique, licence libre) — police du grand
+ *  titre du recto, embarquée dans le PDF via fontkit. */
+export function cardTitleFontPath(): string {
+  return "/brand/fonts/Carlito-BoldItalic.ttf";
 }
 
 /** Numéro imprimé sous le QR : groupes de 4, lisible et re-saisissable. */

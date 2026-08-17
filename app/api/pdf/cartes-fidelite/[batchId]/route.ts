@@ -9,6 +9,7 @@ import {
   cardArWafaAssetPath,
   cardBgAssetPath,
   cardLogoAssetPath,
+  cardTitleFontPath,
   getCardTemplate,
 } from "@/lib/loyalty/card-templates";
 
@@ -137,11 +138,12 @@ export async function GET(
   const templateKey = String(batch.template_key ?? "violet");
   const tpl = getCardTemplate(templateKey);
 
-  const [backgroundPng, logoPng, arWafaPng, merchantLogoPng] =
+  const [backgroundPng, logoPng, arWafaPng, titleFontBytes, merchantLogoPng] =
     await Promise.all([
       readPublicAsset(cardBgAssetPath(templateKey)),
       readPublicAsset(cardLogoAssetPath(tpl)),
       readPublicAsset(cardArWafaAssetPath(tpl)),
+      readPublicAsset(cardTitleFontPath()),
       batch.print_merchant_logo === true
         ? fetchMerchantLogoPng(merchant?.logo_url ?? null)
         : Promise.resolve(null),
@@ -162,7 +164,7 @@ export async function GET(
     templateKey,
     cards: cards.map((c) => ({ code: c.card_code })),
     baseUrl,
-    assets: { backgroundPng, logoPng, arWafaPng },
+    assets: { backgroundPng, logoPng, arWafaPng, titleFontBytes },
     artRecto,
     artVerso,
   });
