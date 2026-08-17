@@ -24,7 +24,12 @@ import { LoyaltyCardFace } from "@/components/customer/loyalty/card-face";
 import { SeeMoreButton } from "@/components/customer/wallet/see-more-button";
 import { useSeeMore } from "@/lib/hooks/use-see-more";
 import { LOYALTY_CARD } from "@/lib/design/tokens";
-import { groupCardCode } from "@/lib/loyalty/card-templates";
+import {
+  CARD_TEMPLATES,
+  cardGradientCss,
+  groupCardCode,
+  type CardTemplate,
+} from "@/lib/loyalty/card-templates";
 import {
   blockLoyaltyCard,
   fetchLoyaltyHistory,
@@ -600,10 +605,22 @@ function historyLabelKey(type: string): string {
   }
 }
 
+/** Modèle de carte IMPRIMÉE attribué au magasin — stable (hash de l'id) : les
+ *  cartes de la liste reprennent les COULEURS des cartes physiques générées
+ *  (Violet, Nuit, Clair, Rose), comme dans la console de génération. */
+function templateFor(merchantId: string): CardTemplate {
+  let h = 0;
+  for (let i = 0; i < merchantId.length; i++) {
+    h = (h * 31 + merchantId.charCodeAt(i)) >>> 0;
+  }
+  return CARD_TEMPLATES[h % CARD_TEMPLATES.length];
+}
+
 /**
- * Carte-magasin au design de la CARTE PHYSIQUE Coligo (dégradé violet → rose,
- * facettes) : « Chez {magasin} », cagnotte dépensable ICI uniquement, bons, et
- * barre de progression vers le prochain palier du commerçant.
+ * Carte-magasin v2 — compacte et sans AUCUN doublon : l'identité du magasin
+ * (logo + nom) une seule fois, la CAGNOTTE en très grand (l'info qui compte),
+ * bons agrégés en une pilule, progression en une ligne. Le dégradé reprend le
+ * modèle de la carte imprimée attribué au magasin.
  */
 function StoreCard({
   account,
@@ -614,6 +631,7 @@ function StoreCard({
 }) {
   const t = useTranslations("wallet");
   const { summary } = account;
+  const tpl = templateFor(account.merchant_id);
   const progress = summary.progress;
   const pct =
     progress && progress.threshold_da > 0
@@ -626,81 +644,129 @@ function StoreCard({
     return () => cancelAnimationFrame(id);
   }, [pct]);
 
+  const vouchersTotal = summary.vouchers.reduce((s, v) => s + v.amount_da, 0);
+
   return (
     <button
       type="button"
       onClick={onHistory}
       className="block w-full text-start transition-transform active:scale-[.99]"
     >
-      <LoyaltyCardFace compact>
-        <div className="mt-3.5 flex items-center gap-3">
-          {account.merchant_logo ? (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
-              src={account.merchant_logo}
-              alt=""
-              loading="lazy"
-              className="bg-on-brand size-11 shrink-0 rounded-full border-2 border-white/60 object-cover"
-            />
-          ) : (
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full border-2 border-white/60 bg-white/15">
-              <Store className="size-5" />
-            </div>
-          )}
-          <div className="min-w-0 flex-1">
-            <p className="text-caption leading-none font-extrabold tracking-wider uppercase opacity-70">
-              {t("loyChez")}
-            </p>
-            <p className="mt-0.5 truncate text-lg leading-tight font-black tracking-tight">
+      <div
+        className="rounded-panel-lg relative overflow-hidden border p-4"
+        style={{
+          backgroundImage: cardGradientCss(tpl),
+          borderColor: tpl.g2,
+          color: tpl.text,
+        }}
+      >
+        {/* Facettes discrètes (langage de la carte physique). */}
+        <div aria-hidden className="pointer-events-none absolute inset-0">
+          <div className="absolute start-[55%] -top-8 -bottom-8 w-20 -skew-x-12 bg-white/[.05]" />
+          <div className="absolute start-[76%] -top-8 -bottom-8 w-32 -skew-x-12 bg-white/[.04]" />
+        </div>
+        <div className="relative z-10">
+          {/* Identité du magasin — UNE seule fois, en grand. */}
+          <div className="flex items-center gap-3">
+            {account.merchant_logo ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={account.merchant_logo}
+                alt=""
+                loading="lazy"
+                className="size-10 shrink-0 rounded-full border object-cover"
+                style={{
+                  borderColor: tpl.subtext,
+                  backgroundColor: LOYALTY_CARD.paper,
+                }}
+              />
+            ) : (
+              <div
+                className="flex size-10 shrink-0 items-center justify-center rounded-full border"
+                style={{
+                  borderColor: tpl.subtext,
+                  backgroundColor: tpl.light
+                    ? LOYALTY_CARD.pillOnLight
+                    : LOYALTY_CARD.pillOnDark,
+                }}
+              >
+                <Store className="size-5" />
+              </div>
+            )}
+            <p className="min-w-0 flex-1 truncate text-base leading-tight font-black tracking-tight">
               {account.merchant_name}
             </p>
+            <ChevronRight className="size-4 shrink-0 opacity-60 rtl:-scale-x-100" />
           </div>
-          <ChevronRight className="size-4 shrink-0 opacity-60 rtl:-scale-x-100" />
-        </div>
 
-        <div className="mt-3.5 flex items-end justify-between gap-3">
-          <p className="text-xs font-semibold opacity-80">
-            {t("loySpendableHere")}
-          </p>
-          <p className="text-2xl leading-none font-black tabular-nums">
-            {formatDA(summary.available_da)}
-          </p>
-        </div>
-
-        {summary.vouchers.length > 0 && (
-          <div className="mt-2.5 flex flex-wrap gap-1.5">
-            {summary.vouchers.map((v) => (
+          {/* La cagnotte, EN TRÈS GRAND — l'info qui compte. */}
+          <div className="mt-3.5 flex items-end justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-3xl leading-none font-black tracking-tight tabular-nums">
+                {formatDA(summary.available_da)}
+              </p>
+              <p
+                className="text-caption mt-1 font-semibold"
+                style={{ color: tpl.subtext }}
+              >
+                {t("loySpendableHere")}
+              </p>
+            </div>
+            {summary.vouchers.length > 0 && (
               <span
-                key={v.id}
-                className="bg-on-brand text-primary-700 flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold"
+                className="flex shrink-0 items-center gap-1 rounded-full px-2.5 py-1 text-xs font-extrabold"
+                style={
+                  tpl.light
+                    ? { backgroundColor: LOYALTY_CARD.pillOnLight }
+                    : {
+                        backgroundColor: LOYALTY_CARD.paper,
+                        color: LOYALTY_CARD.qrInk,
+                      }
+                }
               >
                 <Gift className="size-3.5" />
-                {t("loyVoucher", { amount: formatDA(v.amount_da) })}
-                <span className="text-primary-400 font-semibold">
-                  · {t("loyVoucherExp", { date: dayFr(v.expires_at) })}
-                </span>
+                {t("loyVouchersCompact", {
+                  count: summary.vouchers.length,
+                  amount: formatDA(vouchersTotal),
+                })}
               </span>
-            ))}
+            )}
           </div>
-        )}
 
-        {progress && progress.remaining_da > 0 && (
-          <div className="mt-3">
-            <div className="h-2 w-full overflow-hidden rounded-full bg-white/20">
+          {/* Progression vers le prochain bon — une seule ligne. */}
+          {progress && progress.remaining_da > 0 && (
+            <div className="mt-3">
               <div
-                className="bg-on-brand h-full rounded-full transition-[width] duration-700 ease-out"
-                style={{ width: `${animPct}%` }}
-              />
+                className="h-1.5 w-full overflow-hidden rounded-full"
+                style={{
+                  backgroundColor: tpl.light
+                    ? LOYALTY_CARD.pillOnLight
+                    : LOYALTY_CARD.pillOnDark,
+                }}
+              >
+                <div
+                  className="h-full rounded-full transition-[width] duration-700 ease-out"
+                  style={{
+                    width: `${animPct}%`,
+                    backgroundColor: tpl.light
+                      ? LOYALTY_CARD.qrInk
+                      : LOYALTY_CARD.paper,
+                  }}
+                />
+              </div>
+              <p
+                className="text-caption mt-1.5 font-semibold"
+                style={{ color: tpl.subtext }}
+              >
+                {t("loyProgressShort", {
+                  amount: formatDA(progress.remaining_da),
+                  reward: formatDA(progress.reward_da),
+                })}
+              </p>
             </div>
-            <p className="mt-1.5 text-xs font-semibold opacity-85">
-              {t("loyProgressShort", {
-                amount: formatDA(progress.remaining_da),
-                reward: formatDA(progress.reward_da),
-              })}
-            </p>
-          </div>
-        )}
-      </LoyaltyCardFace>
+          )}
+        </div>
+      </div>
     </button>
   );
 }

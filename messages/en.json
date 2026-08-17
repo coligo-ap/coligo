@@ -1317,6 +1317,7 @@
     "loyAvailable": "Available pot",
     "loyVoucher": "{amount} voucher",
     "loyVoucherExp": "exp. {date}",
+    "loyVouchersCompact": "{count, plural, one {1 voucher · {amount}} other {# vouchers · {amount}}}",
     "loyProgressRemaining": "{amount} more at {merchant} to unlock {reward}",
     "loyEmptyTitle": "No loyalty pot yet",
     "loyEmptyDesc": "Ask your merchant for a card, or show your QR at checkout to start earning today.",

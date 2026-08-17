@@ -1317,6 +1317,7 @@
     "loyAvailable": "Cagnotte disponible",
     "loyVoucher": "Bon de {amount}",
     "loyVoucherExp": "exp. {date}",
+    "loyVouchersCompact": "{count, plural, one {1 bon · {amount}} other {# bons · {amount}}}",
     "loyProgressRemaining": "Encore {amount} chez {merchant} pour débloquer {reward}",
     "loyEmptyTitle": "Aucune cagnotte pour l'instant",
     "loyEmptyDesc": "Demande ta carte à ton commerçant, ou présente ton QR en caisse pour cumuler dès aujourd'hui.",

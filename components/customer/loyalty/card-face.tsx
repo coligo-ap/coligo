@@ -9,12 +9,11 @@ import {
 
 // =============================================================================
 // LoyaltyCardFace — la CARTE FIDÉLITÉ Coligo à l'écran, réplique du recto
-// imprimé (maquette 11482, reproduction exigée par le propriétaire) : dégradé
-// diagonal violet → rose (mêmes stops que le PDF — source unique
-// card-templates), facettes translucides, logotype Coligo FR+AR, pilule
-// « CARTE FIDÉLITÉ · بطاقة الوفاء » (bilingue SUR la carte, comme l'objet
-// physique — ce n'est pas un texte d'interface), numéro en pied.
-// Couleurs FIXES quels que soient le thème et la langue : c'est la carte.
+// imprimé v2 (0462) : dégradé diagonal violet → rose (mêmes stops que le PDF —
+// source unique card-templates), facettes translucides, logotype Coligo FR+AR,
+// titre « CARTE DE FIDÉLITÉ » en ITALIQUE avec « بطاقة الوفاء » dessous
+// (bilingue SUR la carte, comme l'objet physique — pas un texte d'interface),
+// numéro en pied. Couleurs FIXES quels que soient le thème et la langue.
 // =============================================================================
 
 const TPL = getCardTemplate("violet");
@@ -36,38 +35,41 @@ function Facets() {
 export function LoyaltyCardFace({
   children,
   code,
-  compact = false,
   className = "",
 }: {
   children: ReactNode;
   /** Numéro imprimé en pied (mono, groupé par 4) — ex. handle ou n° de carte. */
   code?: string | null;
-  /** Cartes-magasins en liste : chrome resserré (logo plus petit). */
-  compact?: boolean;
   className?: string;
 }) {
   return (
     <div
       className={
-        "rounded-panel-lg relative overflow-hidden text-white " +
-        (compact ? "p-4 " : "px-5 pt-5 pb-5 ") +
+        "rounded-panel-lg relative overflow-hidden px-5 pt-5 pb-5 text-white " +
         className
       }
       style={{ backgroundImage: cardGradientCss(TPL) }}
     >
       <Facets />
       <div className="relative z-10">
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex items-start justify-between gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={cardLogoAssetPath(TPL)}
             alt="Coligo"
-            className={compact ? "h-6 w-auto" : "h-8 w-auto"}
+            className="h-8 w-auto"
           />
-          <span className="text-caption flex shrink-0 items-center gap-1 rounded-full bg-white/15 px-2.5 py-1 font-extrabold tracking-wider whitespace-nowrap">
-            CARTE FIDÉLITÉ
-            <span className="opacity-75">·</span>
-            <span dir="rtl">بطاقة الوفاء</span>
+          {/* Titre du recto v2 : grand, MAJUSCULES, italique — l'arabe dessous. */}
+          <span className="shrink-0 pt-0.5 text-end">
+            <span className="block text-sm leading-none font-black tracking-tight italic">
+              CARTE DE FIDÉLITÉ
+            </span>
+            <span
+              dir="rtl"
+              className="mt-1 block text-xs leading-none italic opacity-90"
+            >
+              بطاقة الوفاء
+            </span>
           </span>
         </div>
 

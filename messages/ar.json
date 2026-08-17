@@ -1317,6 +1317,7 @@
     "loyAvailable": "الرصيد المتاح",
     "loyVoucher": "قسيمة {amount}",
     "loyVoucherExp": "تنتهي {date}",
+    "loyVouchersCompact": "{count, plural, one {قسيمة واحدة · {amount}} two {قسيمتان · {amount}} few {# قسائم · {amount}} many {# قسيمة · {amount}} other {# قسيمة · {amount}}}",
     "loyProgressRemaining": "باقي {amount} عند {merchant} لفتح {reward}",
     "loyEmptyTitle": "لا رصيد ولاء بعد",
     "loyEmptyDesc": "اطلب بطاقتك من تاجرك، أو أظهر رمزك عند الصندوق لتجمع من اليوم.",
