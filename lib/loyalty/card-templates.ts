@@ -93,6 +93,15 @@ export function cardTitleFontPath(): string {
   return "/brand/fonts/Carlito-BoldItalic.ttf";
 }
 
+/** VRAIS logos des stores (fournis par le propriétaire) — badges du verso
+ *  des cartes ET flyers. */
+export function storeLogoPaths(): { apple: string; play: string } {
+  return {
+    apple: "/brand/store-appstore.png",
+    play: "/brand/store-play.png",
+  };
+}
+
 /** Numéro imprimé sous le QR : groupes de 4, lisible et re-saisissable. */
 export function groupCardCode(code: string): string {
   return code.replace(/(.{4})/g, "$1 ").trim();

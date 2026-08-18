@@ -525,6 +525,19 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             keywords: ["partage", "réseaux", "viral", "instagram", "design"],
           },
           {
+            href: "/admin/marketing/flyers",
+            label: "Flyers",
+            icon: ImageIcon,
+            keywords: [
+              "flyer",
+              "imprimé",
+              "pub",
+              "distribution",
+              "commerçant",
+              "pdf",
+            ],
+          },
+          {
             href: "/admin/marketing/roue",
             label: "Roue Coligo",
             icon: Dices,

@@ -25,6 +25,7 @@ import {
   cardLogoAssetPath,
   cardTitleFontPath,
   groupCardCode,
+  storeLogoPaths,
 } from "@/lib/loyalty/card-templates";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
 
@@ -55,6 +56,8 @@ function assetsFor(tpl) {
     logoPng: read(cardLogoAssetPath(tpl)),
     arWafaPng: read(cardArWafaAssetPath(tpl)),
     titleFontBytes: read(cardTitleFontPath()),
+    storeApplePng: read(storeLogoPaths().apple),
+    storePlayPng: read(storeLogoPaths().play),
   };
 }
 

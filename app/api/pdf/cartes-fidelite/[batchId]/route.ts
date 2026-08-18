@@ -11,6 +11,7 @@ import {
   cardLogoAssetPath,
   cardTitleFontPath,
   getCardTemplate,
+  storeLogoPaths,
 } from "@/lib/loyalty/card-templates";
 
 export const dynamic = "force-dynamic";
@@ -138,16 +139,25 @@ export async function GET(
   const templateKey = String(batch.template_key ?? "violet");
   const tpl = getCardTemplate(templateKey);
 
-  const [backgroundPng, logoPng, arWafaPng, titleFontBytes, merchantLogoPng] =
-    await Promise.all([
-      readPublicAsset(cardBgAssetPath(templateKey)),
-      readPublicAsset(cardLogoAssetPath(tpl)),
-      readPublicAsset(cardArWafaAssetPath(tpl)),
-      readPublicAsset(cardTitleFontPath()),
-      batch.print_merchant_logo === true
-        ? fetchMerchantLogoPng(merchant?.logo_url ?? null)
-        : Promise.resolve(null),
-    ]);
+  const [
+    backgroundPng,
+    logoPng,
+    arWafaPng,
+    titleFontBytes,
+    storeApplePng,
+    storePlayPng,
+    merchantLogoPng,
+  ] = await Promise.all([
+    readPublicAsset(cardBgAssetPath(templateKey)),
+    readPublicAsset(cardLogoAssetPath(tpl)),
+    readPublicAsset(cardArWafaAssetPath(tpl)),
+    readPublicAsset(cardTitleFontPath()),
+    readPublicAsset(storeLogoPaths().apple),
+    readPublicAsset(storeLogoPaths().play),
+    batch.print_merchant_logo === true
+      ? fetchMerchantLogoPng(merchant?.logo_url ?? null)
+      : Promise.resolve(null),
+  ]);
 
   // Origine STABLE : une carte imprimée vit des années — jamais une URL de
   // déploiement (cf. app/sitemap.ts).
@@ -164,7 +174,14 @@ export async function GET(
     templateKey,
     cards: cards.map((c) => ({ code: c.card_code })),
     baseUrl,
-    assets: { backgroundPng, logoPng, arWafaPng, titleFontBytes },
+    assets: {
+      backgroundPng,
+      logoPng,
+      arWafaPng,
+      titleFontBytes,
+      storeApplePng,
+      storePlayPng,
+    },
     artRecto,
     artVerso,
   });

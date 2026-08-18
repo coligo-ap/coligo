@@ -160,7 +160,7 @@ function TemplatePreview({
         aria-hidden
       />
       <span
-        className="absolute start-1/2 -top-1 -translate-x-1/2 rounded-full px-1 py-px text-[3px] font-black tracking-wide whitespace-nowrap rtl:translate-x-1/2"
+        className="absolute start-0 end-0 -top-1 rounded-full px-1 py-px text-center text-[3px] font-black tracking-wide whitespace-nowrap"
         style={{
           backgroundColor: tpl.light ? LOYALTY_CARD.qrInk : tpl.g2,
           color: LOYALTY_CARD.paper,
@@ -181,7 +181,7 @@ function TemplatePreview({
         color: tpl.text,
       }}
     >
-      <div className="flex items-start justify-between gap-1">
+      <div className="relative flex items-start gap-1">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={cardLogoAssetPath(tpl)}
@@ -190,7 +190,7 @@ function TemplatePreview({
           loading="lazy"
         />
         {showTitle && (
-          <span className="text-end">
+          <span className="absolute start-0 end-0 top-0 mx-auto w-fit text-center">
             <span className="block text-[6px] leading-none font-black tracking-tight italic">
               CARTE DE FIDÉLITÉ
             </span>

@@ -72,6 +72,10 @@ export type CardPdfAssets = {
    *  Calibri (métriques identiques) pour le grand titre italique du recto.
    *  Absent = repli Helvetica-BoldOblique, jamais bloquant. */
   titleFontBytes?: Uint8Array | null;
+  /** VRAIS logos des stores (fournis par le propriétaire, public/brand/
+   *  store-appstore.png / store-play.png) pour les badges du verso. */
+  storeApplePng?: Uint8Array | null;
+  storePlayPng?: Uint8Array | null;
 };
 
 export type CardPdfInput = {
@@ -112,6 +116,8 @@ type Ctx = {
   logo: PDFImage | null;
   arWafa: PDFImage | null;
   merchantLogo: PDFImage | null;
+  storeApple: PDFImage | null;
+  storePlay: PDFImage | null;
   artRecto: PDFImage | null;
   artVerso: PDFImage | null;
   tpl: ReturnType<typeof getCardTemplate>;
@@ -337,9 +343,9 @@ function drawMerchantLogoPlate(
   });
 }
 
-/** Tag « COMMERÇANT » à cheval sur le bord HAUT du panneau QR : la carte se
- *  tend en caisse, le tag dit à qui s'adresse ce QR. Couleurs ADAPTÉES au
- *  modèle (fond = teinte médiane du dégradé, liseré blanc pour se détacher). */
+/** Tag « COMMERÇANT » à cheval sur le bord HAUT du panneau QR, PLEINE LARGEUR
+ *  du panneau : la carte se tend en caisse, le tag dit à qui s'adresse ce QR.
+ *  Couleurs ADAPTÉES au modèle, liseré blanc pour se détacher. */
 function drawQrTag(
   page: PDFPage,
   ctx: Ctx,
@@ -349,19 +355,20 @@ function drawQrTag(
 ) {
   const { tpl, fonts } = ctx;
   const label = "COMMERÇANT";
-  const size = 3.4;
-  const w = wOf(label, fonts.bold, size) + 4.2;
-  const h = 4.2;
-  const x = panelX + (panelSize - w) / 2;
+  const w = panelSize;
+  const h = 4.6;
+  const x = panelX;
   const y = panelTopY - h / 2;
+  const size = fitSize(label, fonts.bold, 4.4, mm(w - 6), 3);
   roundedRect(page, x - 0.4, y - 0.4, w + 0.8, h + 0.8, (h + 0.8) / 2, WHITE);
   // Modèles sombres : teinte médiane du dégradé ; modèle clair : encre violette
   // (le g2 clair se fondrait dans le panneau blanc). Texte blanc dans les deux.
   roundedRect(page, x, y, w, h, h / 2, tpl.light ? QR_INK : pdfColor(tpl.g2));
+  const tw = wOf(label, fonts.bold, size);
   text(
     page,
     label,
-    x + 2.1,
+    x + (w - tw) / 2,
     y + h / 2 - size / (2 * M) + 0.32,
     size,
     fonts.bold,
@@ -470,15 +477,9 @@ const ICON_PERCENT = {
   ],
 };
 
-// Silhouettes officielles des stores (remplies, blanches sur badge noir) :
-// pomme Apple (viewBox 814×1000) et triangle Google Play (viewBox 100×100).
-const APPLE_PATH =
-  "M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76.5 0-103.7 40.8-165.9 40.8s-105.6-57-155.5-127C46.7 790.7 0 663 0 541.8c0-194.4 126.4-297.5 250.8-297.5 66.1 0 121.2 43.4 162.7 43.4 39.5 0 101.1-46 176.3-46 28.5 0 130.9 2.6 198.3 99.2zm-234-181.5c31.1-36.9 53.1-88.1 53.1-139.3 0-7.1-.6-14.3-1.9-20.1-50.6 1.9-110.8 33.7-147.1 75.8-28.5 32.4-55.1 83.6-55.1 135.5 0 7.8 1.3 15.6 1.9 18.1 3.2.6 8.4 1.3 13.6 1.3 45.4 0 102.5-30.4 135.5-71.3z";
-const PLAY_PATH = "M12 4 Q12 0 16 2 L92 46 Q97 50 92 54 L16 98 Q12 100 12 96 Z";
-
-/** Badge store « officiel » : rectangle noir arrondi, silhouette blanche du
- *  store + accroche petite / nom du store en GRAS — le langage visuel connu
- *  de tous, compréhension immédiate. */
+/** Badge store « officiel » : rectangle noir arrondi, VRAI logo du store
+ *  (PNG fourni par le propriétaire) + accroche petite / nom du store en
+ *  GRAS — le langage visuel connu de tous, compréhension immédiate. */
 function drawStoreBadge(
   page: PDFPage,
   ctx: Ctx,
@@ -490,27 +491,14 @@ function drawStoreBadge(
 ) {
   const { fonts } = ctx;
   roundedRect(page, x, y, w, h, 1.4, BADGE_BLACK);
-  const o = CARD_PDF_GEOM.origin;
-  const logoH = h * 0.52;
+  const img = kind === "apple" ? ctx.storeApple : ctx.storePlay;
+  const logoH = h * 0.58;
   const logoY = y + (h - logoH) / 2;
-  if (kind === "apple") {
-    const scale = mm(logoH) / 1000;
-    page.drawSvgPath(APPLE_PATH, {
-      x: mm(o + x + 2.2),
-      y: mm(o + logoY + logoH),
-      scale,
-      color: WHITE,
-    });
-  } else {
-    const scale = mm(logoH) / 100;
-    page.drawSvgPath(PLAY_PATH, {
-      x: mm(o + x + 2.2),
-      y: mm(o + logoY + logoH),
-      scale,
-      color: WHITE,
-    });
+  let logoW = logoH;
+  if (img) {
+    logoW = image(page, img, x + 2, logoY, logoH);
   }
-  const textX = x + 2.2 + logoH + 1.3;
+  const textX = x + 2 + logoW + 1.3;
   const cap = kind === "apple" ? "Télécharge sur l'" : "Disponible sur";
   const store = kind === "apple" ? "App Store" : "Google Play";
   text(page, cap, textX, y + h - 2.5, 2.1, fonts.reg, WHITE, 0.85);
@@ -527,12 +515,12 @@ function drawStoreBadge(
 /* ----------------------------------- RECTO -------------------------------- */
 
 /** Titre du recto : « CARTE DE FIDÉLITÉ » en Carlito (Calibri) ITALIQUE,
- *  « بطاقة الوفاء » DROIT dessous (l'arabe ne s'italicise pas). Ancré par la
- *  DROITE. Renvoie rien — tailles fixées par fitSize. */
+ *  « بطاقة الوفاء » DROIT dessous (l'arabe ne s'italicise pas). CENTRÉ sur
+ *  centerX — le titre vit EN HAUT AU MILIEU de la carte. */
 function drawTitleBlock(
   page: PDFPage,
   ctx: Ctx,
-  rightX: number,
+  centerX: number,
   baselineY: number,
   maxW: number,
   frSize: number,
@@ -543,10 +531,10 @@ function drawTitleBlock(
   const title = "CARTE DE FIDÉLITÉ";
   const size = fitSize(title, fonts.title, frSize, mm(maxW), 7);
   const w = wOf(title, fonts.title, size);
-  text(page, title, rightX - w, baselineY, size, fonts.title, textColor);
+  text(page, title, centerX - w / 2, baselineY, size, fonts.title, textColor);
   if (ctx.arWafa) {
     const arW = (ctx.arWafa.width / ctx.arWafa.height) * arH;
-    image(page, ctx.arWafa, rightX - arW - 0.6, baselineY - arH - 1.6, arH);
+    image(page, ctx.arWafa, centerX - arW / 2, baselineY - arH - 1.4, arH);
   }
 }
 
@@ -577,30 +565,30 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
   const hasMerchant = !!ctx.displayName || !!ctx.merchantLogo;
 
   if (hasMerchant) {
-    // ── RECTO COMMERÇANT : carte SCINDÉE en deux moitiés STRICTEMENT égales —
-    // à gauche le QR (tag « COMMERÇANT ») + numéro, à droite le logo du
-    // commerçant + son nom, panneaux au MÊME gabarit. Logo Coligo réduit en
-    // haut à gauche, titre Calibri italique + arabe à droite.
+    // ── RECTO COMMERÇANT : titre EN HAUT AU MILIEU, logo Coligo COLLÉ au
+    // coin haut-gauche, puis carte SCINDÉE en deux moitiés STRICTEMENT
+    // égales — à gauche le QR (tag « COMMERÇANT » pleine largeur) + numéro,
+    // à droite le logo du commerçant + son nom, panneaux au MÊME gabarit.
     if (ctx.logo) {
-      image(page, ctx.logo, 5.5, 43.2, 6.2);
+      image(page, ctx.logo, 3.5, 45.2, 5.8);
     } else {
-      text(page, "Coligo", 5.5, 44.6, 10, fonts.bold, textColor);
+      text(page, "Coligo", 3.5, 46.4, 9, fonts.bold, textColor);
     }
     if (ctx.printTitle) {
-      drawTitleBlock(page, ctx, g.trimW - 4.5, 45.4, 46, 10.5, 3.4);
+      drawTitleBlock(page, ctx, g.trimW / 2, 48.2, 42, 8.5, 3);
     }
 
     const midX = g.trimW / 2;
     const halfW = (g.trimW - 9) / 2; // marges 4.5 de part et d'autre
     const panel = 24;
-    const panelY = 13.6;
+    const panelY = 12.8;
     // Séparateur central discret — la division en deux se LIT.
     rect(
       page,
       midX - 0.125,
-      11.5,
+      10.5,
       0.25,
-      28.5,
+      28.3,
       tpl.light ? QR_INK : WHITE,
       0.22
     );
@@ -616,7 +604,7 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
       page,
       grouped,
       4.5 + (halfW - codeW) / 2,
-      8.2,
+      7.6,
       codeSize,
       fonts.mono,
       textColor
@@ -647,7 +635,7 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
             page,
             l,
             midX + (halfW - lw) / 2,
-            8.2 - i * (size / M + 0.9),
+            7.6 - i * (size / M + 0.9),
             size,
             fonts.bold,
             textColor
@@ -699,41 +687,48 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
       );
     }
   } else {
-    // ── RECTO GÉNÉRIQUE : logo pleine taille, titre à droite du QR. ──
+    // ── RECTO GÉNÉRIQUE : logo COLLÉ au coin haut-gauche, titre EN HAUT AU
+    // MILIEU, QR à gauche, mention en grand dans la colonne droite. ──
     if (ctx.logo) {
-      image(page, ctx.logo, 5.5, 40.4, 8.6);
+      image(page, ctx.logo, 3.5, 44.6, 6.4);
     } else {
-      text(page, "Coligo", 5.5, 42, 14, fonts.bold, textColor);
+      text(page, "Coligo", 3.5, 46, 10, fonts.bold, textColor);
     }
     if (ctx.printTitle) {
-      drawTitleBlock(page, ctx, g.trimW - 4.5, 27.5, 46, 12, 4.4);
+      drawTitleBlock(page, ctx, g.trimW / 2, 47.8, 44, 9.5, 3.4);
     }
-    drawQr(page, ctx, matrix, 5.5, 12.5, 25, 2.1);
-    drawQrTag(page, ctx, 5.5, 37.5, 25);
+    drawQr(page, ctx, matrix, 5.5, 11.5, 25, 2.1);
+    drawQrTag(page, ctx, 5.5, 36.5, 25);
     const grouped = groupCardCode(code);
     text(
       page,
       grouped,
       5.5,
-      5,
+      4.6,
       fitSize(grouped, fonts.mono, 8, mm(44), 5),
       fonts.mono,
       textColor
     );
     if (ctx.printValidAll) {
+      // Colonne droite libérée par le titre : la mention y respire, en grand.
+      const colX = 36.5;
+      const colW = g.trimW - colX - 4.5;
       const mention = "Carte valable chez tous les commerçants";
-      const size = fitSize(mention, fonts.italic, 4.2, mm(30), 3.2);
-      const w = wOf(mention, fonts.italic, size);
-      text(
-        page,
-        mention,
-        g.trimW - 4.5 - w,
-        5.2,
-        size,
-        fonts.italic,
-        textColor,
-        0.92
-      );
+      const size = 6;
+      const lines = wrap(mention, fonts.italic, size, mm(colW), 3);
+      lines.forEach((l, i) => {
+        const lw = wOf(l, fonts.italic, size);
+        text(
+          page,
+          l,
+          colX + (colW - lw) / 2,
+          26.5 - i * (size / M + 1),
+          size,
+          fonts.italic,
+          textColor,
+          0.95
+        );
+      });
     }
   }
 
@@ -925,6 +920,8 @@ export async function buildLoyaltyCardsPdf(
     logo: await embedArt(doc, input.assets?.logoPng),
     arWafa: await embedArt(doc, input.assets?.arWafaPng),
     merchantLogo: await embedArt(doc, input.merchantLogoPng),
+    storeApple: await embedArt(doc, input.assets?.storeApplePng),
+    storePlay: await embedArt(doc, input.assets?.storePlayPng),
     artRecto: await embedArt(doc, input.artRecto),
     artVerso: await embedArt(doc, input.artVerso),
     tpl: getCardTemplate(input.templateKey),

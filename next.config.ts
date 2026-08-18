@@ -24,6 +24,8 @@ const nextConfig: NextConfig = {
     // au runtime — le traçage statique ne voit pas les fichiers de public/) :
     // fonds dégradés des modèles, logotype FR+AR, « بطاقة الوفاء ».
     "/api/pdf/cartes-fidelite/**": ["./public/brand/**"],
+    // Flyers publicitaires : captures app, accroches darija, logos stores.
+    "/api/pdf/flyer/**": ["./public/brand/**"],
   },
   // …et les binaires onnxruntime des AUTRES plateformes (222 Mo sur 259) sont
   // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo (vécu :
