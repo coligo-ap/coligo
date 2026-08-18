@@ -275,6 +275,19 @@ export const RECRUTE_HERO_GRADIENTS = {
  * Valeurs FIGÉES : des cartes déjà imprimées circulent — ne pas retoucher un
  * modèle existant, en AJOUTER un.
  */
+/** Flyers publicitaires imprimés (lib/marketing/flyer-pdf.ts) : stops du
+ *  dégradé de fond + formes flottantes roses — mêmes familles que la marque. */
+export const FLYER = {
+  g1: PRIMARY[900],
+  g2: PRIMARY[700],
+  g3: PRIMARY[600],
+  g4: ACCENT[500],
+  shape1: ACCENT[300],
+  shape2: ACCENT[500],
+  /** Châssis du mockup téléphone (presque noir, teinté violet). */
+  phoneFrame: "#120d1f",
+} as const;
+
 export const LOYALTY_CARD = {
   /** Modules du QR : VIOLET de marque sur panneau blanc (maquette 11482). */
   qrInk: PRIMARY[600],

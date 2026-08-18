@@ -10,7 +10,7 @@ import {
 import fontkit from "@pdf-lib/fontkit";
 import sharp from "sharp";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
-import { LOYALTY_CARD } from "@/lib/design/tokens";
+import { FLYER, INK, LOYALTY_CARD } from "@/lib/design/tokens";
 import { pdfColor } from "@/lib/pdf/pdf-kit";
 
 // =============================================================================
@@ -36,8 +36,11 @@ const M = 72 / 25.4; // 1 mm en points PDF
 const mm = (n: number) => n * M;
 
 const WHITE = pdfColor(LOYALTY_CARD.paper);
-const INK = pdfColor(LOYALTY_CARD.qrInk);
+const VIOLET_INK = pdfColor(LOYALTY_CARD.qrInk);
 const BADGE_BLACK = pdfColor(LOYALTY_CARD.badgeInk);
+const INK_WHITE = INK.white;
+const BLACK = pdfColor(INK.black);
+const PHONE_FRAME = pdfColor(FLYER.phoneFrame);
 
 export type FlyerAssets = {
   /** Logotype Coligo blanc (public/brand/logo-full-white.png). */
@@ -245,14 +248,14 @@ async function renderBackground(wMm: number, hMm: number): Promise<Uint8Array> {
   const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#2A1259"/>
-      <stop offset="0.5" stop-color="#4B1FA6"/>
-      <stop offset="0.82" stop-color="#6C2BD9"/>
-      <stop offset="1" stop-color="#FF2D7A"/>
+      <stop offset="0" stop-color="${FLYER.g1}"/>
+      <stop offset="0.5" stop-color="${FLYER.g2}"/>
+      <stop offset="0.82" stop-color="${FLYER.g3}"/>
+      <stop offset="1" stop-color="${FLYER.g4}"/>
     </linearGradient>
     <linearGradient id="p" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#FF6FA5"/>
-      <stop offset="1" stop-color="#FF2D7A"/>
+      <stop offset="0" stop-color="${FLYER.shape1}"/>
+      <stop offset="1" stop-color="${FLYER.shape2}"/>
     </linearGradient>
   </defs>
   <rect width="${W}" height="${H}" fill="url(#g)"/>
@@ -260,11 +263,11 @@ async function renderBackground(wMm: number, hMm: number): Promise<Uint8Array> {
     <rect x="${W - 34 * u}" y="${-14 * u}" width="${34 * u}" height="${26 * u}" rx="${3 * u}" fill="url(#p)" transform="rotate(18 ${W - 17 * u} 0)"/>
     <rect x="${-16 * u}" y="${H - 20 * u}" width="${34 * u}" height="${26 * u}" rx="${3 * u}" fill="url(#p)" transform="rotate(18 0 ${H - 8 * u})"/>
   </g>
-  <g fill="#FFFFFF" opacity="0.05">
+  <g fill="${INK_WHITE}" opacity="0.05">
     <rect x="${W * 0.52}" y="${-H * 0.1}" width="${16 * u}" height="${H * 1.2}" transform="skewX(-12)"/>
     <rect x="${W * 0.74}" y="${-H * 0.1}" width="${26 * u}" height="${H * 1.2}" transform="skewX(-12)"/>
   </g>
-  <rect x="${W * 0.62}" y="${H * 0.16}" width="${34 * u}" height="${34 * u}" rx="${8 * u}" fill="none" stroke="#FFFFFF" stroke-opacity="0.08" stroke-width="${1.2 * u}" transform="rotate(12 ${W * 0.62 + 17 * u} ${H * 0.16 + 17 * u})"/>
+  <rect x="${W * 0.62}" y="${H * 0.16}" width="${34 * u}" height="${34 * u}" rx="${8 * u}" fill="none" stroke="${INK_WHITE}" stroke-opacity="0.08" stroke-width="${1.2 * u}" transform="rotate(12 ${W * 0.62 + 17 * u} ${H * 0.16 + 17 * u})"/>
 </svg>`;
   return new Uint8Array(
     await sharp(Buffer.from(svg)).png({ compressionLevel: 9 }).toBuffer()
@@ -299,7 +302,7 @@ function drawQr(
           y: mm(top - (yy + 1) * cell),
           width: mm((xx - run) * cell + 0.02),
           height: mm(cell + 0.02),
-          color: INK,
+          color: VIOLET_INK,
         });
         run = -1;
       }
@@ -349,17 +352,8 @@ function drawPhone(
   const screenH = (screen.height / screen.width) * screenW;
   const h = screenH + 2 * frame;
   // Ombre douce (décalée) puis cadre.
-  roundedRect(
-    page,
-    x + w * 0.035,
-    y - w * 0.045,
-    w,
-    h,
-    w * 0.115,
-    rgb(0, 0, 0),
-    0.28
-  );
-  roundedRect(page, x, y, w, h, w * 0.115, rgb(0.07, 0.05, 0.12));
+  roundedRect(page, x + w * 0.035, y - w * 0.045, w, h, w * 0.115, BLACK, 0.28);
+  roundedRect(page, x, y, w, h, w * 0.115, PHONE_FRAME);
   page.drawImage(screen, {
     x: mm(x + frame),
     y: mm(y + frame),
@@ -374,7 +368,7 @@ function drawPhone(
     w * 0.32,
     w * 0.028,
     w * 0.014,
-    rgb(0.07, 0.05, 0.12)
+    PHONE_FRAME
   );
 }
 
@@ -395,7 +389,7 @@ function drawBottomBand(
     W - m * 1.1,
     bandH,
     W * 0.03,
-    rgb(1, 1, 1),
+    WHITE,
     0.1
   );
   const qrSize = bandH * 0.72;
@@ -511,7 +505,7 @@ function drawRecto(
       m + pillH * 0.28,
       py + pillH * 0.2,
       pillH * 0.6,
-      INK
+      VIOLET_INK
     );
     text(
       page,
@@ -520,7 +514,7 @@ function drawRecto(
       py + pillH * 0.32,
       size,
       fonts.bold,
-      INK
+      VIOLET_INK
     );
     py -= pillH + pillGap;
   }
