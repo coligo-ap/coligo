@@ -2,7 +2,13 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { NextResponse } from "next/server";
 import { adminCan } from "@/lib/auth/admin";
-import { buildColigoFlyerPdf } from "@/lib/marketing/flyer-pdf";
+import {
+  buildColigoFlyerPdf,
+  FLYER_HOOKS,
+  FLYER_PERKS,
+  type FlyerHookKey,
+} from "@/lib/marketing/flyer-pdf";
+import { FLYER_THEMES, type FlyerThemeKey } from "@/lib/design/tokens";
 import {
   storeLogoPaths,
   cardTitleFontPath,
@@ -40,6 +46,20 @@ export async function GET(req: Request) {
     );
   }
 
+  // Options de modèle (console admin) — tout est borné/validé côté serveur.
+  const themeRaw = url.searchParams.get("theme") ?? "violet";
+  const theme: FlyerThemeKey =
+    themeRaw in FLYER_THEMES ? (themeRaw as FlyerThemeKey) : "violet";
+  const hookRaw = url.searchParams.get("hook") ?? "kolch";
+  const hook: FlyerHookKey =
+    hookRaw in FLYER_HOOKS ? (hookRaw as FlyerHookKey) : "kolch";
+  const scriptText =
+    url.searchParams.get("script")?.trim().slice(0, 40) || undefined;
+  const perkIndices = (url.searchParams.get("phrases") ?? "")
+    .split(",")
+    .map((s) => Number(s))
+    .filter((n) => Number.isInteger(n) && n >= 0 && n < FLYER_PERKS.length);
+
   const [
     logoWhitePng,
     screenMarketplacePng,
@@ -71,6 +91,10 @@ export async function GET(req: Request) {
     widthCm: w,
     heightCm: h,
     baseUrl,
+    theme,
+    hook,
+    scriptText,
+    perkIndices,
     assets: {
       logoWhitePng,
       screenMarketplacePng,

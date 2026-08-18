@@ -288,6 +288,40 @@ export const FLYER = {
   phoneFrame: "#120d1f",
 } as const;
 
+/** MODÈLES de flyers (choix console admin) — chaque thème = un dégradé de
+ *  fond + une paire de teintes pour les formes flottantes. */
+export const FLYER_THEMES = {
+  violet: {
+    label: "Violet Coligo",
+    g1: FLYER.g1,
+    g2: FLYER.g2,
+    g3: FLYER.g3,
+    g4: FLYER.g4,
+    shape1: FLYER.shape1,
+    shape2: FLYER.shape2,
+  },
+  rose: {
+    label: "Rose énergie",
+    g1: ACCENT[900],
+    g2: ACCENT[700],
+    g3: ACCENT[500],
+    g4: PRIMARY[500],
+    shape1: PRIMARY[300],
+    shape2: PRIMARY[500],
+  },
+  nuit: {
+    label: "Nuit premium",
+    g1: "#0e0620",
+    g2: PRIMARY[800],
+    g3: PRIMARY[600],
+    g4: ACCENT[600],
+    shape1: ACCENT[400],
+    shape2: ACCENT[600],
+  },
+} as const;
+
+export type FlyerThemeKey = keyof typeof FLYER_THEMES;
+
 export const LOYALTY_CARD = {
   /** Modules du QR : VIOLET de marque sur panneau blanc (maquette 11482). */
   qrInk: PRIMARY[600],

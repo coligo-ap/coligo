@@ -10,7 +10,13 @@ import {
 import fontkit from "@pdf-lib/fontkit";
 import sharp from "sharp";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
-import { FLYER, INK, LOYALTY_CARD } from "@/lib/design/tokens";
+import {
+  FLYER,
+  FLYER_THEMES,
+  INK,
+  LOYALTY_CARD,
+  type FlyerThemeKey,
+} from "@/lib/design/tokens";
 import { pdfColor } from "@/lib/pdf/pdf-kit";
 
 // =============================================================================
@@ -59,16 +65,49 @@ export type FlyerAssets = {
   hookWinPng?: Uint8Array | null; // « وين ما تكون »
 };
 
+/** Catalogue des PHRASES d'avantages (pilules du recto) — partagé avec la
+ *  console admin (labels + choix). Darija latinisée assumée. */
+export const FLYER_PERKS: { icon: keyof typeof ICONS; label: string }[] = [
+  { icon: "percent", label: "PROMOS & RÉDUCTIONS" },
+  { icon: "cart", label: "COMMANDE À L'AVANCE" },
+  { icon: "truck", label: "LIVRAISON À DOMICILE" },
+  { icon: "card", label: "CARTE WELA CASH" },
+  { icon: "gift", label: "CARTE DE FIDÉLITÉ" },
+  { icon: "percent", label: "PROMOS EN DIRECT" },
+  { icon: "cart", label: "RÉCUPÈRE BLA MA DIR LACHAINE" },
+  { icon: "card", label: "DAHABIA, CIB WELA CASH" },
+];
+export const FLYER_DEFAULT_PERKS = [0, 1, 2, 3, 4];
+
+/** Accroches DARIJA (PNG pré-rendus) proposées à la console. */
+export const FLYER_HOOKS = {
+  kolch: "كلش يوصلك — tout t'arrive",
+  chri: "شري و تهنّى — achète tranquille",
+  win: "وين ما تكون — où que tu sois",
+} as const;
+export type FlyerHookKey = keyof typeof FLYER_HOOKS;
+
 export type FlyerInput = {
   widthCm: number;
   heightCm: number;
   baseUrl: string;
+  /** Modèle couleur (FLYER_THEMES) — défaut : violet. */
+  theme?: FlyerThemeKey;
+  /** Accroche darija du recto — défaut : kolch (« كلش يوصلك »). */
+  hook?: FlyerHookKey;
+  /** Phrase script du recto (latin) — défaut : « Wech testenna ? ». */
+  scriptText?: string;
+  /** Indices FLYER_PERKS des pilules du recto (max 5) — défaut 0..4. */
+  perkIndices?: number[];
   assets?: FlyerAssets;
 };
 
 type Ctx = {
   W: number; // largeur page en mm
   H: number;
+  scriptText: string;
+  perkIndices: number[];
+  hookImg: PDFImage | null;
   fonts: { reg: PDFFont; bold: PDFFont; title: PDFFont };
   logo: PDFImage | null;
   screenMarket: PDFImage | null;
@@ -240,7 +279,12 @@ const ICONS = {
 /** Fond plein cadre : dégradé diagonal violet → rose + formes flottantes
  *  inclinées (langage du flyer de référence) — SVG sans texte, rendu à la
  *  taille exacte demandée. */
-async function renderBackground(wMm: number, hMm: number): Promise<Uint8Array> {
+async function renderBackground(
+  wMm: number,
+  hMm: number,
+  theme: FlyerThemeKey
+): Promise<Uint8Array> {
+  const T = FLYER_THEMES[theme];
   const pxPerMm = Math.min(8, 2400 / Math.max(wMm, hMm));
   const W = Math.round(wMm * pxPerMm);
   const H = Math.round(hMm * pxPerMm);
@@ -248,14 +292,14 @@ async function renderBackground(wMm: number, hMm: number): Promise<Uint8Array> {
   const svg = `<svg width="${W}" height="${H}" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="${FLYER.g1}"/>
-      <stop offset="0.5" stop-color="${FLYER.g2}"/>
-      <stop offset="0.82" stop-color="${FLYER.g3}"/>
-      <stop offset="1" stop-color="${FLYER.g4}"/>
+      <stop offset="0" stop-color="${T.g1}"/>
+      <stop offset="0.5" stop-color="${T.g2}"/>
+      <stop offset="0.82" stop-color="${T.g3}"/>
+      <stop offset="1" stop-color="${T.g4}"/>
     </linearGradient>
     <linearGradient id="p" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="${FLYER.shape1}"/>
-      <stop offset="1" stop-color="${FLYER.shape2}"/>
+      <stop offset="0" stop-color="${T.shape1}"/>
+      <stop offset="1" stop-color="${T.shape2}"/>
     </linearGradient>
   </defs>
   <rect width="${W}" height="${H}" fill="url(#g)"/>
@@ -464,10 +508,11 @@ function drawRecto(
   drawPhone(page, ctx.screenMarket, W * 0.56, H * 0.17, phoneW);
 
   // Script d'accroche (darija latinisée) + ÉNORME hook arabe.
-  const scriptSize = W * 0.32;
-  text(page, "Wech testenna ?", m, H * 0.815, scriptSize, fonts.title, WHITE);
-  if (ctx.hookKolch) {
-    imageW(page, ctx.hookKolch, m, H * 0.7, W * 0.44);
+  const script = ctx.scriptText;
+  const scriptSize = fitSize(script, fonts.title, W * 0.32, W * 0.88, 8);
+  text(page, script, m, H * 0.815, scriptSize, fonts.title, WHITE);
+  if (ctx.hookImg) {
+    imageW(page, ctx.hookImg, m, H * 0.7, W * 0.44);
   }
   const sub = "Tes commerces, promos w livraison";
   const sub2 = "— f'une seule appli.";
@@ -485,13 +530,10 @@ function drawRecto(
   );
 
   // Pilules d'avantages (colonne gauche, à côté du téléphone).
-  const perks = [
-    { icon: ICONS.percent, label: "PROMOS & RÉDUCTIONS" },
-    { icon: ICONS.cart, label: "COMMANDE À L'AVANCE" },
-    { icon: ICONS.truck, label: "LIVRAISON À DOMICILE" },
-    { icon: ICONS.card, label: "CARTE WELA CASH" },
-    { icon: ICONS.gift, label: "CARTE DE FIDÉLITÉ" },
-  ];
+  const perks = ctx.perkIndices
+    .map((i) => FLYER_PERKS[i])
+    .filter(Boolean)
+    .map((p) => ({ icon: ICONS[p.icon], label: p.label }));
   const pillH = Math.min(H * 0.052, W * 0.085);
   const pillGap = pillH * 0.38;
   let py = H * 0.575 - pillH;
@@ -669,19 +711,37 @@ export async function buildColigoFlyerPdf(
         : await doc.embedFont(StandardFonts.HelveticaBoldOblique),
   };
 
+  const hookKolch = await embed(doc, input.assets?.hookKolchPng);
+  const hookChri = await embed(doc, input.assets?.hookChriPng);
+  const hookWin = await embed(doc, input.assets?.hookWinPng);
+  const hookImg =
+    input.hook === "chri"
+      ? hookChri
+      : input.hook === "win"
+        ? hookWin
+        : hookKolch;
+  const perkIndices = (
+    input.perkIndices && input.perkIndices.length > 0
+      ? input.perkIndices
+      : FLYER_DEFAULT_PERKS
+  ).slice(0, 5);
+
   const ctx: Ctx = {
     W,
     H,
+    scriptText: (input.scriptText ?? "Wech testenna ?").slice(0, 40),
+    perkIndices,
+    hookImg,
     fonts,
     logo: await embed(doc, input.assets?.logoWhitePng),
     screenMarket: await embed(doc, input.assets?.screenMarketplacePng),
     screenStore: await embed(doc, input.assets?.screenStorePng),
     storeApple: await embed(doc, input.assets?.storeApplePng),
     storePlay: await embed(doc, input.assets?.storePlayPng),
-    hookKolch: await embed(doc, input.assets?.hookKolchPng),
-    hookChri: await embed(doc, input.assets?.hookChriPng),
-    hookWin: await embed(doc, input.assets?.hookWinPng),
-    bg: await embed(doc, await renderBackground(W, H)),
+    hookKolch,
+    hookChri,
+    hookWin,
+    bg: await embed(doc, await renderBackground(W, H, input.theme ?? "violet")),
   };
 
   const base = input.baseUrl.replace(/\/+$/, "");

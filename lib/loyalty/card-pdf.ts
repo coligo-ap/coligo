@@ -1,7 +1,7 @@
 import {
-  LineCapStyle,
   PDFDocument,
   StandardFonts,
+  degrees,
   rgb,
   type PDFFont,
   type PDFImage,
@@ -76,6 +76,13 @@ export type CardPdfAssets = {
    *  store-appstore.png / store-play.png) pour les badges du verso. */
   storeApplePng?: Uint8Array | null;
   storePlayPng?: Uint8Array | null;
+  /** Lignes DARIJA du verso (PNG Segoe UI pré-rendus, public/brand/flyer/
+   *  darija-line-*.png) — dans l'ordre : promos, chaîne, livraison, dahabia. */
+  darijaLinesPngs?: (Uint8Array | null)[];
+  /** Décor PRODUITS du recto (public/brand/loyalty-decor/, fond transparent) :
+   *  choisi par la ROUTE selon la catégorie du commerçant (supérette = marques
+   *  algériennes détourées, food = médaillons ronds). Vide = pas de décor. */
+  decorPngs?: (Uint8Array | null)[];
 };
 
 export type CardPdfInput = {
@@ -118,6 +125,8 @@ type Ctx = {
   merchantLogo: PDFImage | null;
   storeApple: PDFImage | null;
   storePlay: PDFImage | null;
+  darijaLines: (PDFImage | null)[];
+  decor: PDFImage[];
   artRecto: PDFImage | null;
   artVerso: PDFImage | null;
   tpl: ReturnType<typeof getCardTemplate>;
@@ -343,9 +352,10 @@ function drawMerchantLogoPlate(
   });
 }
 
-/** Tag « COMMERÇANT » à cheval sur le bord HAUT du panneau QR, PLEINE LARGEUR
- *  du panneau : la carte se tend en caisse, le tag dit à qui s'adresse ce QR.
- *  Couleurs ADAPTÉES au modèle, liseré blanc pour se détacher. */
+/** Tag « COMMERÇANT » RECTANGULAIRE, INTÉGRÉ au panneau QR : un bandeau plein
+ *  à angles droits soudé au bord HAUT du panneau (coins hauts du panneau
+ *  équarris pour un raccord net) — un seul bloc visuel avec le QR. Couleurs
+ *  ADAPTÉES au modèle, texte blanc. */
 function drawQrTag(
   page: PDFPage,
   ctx: Ctx,
@@ -356,24 +366,51 @@ function drawQrTag(
   const { tpl, fonts } = ctx;
   const label = "COMMERÇANT";
   const w = panelSize;
-  const h = 4.6;
-  const x = panelX;
-  const y = panelTopY - h / 2;
-  const size = fitSize(label, fonts.bold, 4.4, mm(w - 6), 3);
-  roundedRect(page, x - 0.4, y - 0.4, w + 0.8, h + 0.8, (h + 0.8) / 2, WHITE);
-  // Modèles sombres : teinte médiane du dégradé ; modèle clair : encre violette
-  // (le g2 clair se fondrait dans le panneau blanc). Texte blanc dans les deux.
-  roundedRect(page, x, y, w, h, h / 2, tpl.light ? QR_INK : pdfColor(tpl.g2));
+  const h = 4.8;
+  // Équarrir les coins HAUTS du panneau (arrondis 2.4) → raccord sans encoche.
+  rect(page, panelX, panelTopY - 2.4, w, 2.4, WHITE);
+  rect(page, panelX, panelTopY, w, h, tpl.light ? QR_INK : pdfColor(tpl.g2));
+  const size = fitSize(label, fonts.bold, 4.6, mm(w - 5), 3.2);
   const tw = wOf(label, fonts.bold, size);
   text(
     page,
     label,
-    x + (w - tw) / 2,
-    y + h / 2 - size / (2 * M) + 0.32,
+    panelX + (w - tw) / 2,
+    panelTopY + h / 2 - size / (2 * M) + 0.32,
     size,
     fonts.bold,
     WHITE
   );
+}
+
+/** Décor PRODUITS (option par catégorie de commerce) : accents photo posés sur
+ *  les BORDS de la carte, débordant dans les fonds perdus (rognés à la coupe),
+ *  légèrement inclinés — le langage des grandes enseignes de fidélité. Les
+ *  emplacements évitent le contenu (QR, titres, numéro). */
+function drawDecor(page: PDFPage, ctx: Ctx) {
+  if (ctx.decor.length === 0) return;
+  const g = CARD_PDF_GEOM;
+  const o = g.origin;
+  const slots: { x: number; y: number; h: number; rot: number }[] = [
+    // Coin haut-droit, à cheval sur la coupe.
+    { x: g.trimW - 8.5, y: g.trimH - 10, h: 13, rot: -14 },
+    // Bord droit, sous le milieu.
+    { x: g.trimW - 6, y: 15, h: 11, rot: 10 },
+    // Coin bas-gauche.
+    { x: -3.2, y: -3.6, h: 10.5, rot: 12 },
+  ];
+  for (let i = 0; i < Math.min(ctx.decor.length, slots.length); i++) {
+    const img = ctx.decor[i];
+    const s = slots[i];
+    const w = (img.width / img.height) * s.h;
+    page.drawImage(img, {
+      x: mm(o + s.x),
+      y: mm(o + s.y),
+      width: mm(w),
+      height: mm(s.h),
+      rotate: degrees(s.rot),
+    });
+  }
 }
 
 /** QR sur panneau blanc arrondi (zone de silence garantie par le padding),
@@ -413,70 +450,6 @@ function drawQr(
   }
 }
 
-/** Icône lucide (viewBox 24) tracée au TRAIT, bouts ronds. */
-function drawIcon(
-  page: PDFPage,
-  paths: string[],
-  dots: { cx: number; cy: number; r: number }[],
-  x: number,
-  y: number,
-  sizeMm: number,
-  color: ReturnType<typeof rgb>
-) {
-  const o = CARD_PDF_GEOM.origin;
-  const scale = mm(sizeMm) / 24;
-  const strokeW = mm(sizeMm) / 12;
-  for (const d of paths) {
-    page.drawSvgPath(d, {
-      x: mm(o + x),
-      y: mm(o + y + sizeMm),
-      scale,
-      borderColor: color,
-      borderWidth: strokeW,
-      borderLineCap: LineCapStyle.Round,
-    });
-  }
-  for (const c of dots) {
-    page.drawEllipse({
-      x: mm(o + x) + c.cx * scale,
-      y: mm(o + y + sizeMm) - c.cy * scale,
-      xScale: c.r * scale,
-      yScale: c.r * scale,
-      borderColor: color,
-      borderWidth: strokeW,
-    });
-  }
-}
-
-// Tracés lucide (shopping-cart, truck) — mêmes icônes que l'app.
-const ICON_CART = {
-  paths: [
-    "M2.05 2.05h2l2.66 12.42a2 2 0 0 0 2 1.58h9.78a2 2 0 0 0 1.95-1.57l1.65-7.43H5.12",
-  ],
-  dots: [
-    { cx: 8, cy: 21, r: 1 },
-    { cx: 19, cy: 21, r: 1 },
-  ],
-};
-const ICON_TRUCK = {
-  paths: [
-    "M14 18V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v11a1 1 0 0 0 1 1h2",
-    "M15 18H9",
-    "M19 18h2a1 1 0 0 0 1-1v-3.65a1 1 0 0 0-.22-.624l-3.48-4.35A1 1 0 0 0 17.52 8H14",
-  ],
-  dots: [
-    { cx: 17, cy: 18, r: 2 },
-    { cx: 7, cy: 18, r: 2 },
-  ],
-};
-const ICON_PERCENT = {
-  paths: ["M19 5 L5 19"],
-  dots: [
-    { cx: 6.5, cy: 6.5, r: 2.5 },
-    { cx: 17.5, cy: 17.5, r: 2.5 },
-  ],
-};
-
 /** Badge store « officiel » : rectangle noir arrondi, VRAI logo du store
  *  (PNG fourni par le propriétaire) + accroche petite / nom du store en
  *  GRAS — le langage visuel connu de tous, compréhension immédiate. */
@@ -499,17 +472,89 @@ function drawStoreBadge(
     logoW = image(page, img, x + 2, logoY, logoH);
   }
   const textX = x + 2 + logoW + 1.3;
+  // Libellés BIEN LISIBLES : blanc plein, accroche agrandie, nom du store en
+  // gras au maximum de la place disponible (retour proprio : « on ne les
+  // voyait pas du tout »).
   const cap = kind === "apple" ? "Télécharge sur l'" : "Disponible sur";
   const store = kind === "apple" ? "App Store" : "Google Play";
-  text(page, cap, textX, y + h - 2.5, 2.1, fonts.reg, WHITE, 0.85);
+  const capSize = fitSize(cap, fonts.bold, 2.7, mm(w - (textX - x) - 1.2), 2);
+  text(page, cap, textX, y + h - 3, capSize, fonts.bold, WHITE);
   const storeSize = fitSize(
     store,
     fonts.bold,
-    3.7,
-    mm(w - (textX - x) - 1.4),
-    2.8
+    4.4,
+    mm(w - (textX - x) - 1.2),
+    3
   );
-  text(page, store, textX, y + 1.2, storeSize, fonts.bold, WHITE);
+  text(page, store, textX, y + 1.1, storeSize, fonts.bold, WHITE);
+}
+
+/** Icônes réseaux sociaux vectorielles : Facebook (disque plein + « f »),
+ *  Instagram (carré arrondi + objectif + point) — suivies de « Coligo App »
+ *  en gras. Renvoie la largeur totale (mm). */
+function drawSocialRow(
+  page: PDFPage,
+  ctx: Ctx,
+  x: number,
+  y: number,
+  s: number,
+  kind: "facebook" | "instagram",
+  label: string
+): number {
+  const { tpl, fonts } = ctx;
+  const o = CARD_PDF_GEOM.origin;
+  const color = pdfColor(tpl.text);
+  if (kind === "facebook") {
+    page.drawEllipse({
+      x: mm(o + x + s / 2),
+      y: mm(o + y + s / 2),
+      xScale: mm(s / 2),
+      yScale: mm(s / 2),
+      color,
+    });
+    const f = "f";
+    const fSize = s * M * 0.72;
+    const fw = wOf(f, fonts.bold, fSize);
+    text(
+      page,
+      f,
+      x + (s - fw) / 2 + 0.1,
+      y + s * 0.14,
+      fSize,
+      fonts.bold,
+      tpl.light ? WHITE : pdfColor(tpl.g2)
+    );
+  } else {
+    const stroke = mm(s) / 11;
+    page.drawSvgPath(
+      `M ${s * 0.26} 0 H ${s * 0.74} Q ${s} 0 ${s} ${s * 0.26} V ${s * 0.74} Q ${s} ${s} ${s * 0.74} ${s} H ${s * 0.26} Q 0 ${s} 0 ${s * 0.74} V ${s * 0.26} Q 0 0 ${s * 0.26} 0 Z`,
+      {
+        x: mm(o + x),
+        y: mm(o + y + s),
+        scale: M,
+        borderColor: color,
+        borderWidth: stroke,
+      }
+    );
+    page.drawEllipse({
+      x: mm(o + x + s / 2),
+      y: mm(o + y + s / 2),
+      xScale: mm(s * 0.22),
+      yScale: mm(s * 0.22),
+      borderColor: color,
+      borderWidth: stroke,
+    });
+    page.drawEllipse({
+      x: mm(o + x + s * 0.76),
+      y: mm(o + y + s * 0.76),
+      xScale: mm(s * 0.055),
+      yScale: mm(s * 0.055),
+      color,
+    });
+  }
+  const size = s * M * 0.62;
+  text(page, label, x + s + 1.2, y + s * 0.22, size, fonts.bold, color);
+  return s + 1.2 + wOf(label, fonts.bold, size);
 }
 
 /* ----------------------------------- RECTO -------------------------------- */
@@ -575,7 +620,7 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
       text(page, "Coligo", 3.5, 46.4, 9, fonts.bold, textColor);
     }
     if (ctx.printTitle) {
-      drawTitleBlock(page, ctx, g.trimW / 2, 48.2, 42, 8.5, 3);
+      drawTitleBlock(page, ctx, g.trimW / 2, 48, 46, 10.5, 3.2);
     }
 
     const midX = g.trimW / 2;
@@ -619,7 +664,7 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
       const name = safe(ctx.displayName);
       if (ctx.merchantLogo) {
         // Nom centré SOUS le socle — symétrique du numéro sous le QR.
-        let size = 6.5;
+        let size = 8;
         let lines = wrap(name, fonts.bold, size, mm(halfW - 2), 2);
         while (
           size > 4.5 &&
@@ -643,7 +688,7 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
         });
       } else {
         // Pas de logo : le NOM devient le héros de la moitié droite.
-        let size = 12;
+        let size = 13.5;
         let lines = wrap(name, fonts.bold, size, mm(halfW - 3), 2);
         while (
           size > 7 &&
@@ -695,7 +740,7 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
       text(page, "Coligo", 3.5, 46, 10, fonts.bold, textColor);
     }
     if (ctx.printTitle) {
-      drawTitleBlock(page, ctx, g.trimW / 2, 47.8, 44, 9.5, 3.4);
+      drawTitleBlock(page, ctx, g.trimW / 2, 47.6, 48, 12, 3.6);
     }
     drawQr(page, ctx, matrix, 5.5, 11.5, 25, 2.1);
     drawQrTag(page, ctx, 5.5, 36.5, 25);
@@ -732,6 +777,9 @@ function drawRecto(page: PDFPage, ctx: Ctx, code: string, matrix: boolean[][]) {
     }
   }
 
+  // Décor produits par catégorie de commerce (bords, fonds perdus).
+  drawDecor(page, ctx);
+
   drawCropMarks(page);
 }
 
@@ -747,7 +795,6 @@ function drawVerso(
   const g = CARD_PDF_GEOM;
   const { tpl, fonts } = ctx;
   const textColor = pdfColor(tpl.text);
-  const subColor = pdfColor(tpl.subtext);
 
   drawBackground(page, ctx, ctx.artVerso);
   if (ctx.artVerso) {
@@ -758,102 +805,57 @@ function drawVerso(
 
   // Logotype centré en tête.
   if (ctx.logo) {
-    const w = (ctx.logo.width / ctx.logo.height) * 6;
-    image(page, ctx.logo, (g.trimW - w) / 2, 45.6, 6);
+    const w = (ctx.logo.width / ctx.logo.height) * 5.4;
+    image(page, ctx.logo, (g.trimW - w) / 2, 46.6, 5.4);
   } else {
-    const w = wOf("Coligo", fonts.bold, 11);
-    text(page, "Coligo", (g.trimW - w) / 2, 47, 11, fonts.bold, textColor);
+    const w = wOf("Coligo", fonts.bold, 10);
+    text(page, "Coligo", (g.trimW - w) / 2, 47.6, 10, fonts.bold, textColor);
   }
 
-  const midX = g.trimW / 2;
-  const halfW = (g.trimW - 9) / 2;
-
-  // ── Moitié GAUCHE : QR du SITE + lien en GRAS bien lisible. ─────────────
-  const qrSize = 20;
-  const qrX = 4.5 + (halfW - qrSize) / 2;
-  drawQr(page, ctx, siteMatrix, qrX, 22.4, qrSize, 1.8);
-  {
-    const size = fitSize(siteHost, fonts.bold, 7.5, mm(halfW - 2), 5);
-    const w = wOf(siteHost, fonts.bold, size);
-    text(
-      page,
-      siteHost,
-      4.5 + (halfW - w) / 2,
-      17,
-      size,
-      fonts.bold,
-      textColor
-    );
-  }
-
-  // ── Moitié DROITE : les 3 promesses CLIENT, en GRAS, hiérarchie nette. ──
-  const colX = midX + 1.5;
-  const iconS = 4.6;
-  const textX = colX + iconS + 2;
-  const textW = g.trimW - textX - 4.5;
-  const services: {
-    icon: { paths: string[]; dots: { cx: number; cy: number; r: number }[] };
-    title: string;
-    desc: string;
-  }[] = [
-    {
-      icon: ICON_PERCENT,
-      title: "CASHBACK FIDÉLITÉ",
-      desc: "Des avantages à chaque achat.",
-    },
-    {
-      icon: ICON_CART,
-      title: "RETRAIT SANS FILE",
-      desc: "Commande à l'avance, c'est prêt.",
-    },
-    {
-      icon: ICON_TRUCK,
-      title: "LIVRAISON À DOMICILE",
-      desc: "À ta porte, en toute simplicité.",
-    },
+  // ── LIGNES pleine largeur, GRANDES : FR gras + DARIJA dessous (retour
+  // proprio : « lignes par lignes en grand pour bien communiquer, arabe
+  // algérien street sous chaque titre »). ─────────────────────────────────
+  const lines: { fr: string; ar: number }[] = [
+    { fr: "PROMOS & RÉDUCTIONS", ar: 0 },
+    { fr: "COMMANDEZ & RÉCUPÉREZ", ar: 1 },
+    { fr: "LIVRAISON À DOMICILE", ar: 2 },
+    { fr: "DAHABIA, CIB WELA CASH", ar: 3 },
   ];
-  let rowY = 37.6;
-  for (const s of services) {
-    drawIcon(
-      page,
-      s.icon.paths,
-      s.icon.dots,
-      colX,
-      rowY - iconS + 1.2,
-      iconS,
-      textColor
-    );
-    const size = fitSize(s.title, fonts.bold, 5.4, mm(textW), 4);
-    text(page, s.title, textX, rowY - 1.8, size, fonts.bold, textColor);
-    const descSize = fitSize(s.desc, fonts.reg, 3.4, mm(textW), 2.8);
-    text(page, s.desc, textX, rowY - 4.6, descSize, fonts.reg, subColor);
-    rowY -= 8.4;
+  const zoneTop = 45.4;
+  const rowH = 7.4;
+  let y = zoneTop;
+  for (const l of lines) {
+    const size = fitSize(l.fr, fonts.bold, 6.2, mm(g.trimW - 12), 4.5);
+    const w = wOf(l.fr, fonts.bold, size);
+    text(page, l.fr, (g.trimW - w) / 2, y - 2.4, size, fonts.bold, textColor);
+    const arImg = ctx.darijaLines[l.ar] ?? null;
+    if (arImg) {
+      const arH = 2.7;
+      const arW = (arImg.width / arImg.height) * arH;
+      image(page, arImg, (g.trimW - arW) / 2, y - 2.7 - arH - 0.7, arH);
+    }
+    y -= rowH;
   }
 
-  // ── Pied : badges OFFICIELS des stores + numéro de la carte. ────────────
-  const badgeW = 21.5;
-  const badgeH = 6.6;
-  drawStoreBadge(page, ctx, 4.5, 3.8, badgeW, badgeH, "apple");
-  drawStoreBadge(page, ctx, 4.5 + badgeW + 1.8, 3.8, badgeW, badgeH, "play");
-  const grouped = groupCardCode(code);
-  const codeSize = fitSize(
-    grouped,
-    fonts.mono,
-    5.5,
-    mm(g.trimW - 4.5 - (4.5 + 2 * badgeW + 3.6)),
-    3.6
-  );
-  const cw = wOf(grouped, fonts.mono, codeSize);
-  text(
-    page,
-    grouped,
-    g.trimW - 4.5 - cw,
-    6,
-    codeSize,
-    fonts.mono,
-    textColor,
-    0.9
-  );
+  // ── Pied : QR site + www EN GRAS, réseaux sociaux, badges stores. ───────
+  const qrSize = 12.5;
+  drawQr(page, ctx, siteMatrix, 4.5, 2.6, qrSize, 1.2);
+  const colX = 4.5 + qrSize + 2.2;
+  const www = `www.${siteHost}`;
+  const wwwSize = fitSize(www, fonts.bold, 6, mm(30), 4.2);
+  text(page, www, colX, 11.4, wwwSize, fonts.bold, textColor);
+  drawSocialRow(page, ctx, colX, 6.6, 3, "facebook", "Coligo App");
+  drawSocialRow(page, ctx, colX, 2.6, 3, "instagram", "Coligo App");
+
+  // Badges stores empilés à droite — libellés grands et blancs.
+  const badgeW = 26;
+  const badgeH = 6.2;
+  const bx = g.trimW - 4.5 - badgeW;
+  drawStoreBadge(page, ctx, bx, 2.6 + badgeH + 0.9, badgeW, badgeH, "apple");
+  drawStoreBadge(page, ctx, bx, 2.6, badgeW, badgeH, "play");
+
+  // Numéro (rappel discret) dans la zone technique côté façonnier.
+  void code;
 
   drawCropMarks(page);
 }
@@ -922,6 +924,14 @@ export async function buildLoyaltyCardsPdf(
     merchantLogo: await embedArt(doc, input.merchantLogoPng),
     storeApple: await embedArt(doc, input.assets?.storeApplePng),
     storePlay: await embedArt(doc, input.assets?.storePlayPng),
+    darijaLines: await Promise.all(
+      (input.assets?.darijaLinesPngs ?? []).map((b) => embedArt(doc, b))
+    ),
+    decor: (
+      await Promise.all(
+        (input.assets?.decorPngs ?? []).map((b) => embedArt(doc, b))
+      )
+    ).filter((i): i is PDFImage => i !== null),
     artRecto: await embedArt(doc, input.artRecto),
     artVerso: await embedArt(doc, input.artVerso),
     tpl: getCardTemplate(input.templateKey),

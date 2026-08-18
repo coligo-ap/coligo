@@ -92,7 +92,7 @@ export async function GET(
 
   const { data: batch } = await from("loyalty_card_batches")
     .select(
-      "id, merchant_id, template_key, quantity, print_merchant_name, print_title, print_merchant_logo, print_valid_all, art_recto_path, art_verso_path, merchants(name, logo_url)"
+      "id, merchant_id, template_key, quantity, print_merchant_name, print_title, print_merchant_logo, print_valid_all, art_recto_path, art_verso_path, merchants(name, logo_url, category)"
     )
     .eq("id", batchId)
     .maybeSingle();
@@ -132,12 +132,30 @@ export async function GET(
 
   // Lot GÉNÉRIQUE (merchant_id NULL) ou nom volontairement non imprimé.
   const merchant =
-    (batch.merchants as { name?: string; logo_url?: string | null } | null) ??
-    null;
+    (batch.merchants as {
+      name?: string;
+      logo_url?: string | null;
+      category?: string | null;
+    } | null) ?? null;
   const merchantName = merchant?.name ?? null;
   const printMerchantName = batch.print_merchant_name !== false;
   const templateKey = String(batch.template_key ?? "violet");
   const tpl = getCardTemplate(templateKey);
+
+  // Décor PRODUITS par catégorie de commerce (public/brand/loyalty-decor/) :
+  // supérette = grandes marques algériennes détourées (RAMY, CANDIA, ROUIBA…),
+  // food = médaillons ronds. Catégorie inconnue / lot générique = pas de décor.
+  const DECOR_BY_CATEGORY: Record<string, string[]> = {
+    superette: ["superette-1", "superette-4", "superette-5"],
+    alimentation: ["superette-1", "superette-4", "superette-5"],
+    epicerie: ["superette-1", "superette-4", "superette-5"],
+    fast_food: ["fastfood-2", "fastfood-1", "fastfood-3"],
+    pizzeria: ["fastfood-2", "fastfood-3", "fastfood-1"],
+    restaurant: ["restaurant-1", "restaurant-2"],
+    boulangerie: ["boulangerie-1", "boulangerie-3", "boulangerie-2"],
+    patisserie: ["boulangerie-2", "boulangerie-1", "boulangerie-3"],
+  };
+  const decorNames = DECOR_BY_CATEGORY[merchant?.category ?? ""] ?? [];
 
   const [
     backgroundPng,
@@ -147,6 +165,8 @@ export async function GET(
     storeApplePng,
     storePlayPng,
     merchantLogoPng,
+    darijaLinesPngs,
+    decorPngs,
   ] = await Promise.all([
     readPublicAsset(cardBgAssetPath(templateKey)),
     readPublicAsset(cardLogoAssetPath(tpl)),
@@ -157,6 +177,14 @@ export async function GET(
     batch.print_merchant_logo === true
       ? fetchMerchantLogoPng(merchant?.logo_url ?? null)
       : Promise.resolve(null),
+    Promise.all(
+      ["promos", "chaine", "livraison", "dahabia"].map((k) =>
+        readPublicAsset(`/brand/flyer/darija-line-${k}.png`)
+      )
+    ),
+    Promise.all(
+      decorNames.map((n) => readPublicAsset(`/brand/loyalty-decor/${n}.png`))
+    ),
   ]);
 
   // Origine STABLE : une carte imprimée vit des années — jamais une URL de
@@ -181,6 +209,8 @@ export async function GET(
       titleFontBytes,
       storeApplePng,
       storePlayPng,
+      darijaLinesPngs,
+      decorPngs,
     },
     artRecto,
     artVerso,
