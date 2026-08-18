@@ -10,7 +10,7 @@ import {
 import fontkit from "@pdf-lib/fontkit";
 import { qrMatrix } from "@/lib/ticket/qr-svg";
 import { LOYALTY_CARD } from "@/lib/design/tokens";
-import { pdfColor } from "@/lib/pdf/pdf-kit";
+import { PDF_INK, pdfColor } from "@/lib/pdf/pdf-kit";
 import { CARD_PDF_GEOM } from "@/lib/loyalty/card-pdf";
 
 // =============================================================================
@@ -263,7 +263,7 @@ function drawCropMarks(page: PDFPage) {
   const o = g.origin;
   const len = 4;
   const gap = g.bleed + 1;
-  const ink = rgb(0.1, 0.1, 0.12);
+  const ink = PDF_INK.INK;
   const line = (x1: number, y1: number, x2: number, y2: number) =>
     page.drawLine({
       start: { x: mm(x1), y: mm(y1) },
