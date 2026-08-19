@@ -127,15 +127,30 @@ if (fails.length) {
   process.exit(1);
 }
 
-// 3) Valider — c'est SEULEMENT ici que la fiche change.
-const commit = await (
+// 3) Valider — c'est SEULEMENT ici que la fiche change. REPLI vécu : ce
+// compte refuse l'envoi en review automatique → recommitter avec
+// changesNotSentForReview=true ; l'envoi se fait ensuite depuis la console
+// (« Vue d'ensemble de la publication », publication gérée active).
+let commit = await (
   await rfetch(`${base}/edits/${edit.id}:commit`, {
     method: "POST",
     headers: await hdr(),
   })
 ).json();
+if (!commit.id && /changesNotSentForReview/.test(JSON.stringify(commit))) {
+  commit = await (
+    await rfetch(
+      `${base}/edits/${edit.id}:commit?changesNotSentForReview=true`,
+      {
+        method: "POST",
+        headers: await hdr(),
+      }
+    )
+  ).json();
+}
 console.log(
   commit.id
-    ? '✅ Fiche mise à jour — téléphone + tablettes 7"/10", 3 langues.'
+    ? '✅ Fiche mise à jour — téléphone + tablettes 7"/10", 3 langues. ' +
+        "Publication gérée : envoyer pour révision depuis la console."
     : `Validation refusée : ${JSON.stringify(commit).slice(0, 300)}`
 );
