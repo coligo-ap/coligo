@@ -25,7 +25,23 @@ import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { asc } from "./_asc.mjs";
+import { asc as ascRaw } from "./_asc.mjs";
+
+// Réseau instable (coupures socket vécues le 19/08) : chaque appel API est
+// retenté 3× sur erreur RÉSEAU. Les orphelins d'une réservation dupliquée
+// sont balayés par le delete-first de chaque jeu au run suivant.
+async function asc(path, init) {
+  for (let t = 0; ; t++) {
+    try {
+      return await ascRaw(path, init);
+    } catch (e) {
+      const network =
+        e?.cause || /fetch failed|socket|timeout/i.test(String(e?.message));
+      if (t >= 2 || !network) throw e;
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+  }
+}
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BUNDLE = "app.coligo.client";
@@ -50,7 +66,7 @@ const CREATE = createIdx > -1 ? process.argv[createIdx + 1] : null;
 
 const shotsFor = (type) =>
   Array.from({ length: 7 }, (_, i) =>
-    resolve(root, `store-assets/asc/${type}/coligo_store_0${i + 1}.png`)
+    resolve(root, `store-assets/asc/${type}/coligo_store_0${i + 1}.jpg`)
   );
 const missing = DISPLAYS.flatMap((t) => shotsFor(t)).filter(
   (p) => !existsSync(p)
@@ -126,14 +142,15 @@ if (DRY) {
 
 for (const loc of locs.data ?? []) {
   const locale = loc.attributes.locale;
-  console.log(`\n── ${locale} ──`);
+  console.log(`
+── ${locale} ──`);
 
   const sets = await asc(
     `/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`
   );
 
-  for (const displayType of DISPLAYS) {
-    // Jeu de captures pour ce gabarit (créé s'il n'existe pas).
+  const doDisplay = async (displayType) => {
+    // Jeu de captures pour ce gabarit (créé au besoin).
     let set = (sets.data ?? []).find(
       (s) => s.attributes.screenshotDisplayType === displayType
     );
@@ -155,18 +172,29 @@ for (const loc of locs.data ?? []) {
       set = made.data;
     }
 
-    // On efface les anciennes : sinon elles se mélangeraient aux nouvelles.
+    // REPRISE : un jeu déjà complet en .jpg (run précédent) est sauté.
     const olds = await asc(
       `/appScreenshotSets/${set.id}/appScreenshots?limit=20`
     );
+    const files = (olds.data ?? []).map((o) => o.attributes.fileName ?? "");
+    const done =
+      files.length === 7 &&
+      files.every((f) => f.endsWith(".jpg")) &&
+      (olds.data ?? []).every(
+        (o) => o.attributes.assetDeliveryState?.state === "COMPLETE"
+      );
+    if (done) {
+      console.log(`  ${displayType} : déjà complet — sauté`);
+      return;
+    }
     for (const o of olds.data ?? []) {
       await asc(`/appScreenshots/${o.id}`, { method: "DELETE" });
     }
 
-    // Puis on envoie les 7, dans l'ordre.
+    // Envoi des 7, dans l'ordre (séquentiel à l intérieur de la classe).
     for (const [i, file] of shotsFor(displayType).entries()) {
       const bytes = readFileSync(file);
-      const fileName = `coligo_store_0${i + 1}.png`;
+      const fileName = `coligo_store_0${i + 1}.jpg`;
 
       const reserved = await asc("/appScreenshots", {
         method: "POST",
@@ -189,8 +217,6 @@ for (const loc of locs.data ?? []) {
         const headers = Object.fromEntries(
           (op.requestHeaders ?? []).map((h) => [h.name, h.value])
         );
-        // Les serveurs d'upload Apple posent parfois un timeout transitoire :
-        // 3 tentatives avant d'abandonner.
         let ok = false;
         for (let t = 0; t < 3 && !ok; t++) {
           try {
@@ -222,7 +248,14 @@ for (const loc of locs.data ?? []) {
       });
     }
     console.log(`  ${displayType} : 7 volets ✓`);
-  }
+  };
+
+  // Les 13 classes EN PARALLÈLE (réseau lent : sérialiser = des heures).
+  const results = await Promise.allSettled(DISPLAYS.map(doDisplay));
+  const fails = results.filter((r) => r.status === "rejected");
+  for (const f of fails)
+    console.error("  échec :", String(f.reason).slice(0, 160));
+  if (fails.length) process.exitCode = 1;
 }
 
 console.log(
