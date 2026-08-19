@@ -7,10 +7,12 @@ import {
   ArrowRight,
   Bike,
   Car,
-  ChevronRight,
   CircleUserRound,
   Gift,
+  Heart,
   HelpCircle,
+  Map as MapIcon,
+  ReceiptText,
   ShoppingBasket,
   Store,
   UtensilsCrossed,
@@ -21,115 +23,162 @@ import {
   openAppSettings,
   openLocationSettings,
 } from "@/lib/native";
+import { useCustomerLocation } from "@/lib/customer/location-store";
 import { LocationBanner } from "@/components/customer/location-banner";
 import { cn } from "@/lib/utils";
 
 // =============================================================================
-// HUB DE DÉMARRAGE (style Uber / Yassir) — la première page de l'app :
-// grandes cartes de services (Trajets, Supérette, Fast-food, Fidélité,
-// Compte), espaces PARTENAIRES, et le processus LOCALISATION complet
-// (LocationBanner réutilisé : demande au tap, réglages exacts iOS/Android
-// quand c'est bloqué, resync au retour au premier plan) + feuille d'aide
-// pas-à-pas par marque de téléphone.
+// HUB DE DÉMARRAGE — réplique du modèle Uber fourni par le propriétaire
+// (« capture acceuil multi.jpg ») :
+//   1. barre « Où va-t-on ? » en tête (ligne « De : zone » au-dessus, lien
+//      Carte à droite) → le module Trajets ;
+//   2. GRILLE de tuiles carrées grises : titre gras en haut à gauche,
+//      sous-titre court, ILLUSTRATION en bas à droite — avec une tuile NOIRE
+//      à flèche (ici : les espaces Partenaires, en feuille) ;
+//   3. cartes PHOTOS horizontales « Autour de toi » (commerces réels).
 //
-// Règles de gestion :
-//  - page PUBLIQUE (le marketplace est public, l'auth n'arrive qu'au
-//    checkout — modèle Uber/Yassir) ; la carte « Mon compte » s'adapte à la
-//    session (connecté → /compte ; sinon → connexion avec retour ici) ;
-//  - les cartes Trajets et Fidélité n'apparaissent que si leur feature flag
-//    est visible (drive / loyalty) ;
-//  - navigation 100 % <Link> prefetch (transitions instantanées).
+// Règles de gestion : page PUBLIQUE ; la tuile compte s'adapte à la session ;
+// Trajets/Fidélité gérées par feature flags ; localisation = LocationBanner
+// réutilisé (demande native au tap, réglages EXACTS iOS/Android si bloqué,
+// resync au premier plan) + feuille d'aide pas-à-pas par marque.
 // =============================================================================
+
+export type NearbyMerchant = {
+  slug: string;
+  name: string;
+  cover_url: string | null;
+  city: string | null;
+};
 
 type Props = {
   isAuth: boolean;
-  firstName: string | null;
   driveVisible: boolean;
   loyaltyVisible: boolean;
+  nearby: NearbyMerchant[];
 };
 
-function ServiceCard({
+/** Tuile de la grille (modèle Uber) : gris doux, titre gras, illustration en
+ *  bas à droite. `dark` = la tuile noire à flèche du modèle. */
+function Tile({
   href,
+  onClick,
   title,
-  desc,
+  sub,
   icon,
-  tone,
-  wide = false,
+  span2 = false,
+  dark = false,
 }: {
-  href: string;
+  href?: string;
+  onClick?: () => void;
   title: string;
-  desc: string;
+  sub?: string;
   icon: React.ReactNode;
-  tone: "primary" | "accent";
-  wide?: boolean;
+  span2?: boolean;
+  dark?: boolean;
 }) {
-  return (
-    <Link
-      href={href}
-      className={cn(
-        "border-border group relative overflow-hidden rounded-lg border bg-white p-4 transition active:scale-[.99]",
-        wide && "col-span-2 flex items-center gap-4"
-      )}
-    >
+  const inner = (
+    <>
+      <span className="block pt-0.5">
+        <span
+          className={cn(
+            "block text-sm leading-tight font-bold",
+            dark ? "text-background" : "text-foreground"
+          )}
+        >
+          {title}
+        </span>
+        {sub && (
+          <span
+            className={cn(
+              "text-caption mt-0.5 block leading-tight",
+              dark ? "text-background/70" : "text-muted"
+            )}
+          >
+            {sub}
+          </span>
+        )}
+      </span>
       <span
         className={cn(
-          "flex shrink-0 items-center justify-center rounded-md",
-          wide ? "size-14" : "mb-3 size-11",
-          tone === "primary"
-            ? "bg-primary-50 text-primary-600"
-            : "bg-accent-50 text-accent-600"
+          "mt-auto self-end",
+          dark ? "text-background" : "text-primary-600"
         )}
       >
         {icon}
       </span>
-      <span className="block min-w-0">
-        <span className="text-foreground flex items-center gap-1 text-base leading-tight font-extrabold">
-          {title}
-          <ChevronRight className="text-subtle size-4 shrink-0 transition group-active:translate-x-0.5 rtl:-scale-x-100" />
-        </span>
-        <span className="text-muted mt-1 block text-xs leading-snug font-medium">
-          {desc}
-        </span>
-      </span>
-    </Link>
+    </>
+  );
+  const cls = cn(
+    "flex aspect-square flex-col rounded-lg p-3 transition active:scale-[.98]",
+    span2 && "col-span-2 aspect-auto",
+    dark ? "bg-foreground" : "bg-surface-2"
+  );
+  if (href) {
+    return (
+      <Link href={href} className={cls}>
+        {inner}
+      </Link>
+    );
+  }
+  return (
+    <button type="button" onClick={onClick} className={cn(cls, "text-start")}>
+      {inner}
+    </button>
   );
 }
 
 export function ServicesHub({
   isAuth,
-  firstName,
   driveVisible,
   loyaltyVisible,
+  nearby,
 }: Props) {
   const t = useTranslations("hub");
+  const loc = useCustomerLocation();
   const [helpOpen, setHelpOpen] = useState(false);
+  const [partnersOpen, setPartnersOpen] = useState(false);
   const nativeSettings = canOpenAppSettings();
+
+  const zone =
+    loc?.address?.trim() ||
+    [loc?.commune, loc?.wilaya_code ? `W${loc.wilaya_code}` : null]
+      .filter(Boolean)
+      .join(", ") ||
+    null;
 
   return (
     <div className="mx-auto max-w-xl px-4 pb-6">
-      {/* HÉRO violet de marque : salutation + promesse — le geste Uber. */}
-      <section
-        className="rounded-panel-lg -mx-1 mt-3 overflow-hidden px-5 py-6 text-white"
-        style={{
-          backgroundImage:
-            "linear-gradient(135deg, var(--color-primary-800), var(--color-primary-600) 62%, var(--color-accent-500) 130%)",
-        }}
-      >
-        <p className="text-sm font-bold opacity-90">
-          {isAuth && firstName
-            ? t("greeting", { name: firstName })
-            : t("greetingGuest")}
-        </p>
-        <h1 className="mt-1 text-2xl leading-tight font-black tracking-tight">
-          {t("title")}
-        </h1>
-        <p className="mt-1.5 text-sm font-medium opacity-85">{t("subtitle")}</p>
-      </section>
+      {/* 1. Barre « Où va-t-on ? » (modèle Uber) → Trajets. */}
+      {driveVisible && (
+        <div className="bg-surface-2 mt-3 flex items-stretch rounded-lg">
+          <Link
+            href="/drive"
+            className="flex min-w-0 flex-1 items-center gap-3 p-3"
+          >
+            <span className="bg-on-brand text-primary-600 flex size-10 shrink-0 items-center justify-center rounded-full">
+              <Car className="size-5" />
+            </span>
+            <span className="min-w-0">
+              <span className="text-muted block truncate text-xs font-medium">
+                {zone ? t("fromZone", { zone }) : t("fromUnset")}
+              </span>
+              <span className="text-foreground block text-lg leading-tight font-black tracking-tight">
+                {t("whereTo")}
+              </span>
+            </span>
+          </Link>
+          <Link
+            href="/drive"
+            className="border-border text-foreground flex items-center gap-1.5 border-s px-4 text-sm font-bold"
+          >
+            <MapIcon className="size-4" />
+            {t("mapLink")}
+          </Link>
+        </div>
+      )}
 
-      {/* LOCALISATION — même processus que la home : demande native au tap,
-          « Ouvrir les réglages » exact (fiche app / écran Position) si refusé
-          ou service éteint, resync au retour au premier plan. */}
-      <div className="mt-4">
+      {/* Localisation : demande au tap, réglages exacts si bloqué (réutilisé). */}
+      <div className="mt-3">
         <LocationBanner />
         <button
           type="button"
@@ -141,59 +190,120 @@ export function ServicesHub({
         </button>
       </div>
 
-      {/* SERVICES — grandes cartes plates, navigation instantanée. */}
-      <section className="mt-5 grid grid-cols-2 gap-3">
+      {/* 2. GRILLE de tuiles (modèle Uber). */}
+      <section className="mt-4 grid grid-cols-3 gap-2">
         {driveVisible && (
-          <ServiceCard
-            wide
+          <Tile
             href="/drive"
             title={t("cardRides")}
-            desc={t("cardRidesDesc")}
-            tone="primary"
-            icon={<Car className="size-7" />}
+            sub={t("ridesSub")}
+            icon={<Car className="size-9" />}
           />
         )}
-        <ServiceCard
+        <Tile
           href="/?category=superette"
           title={t("cardSuperette")}
-          desc={t("cardSuperetteDesc")}
-          tone="primary"
-          icon={<ShoppingBasket className="size-6" />}
+          sub={t("superetteSub")}
+          icon={<ShoppingBasket className="size-9" />}
         />
-        <ServiceCard
+        <Tile
           href="/?category=fast_food"
           title={t("cardFood")}
-          desc={t("cardFoodDesc")}
-          tone="accent"
-          icon={<UtensilsCrossed className="size-6" />}
+          sub={t("foodSub")}
+          icon={<UtensilsCrossed className="size-9" />}
         />
         {loyaltyVisible && (
-          <ServiceCard
+          <Tile
+            span2
             href="/cashback?tab=fidelite"
             title={t("cardLoyalty")}
-            desc={t("cardLoyaltyDesc")}
-            tone="accent"
-            icon={<Gift className="size-6" />}
+            sub={t("loyaltySub")}
+            icon={<Gift className="size-10" />}
           />
         )}
-        <ServiceCard
+        {/* Tuile NOIRE à flèche (modèle) → espaces partenaires. */}
+        <Tile
+          dark
+          onClick={() => setPartnersOpen(true)}
+          title={t("partnersTile")}
+          sub={t("partnersTileSub")}
+          icon={<ArrowRight className="size-8 rtl:-scale-x-100" />}
+        />
+        <Tile
           href={isAuth ? "/compte" : "/se-connecter?next=/services"}
           title={isAuth ? t("cardAccount") : t("cardLogin")}
-          desc={isAuth ? t("cardAccountDesc") : t("cardLoginDesc")}
-          tone="primary"
-          icon={<CircleUserRound className="size-6" />}
+          sub={isAuth ? t("accountSub") : t("loginSub")}
+          icon={<CircleUserRound className="size-9" />}
+        />
+        <Tile
+          href="/commandes"
+          title={t("ordersTile")}
+          sub={t("ordersSub")}
+          icon={<ReceiptText className="size-9" />}
+        />
+        <Tile
+          href="/favoris"
+          title={t("favsTile")}
+          sub={t("favsSub")}
+          icon={<Heart className="size-9" />}
         />
       </section>
 
-      {/* PARTENAIRES — accès aux espaces pro + recrutement. */}
-      <section className="mt-6">
-        <h2 className="text-foreground text-heading-sm font-black tracking-tight">
-          {t("partnersTitle")}
-        </h2>
-        <p className="text-muted mt-0.5 text-xs font-medium">
-          {t("partnersSub")}
-        </p>
-        <div className="mt-2.5 grid grid-cols-3 gap-2">
+      {/* 3. Cartes PHOTOS « Autour de toi » (modèle Uber : image + voile). */}
+      {nearby.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-foreground text-heading-sm font-black tracking-tight">
+            {t("nearbyTitle")}
+          </h2>
+          <div className="-mx-4 mt-2.5 flex scrollbar-none gap-3 overflow-x-auto px-4 pb-1">
+            {nearby.map((m) => (
+              <Link
+                key={m.slug}
+                href={`/m/${m.slug}`}
+                className="relative h-52 w-40 shrink-0 overflow-hidden rounded-lg transition active:scale-[.98]"
+              >
+                {m.cover_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={m.cover_url}
+                    alt={m.name}
+                    loading="lazy"
+                    className="absolute inset-0 size-full object-cover"
+                  />
+                ) : (
+                  <span className="bg-surface-3 absolute inset-0" />
+                )}
+                <span
+                  className="absolute inset-0 opacity-70"
+                  style={{
+                    backgroundImage:
+                      "linear-gradient(to top, var(--color-plain-black), transparent 55%)",
+                  }}
+                />
+                <span className="text-on-brand absolute inset-x-0 bottom-0 p-3">
+                  <span className="block text-sm leading-tight font-extrabold">
+                    {m.name}
+                  </span>
+                  {m.city && (
+                    <span className="mt-0.5 block text-xs font-medium opacity-80">
+                      {m.city}
+                    </span>
+                  )}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Feuille PARTENAIRES (depuis la tuile noire). */}
+      <Sheet
+        open={partnersOpen}
+        onClose={() => setPartnersOpen(false)}
+        title={t("partnersTitle")}
+      >
+        <p className="text-muted text-sm">{t("partnersSub")}</p>
+        <div className="mt-3 grid grid-cols-3 gap-2">
           {(
             [
               [
@@ -217,7 +327,7 @@ export function ServicesHub({
               key={href}
               href={href}
               prefetch={false}
-              className="border-border text-foreground hover:bg-surface-2 flex flex-col items-center gap-1.5 rounded-md border bg-white p-3 text-center text-xs font-bold transition active:scale-[.98]"
+              className="border-border text-foreground hover:bg-surface-2 flex flex-col items-center gap-1.5 rounded-md border p-3 text-center text-xs font-bold transition active:scale-[.98]"
             >
               <span className="bg-surface-2 text-primary-600 flex size-9 items-center justify-center rounded-md">
                 {icon}
@@ -228,12 +338,12 @@ export function ServicesHub({
         </div>
         <Link
           href="/recrute"
-          className="text-primary-600 mt-2.5 inline-flex items-center gap-1 text-sm font-bold"
+          className="text-primary-600 mt-3 inline-flex items-center gap-1 text-sm font-bold"
         >
           {t("becomePartner")}
           <ArrowRight className="size-4 rtl:-scale-x-100" />
         </Link>
-      </section>
+      </Sheet>
 
       {/* AIDE LOCALISATION — pas-à-pas par système et par marque Android. */}
       <Sheet
@@ -270,7 +380,7 @@ export function ServicesHub({
               <button
                 type="button"
                 onClick={() => void openAppSettings()}
-                className="bg-primary-600 hover:bg-primary-700 h-11 rounded-md text-sm font-extrabold text-white transition"
+                className="bg-primary-600 hover:bg-primary-700 text-on-brand h-11 rounded-md text-sm font-extrabold transition"
               >
                 {t("helpOpenApp")}
               </button>

@@ -1,14 +1,16 @@
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { getEffectiveFlags, isVisible } from "@/lib/data/feature-flags";
+import { listPublicMerchants } from "@/lib/data/merchants-public";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
 import { ServicesHub } from "@/components/customer/services-hub";
 
 export const dynamic = "force-dynamic";
 
-// HUB DE DÉMARRAGE de l'app (style Uber/Yassir) — les APK atterrissent ici
-// via /api/start/client (APP_LANDING_CLIENT=/services, changeable sans
-// rebuild). Page PUBLIQUE : seule l'auth est attendue côté serveur (règle
-// perf), les cartes s'adaptent à la session et aux feature flags.
+// HUB DE DÉMARRAGE de l'app — réplique du modèle Uber fourni (barre « Où
+// va-t-on ? », grille de tuiles, cartes photos « Autour de toi »). Les APK
+// atterrissent ici via /api/start/client (APP_LANDING_CLIENT=/services,
+// changeable sans rebuild). Page PUBLIQUE : les tuiles s'adaptent à la
+// session et aux feature flags.
 export const metadata = {
   title: "Coligo — Trajets, courses, repas et fidélité en Algérie",
   description:
@@ -17,12 +19,23 @@ export const metadata = {
 };
 
 export default async function ServicesHubPage() {
-  const [customer, flags] = await Promise.all([
+  const [customer, flags, merchants] = await Promise.all([
     getCurrentCustomerFull(),
     getEffectiveFlags(),
+    // Cartes photos « Autour de toi » : proximité réelle si la position est
+    // connue (cookie), sinon l'annuaire public — jamais bloquant.
+    listPublicMerchants({}).catch(() => []),
   ]);
 
-  const firstName = customer?.full_name?.trim().split(/\s+/)[0] ?? null;
+  const nearby = merchants
+    .filter((m) => m.cover_url)
+    .slice(0, 8)
+    .map((m) => ({
+      slug: m.slug,
+      name: m.name,
+      cover_url: m.cover_url,
+      city: m.city,
+    }));
 
   return (
     <>
@@ -31,9 +44,9 @@ export default async function ServicesHubPage() {
       <LocationAutoDetect />
       <ServicesHub
         isAuth={!!customer}
-        firstName={firstName}
         driveVisible={isVisible(flags.drive)}
         loyaltyVisible={isVisible(flags.loyalty)}
+        nearby={nearby}
       />
     </>
   );

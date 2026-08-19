@@ -1984,6 +1984,23 @@
     "helpAlways": "“Allow all the time” is only needed for partners (drivers, couriers): their position follows the ride in the background. To order, “while using” is enough.",
     "helpOpenApp": "Open app settings",
     "helpOpenLocation": "Phone location settings",
-    "helpWeb": "In a browser: tap the padlock next to the address, then allow location."
+    "helpWeb": "In a browser: tap the padlock next to the address, then allow location.",
+    "whereTo": "Where to?",
+    "fromZone": "From: {zone}",
+    "fromUnset": "Set your location",
+    "mapLink": "Map",
+    "ridesSub": "In 2 min",
+    "superetteSub": "Delivery or pickup",
+    "foodSub": "Skip the line",
+    "loyaltySub": "Cashback & vouchers",
+    "accountSub": "Profile & settings",
+    "loginSub": "Takes 2 min",
+    "ordersTile": "Orders",
+    "ordersSub": "Live tracking",
+    "favsTile": "Favorites",
+    "favsSub": "Your stores",
+    "partnersTile": "Partners",
+    "partnersTileSub": "Pro spaces",
+    "nearbyTitle": "Near you"
   }
 }

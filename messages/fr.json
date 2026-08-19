@@ -1978,6 +1978,23 @@
     "helpAlways": "« Autoriser toujours » n'est utile que pour les partenaires (chauffeurs, livreurs) : leur position suit la course même en arrière-plan. Pour commander, « pendant l'utilisation » suffit.",
     "helpOpenApp": "Ouvrir les réglages de l'app",
     "helpOpenLocation": "Réglages de position du téléphone",
-    "helpWeb": "Sur navigateur : clique sur le cadenas à côté de l'adresse, puis autorise la position."
+    "helpWeb": "Sur navigateur : clique sur le cadenas à côté de l'adresse, puis autorise la position.",
+    "whereTo": "Où va-t-on ?",
+    "fromZone": "De : {zone}",
+    "fromUnset": "Position à définir",
+    "mapLink": "Carte",
+    "ridesSub": "En 2 min",
+    "superetteSub": "Livré ou retrait",
+    "foodSub": "Sans file",
+    "loyaltySub": "Cashback & bons",
+    "accountSub": "Profil & réglages",
+    "loginSub": "2 min chrono",
+    "ordersTile": "Commandes",
+    "ordersSub": "Suivi en direct",
+    "favsTile": "Favoris",
+    "favsSub": "Tes boutiques",
+    "partnersTile": "Partenaires",
+    "partnersTileSub": "Espaces pro",
+    "nearbyTitle": "Autour de toi"
   }
 }
