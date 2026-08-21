@@ -1,43 +1,18 @@
-import { cookies } from "next/headers";
 import {
   listMerchantCategories,
   listPublicMerchants,
   getPromoLabelsByMerchant,
 } from "@/lib/data/merchants-public";
-import {
-  getActiveBanners,
-  type BannerViewerLocation,
-} from "@/lib/data/promo-banners";
-import {
-  LOCATION_COOKIE,
-  parseLocationCookie,
-} from "@/lib/customer/location-cookie";
 import { getMyFavoriteIds } from "@/lib/data/favorites";
-import { getMyReviewableOrders } from "@/lib/data/reviews";
 import {
   loadRankingContext,
   rankMerchants,
   splitOpenFirst,
 } from "@/lib/data/merchant-ranking";
-import { getLocale } from "next-intl/server";
 import { getAuthUser } from "@/lib/auth/session";
-import { getEffectiveFlags } from "@/lib/data/feature-flags";
-import { getAppTheme } from "@/lib/data/app-theme";
 import { getCurrentCustomerFull } from "@/lib/auth/customer";
-import { InstallAppBanner } from "@/components/shared/install-app-banner";
-import { CustomerShell } from "@/components/customer/customer-shell";
-import { CategoryStrip } from "@/components/customer/category-strip";
-import { CategoryFamilyPills } from "@/components/customer/category-family-pills";
-import { HomeFilterPills } from "@/components/customer/home-filter-pills";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
-import { LocationBanner } from "@/components/customer/location-banner";
-import { MarketplaceSearchBar } from "@/components/customer/marketplace-search-bar";
-import { MarketplaceSection } from "@/components/customer/marketplace-section";
-import { PromoBanner } from "@/components/customer/promo-banner";
-import { HomeWheelEntry } from "@/components/customer/home-wheel-entry";
-import { WheelBubble } from "@/components/customer/wheel/wheel-bubble";
-import { ReviewPrompt } from "@/components/customer/review-prompt";
-import { HomeThemeHero } from "@/components/customer/home-theme-hero";
+import { MonoHome } from "@/components/customer/mono/mono-home";
 
 export const dynamic = "force-dynamic";
 
@@ -51,32 +26,27 @@ export const metadata = {
 };
 
 // =============================================================================
-// Accueil CLIENT — refonte style Uber Eats (version lancement).
-// Header (zone + compte + panier) → recherche → catégories rondes → pilules →
-// « Commerces près de toi ». Pas de grand hero violet, fond clair.
+// Accueil CLIENT — refonte « bold minimalism » (branche dev), calquée sur la
+// référence fastapp : adresse + recherche, rail de catégories détourées, puis
+// des blocs de section alternés contenant des carrousels de cartes commerce.
 //
-// Sections CONDITIONNELLES (jamais de bloc vide) :
-//  - <PromoBanner> : rien tant qu'aucune campagne promo active (super-admin).
-//  - "Commander à nouveau" : PAS au lancement (phase 2, si historique) — absent.
-//  - Avis à laisser / top notés : seulement s'il y a du contenu.
+// La page ne fait QUE les lectures : la présentation entière vit dans
+// <MonoHome> (client), qui porte aussi l'en-tête et la barre du bas flottante
+// — la coque client laisse « / » passer en mode bare.
+//
+// PROMOTIONS : plus de bandeau abstrait. Une promo appartient à un commerçant,
+// donc elle s'affiche SUR sa carte, dans la section « Offres du jour ».
 // =============================================================================
 
 export default async function CustomerHomePage() {
   // Coords GPS du client connecté — critère géographique PRINCIPAL du SSR.
-  // (Les visiteurs anon n'ont pas de coords serveur : la grille refait la
+  // (Les visiteurs anon n'ont pas de coords serveur : MonoHome refait la
   // requête par proximité dès le montage avec la position du localStorage.)
-  // Session + profil mémoïsés (partagés avec CustomerShell → pas de double auth).
-  // Flags mémoïsés aussi (React cache — déjà lus par le layout).
-  const [authUser, customer, flags, appTheme, locale] = await Promise.all([
+  // Helpers mémoïsés (React cache) : partagés avec la coque, pas de double auth.
+  const [, customer] = await Promise.all([
     getAuthUser(),
     getCurrentCustomerFull(),
-    getEffectiveFlags(),
-    // Bandeau « occasion » optionnel (mig 0415, piloté /admin/controle) —
-    // lecture en cache (tag app-theme), coût nul en pratique.
-    getAppTheme(),
-    getLocale(),
   ]);
-  const isAuth = !!authUser;
   const customerCoords: {
     latitude: number | null;
     longitude: number | null;
@@ -86,42 +56,20 @@ export default async function CustomerHomePage() {
   const hasCoords =
     customerCoords?.latitude != null && customerCoords?.longitude != null;
 
-  // Position pour le CIBLAGE DES BANNIÈRES, filtrée CÔTÉ SERVEUR (comme Uber/
-  // Bolt) : on lit d'abord le cookie miroir de la position LIVE du navigateur
-  // (écrit par writeStoredLocation) → le SSR renvoie déjà la bonne bannière, sans
-  // afficher puis retirer celle d'une autre ville ni refaire une requête client.
-  // Repli : adresse enregistrée du client connecté (puis rien = bannières
-  // globales pour un visiteur sans position).
-  const cookieLoc = parseLocationCookie(
-    (await cookies()).get(LOCATION_COOKIE)?.value
-  );
-  const bannerLoc: BannerViewerLocation = cookieLoc ?? {
-    lat: customerCoords?.latitude ?? null,
-    lng: customerCoords?.longitude ?? null,
-    wilaya: customer?.default_wilaya_code ?? null,
-    commune: customer?.default_commune ?? null,
-  };
-
-  const [fallback, categories, banners, reviewableOrders, favoriteIds] =
-    await Promise.all([
-      // Avec coords → liste déjà filtrée par rayon et triée par proximité.
-      listPublicMerchants(
-        hasCoords
-          ? {
-              latitude: customerCoords!.latitude,
-              longitude: customerCoords!.longitude,
-              limit: 24,
-            }
-          : { limit: 24 }
-      ),
-      listMerchantCategories(),
-      // Ciblage par ZONE côté serveur avec la position live (cookie) — repli
-      // adresse enregistrée. Bannières sans zone = globales ; visiteur sans
-      // position = globales seulement.
-      getActiveBanners(bannerLoc),
-      getMyReviewableOrders(1),
-      getMyFavoriteIds(),
-    ]);
+  const [fallback, categories, favoriteIds] = await Promise.all([
+    // Avec coords → liste déjà filtrée par rayon et triée par proximité.
+    listPublicMerchants(
+      hasCoords
+        ? {
+            latitude: customerCoords!.latitude,
+            longitude: customerCoords!.longitude,
+            limit: 24,
+          }
+        : { limit: 24 }
+    ),
+    listMerchantCategories(),
+    getMyFavoriteIds(),
+  ]);
 
   // Contexte de classement (promoIds + orderCounts30d + poids + coords client
   // + favoris) ET libellés promo : deux lectures INDÉPENDANTES (elles ne
@@ -136,7 +84,6 @@ export default async function CustomerHomePage() {
     }),
     getPromoLabelsByMerchant(merchantIds),
   ]);
-  const promoIds = rankingCtx.promoIds;
   // RANKING UNIFIÉ (mig 0261, façon Uber) : si activé, le score composite classe
   // TOUS les chemins — la distance (poids fort) départage avec la note, la
   // popularité, les promos et les favoris. Sinon, comportement legacy :
@@ -148,124 +95,17 @@ export default async function CustomerHomePage() {
       ? splitOpenFirst(fallback)
       : rankMerchants(fallback, rankingCtx);
 
+  // REFONTE « bold minimalism » (branche dev) : l'accueil rend sa propre coque
+  // (en-tête, rail, sections, barre du bas flottante) — la coque client la
+  // laisse passer en « bare ». Les données restent EXACTEMENT les mêmes.
   return (
-    <CustomerShell>
-      {/* Auto-détection GPS au load (silencieuse si permission accordée). */}
+    <>
       <LocationAutoDetect />
-
-      <div className="bg-surface min-h-screen">
-        {/* Héro thémé « occasion » INTÉGRÉ (header peint en g1 par la coque +
-            dégradé ici + recherche flottante) — UNIQUEMENT si activé par le
-            super-admin (désactivé = accueil simple actuel, rien n'est rendu). */}
-        {appTheme.marketplaceHero && (
-          <HomeThemeHero
-            theme={appTheme.theme}
-            model={appTheme.model}
-            locale={locale}
-            extended={appTheme.heroCategories}
-          />
-        )}
-        <div className="mx-auto max-w-[1400px] px-4 lg:px-6">
-          {/* Recherche pleine largeur (sticky sous le header) + scan
-              code-barres (flag barcode_marketplace, piloté /admin/controle).
-              Accueil thémé : pilule blanche FLOTTANTE sur le dégradé du héro. */}
-          <MarketplaceSearchBar
-            scanEnabled={flags.barcode_marketplace.status === "active"}
-            floating={appTheme.marketplaceHero}
-          />
-
-          {/* Visiteur sur le WEB MOBILE : proposition d'installer l'app, vers
-              la boutique de SON appareil. Invisible dans l'app native, sur
-              ordinateur, et après un refus. */}
-          <InstallAppBanner />
-
-          {/* Catégories rondes (mécanique Uber Eats). Héro thémé : soit ELLES
-              SONT DANS le design (hero_categories, libellés blancs), soit un
-              petit espace les sépare de la fin du design (jamais de
-              chevauchement avec le bord arrondi). */}
-          <div
-            className={
-              appTheme.marketplaceHero && !appTheme.heroCategories
-                ? "pt-4"
-                : "pt-1"
-            }
-          >
-            <CategoryStrip
-              categories={categories}
-              onHero={appTheme.marketplaceHero && appTheme.heroCategories}
-            />
-          </div>
-
-          {/* Sous-filtres de l'UNIVERS ouvert depuis l'accueil (mig 0463) :
-              Burgers · Pizza · Tacos · Sandwichs… ou Supérette · Fruits &
-              Légumes · Boulangerie… Rien n'est rendu hors d'une famille. */}
-          <CategoryFamilyPills />
-
-          {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés.
-              Le filtre ACTIF se voit par sa COULEUR (pilule pleine, tuile
-              cerclée violet) — jamais de bandeau récapitulatif en plus
-              (demande produit du 06/08). */}
-          <div className="pt-3.5 pb-1">
-            <HomeFilterPills />
-          </div>
-
-          {/* Localisation manuelle — fallback si la géoloc auto échoue. */}
-          <LocationBanner />
-
-          {/* Encart "Donne ton avis" — uniquement si commandes à noter. */}
-          {reviewableOrders.length > 0 && (
-            <section className="mt-3">
-              <ReviewPrompt orders={reviewableOrders} />
-            </section>
-          )}
-
-          {/* Roue Coligo — entrée ANIMÉE (style Temu) : client connecté ET
-              roue active seulement (flag déjà lu, zéro fetch en plus). Le
-              tirage reste 100 % serveur : ce bandeau n'est qu'un lien. */}
-          {isAuth &&
-            flags.wheel.status === "active" &&
-            banners.length === 0 && (
-              <section className="mt-3">
-                <HomeWheelEntry />
-              </section>
-            )}
-
-          {/* Bannière promo — rendue UNIQUEMENT si une campagne est active.
-              On transmet la position utilisée par le SSR : côté client, la
-              position LIVE du navigateur (location-store, MÊME source que la
-              liste des commerces) PRIME dès qu'elle diffère → un client à
-              Béjaïa ne voit jamais les offres d'Alger restées dans son adresse
-              enregistrée. Si live == SSR, aucun refetch (cache d'abord). */}
-          <PromoBanner banners={banners} ssrLocation={bannerLoc} />
-
-          {/* Roue en BULLE FLOTTANTE quand des bannières marketing occupent
-              déjà la place : elle flotte au-dessus du contenu au lieu de
-              pousser les commerces vers le bas. Uniquement sur l'accueil. */}
-          {isAuth && flags.wheel.status === "active" && banners.length > 0 && (
-            <WheelBubble />
-          )}
-
-          {/* Commerces près de toi. */}
-          {/* ⚠️ PAS de <Suspense fallback={null}> autour de ces blocs (ni des
-              trois du dessus) : en PROD, plusieurs frontières sœurs streamées
-              avec fallback null provoquaient des erreurs d'hydratation
-              React #418/#310 dès qu'un paramètre de filtre était dans l'URL
-              (bug d'alignement dépendant de la COMPOSITION des enfants, pas du
-              contenu — bissection du 13/07/2026). La page est force-dynamic :
-              la frontière de route loading.tsx couvre déjà le streaming, et
-              useSearchParams n'exige un Suspense qu'en rendu STATIQUE. */}
-          <section className="mt-3 pb-8">
-            <MarketplaceSection
-              fallback={rankedFallback}
-              promoIds={promoIds}
-              promoLabels={promoLabels}
-              favoriteIds={favoriteIds}
-              isAuth={isAuth}
-              unified={rankingCtx.unified}
-            />
-          </section>
-        </div>
-      </div>
-    </CustomerShell>
+      <MonoHome
+        merchants={rankedFallback}
+        categories={categories}
+        promoLabels={promoLabels}
+      />
+    </>
   );
 }

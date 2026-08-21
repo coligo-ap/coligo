@@ -48,6 +48,10 @@ type Props = {
 // Plein écran / auth : la page gère tout (souvent sa propre bottom-nav).
 function isBare(p: string): boolean {
   return (
+    // ACCUEIL (branche dev) : refonte « bold minimalism » — la page porte son
+    // propre en-tête et sa propre barre du bas flottante, la coque n'ajoute
+    // rien par-dessus.
+    p === "/" ||
     p === "/se-connecter" ||
     p.startsWith("/inscription") || // + /inscription/carte (étape fidélité)
     p.startsWith("/c/") || // landing publique carte fidélité

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Car, CircleUserRound, House, ReceiptText, Wallet } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -19,21 +21,20 @@ import { cn } from "@/lib/utils";
 // =============================================================================
 
 const ITEMS = [
-  { key: "home", label: "Accueil", icon: House },
-  { key: "orders", label: "Commandes", icon: ReceiptText },
-  { key: "drive", label: "Drive", icon: Car },
-  { key: "pay", label: "Pay", icon: Wallet },
-  { key: "account", label: "Compte", icon: CircleUserRound },
+  { key: "home", href: "/", label: "Accueil", icon: House },
+  { key: "orders", href: "/commandes", label: "Commandes", icon: ReceiptText },
+  { key: "drive", href: "/drive", label: "Drive", icon: Car },
+  { key: "pay", href: "/coligo-pay", label: "Pay", icon: Wallet },
+  { key: "account", href: "/compte", label: "Compte", icon: CircleUserRound },
 ] as const;
 
 export function MonoBottomNav({
-  active = "home",
   counts = {},
 }: {
-  active?: (typeof ITEMS)[number]["key"];
   /** Compteurs par onglet (panier, commandes en cours…). */
   counts?: Partial<Record<(typeof ITEMS)[number]["key"], number>>;
 }) {
+  const pathname = usePathname() || "/";
   return (
     <nav
       aria-label="Navigation principale"
@@ -42,12 +43,17 @@ export function MonoBottomNav({
     >
       {ITEMS.map((item) => {
         const Icon = item.icon;
-        const on = active === item.key;
+        // Le hub /services reste rattaché à l'onglet Accueil (page de démarrage).
+        const on =
+          item.href === "/"
+            ? pathname === "/" || pathname === "/services"
+            : pathname.startsWith(item.href);
         const count = counts[item.key] ?? 0;
         return (
-          <button
+          <Link
             key={item.key}
-            type="button"
+            href={item.href}
+            prefetch
             aria-current={on ? "page" : undefined}
             className={cn(
               "relative flex min-w-0 flex-col items-center justify-center gap-1 rounded-[var(--radius-pill)] px-0.5 py-2 transition-colors",
@@ -77,7 +83,7 @@ export function MonoBottomNav({
             >
               {item.label}
             </span>
-          </button>
+          </Link>
         );
       })}
     </nav>

@@ -93,7 +93,7 @@ export default function PreviewMonoPage() {
         </MonoSection>
       </div>
 
-      <MonoBottomNav active="home" counts={{ orders: 2 }} />
+      <MonoBottomNav counts={{ orders: 2 }} />
     </div>
   );
 }

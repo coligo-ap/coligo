@@ -33,13 +33,14 @@
 
   /* --- Rayons ------------------------------------------------------------ */
   --radius-section: 28px;
-  --radius-card: 20px;
+  --radius-card: 14px; /* mesuré sur fastapp : 12 px, arrondi à l'échelle */
   --radius-pill: 999px;
 
   /* --- Élévations -------------------------------------------------------- */
-  /* Les cartes n'ont qu'un liseré ; seule la barre du bas est réellement
-     DÉTACHÉE (élévation fonctionnelle d'un élément flottant). */
-  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  /* La carte commerce n'a AUCUNE ombre (relevé sur fastapp, et c'est la règle
+     flat du projet) : c'est le fond de section qui la détache. Seule la barre
+     du bas est réellement DÉTACHÉE — élévation fonctionnelle d'un flottant. */
+  --shadow-card: none;
   --shadow-nav: 0 4px 20px rgba(0, 0, 0, 0.1);
 
   /* --- Valeurs d'usage (hors palette de marque) -------------------------- */
