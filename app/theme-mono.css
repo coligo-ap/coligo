@@ -1,0 +1,74 @@
+/* =============================================================================
+ * THÈME MONO — direction « bold minimalism » (Yassir / Glovo / Uber Eats 2024)
+ *
+ * SCOPÉ : rien ne s'applique tant qu'un ancêtre ne porte pas `data-theme-mono`.
+ * Aucun écran de production ne change — la validation se fait sur
+ * /preview-mono, avec des données mockées.
+ *
+ * Le vert de marque ci-dessous vit UNIQUEMENT dans ce thème : la charte Coligo
+ * (violet --color-primary-600, rose promo --color-accent-500) reste celle de
+ * design-tokens.css et n'est pas touchée.
+ *
+ * Principe : la hiérarchie passe par la TAILLE, le POIDS et le FOND DE SECTION
+ * — jamais par la couleur du texte. Deux encres, point.
+ * ========================================================================== */
+
+[data-theme-mono] {
+  /* --- Fonds ------------------------------------------------------------- */
+  --surface-page: #f7f7f5; /* gris chaud très clair */
+  --surface-section-a: #efefec; /* gris chaud            */
+  --surface-section-b: #f5efdc; /* crème / beige         */
+  --surface-card: #ffffff; /* blanc pur             */
+
+  /* --- Encres (les deux SEULES couleurs de texte) ------------------------ */
+  --ink: #111111; /* noir profond   */
+  --ink-muted: #6b6b6b; /* gris 60 %      */
+
+  /* --- Accents ----------------------------------------------------------- */
+  /* --brand : icônes, logo, accents fins. Les CTA principaux restent NOIRS. */
+  --brand: #0b5d3b;
+  /* --promo : RÉSERVÉ au fond des badges promo, texte --ink par-dessus.
+     Jamais de texte, jamais un CTA, jamais une icône en --promo. */
+  --promo: #00e676;
+
+  /* --- Rayons ------------------------------------------------------------ */
+  --radius-section: 28px;
+  --radius-card: 20px;
+  --radius-pill: 999px;
+
+  /* --- Élévations -------------------------------------------------------- */
+  /* Les cartes n'ont qu'un liseré ; seule la barre du bas est réellement
+     DÉTACHÉE (élévation fonctionnelle d'un élément flottant). */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06);
+  --shadow-nav: 0 4px 20px rgba(0, 0, 0, 0.1);
+
+  /* --- Valeurs d'usage (hors palette de marque) -------------------------- */
+  /* ★ DÉCORATIF : la note chiffrée à côté reste en --ink (c'est elle qui
+     porte l'information) — l'étoile jaune n'a donc pas à passer l'AA texte. */
+  --rating: #f5a524;
+  --counter: #d92d20; /* pastille de compteur de la barre du bas */
+  --scrim: rgba(0, 0, 0, 0.7); /* pilules système sur photo */
+
+  background-color: var(--surface-page);
+  color: var(--ink);
+  /* Jakarta Sans UNIQUEMENT : pas de Sora sur les titres dans ce thème. */
+  font-family: var(--font-sans-body), system-ui, sans-serif;
+  /* Aucune capitale forcée, aucun interlettrage positif dans tout le thème. */
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* Rails horizontaux : accroche douce et scrollbar masquée. Le dernier élément
+   est volontairement coupé par le bord (affordance de défilement) — c'est le
+   conteneur qui n'a pas de marge de fin, pas une règle CSS. */
+[data-theme-mono] .mono-rail {
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+[data-theme-mono] .mono-rail::-webkit-scrollbar {
+  display: none;
+}
+[data-theme-mono] .mono-rail > * {
+  scroll-snap-align: start;
+}
