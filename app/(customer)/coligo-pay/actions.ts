@@ -45,7 +45,9 @@ export async function fetchColigoPayData(): Promise<ColigoPayData> {
     customer
       ? getTopupCreditedLast30dForCustomer(customer.id)
       : Promise.resolve(0),
-    getMyTopupHistory(100),
+    // PAGINATION OBLIGATOIRE (règle produit) : première page seulement, la
+    // suite arrive par fetchTopupHistory (« Voir plus »).
+    getMyTopupHistory(20),
     getMyPayHandle(),
   ]);
 
@@ -57,4 +59,15 @@ export async function fetchColigoPayData(): Promise<ColigoPayData> {
     history,
     payTag,
   };
+}
+
+/**
+ * Historique Coligo Pay PAGINÉ pour le « Voir plus » (20 lignes par page —
+ * règle produit : jamais tout télécharger). Ré-authentifié côté serveur (RLS).
+ */
+export async function fetchTopupHistory(
+  page = 0
+): Promise<CustomerWalletEntry[]> {
+  const p = Math.max(0, Math.floor(page));
+  return getMyTopupHistory(20, p * 20);
 }

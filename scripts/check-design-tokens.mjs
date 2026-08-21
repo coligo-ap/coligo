@@ -20,7 +20,14 @@ const ROOTS = ["app", "components", "lib"];
 const DOC = "docs/design-system.md";
 
 /** Les DEUX seules sources de vérité : elles ont le droit de contenir des hex. */
-const TOKEN_FILES = new Set(["app/design-tokens.css", "lib/design/tokens.ts"]);
+const TOKEN_FILES = new Set([
+  "app/design-tokens.css",
+  "lib/design/tokens.ts",
+  // Thème « mono » en évaluation : fichier de TOKENS scopé à [data-theme-mono]
+  // (aucun écran de production ne le porte). Mêmes règles — les couleurs de ce
+  // thème vivent ici et nulle part ailleurs.
+  "app/theme-mono.css",
+]);
 
 /**
  * Exemptions justifiées — ce ne sont pas des couleurs de design :

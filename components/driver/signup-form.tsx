@@ -15,6 +15,7 @@ import {
   StepWizardStyle,
   makeWizardKeyDown,
 } from "@/components/shared/step-wizard";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import { cn } from "@/lib/utils";
 import { WILAYAS } from "@/lib/dz/wilayas";
 import { driverSignup, type DriverAuthState } from "@/app/(driver)/actions";
@@ -99,6 +100,8 @@ export function DriverSignupForm() {
       className="space-y-3"
     >
       <input type="hidden" name="next" value={next} />
+      {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+      <TurnstileField />
       <StepWizardStyle />
       <StepWizardHeader
         title={META[active].title}

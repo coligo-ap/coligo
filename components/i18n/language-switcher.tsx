@@ -34,10 +34,17 @@ const MARGIN = 8;
 export function LanguageSwitcher({
   compact = false,
   onColor = false,
+  framed = false,
 }: {
   compact?: boolean;
   /** Posé sur un fond COLORÉ (header thémé) : déclencheur en blanc. */
   onColor?: boolean;
+  /**
+   * Déclencheur en PASTILLE cernée (header client mobile, maquette v2). Le
+   * cadre est porté par un span INTÉRIEUR : la cible tactile reste à 44 px
+   * alors que la pastille visible, elle, reste basse comme sur la maquette.
+   */
+  framed?: boolean;
 }) {
   const active = useLocale() as Locale;
   const router = useRouter();
@@ -140,15 +147,28 @@ export function LanguageSwitcher({
           "text-body-sm -my-2 inline-flex min-h-[44px] items-center gap-1.5 bg-transparent px-1 py-1 font-semibold transition-colors",
           onColor
             ? "text-white hover:text-white/90"
-            : "text-muted hover:text-foreground",
+            : framed
+              ? "text-foreground"
+              : "text-muted hover:text-foreground",
           pending && "opacity-60"
         )}
       >
-        <LocaleFlag locale={active} className="w-5 shrink-0" />
-        <span>{compact ? shortLabel[active] : LOCALE_LABELS[active]}</span>
-        <ChevronDown
-          className={cn("size-3.5 transition-transform", open && "rotate-180")}
-        />
+        <span
+          className={cn(
+            "inline-flex items-center gap-1.5",
+            framed && "border-border rounded-control border px-2.5 py-1.5"
+          )}
+        >
+          <LocaleFlag locale={active} className="w-5 shrink-0" />
+          <span>{compact ? shortLabel[active] : LOCALE_LABELS[active]}</span>
+          <ChevronDown
+            className={cn(
+              "size-3.5 transition-transform",
+              framed && "text-muted",
+              open && "rotate-180"
+            )}
+          />
+        </span>
       </button>
 
       {open && pos && (

@@ -27,6 +27,9 @@ function CustomerSignupInner() {
   const t = useTranslations("auth");
   const params = useSearchParams();
   const refCode = params.get("ref") ?? "";
+  // Carte fidélité scannée sur la landing /c/<code> : proposée à la liaison
+  // juste après la création du compte (étape jamais bloquante).
+  const cardCode = params.get("card") ?? "";
   const rawNext = params.get("next") ?? "";
   const next =
     rawNext.startsWith("/") && !rawNext.startsWith("//") ? rawNext : "/";
@@ -81,7 +84,7 @@ function CustomerSignupInner() {
     >
       {/* Inscription STEP-BY-STEP (3 étapes, wizard partagé) — la phrase de
           transmission du téléphone au commerçant a été RETIRÉE. */}
-      <CustomerSignupWizard next={next} refCode={refCode} />
+      <CustomerSignupWizard next={next} refCode={refCode} cardCode={cardCode} />
     </AuthScreen>
   );
 }

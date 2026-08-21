@@ -5,6 +5,9 @@
    ne garde plus que les COMPORTEMENTS : keyframes, remaps de compatibilité,
    utilitaires de zone sûre. Aucun token ne se déclare hors design-tokens.css. */
 @import "./design-tokens.css";
+/* Thème « bold minimalism » en évaluation — SCOPÉ à [data-theme-mono], donc
+   inerte partout ailleurs. Écran de validation : /preview-mono. */
+@import "./theme-mono.css";
 
 * {
   border-color: var(--color-border);

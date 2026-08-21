@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { PhoneField } from "@/components/ui/phone-field";
 import { PasswordInput } from "@/components/ui/password-input";
 import { ReferralCodeField } from "@/components/customer/referral/referral-code-field";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import {
   StepWizardStyle,
   StepWizardHeader,
@@ -36,9 +37,13 @@ const STEPS: StepKey[] = ["identite", "acces", "confirm"];
 export function CustomerSignupWizard({
   next,
   refCode,
+  cardCode = "",
 }: {
   next: string;
   refCode: string;
+  /** Carte fidélité venue de la landing /c/<code> (pré-remplit l'étape
+   *  post-inscription — jamais bloquante). */
+  cardCode?: string;
 }) {
   const t = useTranslations("auth");
   const [state, formAction, pending] = useActionState(
@@ -91,6 +96,9 @@ export function CustomerSignupWizard({
     >
       <StepWizardStyle />
       <input type="hidden" name="next" value={next} />
+      <input type="hidden" name="loyalty_card" value={cardCode} />
+      {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+      <TurnstileField />
 
       <StepWizardHeader
         title={meta[active].title}

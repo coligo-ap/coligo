@@ -15,6 +15,7 @@ import {
   StepWizardStyle,
   makeWizardKeyDown,
 } from "@/components/shared/step-wizard";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import { cn } from "@/lib/utils";
 import {
   chauffeurLogout,
@@ -159,6 +160,8 @@ export function ChauffeurSignupForm({
         className="space-y-3"
       >
         <StepWizardStyle />
+        {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+        <TurnstileField />
         <StepWizardHeader
           title={META[active].title}
           subtitle={META[active].subtitle}

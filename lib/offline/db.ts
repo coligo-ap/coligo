@@ -16,8 +16,14 @@
 import Dexie, { type Table } from "dexie";
 import type { OrderStatus, OrderWithItems } from "@/lib/types";
 
-/** Type d'action différée. Reste minimaliste : seulement ce qui est offline. */
-export type PendingActionType = "update_status" | "validate_pickup";
+/** Type d'action différée. Reste minimaliste : seulement ce qui est offline.
+ *  Fidélité (SPEC 2.5) : seuls les CRÉDITS se mettent en file — les
+ *  déductions exigent la connexion (anti double-dépense) et ne passent
+ *  JAMAIS par ici. */
+export type PendingActionType =
+  | "update_status"
+  | "validate_pickup"
+  | "loyalty_credit";
 
 /** Statut local d'une action dans la file. */
 export type PendingActionStatus = "queued" | "syncing" | "failed";
@@ -37,7 +43,20 @@ export type ValidatePickupPayload = {
   confirmReady?: boolean;
 };
 
-export type PendingActionPayload = UpdateStatusPayload | ValidatePickupPayload;
+/** Payload d'une action `loyalty_credit` (crédit fidélité en caisse). */
+export type LoyaltyCreditQueuePayload = {
+  /** Identifiant scanné (coligo:user:…, URL /c/…, ou code carte 16 car.). */
+  identifier: string;
+  /** Montant de l'achat déclaré par le caissier (DA). */
+  purchaseDa: number;
+  /** Commande Coligo rattachée (cas combiné 2.4), sinon null. */
+  orderId?: string | null;
+};
+
+export type PendingActionPayload =
+  | UpdateStatusPayload
+  | ValidatePickupPayload
+  | LoyaltyCreditQueuePayload;
 
 /** Une ligne de la file d'actions différées. */
 export type PendingAction = {

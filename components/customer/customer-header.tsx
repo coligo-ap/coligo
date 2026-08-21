@@ -103,7 +103,9 @@ export function CustomerHeader({
       <header
         className={cn(
           "sticky top-0 z-30 pt-[env(safe-area-inset-top)]",
-          themed ? "text-white" : "border-border border-b bg-white"
+          // Téléphone : le filet est INSÉRÉ dans la barre (maquette v2), il ne
+          // touche pas les bords — il est rendu sous la rangée mobile.
+          themed ? "text-white" : "border-border bg-white lg:border-b"
         )}
         style={tp ? { backgroundColor: tp.g1 } : undefined}
       >
@@ -260,7 +262,7 @@ export function CustomerHeader({
               ref={sideStartRef}
               className="flex shrink-0 items-center gap-2"
             >
-              <LanguageSwitcher compact onColor={themed} />
+              <LanguageSwitcher compact framed={!themed} onColor={themed} />
             </div>
 
             {/* CENTRE — l'emplacement, posé en absolu entre les deux blocs
@@ -350,13 +352,16 @@ export function CustomerHeader({
               >
                 <ShoppingCart className="size-[18px]" />
                 {cartCount > 0 && (
-                  <span className="bg-success-600 text-nano absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 font-bold text-white">
+                  <span className="bg-primary-600 text-nano absolute -top-0.5 -right-0.5 inline-flex h-4 min-w-[16px] items-center justify-center rounded-full border-2 border-white px-1 font-bold text-white">
                     {cartCount}
                   </span>
                 )}
               </Link>
             </div>
           </div>
+          {/* Filet INSÉRÉ (maquette v2) : il s'arrête aux gouttières de la
+              page, il ne file pas d'un bord à l'autre. */}
+          {!themed && <div className="border-border mx-4 border-b" />}
           {/* Search bar mobile : retirée du header — désormais sur la home
               (sticky sous le header). */}
         </div>

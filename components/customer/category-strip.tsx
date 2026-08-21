@@ -19,10 +19,12 @@ import {
 // =============================================================================
 
 /** Libellé court pour une tuile : on garde le 1er segment ("Supérette /
- *  Épicerie" → "Supérette" ; "مخبزة / حلويات" → "مخبزة"). */
+ *  Épicerie" → "Supérette" ; "مخبزة / حلويات" → "مخبزة"). On ne coupe QUE sur
+ *  « / » et le tiret cadratin : couper sur le trait d'union amputait
+ *  « Fast-food / Restauration rapide » en « Fast ». */
 function shortLabel(code: string, locale: string): string {
   const full = getCategoryLabel(code, locale);
-  return full.split(/[/–-]/)[0].trim();
+  return full.split(/[/–]/)[0].trim();
 }
 
 /**
@@ -117,7 +119,7 @@ export function CategoryStrip({
               label={
                 db
                   ? (locale === "ar" ? db.labelAr : db.label)
-                      .split(/[/–-]/)[0]
+                      .split(/[/–]/)[0]
                       .trim()
                   : shortLabel(c.name, locale)
               }

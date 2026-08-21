@@ -20,6 +20,14 @@ const nextConfig: NextConfig = {
       "./node_modules/tesseract.js/**",
       "./node_modules/tesseract.js-core/**",
     ],
+    // Assets de marque embarqués dans le PDF des cartes fidélité (lus par fs
+    // au runtime — le traçage statique ne voit pas les fichiers de public/) :
+    // fonds dégradés des modèles, logotype FR+AR, « بطاقة الوفاء ».
+    "/api/pdf/cartes-fidelite/**": ["./public/brand/**"],
+    // Flyers publicitaires : captures app, accroches darija, logos stores.
+    "/api/pdf/flyer/**": ["./public/brand/**"],
+    // Carte de visite : fond violet, logotype, police du titre.
+    "/api/pdf/carte-visite/**": ["./public/brand/**"],
   },
   // …et les binaires onnxruntime des AUTRES plateformes (222 Mo sur 259) sont
   // exclus, sinon la fonction dépasse la limite Vercel de 250 Mo (vécu :
@@ -32,6 +40,34 @@ const nextConfig: NextConfig = {
       "./node_modules/onnxruntime-node/bin/napi-v6/win32/**",
       "./node_modules/onnxruntime-node/bin/napi-v6/linux/arm64/**",
     ],
+  },
+  // ── En-têtes de sécurité (toutes les routes) ──────────────────────────────
+  // Statiques, aucun coût runtime. Pas de CSP stricte ici : GA4, Tawk,
+  // Firebase et Turnstile exigeraient un audit nonce complet — chantier séparé.
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: [
+          // HTTPS forcé 2 ans, sous-domaines inclus (commercant., admin.…).
+          {
+            key: "Strict-Transport-Security",
+            value: "max-age=63072000; includeSubDomains",
+          },
+          // Anti-clickjacking : personne ne met Coligo dans une iframe.
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+          // Le navigateur ne « devine » jamais un type MIME (uploads servis).
+          { key: "X-Content-Type-Options", value: "nosniff" },
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+          // Capteurs limités à NOTRE origine (QR scanner, IDV, géoloc, vocal).
+          {
+            key: "Permissions-Policy",
+            value:
+              "camera=(self), microphone=(self), geolocation=(self), payment=(self)",
+          },
+        ],
+      },
+    ];
   },
   // /search → / (la recherche vit sur l'accueil). Redirection HTTP RÉELLE,
   // AVANT tout rendu : l'ancienne page qui faisait redirect() pendant le

@@ -145,6 +145,23 @@ export function formatDayCardParts(
   return { top, num: String(date.getDate()) };
 }
 
+/**
+ * Date + heure COMPLÈTES d'un événement passé — « 1 août 2026 · 17h06 »
+ * (ar : « 1 أوت 2026 · 17:06 »). Pour la ligne « Commandée le » du détail de
+ * commande. Fuseau ALGER forcé (UTC+1 sans DST, décalage manuel + getUTC*) :
+ * cette chaîne se rend CÔTÉ SERVEUR, où Vercel tourne en UTC — `getHours()`
+ * y donnerait une heure décalée d'une heure.
+ */
+export function formatOrderDateTime(date: Date, locale: Loc = "fr"): string {
+  const d = new Date(date.getTime() + 3600_000); // Alger = UTC+1, sans DST
+  const ar = isAr(locale);
+  const months = ar ? MONTHS_AR : MONTHS_FR;
+  const h = d.getUTCHours().toString().padStart(2, "0");
+  const m = d.getUTCMinutes().toString().padStart(2, "0");
+  const day = `${d.getUTCDate()} ${months[d.getUTCMonth()]} ${d.getUTCFullYear()}`;
+  return ar ? `${day} · ${h}:${m}` : `${day} · ${h}h${m}`;
+}
+
 // -----------------------------------------------------------------------------
 // Compositions prêtes à l'emploi.
 // -----------------------------------------------------------------------------

@@ -269,6 +269,102 @@ export const RECRUTE_HERO_GRADIENTS = {
   ambre: { g1: WARNING[700], g2: WARNING[600], g3: "#7c2d12", glow: "#f7bf4f" },
 } as const;
 
+/**
+ * Palette DOCUMENTS — cartes de FIDÉLITÉ physiques (PDF d'impression 85,6 ×
+ * 54 mm + aperçus de la console admin, lib/loyalty/card-templates.ts).
+ * Valeurs FIGÉES : des cartes déjà imprimées circulent — ne pas retoucher un
+ * modèle existant, en AJOUTER un.
+ */
+/** Flyers publicitaires imprimés (lib/marketing/flyer-pdf.ts) : stops du
+ *  dégradé de fond + formes flottantes roses — mêmes familles que la marque. */
+export const FLYER = {
+  g1: PRIMARY[900],
+  g2: PRIMARY[700],
+  g3: PRIMARY[600],
+  g4: ACCENT[500],
+  shape1: ACCENT[300],
+  shape2: ACCENT[500],
+  /** Châssis du mockup téléphone (presque noir, teinté violet). */
+  phoneFrame: "#120d1f",
+} as const;
+
+/** MODÈLES de flyers (choix console admin) — chaque thème = un dégradé de
+ *  fond + une paire de teintes pour les formes flottantes. */
+export const FLYER_THEMES = {
+  violet: {
+    label: "Violet Coligo",
+    g1: FLYER.g1,
+    g2: FLYER.g2,
+    g3: FLYER.g3,
+    g4: FLYER.g4,
+    shape1: FLYER.shape1,
+    shape2: FLYER.shape2,
+  },
+  rose: {
+    label: "Rose énergie",
+    g1: ACCENT[900],
+    g2: ACCENT[700],
+    g3: ACCENT[500],
+    g4: PRIMARY[500],
+    shape1: PRIMARY[300],
+    shape2: PRIMARY[500],
+  },
+  nuit: {
+    label: "Nuit premium",
+    g1: "#0e0620",
+    g2: PRIMARY[800],
+    g3: PRIMARY[600],
+    g4: ACCENT[600],
+    shape1: ACCENT[400],
+    shape2: ACCENT[600],
+  },
+} as const;
+
+export type FlyerThemeKey = keyof typeof FLYER_THEMES;
+
+export const LOYALTY_CARD = {
+  /** Modules du QR : VIOLET de marque sur panneau blanc (maquette 11482). */
+  qrInk: PRIMARY[600],
+  /** Panneau du QR (papier). */
+  paper: INK.white,
+  /** Pilules translucides posées sur la carte (« CARTE FIDÉLITÉ »…). */
+  pillOnDark: "rgba(255,255,255,.16)",
+  pillOnLight: "rgba(108,43,217,.08)",
+  /** Badges stores du verso (App Store / Google Play) — noir profond. */
+  badgeInk: "#0a0a0f",
+  // Chaque modèle = STOPS du dégradé diagonal (135°, g1 → g2 → g3) — les MÊMES
+  // teintes que les PNG public/brand/loyalty-card-bg-<clé>.png (générés une
+  // fois, embarqués dans le PDF et affichés en aperçu console).
+  violet: {
+    g1: PRIMARY[900],
+    g2: PRIMARY[600],
+    g3: ACCENT[500],
+    text: INK.white,
+    subtext: "#e9dffb",
+  },
+  nuit: {
+    g1: "#0e0620",
+    g2: PRIMARY[800],
+    g3: ACCENT[600],
+    text: INK.white,
+    subtext: "#cdbdeb",
+  },
+  clair: {
+    g1: INK.white,
+    g2: PRIMARY[50],
+    g3: PRIMARY[100],
+    text: "#1a1030",
+    subtext: "#6b7080",
+  },
+  rose: {
+    g1: ACCENT[800],
+    g2: ACCENT[500],
+    g3: ACCENT[400],
+    text: INK.white,
+    subtext: "#ffe0ec",
+  },
+} as const;
+
 /** Durées et courbes de mouvement (miroir de `--duration-*` / `--ease-*`). */
 export const MOTION = {
   fast: 160,

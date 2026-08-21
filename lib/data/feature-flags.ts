@@ -27,6 +27,7 @@ export type FeatureKey =
   | "barcode_merchant"
   | "identity_verification"
   | "referral"
+  | "loyalty"
   | "shared_cart"
   | "intl_card"
   | "wheel"
@@ -66,6 +67,7 @@ export const FEATURE_KEYS: FeatureKey[] = [
   "barcode_merchant",
   "identity_verification",
   "referral",
+  "loyalty",
   "shared_cart",
   "intl_card",
   "wheel",

@@ -27,6 +27,7 @@ import { getCurrentCustomerFull } from "@/lib/auth/customer";
 import { InstallAppBanner } from "@/components/shared/install-app-banner";
 import { CustomerShell } from "@/components/customer/customer-shell";
 import { CategoryStrip } from "@/components/customer/category-strip";
+import { CategoryFamilyPills } from "@/components/customer/category-family-pills";
 import { HomeFilterPills } from "@/components/customer/home-filter-pills";
 import { LocationAutoDetect } from "@/components/customer/location-auto-detect";
 import { LocationBanner } from "@/components/customer/location-banner";
@@ -194,6 +195,11 @@ export default async function CustomerHomePage() {
               onHero={appTheme.marketplaceHero && appTheme.heroCategories}
             />
           </div>
+
+          {/* Sous-filtres de l'UNIVERS ouvert depuis l'accueil (mig 0463) :
+              Burgers · Pizza · Tacos · Sandwichs… ou Supérette · Fruits &
+              Légumes · Boulangerie… Rien n'est rendu hors d'une famille. */}
+          <CategoryFamilyPills />
 
           {/* Pilules de filtres : Tous / Livraison / Express / Mieux notés.
               Le filtre ACTIF se voit par sa COULEUR (pilule pleine, tuile

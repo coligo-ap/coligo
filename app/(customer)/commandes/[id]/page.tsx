@@ -695,19 +695,24 @@ export default async function CustomerOrderDetailPage({
                 value={order.pickup_code}
                 size={92}
                 fullValue={order.pickup_code}
+                // Bouton « Agrandir » EXPLICITE : le scan est fait par un
+                // TIERS (livreur/commerçant), le geste ne doit pas se deviner
+                // derrière la seule pastille d'angle. Plein écran = QR 288 px
+                // + le code en gros juste dessous.
+                expandLabel={t("enlargeQr")}
                 caption={
                   isDelivery
                     ? t("codeScanHintDriver")
                     : t("codeScanHintMerchant")
                 }
               />
+              {/* « Touche le QR pour l'agrandir » a sauté : le bouton
+                  « Agrandir le QR » juste à gauche dit déjà le geste — deux
+                  fois la même consigne, c'est du bruit. */}
               <p className="text-primary-700/90 text-label font-semibold">
                 {isDelivery
                   ? t("codeScanHintDriver")
                   : t("codeScanHintMerchant")}
-                <span className="text-caption mt-1 block font-bold opacity-80">
-                  {t("tapToEnlarge")}
-                </span>
               </p>
             </div>
           </div>
@@ -802,6 +807,22 @@ export default async function CustomerOrderDetailPage({
               <span className="tabular-nums">
                 {formatDA(order.delivery_fee_da)}
               </span>
+            </div>
+          )}
+          {/* Soldes DÉDUITS (cashback / Coligo Pay utilisés au paiement) :
+              sans ces lignes, un reçu passe de « Sous-total 1 170 DA » à
+              « Total 0 DA » sans rien expliquer — le client croit à une
+              erreur. Chaque dinar entre le sous-total et le total est tracé. */}
+          {cashbackUsed > 0 && (
+            <div className="text-success-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
+              <span>{t("cashbackUsed")}</span>
+              <span className="tabular-nums">− {formatDA(cashbackUsed)}</span>
+            </div>
+          )}
+          {topupUsed > 0 && (
+            <div className="text-success-700 text-body-sm flex items-baseline justify-between py-1 font-semibold">
+              <span>{t("topupUsed")}</span>
+              <span className="tabular-nums">− {formatDA(topupUsed)}</span>
             </div>
           )}
           {order.cashback_estimate_da > 0 && (

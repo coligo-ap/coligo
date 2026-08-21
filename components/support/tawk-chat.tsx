@@ -2,6 +2,7 @@
 
 import { useEffect } from "react";
 import { usePathname } from "next/navigation";
+import { SupportSheet } from "./support-sheet";
 
 /**
  * Intégration Tawk.to (live chat support GRATUIT) — TOUS les espaces : CLIENT,
@@ -228,14 +229,28 @@ function applyContext(w: TawkWindow, opts?: OpenSupportOptions) {
  * Tawk_API.onLoad. Si Tawk est déjà chargé, `onReady` est appelé tout de suite.
  * N'injecte rien si PROPERTY_ID est absent.
  */
-function ensureTawkScript(w: TawkWindow, onReady: () => void): void {
-  if (!PROPERTY_ID) return;
+function ensureTawkScript(
+  w: TawkWindow,
+  onReady: () => void,
+  onFail?: () => void
+): void {
+  if (!PROPERTY_ID) {
+    onFail?.();
+    return;
+  }
   w.Tawk_API = w.Tawk_API || {};
-  if (w.__tawkLoaded) {
+  // `__tawkLoaded` n'est posé QUE quand le widget est réellement prêt (onLoad
+  // de Tawk), pas au chargement du fichier : le script est un simple
+  // chargeur, il télécharge ensuite ses propres bundles. Se fier au onload du
+  // <script> faisait croire le chat prêt alors que `maximize` n'existait pas.
+  if (w.__tawkLoaded && typeof w.Tawk_API.maximize === "function") {
     onReady();
     return;
   }
-  w.Tawk_API.onLoad = onReady;
+  w.Tawk_API.onLoad = () => {
+    w.__tawkLoaded = true;
+    onReady();
+  };
   if (document.getElementById("tawk-embed")) return; // chargement déjà en cours
   w.Tawk_LoadStart = new Date();
   const s = document.createElement("script");
@@ -243,75 +258,178 @@ function ensureTawkScript(w: TawkWindow, onReady: () => void): void {
   s.async = true;
   s.src = `https://embed.tawk.to/${PROPERTY_ID}/${WIDGET_ID}`;
   s.charset = "UTF-8";
-  s.setAttribute("crossorigin", "*");
-  s.onload = () => {
-    w.__tawkLoaded = true;
+  // PAS d'attribut `crossorigin` : l'extrait officiel de Tawk pose
+  // `crossorigin="*"`, qui n'est pas une valeur valide (seules « anonymous »
+  // et « use-credentials » le sont) et bascule le chargement en mode CORS. La
+  // moindre réponse sans en-tête `Access-Control-Allow-Origin` — page d'erreur
+  // Cloudflare, cache CDN sans `Vary: Origin` — fait alors ÉCHOUER le script,
+  // et le bouton support ne faisait plus rien du tout. Un script tiers se
+  // charge sans CORS.
+  s.onerror = () => {
+    // Bloqué (403 Cloudflare, bloqueur de pub, réseau d'entreprise, hors
+    // ligne) : on le sait tout de suite et l'appelant propose l'e-mail.
+    document.getElementById("tawk-embed")?.remove();
+    onFail?.();
   };
   document.body.appendChild(s);
 }
 
+/** Événement d'ouverture de la feuille support (écouté par <SupportSheet>). */
+export const SUPPORT_OPEN_EVENT = "coligo:support:open";
+
 /**
- * Ouvre le chat support. Charge Tawk À LA DEMANDE s'il ne l'est pas encore
- * (jamais au chargement de page). Repli e-mail si Tawk n'est pas configuré.
+ * URL du chat Tawk INTÉGRABLE (« Direct Chat Link ») — la même conversation
+ * que le widget, mais servie comme une page autonome qu'on peut poser dans une
+ * iframe À NOUS.
+ *
+ * Pourquoi pas le widget : `Tawk_API.maximize()` ouvre sur téléphone une
+ * fenêtre PLEIN ÉCRAN qui recouvre l'app (barre du bas comprise) et casse la
+ * superposition — l'utilisateur sort visuellement de Coligo. Ici le chat vit
+ * DANS notre feuille : l'app reste visible derrière, la nav reste accessible.
+ * Bonus : cette URL n'est pas soumise au chargement de script tiers qui se
+ * fait bloquer (403 Cloudflare, bloqueurs), donc le chat marche là où le
+ * widget échouait.
+ */
+export function tawkChatUrl(opts?: OpenSupportOptions): string | null {
+  if (!PROPERTY_ID) return null;
+  const base = `https://tawk.to/chat/${PROPERTY_ID}/${WIDGET_ID}`;
+  // La page popout de Tawk lit `?tags=` et les repasse à `addTags()` : c'est
+  // le seul canal de contexte disponible en mode intégré (le JS API du widget
+  // ne s'applique pas à cette page). On y met de quoi router et prioriser la
+  // conversation sans que le client ait à se présenter.
+  const tags = [
+    opts?.priority === "urgent" ? "🔴 URGENT" : null,
+    ctx ? ROLE_LABEL[ctx.role] : null,
+    opts?.subject ?? null,
+    opts?.orderRef ? `Commande ${opts.orderRef}` : null,
+  ].filter(Boolean) as string[];
+  if (!tags.length) return base;
+  return `${base}?tags=${encodeURIComponent(tags.join(","))}`;
+}
+
+/**
+ * OUVRE LE SUPPORT — point d'entrée unique de toute l'app (des dizaines de
+ * boutons l'appellent). Depuis le 12/08/2026 il n'ouvre plus la fenêtre Tawk
+ * en aveugle : il ouvre NOTRE feuille (contexte rappelé, sujet à qualifier,
+ * canaux), d'où part ensuite le chat ou l'e-mail.
+ *
+ * Pourquoi : Tawk est un tiers qui peut être bloqué (403 Cloudflare, bloqueur
+ * de pub, réseau d'entreprise, hors ligne). Dans ce cas le bouton ne faisait
+ * RIEN — aucun retour, aucune alternative. Désormais il se passe TOUJOURS
+ * quelque chose, et le repli e-mail garde tout le contexte.
  */
 export function openSupportChat(opts?: OpenSupportOptions): void {
   if (typeof window === "undefined") return;
+  window.dispatchEvent(
+    new CustomEvent(SUPPORT_OPEN_EVENT, { detail: opts ?? {} })
+  );
+}
+
+/** Délai au-delà duquel on considère que le chat ne s'ouvrira pas. */
+const TAWK_TIMEOUT_MS = 9_000;
+
+/**
+ * Lance le CHAT EN DIRECT (Tawk) avec tout le contexte. Rappelle `done(true)`
+ * quand la fenêtre est réellement ouverte, `done(false)` si c'est impossible
+ * (non configuré, script bloqué, délai dépassé) — l'appelant bascule alors sur
+ * l'e-mail. Utilisé par <SupportSheet>.
+ */
+export function startTawkChat(
+  opts: OpenSupportOptions | undefined,
+  done: (ok: boolean) => void
+): void {
+  if (typeof window === "undefined") return done(false);
   const w = window as TawkWindow;
 
-  // 1) Déjà chargé → on pose le contexte complet + on ouvre directement.
-  if (w.__tawkLoaded && typeof w.Tawk_API?.maximize === "function") {
+  const openNow = (): boolean => {
     try {
       applyContext(w, opts);
-      w.Tawk_API.showWidget?.();
-      w.Tawk_API.maximize();
-      return;
+      w.Tawk_API?.showWidget?.();
+      w.Tawk_API?.maximize?.();
+      return true;
     } catch {
-      /* repli ci-dessous */
+      return false;
     }
+  };
+
+  // 1) Déjà prêt → on ouvre tout de suite.
+  if (w.__tawkLoaded && typeof w.Tawk_API?.maximize === "function") {
+    return done(openNow());
   }
 
-  // 2) Pas encore chargé mais Tawk configuré → on charge MAINTENANT, puis on
-  //    ouvre la fenêtre dès que prêt (onLoad). Le lanceur flottant reste masqué.
-  if (PROPERTY_ID) {
-    ensureTawkScript(w, function () {
-      try {
-        applyContext(w, opts);
-        w.Tawk_API?.showWidget?.();
-        w.Tawk_API?.maximize?.();
-      } catch {
-        /* ignore */
-      }
-    });
-    // Hors mode lanceur : réduire le chat → re-masquer la bulle (zéro résidu).
-    // En mode lanceur (espaces client/commerçant), la bulle DOIT rester visible.
-    if (!w.__tawkLauncher) {
-      w.Tawk_API = w.Tawk_API || {};
-      w.Tawk_API.onChatMinimized = function () {
-        try {
-          w.Tawk_API?.hideWidget?.();
-        } catch {
-          /* ignore */
-        }
-      };
-    }
-    return;
-  }
+  if (!PROPERTY_ID) return done(false);
 
-  // 3) Tawk non configuré → repli e-mail (sujet pré-rempli avec le contexte).
+  // 2) Chargement à la demande, BORNÉ : sans échéance, un script qui ne
+  //    répond jamais laissait le client sur un bouton qui tourne dans le vide.
+  let settled = false;
+  const finish = (ok: boolean) => {
+    if (settled) return;
+    settled = true;
+    window.clearTimeout(timer);
+    done(ok);
+  };
+  const timer = window.setTimeout(() => finish(false), TAWK_TIMEOUT_MS);
+
+  ensureTawkScript(
+    w,
+    () => finish(openNow()),
+    () => finish(false)
+  );
+
+  // Réduire le chat → re-masquer la bulle : aucun résidu flottant à l'écran
+  // (règle produit : le chat est ON-DEMAND, jamais de bulle permanente).
+  w.Tawk_API = w.Tawk_API || {};
+  w.Tawk_API.onChatMinimized = function () {
+    try {
+      w.Tawk_API?.hideWidget?.();
+    } catch {
+      /* ignore */
+    }
+  };
+}
+
+/**
+ * Lien `mailto:` de repli, sujet ET corps pré-remplis avec TOUT le contexte
+ * (rôle, identité, page, commande, attributs métier) — l'agent reçoit par
+ * e-mail exactement ce qu'il aurait vu dans Tawk. `null` si aucune adresse
+ * n'est configurée.
+ */
+export function supportMailto(opts?: OpenSupportOptions): string | null {
   const mail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL;
-  if (mail) {
-    const role = ctx ? ROLE_LABEL[ctx.role] : "Coligo";
-    const bits = [
-      opts?.priority === "urgent" ? "URGENT" : null,
-      role,
-      opts?.subject ?? null,
-      opts?.orderRef ? `Commande ${opts.orderRef}` : null,
-    ].filter(Boolean);
-    const subject = bits.length
-      ? `[${bits.join(" · ")}] Aide Coligo`
-      : "Aide Coligo";
-    window.location.href = `mailto:${mail}?subject=${encodeURIComponent(subject)}`;
-  }
+  if (!mail) return null;
+  const role = ctx ? ROLE_LABEL[ctx.role] : "Coligo";
+  const bits = [
+    opts?.priority === "urgent" ? "URGENT" : null,
+    role,
+    opts?.subject ?? null,
+    opts?.orderRef ? `Commande ${opts.orderRef}` : null,
+  ].filter(Boolean);
+  const subject = bits.length
+    ? `[${bits.join(" · ")}] Aide Coligo`
+    : "Aide Coligo";
+
+  const lines: string[] = [
+    "",
+    "",
+    "— Informations transmises automatiquement —",
+  ];
+  const info = cleanAttrs({
+    Rôle: role,
+    Nom: ctx?.name,
+    "E-mail": ctx?.email,
+    Téléphone: ctx?.phone,
+    Page:
+      typeof window !== "undefined"
+        ? friendlyPage(window.location.pathname)
+        : undefined,
+    Sujet: opts?.subject,
+    Commande: opts?.orderRef,
+    ...(ctx?.attributes ?? {}),
+    ...(opts?.attributes ?? {}),
+  });
+  for (const [k, v] of Object.entries(info)) lines.push(`${k} : ${v}`);
+
+  return `mailto:${mail}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(lines.join("\n"))}`;
 }
 
 /**
@@ -381,8 +499,13 @@ export function TawkChat({
       if (w.__tawkLoaded) applyContext(w);
     }
     // attrKey couvre les changements d'`attributes` (objet littéral).
+    // attrKey couvre les changements d'`attributes` (objet littéral).
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role, name, email, phone, attrKey]);
+
+  // La feuille support est montée ICI : <TawkChat> est déjà présent dans les
+  // 5 espaces (client, livreur, chauffeur, commerçant, agent), donc tous
+  // héritent de la même porte d'entrée sans montage supplémentaire.
 
   // Mode LANCEUR : charge Tawk en différé (idle) et gère sa visibilité par route.
   // La bulle est masquée sur les écrans où elle gênerait (checkout, course).
@@ -420,5 +543,5 @@ export function TawkChat({
     return () => window.clearTimeout(t);
   }, [launcher, pathname, hideOnPaths]);
 
-  return null;
+  return <SupportSheet />;
 }

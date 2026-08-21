@@ -30,6 +30,7 @@
 import {
   getDB,
   isOfflineStorageAvailable,
+  type LoyaltyCreditQueuePayload,
   type PendingAction,
   type UpdateStatusPayload,
   type ValidatePickupPayload,
@@ -40,6 +41,7 @@ import {
   validatePickupCode,
   type PickupValidationResult,
 } from "@/app/(merchant)/orders/actions";
+import { creditLoyaltyResilient } from "@/app/(merchant)/orders/loyalty-actions";
 
 const MAX_ATTEMPTS = 3;
 
@@ -105,7 +107,15 @@ export type EnqueueResult =
 
 export type ActionInput =
   | { type: "update_status"; orderId: string; to: OrderStatus }
-  | { type: "validate_pickup"; code: string; confirmReady?: boolean };
+  | { type: "validate_pickup"; code: string; confirmReady?: boolean }
+  // Crédit fidélité (SPEC 2.5) : rejouable — idempotent côté serveur via
+  // client_operation_id. Les DÉDUCTIONS ne passent JAMAIS par la file.
+  | {
+      type: "loyalty_credit";
+      identifier: string;
+      purchaseDa: number;
+      orderId?: string | null;
+    };
 
 /**
  * Point d'entrée unique pour les actions résilientes.
@@ -162,11 +172,22 @@ async function enqueueAction(
             orderId: input.orderId,
             to: input.to,
           } satisfies UpdateStatusPayload)
-        : ({
-            code: input.code,
-            confirmReady: input.confirmReady ?? false,
-          } satisfies ValidatePickupPayload),
-    orderId: input.type === "update_status" ? input.orderId : null,
+        : input.type === "loyalty_credit"
+          ? ({
+              identifier: input.identifier,
+              purchaseDa: input.purchaseDa,
+              orderId: input.orderId ?? null,
+            } satisfies LoyaltyCreditQueuePayload)
+          : ({
+              code: input.code,
+              confirmReady: input.confirmReady ?? false,
+            } satisfies ValidatePickupPayload),
+    orderId:
+      input.type === "update_status"
+        ? input.orderId
+        : input.type === "loyalty_credit"
+          ? (input.orderId ?? null)
+          : null,
     createdAt: Date.now(),
     status: "queued",
     attempts: 0,
@@ -188,6 +209,17 @@ async function execActionOnServer(
   if (input.type === "update_status") {
     return updateOrderStatus(input.orderId, input.to, operationId);
   }
+  if (input.type === "loyalty_credit") {
+    // Résultat structurellement compatible ({error, success, stale} + data) :
+    // un échec MÉTIER porte stale:true → jeté proprement, jamais rejoué ;
+    // une erreur RÉSEAU throw → retry borné comme les autres actions.
+    return creditLoyaltyResilient(
+      input.identifier,
+      input.purchaseDa,
+      operationId,
+      input.orderId ?? null
+    );
+  }
   // validate_pickup
   return validatePickupCode(input.code, operationId, {
     confirmReady: input.confirmReady ?? false,
@@ -198,6 +230,15 @@ function actionAsInput(action: PendingAction): ActionInput {
   if (action.type === "update_status") {
     const p = action.payload as UpdateStatusPayload;
     return { type: "update_status", orderId: p.orderId, to: p.to };
+  }
+  if (action.type === "loyalty_credit") {
+    const p = action.payload as LoyaltyCreditQueuePayload;
+    return {
+      type: "loyalty_credit",
+      identifier: p.identifier,
+      purchaseDa: p.purchaseDa,
+      orderId: p.orderId ?? null,
+    };
   }
   const p = action.payload as ValidatePickupPayload;
   return {

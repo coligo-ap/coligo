@@ -13,7 +13,19 @@ import {
   normalizeAlgerianPhone,
 } from "@/lib/validation/customer-auth";
 import { firstZodError } from "@/lib/validation/auth";
+import {
+  rateHit,
+  logSecurityEvent,
+  formatRetryDelay,
+} from "@/lib/security/rate-limit";
+import { getClientIp } from "@/lib/security/request-context";
+import {
+  verifyTurnstileToken,
+  honeypotTripped,
+  TURNSTILE_FIELD,
+} from "@/lib/security/turnstile";
 import { attachReferralForNewCustomer } from "@/lib/referral/attach";
+import { getFeatureFlags } from "@/lib/data/feature-flags";
 import {
   listPublicMerchants,
   getPromoLabelsByMerchant,
@@ -95,6 +107,33 @@ export async function customerLogin(
     return { error: "Email ou mot de passe incorrect" };
   }
 
+  // Anti-abus (mig 0452) : plafond par IP + verrou par identifiant qui ne
+  // compte que les ÉCHECS (peek avant tentative, hit après échec).
+  const loginIp = await getClientIp();
+  const ipGate = await rateHit("login_ip", `customer:${loginIp}`, 30, 600);
+  if (!ipGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "login_ip",
+      subject: "customer",
+      path: "/se-connecter",
+    });
+    return {
+      error: `Trop de tentatives. Réessaie dans ${formatRetryDelay(ipGate.retryAfterSeconds)}.`,
+    };
+  }
+  const failGate = await rateHit(
+    "login_fail",
+    `customer:${emailLc}`,
+    10,
+    900,
+    0
+  );
+  if (!failGate.allowed) {
+    return {
+      error: `Trop de tentatives pour ce compte. Réessaie dans ${formatRetryDelay(failGate.retryAfterSeconds)}.`,
+    };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signInWithPassword({
     email: parsed.data.email,
@@ -102,6 +141,7 @@ export async function customerLogin(
   });
   if (error) {
     if (error.message.includes("Invalid login credentials")) {
+      await rateHit("login_fail", `customer:${emailLc}`, 10, 900);
       return { error: "Email ou mot de passe incorrect" };
     }
     if (error.message.includes("Email not confirmed")) {
@@ -153,12 +193,49 @@ export async function customerSignup(
     return { error: "Adresse email invalide." };
   }
 
+  // ── Anti-bot / anti-abus (mig 0452) ────────────────────────────────────────
+  // 1. Honeypot : champ invisible que seuls les robots remplissent.
+  if (honeypotTripped(formData)) {
+    await logSecurityEvent("honeypot", { path: "/inscription" });
+    return { error: "Inscription impossible. Réessaie plus tard." };
+  }
+  // 2. Plafonds par IP — généreux (CGNAT mobile algérien : une IP publique est
+  //    partagée par des milliers d'abonnés), mais fatals pour un script.
+  const signupIp = await getClientIp();
+  const [hourGate, dayGate] = await Promise.all([
+    rateHit("signup_ip_h", signupIp, 20, 3600),
+    rateHit("signup_ip_d", signupIp, 60, 86400),
+  ]);
+  if (!hourGate.allowed || !dayGate.allowed) {
+    await logSecurityEvent("rate_limited", {
+      bucket: "signup_ip",
+      subject: "customer",
+      path: "/inscription",
+    });
+    const retry = Math.max(
+      hourGate.retryAfterSeconds,
+      dayGate.retryAfterSeconds
+    );
+    return {
+      error: `Trop d'inscriptions depuis ce réseau. Réessaie dans ${formatRetryDelay(retry)}.`,
+    };
+  }
+  // 3. Captcha Turnstile (actif dès que les clés sont posées, sinon dormant).
+  const captcha = await verifyTurnstileToken(
+    formData.get(TURNSTILE_FIELD),
+    signupIp
+  );
+  if (!captcha.ok) {
+    return { error: "Vérification anti-robot échouée. Réessaie." };
+  }
+
   const supabase = await createClient();
   const { data, error } = await supabase.auth.signUp({
     email: parsed.data.email,
     password: parsed.data.password,
     options: {
       data: { role: "customer", full_name: parsed.data.full_name },
+      captchaToken: captcha.token ?? undefined,
     },
   });
   if (error) {
@@ -216,6 +293,18 @@ export async function customerSignup(
   if (data.session) {
     const next = safeNextPath(formData.get("next"));
     revalidatePath("/", "layout");
+    // Étape fidélité POST-inscription (SPEC-FIDELITE 3.1) — jamais bloquante
+    // (« Passer » aussi visible que « Scanner »), et seulement une fois la
+    // fonctionnalité lancée : tant que le drapeau `loyalty` n'est pas
+    // « active », le parcours reste STRICTEMENT identique.
+    const flags = await getFeatureFlags();
+    if (flags.loyalty.status === "active") {
+      const rawCard = String(formData.get("loyalty_card") ?? "").trim();
+      redirect(
+        `/inscription/carte?next=${encodeURIComponent(next)}` +
+          (rawCard ? `&code=${encodeURIComponent(rawCard)}` : "")
+      );
+    }
     redirect(next);
   }
 

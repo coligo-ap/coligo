@@ -203,6 +203,24 @@ export const ADMIN_NAV: AdminNavDomain[] = [
         ],
       },
       {
+        label: "Fidélité",
+        items: [
+          {
+            href: "/admin/merchants/fidelite",
+            label: "Fidélité",
+            icon: Gift,
+            keywords: [
+              "carte",
+              "cashback",
+              "bons",
+              "paliers",
+              "bornes",
+              "loyalty",
+            ],
+          },
+        ],
+      },
+      {
         label: "Contenu",
         items: [
           {
@@ -505,6 +523,19 @@ export const ADMIN_NAV: AdminNavDomain[] = [
             label: "Story",
             icon: Share2,
             keywords: ["partage", "réseaux", "viral", "instagram", "design"],
+          },
+          {
+            href: "/admin/marketing/flyers",
+            label: "Flyers",
+            icon: ImageIcon,
+            keywords: [
+              "flyer",
+              "imprimé",
+              "pub",
+              "distribution",
+              "commerçant",
+              "pdf",
+            ],
           },
           {
             href: "/admin/marketing/roue",

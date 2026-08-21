@@ -72,3 +72,6 @@ store-assets/*.png
 # Clés de signature (App Store Connect…) — JAMAIS versionnées
 .secrets/
 store-assets/ios/*.png
+store-assets/asc/
+store-assets/play-7/
+store-assets/play-10/

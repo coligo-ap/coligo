@@ -12,8 +12,30 @@
 
 import { isNative } from "./context";
 
-/** `unknown` = impossible à déterminer sans demander (Safari ancien). */
-export type GeoPermission = "granted" | "denied" | "prompt" | "unknown";
+/**
+ * `unknown` = impossible à déterminer sans demander (Safari ancien).
+ * `off` = le SERVICE de localisation du téléphone est éteint (état système,
+ * pas une permission) — connu INSTANTANÉMENT en natif, voir ci-dessous.
+ */
+export type GeoPermission = "granted" | "denied" | "prompt" | "unknown" | "off";
+
+/**
+ * Le plugin natif (v7) REJETTE `checkPermissions()`/`requestPermissions()`
+ * avec « Location services are not enabled. » (code OS-PLUG-GLOC-0007) quand
+ * le service de localisation SYSTÈME est coupé — iOS comme Android. C'est une
+ * information, pas une panne : la reconnaître permet d'afficher l'écran
+ * « activez la localisation » IMMÉDIATEMENT au lieu d'attendre l'échec de
+ * plusieurs tentatives de fix.
+ */
+export function isLocationServicesOffError(err: unknown): boolean {
+  const msg = String(
+    (err as { message?: string; errorMessage?: string })?.message ??
+      (err as { errorMessage?: string })?.errorMessage ??
+      err ??
+      ""
+  );
+  return /location services/i.test(msg) || msg.includes("OS-PLUG-GLOC-0007");
+}
 
 /** Lit la permission SANS prompt. Ne throw jamais. */
 export async function readGeoPermission(): Promise<GeoPermission> {
@@ -30,7 +52,10 @@ export async function readGeoPermission(): Promise<GeoPermission> {
       if (p.location === "denied" && p.coarseLocation === "denied")
         return "denied";
       return "prompt";
-    } catch {
+    } catch (err) {
+      // Service système éteint : le plugin le dit tout de suite — le remonter
+      // tel quel, l'appelant peut réagir sans brûler des tentatives de fix.
+      if (isLocationServicesOffError(err)) return "off";
       return "unknown";
     }
   }
@@ -64,7 +89,10 @@ export async function requestGeoPermission(): Promise<GeoPermission> {
       if (p.location === "granted" || p.coarseLocation === "granted")
         return "granted";
       return "denied";
-    } catch {
+    } catch (err) {
+      // Service éteint ≠ refus : l'écran à montrer n'est pas le même
+      // (réglages de POSITION, pas la fiche des autorisations).
+      if (isLocationServicesOffError(err)) return "off";
       return "denied";
     }
   }

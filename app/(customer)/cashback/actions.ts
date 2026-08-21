@@ -32,14 +32,22 @@ export type CreateTopupResult =
   | { ok: true; checkout_url: string; checkout_id: string }
   | { ok: false; error: string; code?: "limit_reached" | "below_min" };
 
+// Taille de page des historiques client : 20 (PAGINATION OBLIGATOIRE — règle
+// produit : on ne télécharge jamais tout l'historique d'un coup). ⚠️ fichier
+// "use server" : pas d'export const possible — la même valeur 20 vit côté
+// clients (loaders) dans leur constante HISTORY_PAGE.
+
 /**
- * Historique cashback du client connecté, pour le loader client TanStack
- * (pattern OrdersLoader / ColigoPayLoader). Le solde, lui, vient du cache
- * partagé `wallet-balances` (WalletBalanceValue). Ré-authentifié côté serveur
- * (RLS) ; seules les écritures source='cashback' du client sont renvoyées.
+ * Historique cashback du client connecté, PAGINÉ, pour le loader client
+ * TanStack (useInfiniteQuery). Le solde, lui, vient du cache partagé
+ * `wallet-balances` (WalletBalanceValue). Ré-authentifié côté serveur (RLS) ;
+ * seules les écritures source='cashback' du client sont renvoyées.
  */
-export async function fetchCashbackHistory(): Promise<CustomerWalletEntry[]> {
-  return getMyCashbackHistory(100);
+export async function fetchCashbackHistory(
+  page = 0
+): Promise<CustomerWalletEntry[]> {
+  const p = Math.max(0, Math.floor(page));
+  return getMyCashbackHistory(20, p * 20);
 }
 
 /**
@@ -340,6 +348,180 @@ export async function createCustomerTopupIntlPayment(
           ? `Recharge indisponible : ${e.message}`
           : "Recharge indisponible.",
     };
+  }
+}
+
+/* ───────────────────────── FIDÉLITÉ EN MAGASIN (SPEC-FIDELITE Phase 3) ─────
+   Soldes CLOISONNÉS par commerçant (grand livre dédié, mig 0453+). Toutes les
+   règles vivent dans les RPC SECURITY DEFINER — ici on ne fait que ré-authentifier
+   et typer. RPC hors types générés → bind obligatoire. */
+
+export type LoyaltyVoucherLite = {
+  id: string;
+  amount_da: number;
+  expires_at: string;
+};
+
+export type LoyaltyAccountSummary = {
+  balance_da: number;
+  available_da: number;
+  vouchers: LoyaltyVoucherLite[];
+  progress: {
+    spent_da: number;
+    threshold_da: number;
+    reward_da: number;
+    remaining_da: number;
+  } | null;
+};
+
+export type LoyaltyAccountCard = {
+  merchant_id: string;
+  merchant_name: string;
+  merchant_slug: string | null;
+  merchant_logo: string | null;
+  program: {
+    enabled: boolean;
+    earn_rate_pct: number | string;
+    tier_threshold_da: number | null;
+    tier_reward_da: number | null;
+  } | null;
+  summary: LoyaltyAccountSummary;
+};
+
+export type LoyaltyLinkedCard = {
+  id: string;
+  code_masked: string;
+  status: "printed" | "activated" | "linked" | "blocked";
+  merchant_name: string | null;
+};
+
+export type LoyaltyOverview = {
+  handle: string | null;
+  accounts: LoyaltyAccountCard[];
+  cards: LoyaltyLinkedCard[];
+};
+
+type LoyaltyRpcRow = Record<string, unknown>;
+
+async function loyaltyRpc(
+  fn: string,
+  args: Record<string, unknown>
+): Promise<LoyaltyRpcRow | LoyaltyRpcRow[] | null> {
+  const supabase = await createClient();
+  const call = supabase.rpc.bind(supabase) as unknown as (
+    fn: string,
+    args: Record<string, unknown>
+  ) => Promise<{
+    data: LoyaltyRpcRow | LoyaltyRpcRow[] | null;
+    error: { message: string } | null;
+  }>;
+  const { data, error } = await call(fn, args);
+  if (error) throw new Error("network");
+  return data;
+}
+
+/** Vue d'ensemble « Cashback & Fidélité » : une carte-magasin par commerçant. */
+export async function fetchLoyaltyOverview(): Promise<LoyaltyOverview> {
+  if (!(await getAuthUser())) return { handle: null, accounts: [], cards: [] };
+  try {
+    const data = (await loyaltyRpc("my_loyalty_overview", {})) as {
+      handle?: string | null;
+      accounts?: LoyaltyAccountCard[];
+      cards?: LoyaltyLinkedCard[];
+    } | null;
+    return {
+      handle: data?.handle ?? null,
+      accounts: data?.accounts ?? [],
+      cards: data?.cards ?? [],
+    };
+  } catch {
+    return { handle: null, accounts: [], cards: [] };
+  }
+}
+
+export type LoyaltyHistoryEntry = {
+  id: string;
+  merchant_id: string;
+  merchant_name: string;
+  type: string;
+  amount_da: number;
+  purchase_amount_da: number | null;
+  note: string | null;
+  created_at: string;
+};
+
+/** Historique des gains/utilisations (tous commerçants ou un seul), PAGINÉ
+ *  (p_offset — mig 0461) : 20 lignes par page, jamais tout d'un coup. */
+export async function fetchLoyaltyHistory(
+  merchantId?: string | null,
+  page = 0
+): Promise<LoyaltyHistoryEntry[]> {
+  if (!(await getAuthUser())) return [];
+  try {
+    const p = Math.max(0, Math.floor(page));
+    const data = await loyaltyRpc("my_loyalty_history", {
+      p_merchant_id: merchantId ?? null,
+      p_limit: 20,
+      p_offset: p * 20,
+    });
+    return (Array.isArray(data) ? data : []) as LoyaltyHistoryEntry[];
+  } catch {
+    return [];
+  }
+}
+
+export type LinkCardResult = {
+  ok: boolean;
+  code?: string;
+  already?: boolean;
+  moved?: {
+    merchant_id: string;
+    merchant_name: string;
+    amount_da: number;
+    vouchers: number;
+  }[];
+  bonus_da?: number;
+  bonus_merchant?: string | null;
+};
+
+/**
+ * Liaison d'une carte physique au compte (onboarding ET section fidélité) :
+ * transfert des soldes/bons/progression + bonus éventuel — tout est atomique
+ * et idempotent côté RPC. Une carte ne se lie qu'à UN seul compte.
+ */
+export async function linkLoyaltyCard(
+  cardCode: string
+): Promise<LinkCardResult> {
+  if (!(await getAuthUser())) return { ok: false, code: "not_customer" };
+  try {
+    const data = (await loyaltyRpc("loyalty_link_card", {
+      p_card_code: cardCode,
+      p_client_operation_id: globalThis.crypto.randomUUID(),
+    })) as LoyaltyRpcRow | null;
+    if (!data || data.ok !== true) {
+      return { ok: false, code: String(data?.error ?? "network") };
+    }
+    return data as unknown as LinkCardResult & { ok: true };
+  } catch {
+    return { ok: false, code: "network" };
+  }
+}
+
+/** Blocage d'une carte LIÉE (perte/vol) — le solde reste sur le compte. */
+export async function blockLoyaltyCard(
+  cardId: string
+): Promise<{ ok: boolean; code?: string }> {
+  if (!(await getAuthUser())) return { ok: false, code: "not_customer" };
+  try {
+    const data = (await loyaltyRpc("my_loyalty_block_card", {
+      p_card_id: cardId,
+    })) as LoyaltyRpcRow | null;
+    if (!data || data.ok !== true) {
+      return { ok: false, code: String(data?.error ?? "network") };
+    }
+    return { ok: true };
+  } catch {
+    return { ok: false, code: "network" };
   }
 }
 

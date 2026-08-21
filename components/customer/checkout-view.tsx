@@ -1352,7 +1352,7 @@ export function CheckoutView({
               subLabel={t("cashbackAvailable")}
               amountLabel={formatDA(ctx.cashback_balance_da)}
               savePillText={t("cashbackSavePill")}
-              href="/cashback"
+              href="/cashback?tab=cashback"
               checked={useCashback}
               onToggle={() => toggleWallet("cashback")}
               delay={0.16}

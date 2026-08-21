@@ -17,6 +17,7 @@ import {
 } from "@/components/customer/drive/drive-modals";
 import {
   canOpenAppSettings,
+  getNativePlatform,
   openAppSettings,
   openLocationSettings,
 } from "@/lib/native";
@@ -122,19 +123,37 @@ export function LocationRequiredScreen({
       );
 
   // Étapes écrites — seul recours quand aucun bouton ne peut ouvrir les
-  // réglages (web, ou APK antérieur au plugin).
+  // réglages (web, ou binaire antérieur au plugin). Les chemins de menus
+  // diffèrent : iPhone (Réglages › Coligo) vs Android (Applications › Coligo).
+  const isIos = getNativePlatform() === "ios";
   const steps = serviceOff
-    ? [
-        tr("Ouvrez les Réglages du téléphone", "افتح إعدادات الهاتف"),
-        tr("Position (ou Localisation)", "الموقع (أو تحديد الموقع)"),
-        tr("Activez la position", "فعّل الموقع"),
-      ]
-    : [
-        tr("Ouvrez les Réglages du téléphone", "افتح إعدادات الهاتف"),
-        tr("Applications › Coligo", "التطبيقات › كوليغو"),
-        tr("Autorisations › Position", "الأذونات › الموقع"),
-        tr("Choisissez « Toujours autoriser »", "اختر « السماح دائمًا »"),
-      ];
+    ? isIos
+      ? [
+          tr("Ouvrez les Réglages de l'iPhone", "افتح إعدادات الآيفون"),
+          tr("Confidentialité et sécurité", "الخصوصية والأمان"),
+          tr("Service de localisation › Activez", "خدمات الموقع › فعّلها"),
+        ]
+      : [
+          tr("Ouvrez les Réglages du téléphone", "افتح إعدادات الهاتف"),
+          tr("Position (ou Localisation)", "الموقع (أو تحديد الموقع)"),
+          tr("Activez la position", "فعّل الموقع"),
+        ]
+    : isIos
+      ? [
+          tr("Ouvrez les Réglages de l'iPhone", "افتح إعدادات الآيفون"),
+          // La fiche Réglages porte le nom d'AFFICHAGE du bundle : « Coligo ».
+          tr("Coligo › Position", "كوليغو › الموقع"),
+          tr(
+            "Choisissez « Lors de l'utilisation de l'app »",
+            "اختر « أثناء استخدام التطبيق »"
+          ),
+        ]
+      : [
+          tr("Ouvrez les Réglages du téléphone", "افتح إعدادات الهاتف"),
+          tr("Applications › Coligo", "التطبيقات › كوليغو"),
+          tr("Autorisations › Position", "الأذونات › الموقع"),
+          tr("Choisissez « Toujours autoriser »", "اختر « السماح دائمًا »"),
+        ];
 
   return (
     // z-[200] : au-dessus de la carte (z-[80..95]) et des bandeaux (z-[120..140]),

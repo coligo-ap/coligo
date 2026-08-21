@@ -27,7 +27,7 @@ export async function qrSvg(
   opts?: { margin?: number }
 ): Promise<string> {
   const { MultiFormatWriter, BarcodeFormat, EncodeHintType } =
-    await import("@zxing/library");
+    await loadZxing();
   const hints = new Map<EncodeHintTypeEnum, number>();
   hints.set(EncodeHintType.MARGIN, opts?.margin ?? 2);
 
@@ -67,12 +67,24 @@ export async function qrSvg(
  * où l'on dessine chaque module en carré (cf. `render-ticket-canvas.ts`).
  * Même encodage que `qrSvg` (zxing, quiet-zone incluse via MARGIN).
  */
+/**
+ * Interop CJS/ESM : sous Next (webpack) l'import dynamique expose les exports
+ * nommés directement ; sous Node pur (bancs `--experimental-strip-types`,
+ * scripts/test-loyalty-pdf.mjs) ils vivent sous `.default`. Même objet dans
+ * les deux cas — on prend celui qui existe.
+ */
+async function loadZxing(): Promise<typeof import("@zxing/library")> {
+  const mod = await import("@zxing/library");
+  const ns = mod as unknown as { default?: typeof import("@zxing/library") };
+  return ns.default?.MultiFormatWriter ? ns.default : mod;
+}
+
 export async function qrMatrix(
   value: string,
   opts?: { margin?: number }
 ): Promise<boolean[][]> {
   const { MultiFormatWriter, BarcodeFormat, EncodeHintType } =
-    await import("@zxing/library");
+    await loadZxing();
   const hints = new Map<EncodeHintTypeEnum, number>();
   hints.set(EncodeHintType.MARGIN, opts?.margin ?? 2);
   const matrix = new MultiFormatWriter().encode(

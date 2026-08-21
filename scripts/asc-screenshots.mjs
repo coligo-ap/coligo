@@ -1,5 +1,6 @@
 // =============================================================================
-// Remplace les CAPTURES de la fiche App Store par le panorama généré.
+// Remplace les CAPTURES de la fiche App Store par le panorama généré —
+// sur TOUTES les classes d'affichage iPhone ET iPad (demande du 19/08).
 //
 // Apple impose une séquence en TROIS temps par image — on ne peut pas juste
 // « poster un fichier » :
@@ -10,8 +11,13 @@
 //      recalcule et refuse si ça ne correspond pas.
 //
 // ⚠️ CONTRAINTE APPLE : les captures ne se modifient que sur une version
-// ÉDITABLE (PREPARE_FOR_SUBMISSION). Une version déjà EN LIGNE est verrouillée.
-// Le script le vérifie et s'arrête proprement en le disant.
+// ÉDITABLE (PREPARE_FOR_SUBMISSION, WAITING_FOR_REVIEW…). Une version déjà
+// EN LIGNE est verrouillée. Le script le vérifie et s'arrête proprement.
+//
+// Les jeux par classe sont pré-déclinés (même ratio = resize, ratio différent
+// = blur-pad) dans store-assets/asc/<TYPE>/coligo_store_0X.png. Dans la
+// console : « 6,9 » = APP_IPHONE_67, « 6,3 » = APP_IPHONE_61, iPad « 13 » =
+// APP_IPAD_PRO_3GEN_129 — les classes API couvrent chaque ligne de l'UI.
 //
 // Lancer : node scripts/asc-screenshots.mjs [--create-version 1.0.1] [--dry]
 // =============================================================================
@@ -19,25 +25,54 @@ import { readFileSync, existsSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { asc } from "./_asc.mjs";
+import { asc as ascRaw } from "./_asc.mjs";
+
+// Réseau instable (coupures socket vécues le 19/08) : chaque appel API est
+// retenté 3× sur erreur RÉSEAU. Les orphelins d'une réservation dupliquée
+// sont balayés par le delete-first de chaque jeu au run suivant.
+async function asc(path, init) {
+  for (let t = 0; ; t++) {
+    try {
+      return await ascRaw(path, init);
+    } catch (e) {
+      const network =
+        e?.cause || /fetch failed|socket|timeout/i.test(String(e?.message));
+      if (t >= 2 || !network) throw e;
+      await new Promise((r) => setTimeout(r, 4000));
+    }
+  }
+}
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const BUNDLE = "app.coligo.client";
-// Apple n'accepte PAS de gabarit 6,9" par l'API : le jeu iPhone attendu est
-// `APP_IPHONE_67` (6,7"), en 1290 × 2796. Les volets sont donc redimensionnés
-// dans `store-assets/ios/` — le panorama d'origine reste en 1320 × 2868 pour
-// Google Play, qui l'accepte tel quel.
-const DISPLAY_TYPE = "APP_IPHONE_67";
+const DISPLAYS = [
+  "APP_IPHONE_67",
+  "APP_IPHONE_65",
+  "APP_IPHONE_61",
+  "APP_IPHONE_58",
+  "APP_IPHONE_55",
+  "APP_IPHONE_47",
+  "APP_IPHONE_40",
+  "APP_IPHONE_35",
+  "APP_IPAD_PRO_3GEN_129",
+  "APP_IPAD_PRO_129",
+  "APP_IPAD_PRO_3GEN_11",
+  "APP_IPAD_105",
+  "APP_IPAD_97",
+];
 const DRY = process.argv.includes("--dry");
 const createIdx = process.argv.indexOf("--create-version");
 const CREATE = createIdx > -1 ? process.argv[createIdx + 1] : null;
 
-const shots = Array.from({ length: 7 }, (_, i) =>
-  resolve(root, `store-assets/ios/coligo_store_0${i + 1}.png`)
+const shotsFor = (type) =>
+  Array.from({ length: 7 }, (_, i) =>
+    resolve(root, `store-assets/asc/${type}/coligo_store_0${i + 1}.jpg`)
+  );
+const missing = DISPLAYS.flatMap((t) => shotsFor(t)).filter(
+  (p) => !existsSync(p)
 );
-const missing = shots.filter((p) => !existsSync(p));
 if (missing.length) {
-  console.error("Captures manquantes :", missing.join(", "));
+  console.error("Captures manquantes :", missing.slice(0, 5).join(", "));
   process.exit(1);
 }
 
@@ -59,7 +94,7 @@ const EDITABLE = new Set([
   "INVALID_BINARY",
 ]);
 
-let versions = await asc(`/apps/${app.id}/appStoreVersions?limit=10`);
+const versions = await asc(`/apps/${app.id}/appStoreVersions?limit=10`);
 let version = (versions.data ?? []).find((v) =>
   EDITABLE.has(v.attributes.appStoreState)
 );
@@ -91,7 +126,7 @@ console.log(
   `Version cible : ${version.attributes.versionString} (${version.attributes.appStoreState})`
 );
 
-// ── Une langue = un jeu de captures ───────────────────────────────────────
+// ── Une langue = un jeu de captures PAR classe d'affichage ────────────────
 const locs = await asc(
   `/appStoreVersions/${version.id}/appStoreVersionLocalizations?limit=20`
 );
@@ -107,95 +142,123 @@ if (DRY) {
 
 for (const loc of locs.data ?? []) {
   const locale = loc.attributes.locale;
-  console.log(`\n── ${locale} ──`);
+  console.log(`
+── ${locale} ──`);
 
-  // Jeu de captures pour ce gabarit (créé s'il n'existe pas).
   const sets = await asc(
-    `/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=20`
+    `/appStoreVersionLocalizations/${loc.id}/appScreenshotSets?limit=50`
   );
-  let set = (sets.data ?? []).find(
-    (s) => s.attributes.screenshotDisplayType === DISPLAY_TYPE
-  );
-  if (!set) {
-    const made = await asc("/appScreenshotSets", {
-      method: "POST",
-      body: JSON.stringify({
-        data: {
-          type: "appScreenshotSets",
-          attributes: { screenshotDisplayType: DISPLAY_TYPE },
-          relationships: {
-            appStoreVersionLocalization: {
-              data: { type: "appStoreVersionLocalizations", id: loc.id },
+
+  const doDisplay = async (displayType) => {
+    // Jeu de captures pour ce gabarit (créé au besoin).
+    let set = (sets.data ?? []).find(
+      (s) => s.attributes.screenshotDisplayType === displayType
+    );
+    if (!set) {
+      const made = await asc("/appScreenshotSets", {
+        method: "POST",
+        body: JSON.stringify({
+          data: {
+            type: "appScreenshotSets",
+            attributes: { screenshotDisplayType: displayType },
+            relationships: {
+              appStoreVersionLocalization: {
+                data: { type: "appStoreVersionLocalizations", id: loc.id },
+              },
             },
           },
-        },
-      }),
-    });
-    set = made.data;
-    console.log("Jeu de captures créé.");
-  }
-
-  // On efface les anciennes : sinon elles se mélangeraient aux nouvelles.
-  const olds = await asc(
-    `/appScreenshotSets/${set.id}/appScreenshots?limit=20`
-  );
-  for (const o of olds.data ?? []) {
-    await asc(`/appScreenshots/${o.id}`, { method: "DELETE" });
-  }
-  if ((olds.data ?? []).length) {
-    console.log(`${olds.data.length} ancienne(s) capture(s) retirée(s).`);
-  }
-
-  // Puis on envoie les 7, dans l'ordre.
-  for (const [i, file] of shots.entries()) {
-    const bytes = readFileSync(file);
-    const fileName = `coligo_store_0${i + 1}.png`;
-
-    const reserved = await asc("/appScreenshots", {
-      method: "POST",
-      body: JSON.stringify({
-        data: {
-          type: "appScreenshots",
-          attributes: { fileSize: bytes.length, fileName },
-          relationships: {
-            appScreenshotSet: {
-              data: { type: "appScreenshotSets", id: set.id },
-            },
-          },
-        },
-      }),
-    });
-    const shot = reserved.data;
-
-    for (const op of shot.attributes.uploadOperations ?? []) {
-      const chunk = bytes.subarray(op.offset, op.offset + op.length);
-      const headers = Object.fromEntries(
-        (op.requestHeaders ?? []).map((h) => [h.name, h.value])
-      );
-      const put = await fetch(op.url, {
-        method: op.method,
-        headers,
-        body: chunk,
+        }),
       });
-      if (!put.ok) throw new Error(`upload ${fileName} : HTTP ${put.status}`);
+      set = made.data;
     }
 
-    const md5 = createHash("md5").update(bytes).digest("hex");
-    await asc(`/appScreenshots/${shot.id}`, {
-      method: "PATCH",
-      body: JSON.stringify({
-        data: {
-          type: "appScreenshots",
-          id: shot.id,
-          attributes: { uploaded: true, sourceFileChecksum: md5 },
-        },
-      }),
-    });
-    console.log(`  volet ${i + 1}/7 ✓ (${Math.round(bytes.length / 1024)} Ko)`);
-  }
+    // REPRISE : un jeu déjà complet en .jpg (run précédent) est sauté.
+    const olds = await asc(
+      `/appScreenshotSets/${set.id}/appScreenshots?limit=20`
+    );
+    const files = (olds.data ?? []).map((o) => o.attributes.fileName ?? "");
+    const done =
+      files.length === 7 &&
+      files.every((f) => f.endsWith(".jpg")) &&
+      (olds.data ?? []).every(
+        (o) => o.attributes.assetDeliveryState?.state === "COMPLETE"
+      );
+    if (done) {
+      console.log(`  ${displayType} : déjà complet — sauté`);
+      return;
+    }
+    for (const o of olds.data ?? []) {
+      await asc(`/appScreenshots/${o.id}`, { method: "DELETE" });
+    }
+
+    // Envoi des 7, dans l'ordre (séquentiel à l intérieur de la classe).
+    for (const [i, file] of shotsFor(displayType).entries()) {
+      const bytes = readFileSync(file);
+      const fileName = `coligo_store_0${i + 1}.jpg`;
+
+      const reserved = await asc("/appScreenshots", {
+        method: "POST",
+        body: JSON.stringify({
+          data: {
+            type: "appScreenshots",
+            attributes: { fileSize: bytes.length, fileName },
+            relationships: {
+              appScreenshotSet: {
+                data: { type: "appScreenshotSets", id: set.id },
+              },
+            },
+          },
+        }),
+      });
+      const shot = reserved.data;
+
+      for (const op of shot.attributes.uploadOperations ?? []) {
+        const chunk = bytes.subarray(op.offset, op.offset + op.length);
+        const headers = Object.fromEntries(
+          (op.requestHeaders ?? []).map((h) => [h.name, h.value])
+        );
+        let ok = false;
+        for (let t = 0; t < 3 && !ok; t++) {
+          try {
+            const put = await fetch(op.url, {
+              method: op.method,
+              headers,
+              body: chunk,
+            });
+            if (put.ok) ok = true;
+            else if (t === 2)
+              throw new Error(`upload ${fileName} : HTTP ${put.status}`);
+          } catch (e) {
+            if (t === 2) throw e;
+            await new Promise((r) => setTimeout(r, 3000));
+          }
+        }
+      }
+
+      const md5 = createHash("md5").update(bytes).digest("hex");
+      await asc(`/appScreenshots/${shot.id}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          data: {
+            type: "appScreenshots",
+            id: shot.id,
+            attributes: { uploaded: true, sourceFileChecksum: md5 },
+          },
+        }),
+      });
+    }
+    console.log(`  ${displayType} : 7 volets ✓`);
+  };
+
+  // Les 13 classes EN PARALLÈLE (réseau lent : sérialiser = des heures).
+  const results = await Promise.allSettled(DISPLAYS.map(doDisplay));
+  const fails = results.filter((r) => r.status === "rejected");
+  for (const f of fails)
+    console.error("  échec :", String(f.reason).slice(0, 160));
+  if (fails.length) process.exitCode = 1;
 }
 
 console.log(
-  "\n✅ Captures App Store remplacées. Elles seront PUBLIQUES quand la version " +
-    "sera soumise et approuvée par Apple (une version non soumise reste privée)."
+  "\n✅ Captures remplacées sur toutes les classes iPhone + iPad. Elles " +
+    "seront PUBLIQUES à l'approbation de la version."
 );

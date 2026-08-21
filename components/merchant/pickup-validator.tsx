@@ -15,6 +15,13 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { enqueueOrExecute } from "@/lib/offline/queue";
 import { QrScanner } from "@/components/scanner/qr-scanner";
+import {
+  extractLoyaltyIdentifier,
+  extractOrderRef,
+  extractPickupCode,
+} from "@/lib/merchant/scan-detect";
+import { LoyaltyPanel, loyaltyBuzz } from "@/components/merchant/loyalty-panel";
+import { OrderLoyaltyOffer } from "@/components/merchant/order-loyalty-offer";
 
 type Tab = "code" | "qr";
 /** `kind` pilote le TITRE du panneau de succès — chaque situation a son
@@ -28,45 +35,10 @@ type Result = {
   orderId?: string;
 };
 
-/**
- * Extrait un code 6 chiffres d'une string scannée. Le QR Coligo encode
- * directement les 6 chiffres ; par tolérance on accepte aussi une URL
- * legacy avec `?code=XXXXXX`. Tout autre format → `null`.
- *
- * Important : on ne fait PAS de `replace(/\D/g, "")` global sur l'input —
- * une URL avec shortRef alphanumérique (`1C747D`) contient des chiffres
- * parasites qui contamineraient le code (bug v3 résolu).
- */
-function extractPickupCode(raw: string): string | null {
-  if (typeof raw !== "string") return null;
-  const s = raw.trim();
-  if (!s) return null;
-  // Format dominant : 6 chiffres bruts (avec espaces internes tolérés)
-  if (/^[\s\d]+$/.test(s)) {
-    const digits = s.replace(/\D/g, "");
-    return digits.length >= 4 && digits.length <= 6 ? digits : null;
-  }
-  // Tolérance URL legacy : on extrait le param `code`
-  try {
-    const url = new URL(s);
-    const code = url.searchParams.get("code");
-    if (code && /^\d{4,6}$/.test(code)) return code;
-  } catch {
-    /* pas une URL valide */
-  }
-  return null;
-}
-
-/**
- * Référence publique de commande — c'est ce qu'encode le QR IMPRIMÉ sur le
- * ticket (ex. « A042 », `#` toléré). Le serveur ne validera que si une seule
- * commande retrait PRÊTE du commerçant correspond.
- */
-function extractOrderRef(raw: string): string | null {
-  if (typeof raw !== "string") return null;
-  const s = raw.trim().replace(/^#/, "").toUpperCase();
-  return /^[A-Z0-9]{2,8}$/.test(s) && /\d/.test(s) ? s : null;
-}
+// `extractPickupCode` / `extractOrderRef` vivent désormais dans
+// lib/merchant/scan-detect.ts (déplacés VERBATIM, iso-régression garantie par
+// scripts/test-scan-routing.mjs) — la détection fidélité s'insère AVANT eux
+// sans les modifier (SPEC-FIDELITE 2.1/2.2).
 
 /** Vibration courte côté commerçant (silencieux sur iOS Safari). */
 function buzz(pattern: number | number[]) {
@@ -92,6 +64,9 @@ export function PickupValidator() {
   const [tab, setTab] = useState<Tab>("qr");
   const [result, setResult] = useState<Result | null>(null);
   const [readyPrompt, setReadyPrompt] = useState<ReadyPrompt | null>(null);
+  // Carte / QR client fidélité détecté(e) : l'écran s'adapte (spec 2.1),
+  // le flux retrait ci-dessous reste STRICTEMENT inchangé.
+  const [loyaltyId, setLoyaltyId] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
   // Remonte l'onglet actif (caméra + gardes anti-doublon) après avoir fermé
   // le pop-up d'erreur : le QrScanner est `oneShot` et se fige au 1er scan,
@@ -213,12 +188,35 @@ export function PickupValidator() {
         </TabButton>
       </div>
 
-      {result?.ok ? (
-        <SuccessPanel result={result} onReset={dismissError} />
+      {loyaltyId ? (
+        <LoyaltyPanel
+          identifier={loyaltyId}
+          onClose={() => {
+            setLoyaltyId(null);
+            setScanKey((k) => k + 1);
+          }}
+        />
+      ) : result?.ok ? (
+        <>
+          <SuccessPanel result={result} onReset={dismissError} />
+          {/* Cas combiné 2.4 : après un retrait validé, crédit fidélité en un
+              tap / réduction proposée — rien ne s'affiche si non applicable. */}
+          {result.kind === "completed" && result.orderId && (
+            <OrderLoyaltyOffer orderId={result.orderId} />
+          )}
+        </>
       ) : tab === "code" ? (
         <CodeTab key={scanKey} pending={pending} onSubmit={submit} />
       ) : (
-        <QrTab key={scanKey} pending={pending} onScan={submit} />
+        <QrTab
+          key={scanKey}
+          pending={pending}
+          onScan={submit}
+          onLoyalty={(id) => {
+            loyaltyBuzz("detect");
+            setLoyaltyId(id);
+          }}
+        />
       )}
 
       {/* Pop-up d'erreur en SURIMPRESSION : les messages (« Cette commande a
@@ -474,9 +472,11 @@ function CodeTab({
 function QrTab({
   pending,
   onScan,
+  onLoyalty,
 }: {
   pending: boolean;
   onScan: (code: string) => void;
+  onLoyalty: (identifier: string) => void;
 }) {
   // On déduplique côté wrapper : QrScanner peut émettre plusieurs fois si on
   // le passe en non-oneShot ailleurs, et même en oneShot on se prémunit contre
@@ -486,6 +486,17 @@ function QrTab({
   const handleScan = useCallback(
     (text: string) => {
       if (handledRef.current) return;
+      // FIDÉLITÉ D'ABORD (espace d'identifiants DISTINCT — carte physique
+      // /c/<code>, QR client coligo:user:, code 16 car.) : détection insérée
+      // AVANT les parsings commande, qui restent inchangés (iso-régression,
+      // verrouillée par scripts/test-scan-routing.mjs). Le serveur re-vérifie
+      // tout — un QR forgé est rejeté proprement.
+      const loyalty = extractLoyaltyIdentifier(text);
+      if (loyalty) {
+        handledRef.current = true;
+        onLoyalty(loyalty);
+        return;
+      }
       // Deux QR acceptés : le QR CLIENT (code PIN 4-6 chiffres, URLs legacy
       // `?code=` tolérées) et le QR du TICKET imprimé (référence publique
       // « A042 »). (NE PAS faire un `replace(/\D/g, "")` global : un shortRef
@@ -496,13 +507,14 @@ function QrTab({
       handledRef.current = true;
       onScan(value);
     },
-    [onScan]
+    [onScan, onLoyalty]
   );
 
   return (
     <div className="border-border bg-surface rounded-lg border p-5">
       <p className="text-muted mb-4 text-center text-sm">
-        Scannez le QR du client ou celui du ticket imprimé.
+        Scannez le QR du client, le ticket imprimé ou une carte fidélité —
+        l&apos;écran s&apos;adapte tout seul.
       </p>
 
       <div className="relative">

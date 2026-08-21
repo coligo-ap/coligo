@@ -2,7 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { RotateCcw, ArrowRight, Loader2 } from "lucide-react";
+import { useTranslations } from "next-intl";
+import { RotateCcw, ArrowRight, Check, Loader2 } from "lucide-react";
 import { resolveReorder } from "@/app/(customer)/commandes/actions";
 import { addItem, clearAllCarts } from "@/lib/customer/cart-store";
 
@@ -15,6 +16,7 @@ import { addItem, clearAllCarts } from "@/lib/customer/cart-store";
  * indisponibles éventuels, jamais de toast.
  */
 export function ReorderButton({ orderId }: { orderId: string }) {
+  const t = useTranslations("orders");
   const router = useRouter();
   const [pending, start] = useTransition();
   const [error, setError] = useState<string | null>(null);
@@ -67,14 +69,13 @@ export function ReorderButton({ orderId }: { orderId: string }) {
   if (done) {
     return (
       <div className="border-success-100 bg-success-50 mt-2.5 rounded-lg border p-3.5">
-        <p className="text-success-800 text-body-sm font-bold">
-          ✓ {done.count} article{done.count > 1 ? "s" : ""} ajouté
-          {done.count > 1 ? "s" : ""} à votre panier
+        <p className="text-success-800 text-body-sm flex items-center gap-1 font-bold">
+          <Check className="size-3.5 shrink-0" strokeWidth={3} />
+          {t("reorderAdded", { count: done.count })}
         </p>
         {done.missing.length > 0 && (
           <p className="text-muted text-label mt-1 font-medium">
-            Non disponible{done.missing.length > 1 ? "s" : ""} aujourd&apos;hui
-            : {done.missing.join(", ")}
+            {t("reorderMissing", { names: done.missing.join(", ") })}
           </p>
         )}
         <button
@@ -82,7 +83,7 @@ export function ReorderButton({ orderId }: { orderId: string }) {
           onClick={() => router.push(`/m/${done.slug}`)}
           className="bg-primary-600 hover:bg-primary-700 mt-3 inline-flex h-10 w-full items-center justify-center gap-1.5 rounded-md px-4 text-sm font-bold text-white transition-colors"
         >
-          Voir le panier
+          {t("reorderViewCart")}
           <ArrowRight className="size-4 rtl:-scale-x-100" />
         </button>
       </div>
@@ -102,7 +103,7 @@ export function ReorderButton({ orderId }: { orderId: string }) {
         ) : (
           <RotateCcw className="size-4" />
         )}
-        Commander à nouveau
+        {t("reorder")}
       </button>
       {error && (
         <p className="text-danger-600 text-label-lg mt-2 text-center font-semibold">

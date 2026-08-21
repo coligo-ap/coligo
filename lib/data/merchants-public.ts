@@ -478,14 +478,40 @@ async function categoryMerchantIds(
   supabase: Awaited<ReturnType<typeof createClient>>,
   code: string
 ): Promise<string[]> {
-  const { data } = await supabase
-    .from("merchant_category_links" as never)
-    .select("merchant_id")
-    .eq("code", code)
-    .limit(2000);
-  return ((data ?? []) as unknown as { merchant_id: string }[]).map(
-    (r) => r.merchant_id
-  );
+  // FAMILLE (mig 0463) : une catégorie PARENTE agrège ses enfants — la tuile
+  // « Fast-food & Restaurants » de l'accueil remonte aussi les pizzerias, les
+  // restaurants et les filtres de plat (burgers, tacos…). Une catégorie sans
+  // enfant se comporte exactement comme avant.
+  const { data: kids } = await supabase
+    .from("merchant_categories" as never)
+    .select("code")
+    .eq("parent_code", code);
+  const codes = [
+    code,
+    ...((kids ?? []) as unknown as { code: string }[]).map((k) => k.code),
+  ];
+
+  // Deux sources RÉUNIES : les liaisons multi-catégories (mig 0312) ET la
+  // catégorie PRINCIPALE de la vitrine — sans quoi une famille ne remonterait
+  // rien tant que les liaisons ne sont pas peuplées.
+  const [byLink, byPrimary] = await Promise.all([
+    supabase
+      .from("merchant_category_links" as never)
+      .select("merchant_id")
+      .in("code", codes)
+      .limit(4000),
+    supabase.from("merchants_public").select("id").in("category", codes),
+  ]);
+  const ids = new Set<string>();
+  for (const r of (byLink.data ?? []) as unknown as {
+    merchant_id: string;
+  }[]) {
+    ids.add(r.merchant_id);
+  }
+  for (const r of (byPrimary.data ?? []) as unknown as { id: string }[]) {
+    ids.add(r.id);
+  }
+  return [...ids];
 }
 
 /** Liste les catégories distinctes parmi les vitrines actives — via les

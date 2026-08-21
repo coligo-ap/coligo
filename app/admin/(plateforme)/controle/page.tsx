@@ -96,6 +96,11 @@ const FEATURE_META: { key: FeatureKey; label: string; hint: string }[] = [
     hint: "Programme « Invite un ami » : lien /r/CODE, crédit Coligo Pay double à la 1ʳᵉ commande du filleul. Les montants et plafonds se règlent dans Marketing → Parrainage. Masqué = page client retirée + attributions gelées.",
   },
   {
+    key: "loyalty",
+    label: "Fidélité (cartes + cashback commerçant)",
+    hint: "Programme de fidélité en magasin : cartes physiques + QR client, cashback et bons cloisonnés PAR commerçant (grand livre dédié, jamais l'argent plateforme). Autre que « active » = tout mouvement fidélité refusé (trigger DB), liaison de carte gelée, section client retirée. Les bornes se règlent dans Commerçants → Fidélité.",
+  },
+  {
     key: "identity_verification",
     label: "Vérification d'identité (IDV)",
     hint: "Kill-switch du parcours automatisé document + selfie (scan, liveness, comparaison du visage). Masqué = retiré partout. Les règles par profil et les seuils se pilotent dans Confiance → Identité.",

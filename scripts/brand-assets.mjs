@@ -30,6 +30,11 @@ const SRC = {
   fr: join(PUB, "logo-coligo-FR-Bg_blanc-Ecr_Violet.png"),
   ar: join(PUB, "logo-coligo-AR-Bg_blanc-Ecr_Violet.png"),
   full: join(PUB, "logo-coligo-FRAR-complet-Bg_blanc-Ecr_Violet.png"),
+  // ICÔNE D'APP v2 (août 2026) : visuel carré COMPLET fourni par le
+  // propriétaire (fond violet, wordmark + illustrations) — remplace l'ancien
+  // « C » extrait pour TOUTES les icônes d'application (PWA, favicons,
+  // launcher Android, App Store / Play Store).
+  appViolet: join(PUB, "logo-app-coligo-v2-violet.png"),
 };
 
 /** Tous les pixels non transparents → blanc (garde l'alpha). */
@@ -178,17 +183,53 @@ async function main() {
   await save(cBuf, "icon-c.png", 512);
   await save(cWhite, "icon-c-white.png", 512);
 
-  // ── 3. Favicons / PWA (C blanc sur violet) ───────────────────────────
-  const icon = (size, ratio) => onViolet(cWhite, size, size, ratio);
-  await (await icon(512, 0.58)).toFile(join(PUB, "icon-512.png"));
-  await (await icon(192, 0.58)).toFile(join(PUB, "icon-192.png"));
-  await (await icon(512, 0.42)).toFile(join(PUB, "icon-maskable-512.png")); // safe zone maskable
-  await (await icon(180, 0.58)).toFile(join(PUB, "apple-touch-icon.png"));
-  await (await icon(32, 0.66)).toFile(join(PUB, "favicon-32.png"));
+  // ── 3. Favicons / PWA — icône d'app v2 DÉZOOMÉE (demande proprio 17/08 :
+  //       le plein-cadre + masques arrondis coupait les décors de coins et
+  //       zoomait le motif). Le visuel est posé plus petit sur un fond RACCORD
+  //       (#3A1288 = couleur EXACTE échantillonnée du fond du PNG — jamais le
+  //       violet de marque #6C2BD9, sinon un anneau visible), coins du visuel
+  //       légèrement arrondis. Un ratio PAR FORME de masque pour que TOUT le
+  //       carré reste visible, coins compris :
+  //         0.84 → squircle iOS/Play/fiches (rayon ~20 %) ;
+  //         0.56 → maskable PWA (zone sûre = cercle central 80 %) ;
+  //         0.47 → foreground adaptatif Android (cercle visible 72/108 dp :
+  //                un carré n'y tient ENTIER qu'à 72/√2 ≈ 47 % du canvas).
+  const APP_BG = { r: 0x3a, g: 0x12, b: 0x88, alpha: 1 };
+  const RATIO = { store: 0.84, maskable: 0.56, adaptiveFg: 0.47 };
+  const appIcon = async (size, artRatio) => {
+    const art = Math.max(1, Math.round(size * artRatio));
+    const r = Math.round(art * 0.06);
+    const roundMask = Buffer.from(
+      `<svg width="${art}" height="${art}"><rect width="${art}" height="${art}" rx="${r}" ry="${r}"/></svg>`
+    );
+    const artwork = await sharp(SRC.appViolet)
+      .resize(art, art, { fit: "cover" })
+      .composite([{ input: roundMask, blend: "dest-in" }])
+      .png()
+      .toBuffer();
+    return sharp({
+      create: { width: size, height: size, channels: 4, background: APP_BG },
+    })
+      .composite([{ input: artwork, gravity: "centre" }])
+      .flatten({ background: APP_BG })
+      .png({ compressionLevel: 9 });
+  };
+  await (await appIcon(512, RATIO.store)).toFile(join(PUB, "icon-512.png"));
+  await (await appIcon(192, RATIO.store)).toFile(join(PUB, "icon-192.png"));
+  await (
+    await appIcon(512, RATIO.maskable)
+  ).toFile(join(PUB, "icon-maskable-512.png"));
+  await (
+    await appIcon(180, RATIO.store)
+  ).toFile(join(PUB, "apple-touch-icon.png"));
+  await (await appIcon(32, RATIO.store)).toFile(join(PUB, "favicon-32.png"));
 
   const icoPngs = [];
   for (const size of [16, 32, 48]) {
-    icoPngs.push({ size, buf: await (await icon(size, 0.66)).toBuffer() });
+    icoPngs.push({
+      size,
+      buf: await (await appIcon(size, RATIO.store)).toBuffer(),
+    });
   }
   await writeFile(join(PUB, "favicon.ico"), buildIco(icoPngs));
 
@@ -208,35 +249,31 @@ async function main() {
   for (const [d, launcher, fg] of densities) {
     const dir = join(RES, `mipmap-${d}`);
     await (
-      await onViolet(cWhite, launcher, launcher, 0.58)
+      await appIcon(launcher, RATIO.store)
     ).toFile(join(dir, "ic_launcher.png"));
     await (
-      await onViolet(cWhite, launcher, launcher, 0.58)
+      await appIcon(launcher, RATIO.store)
     ).toFile(join(dir, "ic_launcher_round.png"));
-    // foreground adaptive : C blanc sur transparent, safe zone ~45%
-    const mark = await sharp(cWhite)
-      .resize(Math.round(fg * 0.42), Math.round(fg * 0.42), { fit: "inside" })
-      .png()
-      .toBuffer();
-    const mm = await sharp(mark).metadata();
-    await sharp({
-      create: {
-        width: fg,
-        height: fg,
-        channels: 4,
-        background: { r: 0, g: 0, b: 0, alpha: 0 },
-      },
-    })
-      .composite([
-        {
-          input: mark,
-          top: Math.round((fg - mm.height) / 2),
-          left: Math.round((fg - mm.width) / 2),
-        },
-      ])
-      .png()
-      .toFile(join(dir, "ic_launcher_foreground.png"));
+    // Foreground adaptive : visuel DÉZOOMÉ à 47 % du canvas 108 dp — c'est le
+    // seul ratio où le carré ENTIER (décors de coins compris) tient dans le
+    // cercle visible du launcher. Le fond raccord #3A1288 remplit le reste
+    // (= values/ic_launcher_background.xml, même teinte, aucun anneau).
+    await (
+      await appIcon(fg, RATIO.adaptiveFg)
+    ).toFile(join(dir, "ic_launcher_foreground.png"));
   }
+
+  // ── 5 bis. iOS : icône App Store (universelle 1024, OPAQUE obligatoire) ─
+  const iosIcon = join(
+    ROOT,
+    "ios",
+    "App",
+    "App",
+    "Assets.xcassets",
+    "AppIcon.appiconset",
+    "AppIcon-512@2x.png"
+  );
+  await (await appIcon(1024, RATIO.store)).toFile(iosIcon);
 
   // ── 6. Android : splash screens (mêmes dimensions que l'existant) ────
   const splashTargets = [

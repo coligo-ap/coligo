@@ -22,6 +22,7 @@ import {
 import { saveSignupDraft } from "@/app/(auth)/signup/draft-actions";
 import { CategoryMultiSelect } from "@/components/merchant/settings/category-multi-select";
 import { ShopLocationPicker } from "@/components/shared/shop-location-picker";
+import { TurnstileField } from "@/components/shared/turnstile-field";
 import { APP_CONFIG } from "@/lib/config/app-config";
 import {
   ArrowRight,
@@ -276,6 +277,8 @@ export function ShopSignupWizard({ mode }: { mode: "email" | "google" }) {
     >
       {/* Jeton du brouillon : la finalisation le marque « completed ». */}
       <input type="hidden" name="draftKey" value={draftKey} />
+      {/* Anti-bot : honeypot + captcha Turnstile invisible (dormant sans clé). */}
+      <TurnstileField />
       <StepWizardStyle />
       <StepWizardHeader
         title={STEP_META[active].title}
