@@ -131,6 +131,26 @@
   --color-plain-white: #ffffff;
   --color-plain-black: #000000;
 
+  /* === Tuiles du HUB DE DÉMARRAGE (/services) — pastels FIGÉS.
+     Chaque tuile est une « surface-photo » : un socle pastel clair sur lequel
+     est posée une illustration détourée (cf. reference_image_dark_light_stage).
+     Elles ne suivent donc PAS le thème — en sombre le socle reste clair, sinon
+     l'illustration claire disparaît. Encres figées en conséquence : hub-ink =
+     valeur CLAIRE de --color-foreground, hub-ink-soft = celle de --color-muted.
+     Valeurs relevées sur la maquette « Photo v2 accueil » du propriétaire. */
+  --color-hub-rides: #ece3f6;
+  --color-hub-grocery: #eaf3e1;
+  --color-hub-food: #fdeedf;
+  --color-hub-loyalty: #ede1f8;
+  --color-hub-loyalty-2: #e6d5f7;
+  --color-hub-login: #f1ecfb;
+  --color-hub-orders: #ffefdf;
+  --color-hub-favs: #fde5e5;
+  --color-hub-partners: #101e2c;
+  --color-hub-partners-2: #16283a;
+  --color-hub-ink: #1a1a2e;
+  --color-hub-ink-soft: #6b6b80;
+
   /* Neutres (gris du kit) */
   --color-background: #ffffff;
   --color-surface: #ffffff;

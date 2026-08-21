@@ -40,7 +40,6 @@
   "components/customer/checkout-ui.tsx": 2,
   "components/customer/checkout-view.tsx": 3,
   "components/customer/coligo-pay-loader.tsx": 3,
-  "components/customer/customer-bottom-nav.tsx": 1,
   "components/customer/customer-delivery-map.tsx": 1,
   "components/customer/drive/carpool-view.tsx": 24,
   "components/customer/drive/ch-avatar.tsx": 2,

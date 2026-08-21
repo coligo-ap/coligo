@@ -28,6 +28,8 @@ export type ClientCategory = {
   showMarketplace: boolean;
   /** Proposée à l'inscription / réglages commerçant. */
   showSignup: boolean;
+  /** Famille parente (mig 0463) — pilote la rangée de pilules du marketplace. */
+  parentCode: string | null;
 };
 
 const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c, i) => ({
@@ -41,6 +43,7 @@ const FALLBACK: ClientCategory[] = MERCHANT_CATEGORIES.map((c, i) => ({
   position: (i + 1) * 10,
   showMarketplace: true,
   showSignup: true,
+  parentCode: null,
 }));
 
 let cache: ClientCategory[] | null = null;
@@ -71,7 +74,7 @@ export function useCategories(): ClientCategory[] {
     void supabase
       .from("merchant_categories" as never)
       .select(
-        "code, label, label_ar, emoji, image_url, status, position, kind, show_marketplace, show_signup"
+        "code, label, label_ar, emoji, image_url, status, position, kind, show_marketplace, show_signup, parent_code"
       )
       .order("position", { ascending: true })
       .then(({ data }) => {
@@ -86,6 +89,7 @@ export function useCategories(): ClientCategory[] {
           kind: string;
           show_marketplace: boolean;
           show_signup: boolean;
+          parent_code: string | null;
         }[];
         if (list.length === 0) return; // repli statique conservé
         cache = list.map((r) => ({
@@ -102,6 +106,7 @@ export function useCategories(): ClientCategory[] {
           position: Number(r.position ?? 0),
           showMarketplace: r.show_marketplace !== false,
           showSignup: r.show_signup !== false,
+          parentCode: r.parent_code ?? null,
         }));
         setRows(cache);
       });
